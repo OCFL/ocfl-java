@@ -1,0 +1,15 @@
+module edu.wisc.library.ocfl.core {
+
+    exports edu.wisc.library.ocfl.core;
+    exports edu.wisc.library.ocfl.core.model;
+    exports edu.wisc.library.ocfl.core.util;
+
+    requires edu.wisc.library.ocfl.api;
+    requires com.fasterxml.jackson.annotation;
+    requires com.fasterxml.jackson.core;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.datatype.jsr310;
+    requires org.apache.commons.codec;
+    requires org.slf4j;
+
+}
