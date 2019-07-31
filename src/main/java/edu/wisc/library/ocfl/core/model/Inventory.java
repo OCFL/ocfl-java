@@ -21,7 +21,7 @@ public class Inventory {
     private String head;
     private String contentDirectory;
 
-    private Map<String, Map<String, Set<String>>> fixity;
+    private Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
     private Map<String, Set<String>> manifest;
     private Map<String, Version> versions;
 
@@ -87,11 +87,11 @@ public class Inventory {
     /**
      * Contains the fixity information for all of the files that are part of the object.
      */
-    public Map<String, Map<String, Set<String>>> getFixity() {
+    public Map<DigestAlgorithm, Map<String, Set<String>>> getFixity() {
         return fixity;
     }
 
-    public Inventory setFixity(Map<String, Map<String, Set<String>>> fixity) {
+    public Inventory setFixity(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
         this.fixity = Enforce.notNull(fixity, "fixity cannot be null");
         return this;
     }
@@ -160,7 +160,7 @@ public class Inventory {
     }
 
     public void addFixityForFile(String path, DigestAlgorithm algorithm, String value) {
-        fixity.computeIfAbsent(algorithm.getValue(), k -> new HashMap<String, Set<String>>())
+        fixity.computeIfAbsent(algorithm, k -> new HashMap<>())
             .computeIfAbsent(value, k -> new HashSet<>()).add(path);
     }
 
