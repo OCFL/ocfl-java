@@ -22,9 +22,6 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflRepository.class);
 
-    private static final String INVENTORY_FILE = "inventory.json";
-    private static final String INVENTORY_SIDECAR_PREFIX = "inventory.json.";
-
     private OcflStorage storage;
     private ObjectMapper objectMapper;
     private Path workDir;
@@ -53,6 +50,7 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.notNull(path, "path cannot be null");
 
         // TODO handle race conditions
+        // TODO what about across processes?
 
         var inventory = storage.loadInventory(objectId);
 
@@ -189,12 +187,12 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private void writeInventory(Inventory inventory, Path tempDir) {
         try {
-            var inventoryPath = tempDir.resolve(INVENTORY_FILE);
+            var inventoryPath = tempDir.resolve(OcflConstants.INVENTORY_FILE);
             objectMapper.writeValue(inventoryPath.toFile(), inventory);
             String inventoryDigest = computeDigest(inventoryPath, inventory.getDigestAlgorithm());
             Files.writeString(
-                    tempDir.resolve(INVENTORY_SIDECAR_PREFIX + inventory.getDigestAlgorithm().getValue()),
-                    inventoryDigest + "\t" + INVENTORY_FILE);
+                    tempDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getValue()),
+                    inventoryDigest + "\t" + OcflConstants.INVENTORY_FILE);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
