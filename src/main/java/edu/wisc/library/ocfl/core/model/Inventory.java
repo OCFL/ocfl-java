@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.OcflConstants;
 
 import java.util.*;
 
@@ -10,19 +11,17 @@ import java.util.*;
  */
 public class Inventory {
 
-    private static final String DEFAULT_CONTENT_DIR = "content";
-
     private String id;
     private InventoryType type;
     private DigestAlgorithm digestAlgorithm;
-    private String head;
+    private VersionId head;
     private String contentDirectory;
 
     // The digest map should be a TreeMap with case insensitive ordering
     private Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
     // This should be a TreeMap with case insensitive ordering
     private Map<String, Set<String>> manifest;
-    private Map<String, Version> versions;
+    private Map<VersionId, Version> versions;
 
     public Inventory() {
         manifest = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -62,12 +61,12 @@ public class Inventory {
     /**
      * The version of the most recent version of the object. This is in the format of "vX" where "X" is a positive integer.
      */
-    public String getHead() {
+    public VersionId getHead() {
         return head;
     }
 
-    public Inventory setHead(String head) {
-        this.head = Enforce.notBlank(head, "head cannot be blank");
+    public Inventory setHead(VersionId head) {
+        this.head = Enforce.notNull(head, "head cannot be blank");
         return this;
     }
 
@@ -121,17 +120,17 @@ public class Inventory {
      * A map of version identifiers to the object that describes the state of the object at that version. All versions of
      * the object are represented here.
      */
-    public Map<String, Version> getVersions() {
+    public Map<VersionId, Version> getVersions() {
         return versions;
     }
 
-    public Inventory setVersions(Map<String, Version> versions) {
+    public Inventory setVersions(Map<VersionId, Version> versions) {
         this.versions = Enforce.notNull(versions, "versions cannot be null");
         return this;
     }
 
     public String getContentDirectory() {
-        return contentDirectory != null ? contentDirectory : DEFAULT_CONTENT_DIR;
+        return contentDirectory != null ? contentDirectory : OcflConstants.DEFAULT_CONTENT_DIRECTORY;
     }
 
     public Inventory setContentDirectory(String contentDirectory) {
@@ -139,8 +138,8 @@ public class Inventory {
         return this;
     }
 
-    public void addNewHeadVersion(String versionId, Version version) {
-        Enforce.notBlank(versionId, "versionId cannot be blank");
+    public void addNewHeadVersion(VersionId versionId, Version version) {
+        Enforce.notNull(versionId, "versionId cannot be null");
         Enforce.notNull(version, "version cannot be null");
 
         versions.put(versionId, version);

@@ -2,10 +2,7 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.CommitMessage;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.User;
-import edu.wisc.library.ocfl.core.model.Version;
+import edu.wisc.library.ocfl.core.model.*;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -18,9 +15,7 @@ import java.util.Set;
 
 public class InventoryUpdater {
 
-    // TODO support configuring 0-padding
     private static final String INITIAL_VERSION_ID = "v1";
-    private static final String VERSION_PREFIX = "v";
 
     private Inventory inventory;
     private Version version;
@@ -53,7 +48,7 @@ public class InventoryUpdater {
         // TODO support no-dedup?
         if (!inventory.manifestContainsId(digest)) {
             isNew = true;
-            var versionedPath = Paths.get(inventory.getHead(), inventory.getContentDirectory(), objectRelativePath.toString());
+            var versionedPath = Paths.get(inventory.getHead().toString(), inventory.getContentDirectory(), objectRelativePath.toString());
             inventory.addFileToManifest(digest, versionedPath.toString());
 
             fixityAlgorithms.forEach(fixityAlgorithm -> {
@@ -77,17 +72,13 @@ public class InventoryUpdater {
         }
     }
 
-    private String calculateVersionId() {
+    private VersionId calculateVersionId() {
         var currentVersionId = inventory.getHead();
         if (currentVersionId != null) {
-            return VERSION_PREFIX + (parseVersionNumber(currentVersionId) + 1);
+            return currentVersionId.nextVersionId();
         }
 
-        return INITIAL_VERSION_ID;
-    }
-
-    private int parseVersionNumber(String versionId) {
-        return Integer.valueOf(versionId.substring(1));
+        return VersionId.fromValue(INITIAL_VERSION_ID);
     }
 
 }

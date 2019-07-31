@@ -7,6 +7,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryType;
+import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -84,12 +85,14 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     @Override
-    public void getObject(String objectId, String versionId, Path outputPath) {
+    public void getObject(String objectId, String versionIdStr, Path outputPath) {
         Enforce.notBlank(objectId, "objectId cannot be blank");
-        Enforce.notBlank(versionId, "versionId cannot be blank");
+        Enforce.notBlank(versionIdStr, "versionId cannot be blank");
         Enforce.notNull(outputPath, "outputPath cannot be null");
         Enforce.expressionTrue(Files.exists(outputPath), outputPath, "outputPath must exist");
         Enforce.expressionTrue(Files.isDirectory(outputPath), outputPath, "outputPath must be a directory");
+
+        var versionId = VersionId.fromValue(versionIdStr);
 
         var inventory = requireInventory(objectId);
         getObjectInternal(inventory, versionId, outputPath);
@@ -129,7 +132,7 @@ public class DefaultOcflRepository implements OcflRepository {
         return stagingDir;
     }
 
-    private void getObjectInternal(Inventory inventory, String versionId, Path outputPath) {
+    private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
         var fileMap = resolveVersionContents(inventory, versionId);
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
@@ -143,7 +146,7 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    private Map<String, Set<String>> resolveVersionContents(Inventory inventory, String versionId) {
+    private Map<String, Set<String>> resolveVersionContents(Inventory inventory, VersionId versionId) {
         var manifest = inventory.getManifest();
         var version = inventory.getVersions().get(versionId);
 
