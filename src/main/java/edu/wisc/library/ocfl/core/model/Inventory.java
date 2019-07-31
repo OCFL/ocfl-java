@@ -2,10 +2,7 @@ package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * OCFL inventory object. Conforms to the OCFL spec and is intended to be used to encode and decode inventories.
@@ -21,12 +18,14 @@ public class Inventory {
     private String head;
     private String contentDirectory;
 
+    // The digest map should be a TreeMap with case insensitive ordering
     private Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
+    // This should be a TreeMap with case insensitive ordering
     private Map<String, Set<String>> manifest;
     private Map<String, Version> versions;
 
     public Inventory() {
-        manifest = new HashMap<>();
+        manifest = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         versions = new HashMap<>();
         fixity = new HashMap<>();
     }
@@ -92,7 +91,13 @@ public class Inventory {
     }
 
     public Inventory setFixity(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
-        this.fixity = Enforce.notNull(fixity, "fixity cannot be null");
+        Enforce.notNull(fixity, "fixity cannot be null");
+        this.fixity = new HashMap<>();
+        fixity.forEach((k, v) -> {
+            var treeMap = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
+            treeMap.putAll(v);
+            this.fixity.put(k, treeMap);
+        });
         return this;
     }
 
@@ -106,7 +111,9 @@ public class Inventory {
     }
 
     public Inventory setManifest(Map<String, Set<String>> manifest) {
-        this.manifest = Enforce.notNull(manifest, "manifest cannot be null");
+        Enforce.notNull(manifest, "manifest cannot be null");
+        this.manifest = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        this.manifest.putAll(manifest);
         return this;
     }
 
@@ -160,7 +167,7 @@ public class Inventory {
     }
 
     public void addFixityForFile(String path, DigestAlgorithm algorithm, String value) {
-        fixity.computeIfAbsent(algorithm, k -> new HashMap<>())
+        fixity.computeIfAbsent(algorithm, k -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
             .computeIfAbsent(value, k -> new HashSet<>()).add(path);
     }
 
