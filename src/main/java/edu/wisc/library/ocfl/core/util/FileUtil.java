@@ -9,7 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 public final class FileUtil {
@@ -109,6 +111,24 @@ public final class FileUtil {
                 LOG.warn("Failed to delete directory: {}", path, e);
             }
         }
+    }
+
+    // TODO it would be better if this returned Stream<Path>
+    public static List<Path> findFiles(Path path) {
+        var files = new ArrayList<Path>();
+
+        if (Files.isDirectory(path)) {
+            try (var paths = Files.walk(path)) {
+                paths.filter(Files::isRegularFile)
+                        .forEach(files::add);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            files.add(path);
+        }
+
+        return files;
     }
 
 

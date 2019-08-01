@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.CommitMessage;
+import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
@@ -17,7 +18,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class DefaultOcflRepository implements OcflRepository {
 
@@ -45,6 +49,7 @@ public class DefaultOcflRepository implements OcflRepository {
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
     }
 
+    @Override
     public void putObject(String objectId, Path path, CommitMessage commitMessage) {
         // TODO additional id restrictions? eg must contain at least 1 alpha numeric character, max length?
         Enforce.notBlank(objectId, "objectId cannot be blank");
@@ -66,6 +71,28 @@ public class DefaultOcflRepository implements OcflRepository {
         var stagingDir = stageNewVersion(inventory, path, commitMessage);
 
         try {
+            storage.storeNewVersion(inventory, stagingDir);
+        } catch (RuntimeException e) {
+            FileUtil.safeDeletePath(stagingDir);
+            throw e;
+        }
+    }
+
+    @Override
+    public void updateObject(String objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+        Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
+
+        var inventory = requireInventory(objectId);
+        var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms);
+        inventoryUpdater.addCommitMessage(commitMessage);
+        var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
+        var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
+
+        // TODO locking...
+        try {
+            objectUpdater.accept(new DefaultOcflObjectUpdater(inventoryUpdater, contentDir));
+            writeInventory(inventory, stagingDir);
             storage.storeNewVersion(inventory, stagingDir);
         } catch (RuntimeException e) {
             FileUtil.safeDeletePath(stagingDir);
@@ -107,20 +134,20 @@ public class DefaultOcflRepository implements OcflRepository {
         return inventory;
     }
 
-    private Path stageNewVersion(Inventory inventory, Path path, CommitMessage commitMessage) {
+    private Path stageNewVersion(Inventory inventory, Path sourcePath, CommitMessage commitMessage) {
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
-        var inventoryUpdater = InventoryUpdater.newVersion(inventory);
+        var inventoryUpdater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms);
         inventoryUpdater.addCommitMessage(commitMessage);
 
-        var files = identifyFiles(path);
+        var files = FileUtil.findFiles(sourcePath);
         // TODO handle case when no files. is valid?
 
         var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
 
         for (var file : files) {
-            var relativePath = path.relativize(file);
-            var isNewFile = inventoryUpdater.addFile(file, relativePath, fixityAlgorithms);
+            var relativePath = sourcePath.relativize(file);
+            var isNewFile = inventoryUpdater.addFile(file, relativePath);
 
             if (isNewFile) {
                 FileUtil.copyFileMakeParents(file, contentDir.resolve(relativePath));
@@ -169,23 +196,6 @@ public class DefaultOcflRepository implements OcflRepository {
         });
 
         return fileMap;
-    }
-
-    private List<Path> identifyFiles(Path path) {
-        var files = new ArrayList<Path>();
-
-        if (Files.isDirectory(path)) {
-            try (var paths = Files.walk(path)) {
-                paths.filter(Files::isRegularFile)
-                        .forEach(files::add);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            files.add(path);
-        }
-
-        return files;
     }
 
     private void writeInventory(Inventory inventory, Path tempDir) {

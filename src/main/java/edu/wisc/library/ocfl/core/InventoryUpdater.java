@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.Set;
 
 public class InventoryUpdater {
@@ -20,13 +21,21 @@ public class InventoryUpdater {
     private Inventory inventory;
     private Version version;
     private DigestAlgorithm digestAlgorithm;
+    private Set<DigestAlgorithm> fixityAlgorithms;
 
-    public static InventoryUpdater newVersion(Inventory inventory) {
-        return new InventoryUpdater(inventory);
+    public static InventoryUpdater newVersionForInsert(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms) {
+        return new InventoryUpdater(inventory, fixityAlgorithms);
     }
 
-    private InventoryUpdater(Inventory inventory) {
+    public static InventoryUpdater newVersionForUpdate(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms) {
+        var updater = new InventoryUpdater(inventory, fixityAlgorithms);
+        updater.copyOverPreviousVersionState();
+        return updater;
+    }
+
+    private InventoryUpdater(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
+        this.fixityAlgorithms = fixityAlgorithms != null ? fixityAlgorithms : new HashSet<>();
         this.digestAlgorithm = inventory.getDigestAlgorithm();
 
         this.version = new Version()
@@ -41,7 +50,7 @@ public class InventoryUpdater {
         }
     }
 
-    public boolean addFile(Path absolutePath, Path objectRelativePath, Set<DigestAlgorithm> fixityAlgorithms) {
+    public boolean addFile(Path absolutePath, Path objectRelativePath) {
         var isNew = false;
         var digest = computeDigest(absolutePath, digestAlgorithm);
 
@@ -60,8 +69,35 @@ public class InventoryUpdater {
             });
         }
 
+        // TODO this overwrites existing files at the path. may need to implement a force flag if this behavior is not desirable
+        version.removePath(objectRelativePath.toString());
         version.addFile(digest, objectRelativePath.toString());
         return isNew;
+    }
+
+    public void removeFile(String path) {
+        version.removePath(path);
+        // TODO fail to remove non-existent file a success?
+    }
+
+    public void renameFile(String sourcePath, String destinationPath) {
+        var srcFileId = version.getFileId(sourcePath);
+
+        if (srcFileId == null) {
+            throw new IllegalArgumentException(String.format("The following path was not found in object %s: %s", inventory.getId(), sourcePath));
+        }
+
+        version.removePath(sourcePath);
+        // TODO change if we want to error on overwrite
+        version.removePath(destinationPath);
+
+        version.addFile(srcFileId, destinationPath);
+    }
+
+    private void copyOverPreviousVersionState() {
+        var previousId = inventory.getHead().previousVersionId();
+        var previousVersion = inventory.getVersions().get(previousId);
+        version.setState(previousVersion.cloneState());
     }
 
     private String computeDigest(Path path, DigestAlgorithm algorithm) {

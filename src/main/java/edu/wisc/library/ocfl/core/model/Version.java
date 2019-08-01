@@ -1,12 +1,10 @@
 package edu.wisc.library.ocfl.core.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * OCFL version object. A Version describes the state of an object at a particular point in time.
@@ -18,8 +16,12 @@ public class Version {
     private User user;
     private Map<String, Set<String>> state;
 
+    @JsonIgnore
+    private Map<String, String> reverseStateMap;
+
     public Version() {
-        state = new HashMap<>();
+        state = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        reverseStateMap = new HashMap<>();
     }
 
     /**
@@ -68,8 +70,17 @@ public class Version {
     }
 
     public Version setState(Map<String, Set<String>> state) {
-        this.state = Enforce.notNull(state, "state cannot be null");
+        Enforce.notNull(state, "state cannot be null");
+        this.state = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        this.state.putAll(state);
+        this.state.forEach((digest, paths) -> paths.forEach(path -> reverseStateMap.put(path, digest)));
         return this;
+    }
+
+    public Map<String, Set<String>> cloneState() {
+        var clone = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
+        state.forEach((k, v) -> clone.put(k, new HashSet<>(v)));
+        return clone;
     }
 
     /**
@@ -81,10 +92,33 @@ public class Version {
         Enforce.notBlank(path, "path cannot be blank");
 
         state.computeIfAbsent(id, k -> new HashSet<>()).add(path);
+        reverseStateMap.put(path, id);
         return this;
     }
 
+    public void removePath(String path) {
+        var id = reverseStateMap.remove(path);
+
+        if (id != null) {
+            var paths = state.get(id);
+            if (paths.size() == 1) {
+                state.remove(id);
+            } else {
+                paths.remove(path);
+            }
+        }
+    }
+
+    public String getFileId(String path) {
+        return reverseStateMap.get(path);
+    }
+
+    public Set<String> getPaths(String id) {
+        return state.get(id);
+    }
+
     @Override
+
     public String toString() {
         return "Version{" +
                 "created=" + created +
