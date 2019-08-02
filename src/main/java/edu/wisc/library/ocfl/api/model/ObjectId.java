@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.api;
+package edu.wisc.library.ocfl.api.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 

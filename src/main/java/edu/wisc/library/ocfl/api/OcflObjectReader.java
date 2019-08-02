@@ -1,12 +1,14 @@
 package edu.wisc.library.ocfl.api;
 
+import edu.wisc.library.ocfl.api.model.VersionDetails;
+
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
 
 public interface OcflObjectReader {
 
-    // TODO describe
+    VersionDetails describeVersion();
 
     Collection<String> listFiles();
 

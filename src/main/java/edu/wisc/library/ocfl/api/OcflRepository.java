@@ -1,5 +1,10 @@
 package edu.wisc.library.ocfl.api;
 
+import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.ObjectDetails;
+import edu.wisc.library.ocfl.api.model.ObjectId;
+import edu.wisc.library.ocfl.api.model.VersionDetails;
+
 import java.nio.file.Path;
 import java.util.function.Consumer;
 
@@ -20,9 +25,9 @@ public interface OcflRepository {
      *
      * @param objectId
      * @param path
-     * @param commitMessage
+     * @param commitInfo
      */
-    ObjectId putObject(ObjectId objectId, Path path, CommitMessage commitMessage);
+    ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo);
 
     /**
      * Updates an existing object by selectively adding and removing files and creating a new version that encapsulates
@@ -32,18 +37,20 @@ public interface OcflRepository {
      * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
      *
      * @param objectId
-     * @param commitMessage
+     * @param commitInfo
      */
-    ObjectId updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater);
+    ObjectId updateObject(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
     void getObject(ObjectId objectId, Path outputPath);
 
     void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader);
 
-    // TODO consider adding a read-write version of the updateObject/readObject APIs.
+    ObjectDetails describeObject(String objectId);
 
-    // TODO describeObject
+    VersionDetails describeVersion(ObjectId objectId);
 
     // TODO rollbackObject
+
+    // TODO consider adding a read-write version of the updateObject/readObject APIs.
 
 }
