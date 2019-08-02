@@ -1,9 +1,7 @@
 package edu.wisc.library.ocfl.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.wisc.library.ocfl.api.CommitMessage;
-import edu.wisc.library.ocfl.api.OcflObjectUpdater;
-import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.*;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
@@ -53,22 +51,24 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     @Override
-    public void putObject(String objectId, Path path, CommitMessage commitMessage) {
+    public void putObject(ObjectId objectId, Path path, CommitMessage commitMessage) {
         // TODO additional id restrictions? eg must contain at least 1 alpha numeric character, max length?
-        Enforce.notBlank(objectId, "objectId cannot be blank");
+        Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
         // It is necessary to lock at the start of an update operation so that the diffs are computed correctly
-        objectLock.doInLock(objectId, () -> {
-            var inventory = storage.loadInventory(objectId);
+        objectLock.doInLock(objectId.getObjectId(), () -> {
+            var inventory = storage.loadInventory(objectId.getObjectId());
 
             if (inventory == null) {
                 inventory = new Inventory()
-                        .setId(objectId)
+                        .setId(objectId.getObjectId())
                         .setType(inventoryType)
                         .setDigestAlgorithm(digestAlgorithm)
                         .setContentDirectory(contentDirectory);
             }
+
+            enforceObjectVersionForUpdate(objectId, inventory);
 
             var stagingDir = stageNewVersion(inventory, path, commitMessage);
 
@@ -82,15 +82,18 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     @Override
-    public void updateObject(String objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater) {
-        Enforce.notBlank(objectId, "objectId cannot be blank");
+    public void updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater) {
+        Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
         // It is necessary to lock at the start of an update operation so that the diffs are computed correctly
-        objectLock.doInLock(objectId, () -> {
+        objectLock.doInLock(objectId.getObjectId(), () -> {
             var inventory = requireInventory(objectId);
+            enforceObjectVersionForUpdate(objectId, inventory);
+
             var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms);
             inventoryUpdater.addCommitMessage(commitMessage);
+
             var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
             var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
 
@@ -106,32 +109,44 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     @Override
-    public void getObject(String objectId, Path outputPath) {
-        Enforce.notBlank(objectId, "objectId cannot be blank");
+    public void getObject(ObjectId objectId, Path outputPath) {
+        Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(outputPath, "outputPath cannot be null");
         Enforce.expressionTrue(Files.exists(outputPath), outputPath, "outputPath must exist");
         Enforce.expressionTrue(Files.isDirectory(outputPath), outputPath, "outputPath must be a directory");
 
         var inventory = requireInventory(objectId);
-        getObjectInternal(inventory, inventory.getHead(), outputPath);
-    }
 
-    @Override
-    public void getObject(String objectId, String versionIdStr, Path outputPath) {
-        Enforce.notBlank(objectId, "objectId cannot be blank");
-        Enforce.notBlank(versionIdStr, "versionId cannot be blank");
-        Enforce.notNull(outputPath, "outputPath cannot be null");
-        Enforce.expressionTrue(Files.exists(outputPath), outputPath, "outputPath must exist");
-        Enforce.expressionTrue(Files.isDirectory(outputPath), outputPath, "outputPath must be a directory");
+        requireVersion(objectId, inventory);
+        var versionId = resolveVersion(objectId, inventory);
 
-        var versionId = VersionId.fromValue(versionIdStr);
-
-        var inventory = requireInventory(objectId);
         getObjectInternal(inventory, versionId, outputPath);
     }
 
-    private Inventory requireInventory(String objectId) {
-        var inventory = storage.loadInventory(objectId);
+    @Override
+    public void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader) {
+        Enforce.notNull(objectId, "objectId cannot be null");
+        Enforce.notNull(objectReader, "objectReader cannot be null");
+
+        var inventory = requireInventory(objectId);
+
+        requireVersion(objectId, inventory);
+
+        var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
+        var versionId = resolveVersion(objectId, inventory);
+
+        try (var reader = new DefaultOcflObjectReader(
+                storage, inventory, inventory.getVersions().get(versionId), stagingDir)) {
+            objectReader.accept(reader);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            FileUtil.safeDeletePath(stagingDir);
+        }
+    }
+
+    private Inventory requireInventory(ObjectId objectId) {
+        var inventory = storage.loadInventory(objectId.getObjectId());
         if (inventory == null) {
             // TODO modeled exception
             throw new IllegalArgumentException(String.format("Object %s was not found.", objectId));
@@ -182,12 +197,6 @@ public class DefaultOcflRepository implements OcflRepository {
         var manifest = inventory.getManifest();
         var version = inventory.getVersions().get(versionId);
 
-        if (version == null) {
-            // TODO modeled exception
-            throw new IllegalArgumentException(String.format("Object %s version %s was not found.",
-                    inventory.getId(), versionId));
-        }
-
         var fileMap = new HashMap<String, Set<String>>();
 
         version.getState().forEach((id, files) -> {
@@ -221,6 +230,36 @@ public class DefaultOcflRepository implements OcflRepository {
             return Hex.encodeHexString(DigestUtils.digest(algorithm.getMessageDigest(), path.toFile()));
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void enforceObjectVersionForUpdate(ObjectId objectId, Inventory inventory) {
+        if (!objectId.isHead() && !objectId.getVersionId().equals(inventory.getHead().toString())) {
+            throw new IllegalStateException(String.format("Cannot update object %s because the HEAD version is %s, but version %s was specified.",
+                    objectId.getObjectId(), inventory.getHead(), objectId.getVersionId()));
+        }
+    }
+
+
+    private VersionId resolveVersion(ObjectId objectId, Inventory inventory) {
+        var versionId = inventory.getHead();
+
+        if (!objectId.isHead()) {
+            versionId = VersionId.fromValue(objectId.getVersionId());
+        }
+
+        return versionId;
+    }
+
+    private void requireVersion(ObjectId objectId, Inventory inventory) {
+        if (objectId.isHead()) {
+            return;
+        }
+
+        if (!inventory.getVersions().containsKey(VersionId.fromValue(objectId.getVersionId()))) {
+            // TODO modeled exception
+            throw new IllegalArgumentException(String.format("Object %s version %s was not found.",
+                    objectId.getObjectId(), objectId.getVersionId()));
         }
     }
 

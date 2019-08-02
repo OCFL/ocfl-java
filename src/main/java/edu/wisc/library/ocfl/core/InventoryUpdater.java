@@ -23,6 +23,8 @@ public class InventoryUpdater {
     private DigestAlgorithm digestAlgorithm;
     private Set<DigestAlgorithm> fixityAlgorithms;
 
+    // TODO all of this mutation on the original object is problematic. should be remodeled.
+
     public static InventoryUpdater newVersionForInsert(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms) {
         return new InventoryUpdater(inventory, fixityAlgorithms);
     }

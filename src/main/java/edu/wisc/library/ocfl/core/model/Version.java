@@ -117,6 +117,10 @@ public class Version {
         return state.get(id);
     }
 
+    public Set<String> listPaths() {
+        return reverseStateMap.keySet();
+    }
+
     @Override
 
     public String toString() {

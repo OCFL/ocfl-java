@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.model.VersionId;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -13,5 +14,7 @@ public interface OcflStorage {
     void storeNewVersion(Inventory inventory, Path stagingDir);
 
     void reconstructObjectVersion(Inventory inventory, Map<String, Set<String>> fileMap, Path stagingDir);
+
+    void retrieveFile(Inventory inventory, String fileId, Path destinationPath);
 
 }
