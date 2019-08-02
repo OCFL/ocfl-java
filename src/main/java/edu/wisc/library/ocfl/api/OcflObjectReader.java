@@ -10,7 +10,7 @@ public interface OcflObjectReader {
 
     Collection<String> listFiles();
 
-    void getFile(String sourcePath, Path destinationPath);
+    OcflObjectReader getFile(String sourcePath, Path destinationPath);
 
     /**
      * Retrieves the specified file and returns it on an InputStream.
