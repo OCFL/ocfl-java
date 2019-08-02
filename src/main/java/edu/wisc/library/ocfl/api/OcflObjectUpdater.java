@@ -17,6 +17,8 @@ public interface OcflObjectUpdater {
      */
     OcflObjectUpdater addPath(Path sourcePath, String destinationPath);
 
+    // TODO writeFile(InputStream input, String destinationPath)
+
     /**
      * Removes a file from an object. The given path should be relative to the object's root.
      *

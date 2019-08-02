@@ -15,28 +15,37 @@ public interface OcflRepository {
      *
      * This method should only be used when writing new or fully composed objects.
      *
+     * If the current head version of the object does not match the version specified in the request, the update will
+     * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
+     *
      * @param objectId
      * @param path
      * @param commitMessage
      */
     // TODO this should probably return a reference to the new version that was created
-    void putObject(String objectId, Path path, CommitMessage commitMessage);
+    void putObject(ObjectId objectId, Path path, CommitMessage commitMessage);
 
     /**
      * Updates an existing object by selectively adding and removing files and creating a new version that encapsulates
      * all of the changes.
      *
+     * If the current head version of the object does not match the version specified in the request, the update will
+     * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
+     *
      * @param objectId
      * @param commitMessage
      */
     // TODO this should probably return a reference to the new version that was created
-    void updateObject(String objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater);
+    void updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater);
 
-    void getObject(String objectId, Path outputPath);
+    void getObject(ObjectId objectId, Path outputPath);
 
-    void getObject(String objectId, String versionId, Path outputPath);
+    void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader);
 
-    // TODO perhaps there should be a getObject method that operates on a Consumer<>, providing a virtual view of an object
-    //      this would be read-only. a read-write version would also be possible, but creates a bigger locking problem.
+    // TODO consider adding a read-write version of the updateObject/readObject APIs.
+
+    // TODO describeObject
+
+    // TODO rollbackObject
 
 }
