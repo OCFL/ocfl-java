@@ -1,6 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
-import edu.wisc.library.ocfl.api.CommitMessage;
+import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.*;
 import org.apache.commons.codec.binary.Hex;
@@ -45,10 +45,12 @@ public class InventoryUpdater {
         inventory.addNewHeadVersion(calculateVersionId(), version);
     }
 
-    public void addCommitMessage(CommitMessage commitMessage) {
-        if (commitMessage != null) {
-            version.setMessage(commitMessage.getMessage())
-                    .setUser(new User(commitMessage.getUser(), commitMessage.getAddress()));
+    public void addCommitInfo(CommitInfo commitInfo) {
+        if (commitInfo != null) {
+            version.setMessage(commitInfo.getMessage());
+            if (commitInfo.getUser() != null) {
+                version.setUser(new User(commitInfo.getUser().getName(), commitInfo.getUser().getAddress()));
+            }
         }
     }
 

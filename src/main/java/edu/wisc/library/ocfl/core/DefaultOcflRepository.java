@@ -1,7 +1,13 @@
 package edu.wisc.library.ocfl.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.wisc.library.ocfl.api.*;
+import edu.wisc.library.ocfl.api.OcflObjectReader;
+import edu.wisc.library.ocfl.api.OcflObjectUpdater;
+import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.ObjectDetails;
+import edu.wisc.library.ocfl.api.model.ObjectId;
+import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
@@ -30,6 +36,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private ObjectMapper objectMapper;
     private Path workDir;
     private ObjectLock objectLock;
+    private ResponseMapper responseMapper;
 
     private Set<DigestAlgorithm> fixityAlgorithms;
     private InventoryType inventoryType;
@@ -48,10 +55,12 @@ public class DefaultOcflRepository implements OcflRepository {
         this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
+
+        responseMapper = new ResponseMapper();
     }
 
     @Override
-    public ObjectId putObject(ObjectId objectId, Path path, CommitMessage commitMessage) {
+    public ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo) {
         // TODO additional id restrictions? eg must contain at least 1 alpha numeric character, max length?
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
@@ -71,7 +80,7 @@ public class DefaultOcflRepository implements OcflRepository {
             enforceObjectVersionForUpdate(objectId, inventory);
 
             // Only needs to be cleaned on failure
-            var stagingDir = stageNewVersion(inventory, path, commitMessage);
+            var stagingDir = stageNewVersion(inventory, path, commitInfo);
 
             try {
                 storage.storeNewVersion(inventory, stagingDir);
@@ -84,7 +93,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     @Override
-    public ObjectId updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater) {
+    public ObjectId updateObject(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
@@ -94,7 +103,7 @@ public class DefaultOcflRepository implements OcflRepository {
             enforceObjectVersionForUpdate(objectId, inventory);
 
             var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms);
-            inventoryUpdater.addCommitMessage(commitMessage);
+            inventoryUpdater.addCommitInfo(commitInfo);
 
             // Only needs to be cleaned on failure
             var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
@@ -140,13 +149,34 @@ public class DefaultOcflRepository implements OcflRepository {
         var versionId = resolveVersion(objectId, inventory);
 
         try (var reader = new DefaultOcflObjectReader(
-                storage, inventory, inventory.getVersions().get(versionId), stagingDir)) {
+                storage, inventory, versionId, stagingDir)) {
             objectReader.accept(reader);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             FileUtil.safeDeletePath(stagingDir);
         }
+    }
+
+    @Override
+    public ObjectDetails describeObject(String objectId) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+
+        var inventory = requireInventory(ObjectId.head(objectId));
+
+        return responseMapper.map(inventory);
+    }
+
+    @Override
+    public VersionDetails describeVersion(ObjectId objectId) {
+        Enforce.notNull(objectId, "objectId cannot be null");
+
+        var inventory = requireInventory(objectId);
+        requireVersion(objectId, inventory);
+
+        var version = inventory.getVersions().get(VersionId.fromValue(objectId.getVersionId()));
+
+        return responseMapper.map(objectId, version);
     }
 
     private Inventory requireInventory(ObjectId objectId) {
@@ -158,11 +188,11 @@ public class DefaultOcflRepository implements OcflRepository {
         return inventory;
     }
 
-    private Path stageNewVersion(Inventory inventory, Path sourcePath, CommitMessage commitMessage) {
+    private Path stageNewVersion(Inventory inventory, Path sourcePath, CommitInfo commitInfo) {
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
         var inventoryUpdater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms);
-        inventoryUpdater.addCommitMessage(commitMessage);
+        inventoryUpdater.addCommitInfo(commitInfo);
 
         var files = FileUtil.findFiles(sourcePath);
         // TODO handle case when no files. is valid?

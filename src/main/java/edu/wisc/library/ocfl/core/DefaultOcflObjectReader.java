@@ -1,9 +1,14 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectReader;
+import edu.wisc.library.ocfl.api.model.ObjectId;
+import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
+import edu.wisc.library.ocfl.core.model.VersionId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,21 +22,32 @@ import java.util.Set;
 
 public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflObjectReader.class);
+
     private OcflStorage storage;
 
     private Inventory inventory;
     private Version version;
+    private VersionId versionId;
     private Path stagingDir;
 
+    private ResponseMapper responseMapper;
     private Set<InputStream> streams;
 
-    public DefaultOcflObjectReader(OcflStorage storage, Inventory inventory, Version version, Path stagingDir) {
+    public DefaultOcflObjectReader(OcflStorage storage, Inventory inventory, VersionId versionId, Path stagingDir) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
-        this.version = Enforce.notNull(version, "version cannot be null");
+        this.versionId = Enforce.notNull(versionId, "versionId cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
 
-        this.streams = new HashSet<>();
+        version = inventory.getVersions().get(versionId);
+        responseMapper = new ResponseMapper();
+        streams = new HashSet<>();
+    }
+
+    @Override
+    public VersionDetails describeVersion() {
+        return responseMapper.map(ObjectId.version(inventory.getId(), versionId.toString()), version);
     }
 
     @Override
@@ -85,7 +101,12 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
     @Override
     public void close() throws Exception {
         for (var stream : streams) {
-            stream.close();
+            try {
+                stream.close();
+            } catch (IOException e) {
+                // swallow so that the rest of the streams are closed
+                LOG.warn("Failed to close stream.", e);
+            }
         }
     }
 
