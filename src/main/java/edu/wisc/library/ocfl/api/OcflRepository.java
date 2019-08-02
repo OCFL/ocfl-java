@@ -22,8 +22,7 @@ public interface OcflRepository {
      * @param path
      * @param commitMessage
      */
-    // TODO this should probably return a reference to the new version that was created
-    void putObject(ObjectId objectId, Path path, CommitMessage commitMessage);
+    ObjectId putObject(ObjectId objectId, Path path, CommitMessage commitMessage);
 
     /**
      * Updates an existing object by selectively adding and removing files and creating a new version that encapsulates
@@ -35,8 +34,7 @@ public interface OcflRepository {
      * @param objectId
      * @param commitMessage
      */
-    // TODO this should probably return a reference to the new version that was created
-    void updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater);
+    ObjectId updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater);
 
     void getObject(ObjectId objectId, Path outputPath);
 
