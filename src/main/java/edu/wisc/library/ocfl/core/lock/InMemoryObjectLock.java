@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.core.lock;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -40,4 +41,27 @@ public class InMemoryObjectLock implements ObjectLock {
         }
     }
 
+    @Override
+    public <T> T doInLock(String objectId, Callable<T> doInLock) {
+        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantLock());
+
+        try {
+            if (lock.tryLock(waitTime, timeUnit)) {
+                try {
+                    return doInLock.call();
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    lock.unlock();
+                }
+            } else {
+                // TODO modeled exception
+                throw new RuntimeException("Failed to acquire lock for object " + objectId);
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -51,13 +51,13 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     @Override
-    public void putObject(ObjectId objectId, Path path, CommitMessage commitMessage) {
+    public ObjectId putObject(ObjectId objectId, Path path, CommitMessage commitMessage) {
         // TODO additional id restrictions? eg must contain at least 1 alpha numeric character, max length?
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
         // It is necessary to lock at the start of an update operation so that the diffs are computed correctly
-        objectLock.doInLock(objectId.getObjectId(), () -> {
+        return objectLock.doInLock(objectId.getObjectId(), () -> {
             var inventory = storage.loadInventory(objectId.getObjectId());
 
             if (inventory == null) {
@@ -75,6 +75,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
             try {
                 storage.storeNewVersion(inventory, stagingDir);
+                return ObjectId.version(objectId.getObjectId(), inventory.getHead().toString());
             } catch (RuntimeException e) {
                 FileUtil.safeDeletePath(stagingDir);
                 throw e;
@@ -83,12 +84,12 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     @Override
-    public void updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater) {
+    public ObjectId updateObject(ObjectId objectId, CommitMessage commitMessage, Consumer<OcflObjectUpdater> objectUpdater) {
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
         // It is necessary to lock at the start of an update operation so that the diffs are computed correctly
-        objectLock.doInLock(objectId.getObjectId(), () -> {
+        return objectLock.doInLock(objectId.getObjectId(), () -> {
             var inventory = requireInventory(objectId);
             enforceObjectVersionForUpdate(objectId, inventory);
 
@@ -103,6 +104,7 @@ public class DefaultOcflRepository implements OcflRepository {
                 objectUpdater.accept(new DefaultOcflObjectUpdater(inventoryUpdater, contentDir));
                 writeInventory(inventory, stagingDir);
                 storage.storeNewVersion(inventory, stagingDir);
+                return ObjectId.version(objectId.getObjectId(), inventory.getHead().toString());
             } catch (RuntimeException e) {
                 FileUtil.safeDeletePath(stagingDir);
                 throw e;
