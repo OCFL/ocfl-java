@@ -70,6 +70,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
             enforceObjectVersionForUpdate(objectId, inventory);
 
+            // Only needs to be cleaned on failure
             var stagingDir = stageNewVersion(inventory, path, commitMessage);
 
             try {
@@ -94,6 +95,7 @@ public class DefaultOcflRepository implements OcflRepository {
             var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms);
             inventoryUpdater.addCommitMessage(commitMessage);
 
+            // Only needs to be cleaned on failure
             var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
             var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
 
@@ -181,6 +183,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
         var fileMap = resolveVersionContents(inventory, versionId);
+        // Only needs to be cleaned on failure
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
         try {

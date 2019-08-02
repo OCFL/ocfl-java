@@ -40,13 +40,15 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
     }
 
     @Override
-    public void getFile(String sourcePath, Path destinationPath) {
+    public OcflObjectReader getFile(String sourcePath, Path destinationPath) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
         var fileId = lookupFileId(sourcePath);
 
         storage.retrieveFile(inventory, fileId, destinationPath);
+
+        return this;
     }
 
     @Override
