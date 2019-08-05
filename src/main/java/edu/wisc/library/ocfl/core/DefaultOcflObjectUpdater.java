@@ -1,9 +1,13 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
+import edu.wisc.library.ocfl.api.UpdateOption;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
@@ -17,7 +21,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     }
 
     @Override
-    public OcflObjectUpdater addPath(Path sourcePath, String destinationPath) {
+    public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, UpdateOption... updateOptions) {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
@@ -32,11 +36,29 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         files.forEach(file -> {
             var sourceRelative = sourcePath.relativize(file);
             var stagingFullPath = stagingDst.resolve(sourceRelative);
-            var isNew = inventoryUpdater.addFile(file, stagingDir.relativize(stagingFullPath));
+            var isNew = inventoryUpdater.addFile(file, stagingDir.relativize(stagingFullPath), updateOptions);
             if (isNew) {
                 FileUtil.copyFileMakeParents(file, stagingFullPath);
             }
         });
+
+        return this;
+    }
+
+    @Override
+    public OcflObjectUpdater writeFile(InputStream input, String destinationPath, UpdateOption... updateOptions) {
+        Enforce.notNull(input, "input cannot be null");
+        Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
+
+        var stagingDst = stagingDir.resolve(destinationPath);
+
+        FileUtil.createDirectories(stagingDst.getParent());
+        copyInputStream(input, stagingDst);
+
+        var isNew = inventoryUpdater.addFile(stagingDst, stagingDir.relativize(stagingDst), updateOptions);
+        if (!isNew) {
+            delete(stagingDst);
+        }
 
         return this;
     }
@@ -51,13 +73,29 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     }
 
     @Override
-    public OcflObjectUpdater renameFile(String sourcePath, String destinationPath) {
+    public OcflObjectUpdater renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        inventoryUpdater.renameFile(sourcePath, destinationPath);
+        inventoryUpdater.renameFile(sourcePath, destinationPath, updateOptions);
 
         return this;
+    }
+
+    private void copyInputStream(InputStream input, Path dst) {
+        try {
+            Files.copy(input, dst);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void delete(Path path) {
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

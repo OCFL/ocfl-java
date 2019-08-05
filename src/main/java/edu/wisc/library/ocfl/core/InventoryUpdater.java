@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
+import edu.wisc.library.ocfl.api.UpdateOption;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.*;
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -54,14 +56,28 @@ public class InventoryUpdater {
         }
     }
 
-    public boolean addFile(Path absolutePath, Path objectRelativePath) {
+    public boolean addFile(Path absolutePath, Path objectRelativePath, UpdateOption... updateOptions) {
+        var options = new HashSet<>(Arrays.asList(updateOptions));
+
+        var objectRelativePathStr = objectRelativePath.toString();
+
+        if (version.getFileId(objectRelativePathStr) != null) {
+            if (options.contains(UpdateOption.OVERWRITE)) {
+                version.removePath(objectRelativePathStr);
+            } else {
+                // TODO modeled exception
+                throw new IllegalStateException(String.format("Cannot add file to %s because there is already a file at that location.",
+                        objectRelativePathStr));
+            }
+        }
+
         var isNew = false;
         var digest = computeDigest(absolutePath, digestAlgorithm);
 
         // TODO support no-dedup?
         if (!inventory.manifestContainsId(digest)) {
             isNew = true;
-            var versionedPath = Paths.get(inventory.getHead().toString(), inventory.getContentDirectory(), objectRelativePath.toString());
+            var versionedPath = Paths.get(inventory.getHead().toString(), inventory.getContentDirectory(), objectRelativePathStr);
             inventory.addFileToManifest(digest, versionedPath.toString());
 
             fixityAlgorithms.forEach(fixityAlgorithm -> {
@@ -73,9 +89,7 @@ public class InventoryUpdater {
             });
         }
 
-        // TODO this overwrites existing files at the path. may need to implement a force flag if this behavior is not desirable
-        version.removePath(objectRelativePath.toString());
-        version.addFile(digest, objectRelativePath.toString());
+        version.addFile(digest, objectRelativePathStr);
         return isNew;
     }
 
@@ -84,17 +98,26 @@ public class InventoryUpdater {
         // TODO fail to remove non-existent file a success?
     }
 
-    public void renameFile(String sourcePath, String destinationPath) {
+    public void renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions) {
+        var options = new HashSet<>(Arrays.asList(updateOptions));
         var srcFileId = version.getFileId(sourcePath);
 
         if (srcFileId == null) {
-            throw new IllegalArgumentException(String.format("The following path was not found in object %s: %s", inventory.getId(), sourcePath));
+            throw new IllegalArgumentException(String.format("The following path was not found in object %s: %s",
+                    inventory.getId(), sourcePath));
+        }
+
+        if (version.getFileId(destinationPath) != null) {
+            if (options.contains(UpdateOption.OVERWRITE)) {
+                version.removePath(destinationPath);
+            } else {
+                // TODO modeled exception
+                throw new IllegalStateException(String.format("Cannot move %s to %s because there is already a file at that location.",
+                        sourcePath, destinationPath));
+            }
         }
 
         version.removePath(sourcePath);
-        // TODO change if we want to error on overwrite
-        version.removePath(destinationPath);
-
         version.addFile(srcFileId, destinationPath);
     }
 
