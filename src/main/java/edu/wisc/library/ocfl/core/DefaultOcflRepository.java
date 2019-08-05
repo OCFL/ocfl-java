@@ -164,7 +164,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         var inventory = requireInventory(ObjectId.head(objectId));
 
-        return responseMapper.map(inventory);
+        return responseMapper.mapInventory(inventory);
     }
 
     @Override
@@ -176,7 +176,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         var version = inventory.getVersions().get(VersionId.fromValue(objectId.getVersionId()));
 
-        return responseMapper.map(objectId, version);
+        return responseMapper.mapVersion(inventory, objectId.getVersionId(), version);
     }
 
     private Inventory requireInventory(ObjectId objectId) {

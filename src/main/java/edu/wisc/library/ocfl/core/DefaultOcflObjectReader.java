@@ -1,7 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectReader;
-import edu.wisc.library.ocfl.api.model.ObjectId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -47,7 +46,7 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
 
     @Override
     public VersionDetails describeVersion() {
-        return responseMapper.map(ObjectId.version(inventory.getId(), versionId.toString()), version);
+        return responseMapper.mapVersion(inventory, versionId.toString(), version);
     }
 
     @Override
