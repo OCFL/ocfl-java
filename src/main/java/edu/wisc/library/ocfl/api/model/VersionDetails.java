@@ -9,7 +9,7 @@ public class VersionDetails {
     private String versionId;
     private OffsetDateTime created;
     private CommitInfo commitInfo;
-    private Collection<String> files;
+    private Collection<FileDetails> files;
 
     private ObjectId getObjectVersionId() {
         return ObjectId.version(objectId, versionId);
@@ -51,11 +51,11 @@ public class VersionDetails {
         return this;
     }
 
-    public Collection<String> getFiles() {
+    public Collection<FileDetails> getFiles() {
         return files;
     }
 
-    public VersionDetails setFiles(Collection<String> files) {
+    public VersionDetails setFiles(Collection<FileDetails> files) {
         this.files = files;
         return this;
     }
