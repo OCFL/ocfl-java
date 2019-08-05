@@ -6,7 +6,6 @@ import java.nio.file.Path;
 public interface OcflObjectUpdater {
 
     // TODO Path vs String?
-    // TODO should there be errors if destinationPaths already exist? perhaps a force flag?
 
     /**
      * Adds a file or directory to the object being operated on. The destinationPath is where the file should be inserted

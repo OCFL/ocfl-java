@@ -41,6 +41,13 @@ public interface OcflRepository {
      */
     ObjectId updateObject(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
+    /**
+     * Returns the entire contents of the object at the specified version. The outputPath must exist, must be a directory,
+     * and should be empty. The contents of outputPath will be overwritten.
+     *
+     * @param objectId
+     * @param outputPath
+     */
     void getObject(ObjectId objectId, Path outputPath);
 
     void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader);
@@ -50,5 +57,7 @@ public interface OcflRepository {
     VersionDetails describeVersion(ObjectId objectId);
 
     // TODO rollbackObject
+
+    // TODO list objects? this is a daunting prospect without an index
 
 }
