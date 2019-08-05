@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,23 +26,23 @@ public class InventoryUpdater {
 
     // TODO all of this mutation on the original object is problematic. should be remodeled.
 
-    public static InventoryUpdater newVersionForInsert(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms) {
-        return new InventoryUpdater(inventory, fixityAlgorithms);
+    public static InventoryUpdater newVersionForInsert(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
+        return new InventoryUpdater(inventory, fixityAlgorithms, createdTimestamp);
     }
 
-    public static InventoryUpdater newVersionForUpdate(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms) {
-        var updater = new InventoryUpdater(inventory, fixityAlgorithms);
+    public static InventoryUpdater newVersionForUpdate(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
+        var updater = new InventoryUpdater(inventory, fixityAlgorithms, createdTimestamp);
         updater.copyOverPreviousVersionState();
         return updater;
     }
 
-    private InventoryUpdater(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms) {
+    private InventoryUpdater(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.fixityAlgorithms = fixityAlgorithms != null ? fixityAlgorithms : new HashSet<>();
         this.digestAlgorithm = inventory.getDigestAlgorithm();
 
         this.version = new Version()
-                .setCreated(OffsetDateTime.now(ZoneOffset.UTC));
+                .setCreated(createdTimestamp);
         inventory.addNewHeadVersion(calculateVersionId(), version);
     }
 

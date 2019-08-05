@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +45,8 @@ public class DefaultOcflRepository implements OcflRepository {
     private DigestAlgorithm digestAlgorithm;
     private String contentDirectory;
 
+    private Clock clock;
+
     public DefaultOcflRepository(OcflStorage storage, ObjectMapper objectMapper,
                                  Path workDir, ObjectLock objectLock, Set<DigestAlgorithm> fixityAlgorithms,
                                  InventoryType inventoryType, DigestAlgorithm digestAlgorithm,
@@ -57,6 +61,7 @@ public class DefaultOcflRepository implements OcflRepository {
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
 
         responseMapper = new ResponseMapper();
+        clock = Clock.systemUTC();
     }
 
     @Override
@@ -102,7 +107,7 @@ public class DefaultOcflRepository implements OcflRepository {
             var inventory = requireInventory(objectId);
             enforceObjectVersionForUpdate(objectId, inventory);
 
-            var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms);
+            var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, OffsetDateTime.now(clock));
             inventoryUpdater.addCommitInfo(commitInfo);
 
             // Only needs to be cleaned on failure
@@ -191,7 +196,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private Path stageNewVersion(Inventory inventory, Path sourcePath, CommitInfo commitInfo) {
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
-        var inventoryUpdater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms);
+        var inventoryUpdater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, OffsetDateTime.now(clock));
         inventoryUpdater.addCommitInfo(commitInfo);
 
         var files = FileUtil.findFiles(sourcePath);
@@ -296,6 +301,10 @@ public class DefaultOcflRepository implements OcflRepository {
             throw new IllegalArgumentException(String.format("Object %s version %s was not found.",
                     objectId.getObjectId(), objectId.getVersionId()));
         }
+    }
+
+    public void setClock(Clock clock) {
+        this.clock = clock;
     }
 
 }
