@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.api;
 
+import java.io.InputStream;
 import java.nio.file.Path;
 
 public interface OcflObjectUpdater {
@@ -15,9 +16,17 @@ public interface OcflObjectUpdater {
      * @param destinationPath
      * @return
      */
-    OcflObjectUpdater addPath(Path sourcePath, String destinationPath);
+    OcflObjectUpdater addPath(Path sourcePath, String destinationPath, UpdateOption... updateOptions);
 
-    // TODO writeFile(InputStream input, String destinationPath)
+    /**
+     * Write a file to the destinationPath that contains the contents of the given input stream.
+     *
+     * @param input
+     * @param destinationPath
+     * @param updateOptions
+     * @return
+     */
+    OcflObjectUpdater writeFile(InputStream input, String destinationPath, UpdateOption... updateOptions);
 
     /**
      * Removes a file from an object. The given path should be relative to the object's root.
@@ -34,6 +43,6 @@ public interface OcflObjectUpdater {
      * @param destinationPath
      * @return
      */
-    OcflObjectUpdater renameFile(String sourcePath, String destinationPath);
+    OcflObjectUpdater renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions);
 
 }

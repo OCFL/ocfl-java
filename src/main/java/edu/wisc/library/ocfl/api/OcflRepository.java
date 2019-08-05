@@ -51,6 +51,4 @@ public interface OcflRepository {
 
     // TODO rollbackObject
 
-    // TODO consider adding a read-write version of the updateObject/readObject APIs.
-
 }
