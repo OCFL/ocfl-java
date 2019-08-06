@@ -12,6 +12,7 @@ public interface OcflObjectReader {
 
     Collection<String> listFiles();
 
+    // TODO this needs an overwrite flag
     OcflObjectReader getFile(String sourcePath, Path destinationPath);
 
     /**
