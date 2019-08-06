@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -107,7 +108,7 @@ public class DefaultOcflRepository implements OcflRepository {
             var inventory = requireInventory(objectId);
             enforceObjectVersionForUpdate(objectId, inventory);
 
-            var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, OffsetDateTime.now(clock));
+            var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
             inventoryUpdater.addCommitInfo(commitInfo);
 
             // Only needs to be cleaned on failure
@@ -196,7 +197,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private Path stageNewVersion(Inventory inventory, Path sourcePath, CommitInfo commitInfo) {
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
-        var inventoryUpdater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, OffsetDateTime.now(clock));
+        var inventoryUpdater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
         inventoryUpdater.addCommitInfo(commitInfo);
 
         var files = FileUtil.findFiles(sourcePath);
@@ -301,6 +302,12 @@ public class DefaultOcflRepository implements OcflRepository {
             throw new IllegalArgumentException(String.format("Object %s version %s was not found.",
                     objectId.getObjectId(), objectId.getVersionId()));
         }
+    }
+
+    private OffsetDateTime now() {
+        // OCFL spec has timestamps reported at second granularity. Unfortunately, it's difficult to make Jackson
+        // interact with ISO 8601 at anything other than nanosecond granularity.
+        return OffsetDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
     }
 
     public void setClock(Clock clock) {
