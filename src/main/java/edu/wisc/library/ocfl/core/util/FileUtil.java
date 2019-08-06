@@ -72,7 +72,7 @@ public final class FileUtil {
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.move(file, createDstPath(file));
+                    Files.move(file, createDstPath(file), StandardCopyOption.REPLACE_EXISTING);
                     return super.visitFile(file, attrs);
                 }
 

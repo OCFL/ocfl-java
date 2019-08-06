@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 
@@ -23,10 +24,14 @@ public class Inventory {
     private Map<String, Set<String>> manifest;
     private Map<VersionId, Version> versions;
 
+    @JsonIgnore
+    private Map<String, String> reverseManifestMap;
+
     public Inventory() {
         manifest = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         versions = new HashMap<>();
         fixity = new HashMap<>();
+        reverseManifestMap = new HashMap<>();
     }
 
     public Inventory(String id) {
@@ -113,6 +118,7 @@ public class Inventory {
         Enforce.notNull(manifest, "manifest cannot be null");
         this.manifest = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         this.manifest.putAll(manifest);
+        this.manifest.forEach((digest, paths) -> paths.forEach(path -> reverseManifestMap.put(path, digest)));
         return this;
     }
 
@@ -162,12 +168,18 @@ public class Inventory {
         Enforce.notBlank(path, "path cannot be blank");
 
         manifest.computeIfAbsent(id, k -> new HashSet<>()).add(path);
+        reverseManifestMap.put(path, id);
         return this;
     }
 
-    public void addFixityForFile(String path, DigestAlgorithm algorithm, String value) {
+    public Inventory addFixityForFile(String path, DigestAlgorithm algorithm, String value) {
         fixity.computeIfAbsent(algorithm, k -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
             .computeIfAbsent(value, k -> new HashSet<>()).add(path);
+        return this;
+    }
+
+    public String getFileId(String path) {
+        return reverseManifestMap.get(path);
     }
 
     @Override

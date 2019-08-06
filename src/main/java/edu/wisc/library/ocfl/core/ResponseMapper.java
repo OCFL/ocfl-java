@@ -4,7 +4,6 @@ import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,7 +31,7 @@ public class ResponseMapper {
                 .setObjectId(inventory.getId())
                 .setVersionId(versionId)
                 .setCreated(version.getCreated())
-                .setFiles(mapFileDetails(inventory, versionId, version));
+                .setFiles(mapFileDetails(inventory, version));
 
         var commitInfo = new CommitInfo().setMessage(version.getMessage());
 
@@ -48,7 +47,7 @@ public class ResponseMapper {
     }
 
     // TODO this isn't very efficient
-    private Collection<FileDetails> mapFileDetails(Inventory inventory, String versionId, Version version) {
+    private Collection<FileDetails> mapFileDetails(Inventory inventory, Version version) {
         var fileDetails = new ArrayList<FileDetails>();
         var fileFixityMap = new HashMap<String, FileDetails>();
 
@@ -58,7 +57,7 @@ public class ResponseMapper {
             paths.forEach(path -> {
                 var details = new FileDetails().setFilePath(path)
                         .addDigest(digestAlgorithm.getValue(), digest);
-                fileFixityMap.put(Paths.get(versionId, inventory.getContentDirectory(), path).toString(), details);
+                fileFixityMap.put(digest, details);
                 fileDetails.add(details);
             });
         });
@@ -67,7 +66,7 @@ public class ResponseMapper {
             if (algorithm != digestAlgorithm) {
                 digests.forEach((digest, paths) -> {
                     paths.forEach(path -> {
-                        var details = fileFixityMap.get(path);
+                        var details = fileFixityMap.get(inventory.getFileId(path));
                         if (details != null) {
                             details.addDigest(algorithm.getValue(), digest);
                         }
