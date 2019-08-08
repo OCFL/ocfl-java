@@ -75,22 +75,31 @@ public class DefaultOcflRepository implements OcflRepository {
         return objectLock.doInLock(objectId.getObjectId(), () -> {
             var inventory = storage.loadInventory(objectId.getObjectId());
 
-            if (inventory == null) {
-                inventory = new Inventory()
-                        .setId(objectId.getObjectId())
-                        .setType(inventoryType)
-                        .setDigestAlgorithm(digestAlgorithm)
-                        .setContentDirectory(contentDirectory);
+            InventoryUpdater updater;
+            String contentDirectory;
+
+            if (inventory != null) {
+                enforceObjectVersionForUpdate(objectId, inventory);
+                updater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
+                contentDirectory = inventory.getContentDirectory();
+            } else {
+                updater = InventoryUpdater.newInventory(
+                        objectId.getObjectId(),
+                        inventoryType,
+                        digestAlgorithm,
+                        this.contentDirectory,
+                        fixityAlgorithms,
+                        now());
+                contentDirectory = this.contentDirectory;
             }
 
-            enforceObjectVersionForUpdate(objectId, inventory);
-
             // Only needs to be cleaned on failure
-            var stagingDir = stageNewVersion(inventory, path, commitInfo);
+            var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
+            var newInventory = stageNewVersion(updater, path, commitInfo, stagingDir, contentDirectory);
 
             try {
-                storage.storeNewVersion(inventory, stagingDir);
-                return ObjectId.version(objectId.getObjectId(), inventory.getHead().toString());
+                storage.storeNewVersion(newInventory, stagingDir);
+                return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
             } catch (RuntimeException e) {
                 FileUtil.safeDeletePath(stagingDir);
                 throw e;
@@ -108,18 +117,19 @@ public class DefaultOcflRepository implements OcflRepository {
             var inventory = requireInventory(objectId);
             enforceObjectVersionForUpdate(objectId, inventory);
 
-            var inventoryUpdater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
-            inventoryUpdater.addCommitInfo(commitInfo);
+            var updater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
+            updater.addCommitInfo(commitInfo);
 
             // Only needs to be cleaned on failure
             var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
             var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
 
             try {
-                objectUpdater.accept(new DefaultOcflObjectUpdater(inventoryUpdater, contentDir));
-                writeInventory(inventory, stagingDir);
-                storage.storeNewVersion(inventory, stagingDir);
-                return ObjectId.version(objectId.getObjectId(), inventory.getHead().toString());
+                objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir));
+                var newInventory = updater.finalizeUpdate();
+                writeInventory(newInventory, stagingDir);
+                storage.storeNewVersion(newInventory, stagingDir);
+                return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
             } catch (RuntimeException e) {
                 FileUtil.safeDeletePath(stagingDir);
                 throw e;
@@ -180,7 +190,7 @@ public class DefaultOcflRepository implements OcflRepository {
         var inventory = requireInventory(objectId);
         requireVersion(objectId, inventory);
 
-        var version = inventory.getVersions().get(VersionId.fromValue(objectId.getVersionId()));
+        var version = inventory.getVersion(VersionId.fromValue(objectId.getVersionId()));
 
         return responseMapper.mapVersion(inventory, objectId.getVersionId(), version);
     }
@@ -194,29 +204,27 @@ public class DefaultOcflRepository implements OcflRepository {
         return inventory;
     }
 
-    private Path stageNewVersion(Inventory inventory, Path sourcePath, CommitInfo commitInfo) {
-        var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
-
-        var inventoryUpdater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
-        inventoryUpdater.addCommitInfo(commitInfo);
+    private Inventory stageNewVersion(InventoryUpdater updater, Path sourcePath, CommitInfo commitInfo, Path stagingDir, String contentDirectory) {
+        updater.addCommitInfo(commitInfo);
 
         var files = FileUtil.findFiles(sourcePath);
         // TODO handle case when no files. is valid?
 
-        var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
+        var contentDir = FileUtil.createDirectories(stagingDir.resolve(contentDirectory));
 
         for (var file : files) {
             var relativePath = sourcePath.relativize(file);
-            var isNewFile = inventoryUpdater.addFile(file, relativePath);
+            var isNewFile = updater.addFile(file, relativePath);
 
             if (isNewFile) {
                 FileUtil.copyFileMakeParents(file, contentDir.resolve(relativePath));
             }
         }
 
+        var inventory = updater.finalizeUpdate();
         writeInventory(inventory, stagingDir);
 
-        return stagingDir;
+        return inventory;
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
@@ -235,18 +243,17 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     private Map<String, Set<String>> resolveVersionContents(Inventory inventory, VersionId versionId) {
-        var manifest = inventory.getManifest();
-        var version = inventory.getVersions().get(versionId);
+        var version = inventory.getVersion(versionId);
 
         var fileMap = new HashMap<String, Set<String>>();
 
         version.getState().forEach((id, files) -> {
-            if (!manifest.containsKey(id)) {
+            if (!inventory.manifestContainsId(id)) {
                 throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
                         id, inventory.getId()));
             }
 
-            var source = manifest.get(id).iterator().next();
+            var source = inventory.getFilePath(id);
             fileMap.put(source, files);
         });
 
@@ -297,7 +304,7 @@ public class DefaultOcflRepository implements OcflRepository {
             return;
         }
 
-        if (!inventory.getVersions().containsKey(VersionId.fromValue(objectId.getVersionId()))) {
+        if (inventory.getVersion(VersionId.fromValue(objectId.getVersionId())) == null) {
             // TODO modeled exception
             throw new IllegalArgumentException(String.format("Object %s version %s was not found.",
                     objectId.getObjectId(), objectId.getVersionId()));

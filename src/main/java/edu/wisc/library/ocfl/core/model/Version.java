@@ -1,6 +1,9 @@
 package edu.wisc.library.ocfl.core.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;
@@ -11,53 +14,75 @@ import java.util.*;
  */
 public class Version {
 
-    private OffsetDateTime created;
-    private String message;
-    private User user;
-    private Map<String, Set<String>> state;
+    private final OffsetDateTime created;
+    private final String message;
+    private final User user;
+    private final Map<String, Set<String>> state;
 
     @JsonIgnore
-    private Map<String, String> reverseStateMap;
+    private final Map<String, String> reverseStateMap;
 
-    public Version() {
-        state = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        reverseStateMap = new HashMap<>();
+    @JsonCreator
+    public Version(
+            @JsonProperty("created") OffsetDateTime created,
+            @JsonProperty("message") String message,
+            @JsonProperty("user") User user,
+            @JsonProperty("state") Map<String, Set<String>> state) {
+        this(created, message, user, state, null);
+    }
+
+    public Version(
+            OffsetDateTime created,
+            String message,
+            User user,
+            Map<String, Set<String>> state,
+            Map<String, String> reverseStateMap) {
+        this.created = Enforce.notNull(created, "created cannot be null");
+        this.message = message;
+        this.user = user;
+        this.state = Collections.unmodifiableMap(copyState(state));
+        if (reverseStateMap == null) {
+            this.reverseStateMap = Collections.unmodifiableMap(createReverseStateMap(this.state));
+        } else {
+            this.reverseStateMap = Map.copyOf(reverseStateMap);
+        }
+    }
+
+    private Map<String, Set<String>> copyState(Map<String, Set<String>> state) {
+        Enforce.notNull(state, "state cannot be null");
+        var newState = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
+        state.forEach((digest, paths) -> newState.put(digest, Set.copyOf(paths)));
+        return newState;
+    }
+
+    private Map<String, String> createReverseStateMap(Map<String, Set<String>> state) {
+        var reverseMap = new HashMap<String, String>();
+        state.forEach((digest, paths) -> paths.forEach(path -> reverseMap.put(path, digest)));
+        return reverseMap;
     }
 
     /**
      * The timestamp when this version of the object was created.
      */
+    @JsonGetter("created")
     public OffsetDateTime getCreated() {
         return created;
-    }
-
-    public Version setCreated(OffsetDateTime created) {
-        this.created = Enforce.notNull(created, "created cannot be null");
-        return this;
     }
 
     /**
      * A human readable message describing the version.
      */
+    @JsonGetter("message")
     public String getMessage() {
         return message;
-    }
-
-    public Version setMessage(String message) {
-        this.message = message;
-        return this;
     }
 
     /**
      * The person who created this version of the object.
      */
+    @JsonGetter("user")
     public User getUser() {
         return user;
-    }
-
-    public Version setUser(User user) {
-        this.user = user;
-        return this;
     }
 
     /**
@@ -65,48 +90,19 @@ public class Version {
      * values are paths that describe where the file is located in this specific version. The value is a set to conform
      * to the OCFL spec, but it will only ever contain a single file.
      */
+    @JsonGetter("state")
     public Map<String, Set<String>> getState() {
         return state;
     }
 
-    public Version setState(Map<String, Set<String>> state) {
-        Enforce.notNull(state, "state cannot be null");
-        this.state = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        this.state.putAll(state);
-        this.state.forEach((digest, paths) -> paths.forEach(path -> reverseStateMap.put(path, digest)));
-        return this;
+    @JsonIgnore
+    public Map<String, Set<String>> getMutableState() {
+        return copyState(state);
     }
 
-    public Map<String, Set<String>> cloneState() {
-        var clone = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-        state.forEach((k, v) -> clone.put(k, new HashSet<>(v)));
-        return clone;
-    }
-
-    /**
-     * Helper method to add a file to a version. The path field should be relative to the content directory and not the
-     * inventory root. See the OCFL spec for details.
-     */
-    public Version addFile(String id, String path) {
-        Enforce.notBlank(id, "id cannot be blank");
-        Enforce.notBlank(path, "path cannot be blank");
-
-        state.computeIfAbsent(id, k -> new HashSet<>()).add(path);
-        reverseStateMap.put(path, id);
-        return this;
-    }
-
-    public void removePath(String path) {
-        var id = reverseStateMap.remove(path);
-
-        if (id != null) {
-            var paths = state.get(id);
-            if (paths.size() == 1) {
-                state.remove(id);
-            } else {
-                paths.remove(path);
-            }
-        }
+    @JsonIgnore
+    public Map<String, String> getMutableReverseStateMap() {
+        return new HashMap<>(reverseStateMap);
     }
 
     public String getFileId(String path) {

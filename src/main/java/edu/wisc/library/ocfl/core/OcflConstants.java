@@ -3,7 +3,7 @@ package edu.wisc.library.ocfl.core;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 
-public class OcflConstants {
+public final class OcflConstants {
 
     private OcflConstants() {
 
@@ -14,6 +14,7 @@ public class OcflConstants {
 
     public static final String INVENTORY_FILE = "inventory.json";
 
+    public static final String DEFAULT_INITIAL_VERSION_ID = "v1";
     public static final String DEFAULT_CONTENT_DIRECTORY = "content";
     public static final InventoryType DEFAULT_INVENTORY_TYPE = InventoryType.OCFL_1_0;
     public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha512;

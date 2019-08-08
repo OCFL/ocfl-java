@@ -15,44 +15,61 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public class InventoryUpdater {
+public final class InventoryUpdater {
 
-    private static final String INITIAL_VERSION_ID = "v1";
+    private VersionId newVersionId;
 
-    private Inventory inventory;
-    private Version version;
+    private InventoryBuilder inventoryBuilder;
+    private VersionBuilder versionBuilder;
     private DigestAlgorithm digestAlgorithm;
     private Set<DigestAlgorithm> fixityAlgorithms;
 
-    // TODO all of this mutation on the original object is problematic. should be remodeled.
+    public static InventoryUpdater newInventory(
+            String objectId,
+            InventoryType inventoryType,
+            DigestAlgorithm digestAlgorithm,
+            String contentDirectory,
+            Set<DigestAlgorithm> fixityAlgorithms,
+            OffsetDateTime createdTimestamp) {
+
+        var inventoryBuilder = new InventoryBuilder()
+                .id(objectId)
+                .type(inventoryType)
+                .digestAlgorithm(digestAlgorithm)
+                .contentDirectory(contentDirectory);
+
+        var versionBuilder = new VersionBuilder().created(createdTimestamp);
+
+        return new InventoryUpdater(inventoryBuilder, versionBuilder, fixityAlgorithms);
+    }
 
     public static InventoryUpdater newVersionForInsert(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
-        return new InventoryUpdater(inventory, fixityAlgorithms, createdTimestamp);
+        var inventoryBuilder = new InventoryBuilder(inventory);
+        var versionBuilder = new VersionBuilder().created(createdTimestamp);
+        return new InventoryUpdater(inventoryBuilder, versionBuilder, fixityAlgorithms);
     }
 
     public static InventoryUpdater newVersionForUpdate(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
-        var updater = new InventoryUpdater(inventory, fixityAlgorithms, createdTimestamp);
-        updater.copyOverPreviousVersionState();
-        return updater;
+        var inventoryBuilder = new InventoryBuilder(inventory);
+        var versionBuilder = new VersionBuilder(inventory.getHeadVersion()).created(createdTimestamp);
+        return new InventoryUpdater(inventoryBuilder, versionBuilder, fixityAlgorithms);
     }
 
-    private InventoryUpdater(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
-        this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
+    private InventoryUpdater(InventoryBuilder inventoryBuilder, VersionBuilder versionBuilder, Set<DigestAlgorithm> fixityAlgorithms) {
+        this.inventoryBuilder = Enforce.notNull(inventoryBuilder, "inventoryBuilder cannot be null");
+        this.versionBuilder = Enforce.notNull(versionBuilder, "versionBuilder cannot be null");
         this.fixityAlgorithms = fixityAlgorithms != null ? fixityAlgorithms : new HashSet<>();
-        this.digestAlgorithm = inventory.getDigestAlgorithm();
+        this.digestAlgorithm = inventoryBuilder.getDigestAlgorithm();
 
-        this.version = new Version()
-                .setCreated(createdTimestamp);
-        inventory.addNewHeadVersion(calculateVersionId(), version);
+        if (inventoryBuilder.getHead() == null) {
+            newVersionId = VersionId.fromValue(OcflConstants.DEFAULT_INITIAL_VERSION_ID);
+        } else {
+            newVersionId = inventoryBuilder.getHead().nextVersionId();
+        }
     }
 
     public void addCommitInfo(CommitInfo commitInfo) {
-        if (commitInfo != null) {
-            version.setMessage(commitInfo.getMessage());
-            if (commitInfo.getUser() != null) {
-                version.setUser(new User(commitInfo.getUser().getName(), commitInfo.getUser().getAddress()));
-            }
-        }
+        versionBuilder.commitInfo(commitInfo);
     }
 
     public boolean addFile(Path absolutePath, Path objectRelativePath, UpdateOption... updateOptions) {
@@ -60,9 +77,9 @@ public class InventoryUpdater {
 
         var objectRelativePathStr = objectRelativePath.toString();
 
-        if (version.getFileId(objectRelativePathStr) != null) {
+        if (versionBuilder.getFileId(objectRelativePathStr) != null) {
             if (options.contains(UpdateOption.OVERWRITE)) {
-                version.removePath(objectRelativePathStr);
+                versionBuilder.removePath(objectRelativePathStr);
             } else {
                 // TODO modeled exception
                 throw new IllegalStateException(String.format("Cannot add file to %s because there is already a file at that location.",
@@ -74,41 +91,41 @@ public class InventoryUpdater {
         var digest = computeDigest(absolutePath, digestAlgorithm);
 
         // TODO support no-dedup?
-        if (!inventory.manifestContainsId(digest)) {
+        if (!inventoryBuilder.manifestContainsId(digest)) {
             isNew = true;
-            var versionedPath = Paths.get(inventory.getHead().toString(), inventory.getContentDirectory(), objectRelativePathStr);
-            inventory.addFileToManifest(digest, versionedPath.toString());
+            var versionedPath = Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), objectRelativePathStr);
+            inventoryBuilder.addFileToManifest(digest, versionedPath.toString());
 
             fixityAlgorithms.forEach(fixityAlgorithm -> {
                 var fixityDigest = digest;
                 if (fixityAlgorithm != digestAlgorithm) {
                     fixityDigest = computeDigest(absolutePath, fixityAlgorithm);
                 }
-                inventory.addFixityForFile(versionedPath.toString(), fixityAlgorithm, fixityDigest);
+                inventoryBuilder.addFixityForFile(versionedPath.toString(), fixityAlgorithm, fixityDigest);
             });
         }
 
-        version.addFile(digest, objectRelativePathStr);
+        versionBuilder.addFile(digest, objectRelativePathStr);
         return isNew;
     }
 
     public void removeFile(String path) {
-        version.removePath(path);
+        versionBuilder.removePath(path);
         // TODO fail to remove non-existent file a success?
     }
 
     public void renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions) {
         var options = new HashSet<>(Arrays.asList(updateOptions));
-        var srcFileId = version.getFileId(sourcePath);
+        var srcFileId = versionBuilder.getFileId(sourcePath);
 
         if (srcFileId == null) {
             throw new IllegalArgumentException(String.format("The following path was not found in object %s: %s",
-                    inventory.getId(), sourcePath));
+                    inventoryBuilder.getId(), sourcePath));
         }
 
-        if (version.getFileId(destinationPath) != null) {
+        if (versionBuilder.getFileId(destinationPath) != null) {
             if (options.contains(UpdateOption.OVERWRITE)) {
-                version.removePath(destinationPath);
+                versionBuilder.removePath(destinationPath);
             } else {
                 // TODO modeled exception
                 throw new IllegalStateException(String.format("Cannot move %s to %s because there is already a file at that location.",
@@ -116,14 +133,14 @@ public class InventoryUpdater {
             }
         }
 
-        version.removePath(sourcePath);
-        version.addFile(srcFileId, destinationPath);
+        versionBuilder.removePath(sourcePath);
+        versionBuilder.addFile(srcFileId, destinationPath);
     }
 
-    private void copyOverPreviousVersionState() {
-        var previousId = inventory.getHead().previousVersionId();
-        var previousVersion = inventory.getVersions().get(previousId);
-        version.setState(previousVersion.cloneState());
+    public Inventory finalizeUpdate() {
+        var version = versionBuilder.build();
+        inventoryBuilder.addNewHeadVersion(newVersionId, version);
+        return inventoryBuilder.build();
     }
 
     private String computeDigest(Path path, DigestAlgorithm algorithm) {
@@ -132,15 +149,6 @@ public class InventoryUpdater {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private VersionId calculateVersionId() {
-        var currentVersionId = inventory.getHead();
-        if (currentVersionId != null) {
-            return currentVersionId.nextVersionId();
-        }
-
-        return VersionId.fromValue(INITIAL_VERSION_ID);
     }
 
 }

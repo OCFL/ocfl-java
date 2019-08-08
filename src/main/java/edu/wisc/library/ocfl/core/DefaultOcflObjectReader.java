@@ -39,7 +39,7 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
         this.versionId = Enforce.notNull(versionId, "versionId cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
 
-        version = inventory.getVersions().get(versionId);
+        version = inventory.getVersion(versionId);
         responseMapper = new ResponseMapper();
         streams = new HashSet<>();
     }

@@ -1,18 +1,21 @@
 package edu.wisc.library.ocfl.core.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * OCFL user object.
  */
 public class User {
 
-    private String name;
-    private String address;
+    private final String name;
+    private final String address;
 
-    public User() {
-
-    }
-
-    public User(String name, String address) {
+    @JsonCreator
+    public User(
+            @JsonProperty("name") String name,
+            @JsonProperty("address") String address) {
         this.name = name;
         this.address = address;
     }
@@ -20,25 +23,17 @@ public class User {
     /**
      * Name of the person who updated an object.
      */
+    @JsonGetter("name")
     public String getName() {
         return name;
-    }
-
-    public User setName(String name) {
-        this.name = name;
-        return this;
     }
 
     /**
      * Address of the person who updated an object.
      */
+    @JsonGetter("address")
     public String getAddress() {
         return address;
-    }
-
-    public User setAddress(String address) {
-        this.address = address;
-        return this;
     }
 
     @Override
