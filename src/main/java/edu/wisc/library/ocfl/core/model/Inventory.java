@@ -216,6 +216,10 @@ public class Inventory {
         return reverseManifestMap.get(path);
     }
 
+    public Set<String> getFilePaths(String id) {
+        return manifest.get(id);
+    }
+
     public String getFilePath(String id) {
         // There will only ever be one entry in this set unless de-dupping is turned off
         var paths = manifest.get(id);
