@@ -69,6 +69,8 @@ public class DefaultOcflRepository implements OcflRepository {
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
 
+        // TODO Obviously, this is not a very good idea if more than one process is interacting with the repository.
+        //      Perhaps the cache should be abstracted so that distributed caching can be supported?
         // TODO make configurable
         inventoryCache = Caffeine.newBuilder()
                 .expireAfterAccess(Duration.ofMinutes(10))
