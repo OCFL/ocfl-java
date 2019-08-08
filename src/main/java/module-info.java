@@ -10,6 +10,7 @@ module edu.wisc.library.ocfl.core {
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.datatype.jsr310;
+    requires com.github.benmanes.caffeine;
     requires org.apache.commons.codec;
     requires org.slf4j;
 

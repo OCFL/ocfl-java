@@ -1,6 +1,8 @@
 package edu.wisc.library.ocfl.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.wisc.library.ocfl.api.OcflObjectReader;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflRepository;
@@ -24,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -48,6 +51,8 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private Clock clock;
 
+    private LoadingCache<String, Inventory> inventoryCache;
+
     public DefaultOcflRepository(OcflStorage storage, ObjectMapper objectMapper,
                                  Path workDir, ObjectLock objectLock, Set<DigestAlgorithm> fixityAlgorithms,
                                  InventoryType inventoryType, DigestAlgorithm digestAlgorithm,
@@ -63,6 +68,12 @@ public class DefaultOcflRepository implements OcflRepository {
 
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
+
+        // TODO make configurable
+        inventoryCache = Caffeine.newBuilder()
+                .expireAfterAccess(Duration.ofMinutes(10))
+                .maximumSize(1_000)
+                .build(storage::loadInventory);
     }
 
     @Override
@@ -73,7 +84,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         // It is necessary to lock at the start of an update operation so that the diffs are computed correctly
         return objectLock.doInLock(objectId.getObjectId(), () -> {
-            var inventory = storage.loadInventory(objectId.getObjectId());
+            var inventory = loadInventory(objectId);
 
             InventoryUpdater updater;
             String contentDirectory;
@@ -99,6 +110,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
             try {
                 storage.storeNewVersion(newInventory, stagingDir);
+                cacheInventory(newInventory);
                 return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
             } catch (RuntimeException e) {
                 FileUtil.safeDeletePath(stagingDir);
@@ -129,6 +141,7 @@ public class DefaultOcflRepository implements OcflRepository {
                 var newInventory = updater.finalizeUpdate();
                 writeInventory(newInventory, stagingDir);
                 storage.storeNewVersion(newInventory, stagingDir);
+                cacheInventory(newInventory);
                 return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
             } catch (RuntimeException e) {
                 FileUtil.safeDeletePath(stagingDir);
@@ -195,8 +208,16 @@ public class DefaultOcflRepository implements OcflRepository {
         return responseMapper.mapVersion(inventory, objectId.getVersionId(), version);
     }
 
+    private Inventory loadInventory(ObjectId objectId) {
+        return inventoryCache.get(objectId.getObjectId());
+    }
+
+    private void cacheInventory(Inventory inventory) {
+        inventoryCache.put(inventory.getId(), inventory);
+    }
+
     private Inventory requireInventory(ObjectId objectId) {
-        var inventory = storage.loadInventory(objectId.getObjectId());
+        var inventory = loadInventory(objectId);
         if (inventory == null) {
             // TODO modeled exception
             throw new IllegalArgumentException(String.format("Object %s was not found.", objectId));
