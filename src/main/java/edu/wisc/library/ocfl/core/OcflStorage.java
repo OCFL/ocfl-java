@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.VersionId;
 
@@ -52,7 +53,8 @@ public interface OcflStorage {
      * @param inventory
      * @param fileId
      * @param destinationPath
+     * @param ocflOptions
      */
-    void retrieveFile(Inventory inventory, String fileId, Path destinationPath);
+    void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions);
 
 }

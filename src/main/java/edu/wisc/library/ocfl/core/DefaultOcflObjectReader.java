@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectReader;
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -55,13 +56,13 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
     }
 
     @Override
-    public OcflObjectReader getFile(String sourcePath, Path destinationPath) {
+    public OcflObjectReader getFile(String sourcePath, Path destinationPath, OcflOption... ocflOptions) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
         var fileId = lookupFileId(sourcePath);
 
-        storage.retrieveFile(inventory, fileId, destinationPath);
+        storage.retrieveFile(inventory, fileId, destinationPath, ocflOptions);
 
         return this;
     }

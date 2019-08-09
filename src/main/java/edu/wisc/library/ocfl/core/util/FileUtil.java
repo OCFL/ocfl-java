@@ -87,10 +87,10 @@ public final class FileUtil {
         }
     }
 
-    public static void copyFileMakeParents(Path src, Path dst) {
+    public static void copyFileMakeParents(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
             Files.createDirectories(dst.getParent());
-            Files.copy(src, dst);
+            Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

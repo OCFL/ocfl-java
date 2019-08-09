@@ -1,6 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
-import edu.wisc.library.ocfl.api.UpdateOption;
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.*;
@@ -72,13 +72,13 @@ public final class InventoryUpdater {
         versionBuilder.commitInfo(commitInfo);
     }
 
-    public boolean addFile(Path absolutePath, Path objectRelativePath, UpdateOption... updateOptions) {
-        var options = new HashSet<>(Arrays.asList(updateOptions));
+    public boolean addFile(Path absolutePath, Path objectRelativePath, OcflOption... ocflOptions) {
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
 
         var objectRelativePathStr = objectRelativePath.toString();
 
         if (versionBuilder.getFileId(objectRelativePathStr) != null) {
-            if (options.contains(UpdateOption.OVERWRITE)) {
+            if (options.contains(OcflOption.OVERWRITE)) {
                 versionBuilder.removePath(objectRelativePathStr);
             } else {
                 // TODO modeled exception
@@ -113,8 +113,8 @@ public final class InventoryUpdater {
         versionBuilder.removePath(path);
     }
 
-    public void renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions) {
-        var options = new HashSet<>(Arrays.asList(updateOptions));
+    public void renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
         var srcFileId = versionBuilder.getFileId(sourcePath);
 
         if (srcFileId == null) {
@@ -123,7 +123,7 @@ public final class InventoryUpdater {
         }
 
         if (versionBuilder.getFileId(destinationPath) != null) {
-            if (options.contains(UpdateOption.OVERWRITE)) {
+            if (options.contains(OcflOption.OVERWRITE)) {
                 versionBuilder.removePath(destinationPath);
             } else {
                 // TODO modeled exception

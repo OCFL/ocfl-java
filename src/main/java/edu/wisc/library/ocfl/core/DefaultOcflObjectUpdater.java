@@ -1,7 +1,7 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
-import edu.wisc.library.ocfl.api.UpdateOption;
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
@@ -26,7 +26,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     }
 
     @Override
-    public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, UpdateOption... updateOptions) {
+    public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
@@ -41,7 +41,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             var sourceRelative = sourcePath.relativize(file);
             var stagingFullPath = stagingDst.resolve(sourceRelative);
             var stagingRelative = stagingDir.relativize(stagingFullPath);
-            var isNew = inventoryUpdater.addFile(file, stagingRelative, updateOptions);
+            var isNew = inventoryUpdater.addFile(file, stagingRelative, ocflOptions);
             if (isNew) {
                 FileUtil.copyFileMakeParents(file, stagingFullPath);
                 newFiles.add(stagingRelative.toString());
@@ -52,7 +52,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     }
 
     @Override
-    public OcflObjectUpdater writeFile(InputStream input, String destinationPath, UpdateOption... updateOptions) {
+    public OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notNull(input, "input cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
@@ -62,7 +62,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         FileUtil.createDirectories(stagingDst.getParent());
         copyInputStream(input, stagingDst);
 
-        var isNew = inventoryUpdater.addFile(stagingDst, stagingRelative, updateOptions);
+        var isNew = inventoryUpdater.addFile(stagingDst, stagingRelative, ocflOptions);
         if (!isNew) {
             delete(stagingDst);
         } else {
@@ -88,12 +88,12 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     }
 
     @Override
-    public OcflObjectUpdater renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions) {
+    public OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
         if (!newFiles.remove(sourcePath)) {
-            inventoryUpdater.renameFile(sourcePath, destinationPath, updateOptions);
+            inventoryUpdater.renameFile(sourcePath, destinationPath, ocflOptions);
         } else {
             // TODO Things get complicated when new-to-version files are mutated. Perhaps this should just not be allowed.
             newFiles.add(destinationPath);
@@ -102,7 +102,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             cleanupEmptyDirs(stagingDir);
             inventoryUpdater.removeFile(sourcePath);
             inventoryUpdater.removeFileFromManifest(sourcePath);
-            inventoryUpdater.addFile(destination, stagingDir.relativize(destination), updateOptions);
+            inventoryUpdater.addFile(destination, stagingDir.relativize(destination), ocflOptions);
         }
 
         return this;
