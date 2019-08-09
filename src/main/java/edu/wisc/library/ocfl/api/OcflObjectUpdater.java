@@ -5,8 +5,6 @@ import java.nio.file.Path;
 
 public interface OcflObjectUpdater {
 
-    // TODO Path vs String?
-
     /**
      * Adds a file or directory to the object being operated on. The destinationPath is where the file should be inserted
      * into the object relative to the object's root.
@@ -15,17 +13,17 @@ public interface OcflObjectUpdater {
      * @param destinationPath
      * @return
      */
-    OcflObjectUpdater addPath(Path sourcePath, String destinationPath, UpdateOption... updateOptions);
+    OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions);
 
     /**
      * Write a file to the destinationPath that contains the contents of the given input stream.
      *
      * @param input
      * @param destinationPath
-     * @param updateOptions
+     * @param ocflOptions
      * @return
      */
-    OcflObjectUpdater writeFile(InputStream input, String destinationPath, UpdateOption... updateOptions);
+    OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions);
 
     /**
      * Removes a file from an object. The given path should be relative to the object's root.
@@ -42,6 +40,6 @@ public interface OcflObjectUpdater {
      * @param destinationPath
      * @return
      */
-    OcflObjectUpdater renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions);
+    OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions);
 
 }

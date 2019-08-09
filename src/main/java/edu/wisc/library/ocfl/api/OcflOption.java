@@ -1,5 +1,5 @@
 package edu.wisc.library.ocfl.api;
 
-public enum UpdateOption {
+public enum OcflOption {
     OVERWRITE
 }

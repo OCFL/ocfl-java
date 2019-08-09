@@ -12,8 +12,7 @@ public interface OcflObjectReader {
 
     Collection<String> listFiles();
 
-    // TODO this needs an overwrite flag
-    OcflObjectReader getFile(String sourcePath, Path destinationPath);
+    OcflObjectReader getFile(String sourcePath, Path destinationPath, OcflOption... ocflOptions);
 
     /**
      * Retrieves the specified file and returns it on an InputStream.
