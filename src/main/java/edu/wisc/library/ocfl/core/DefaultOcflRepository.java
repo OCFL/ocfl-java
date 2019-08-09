@@ -1,8 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.wisc.library.ocfl.api.OcflObjectReader;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflRepository;
@@ -11,6 +9,7 @@ import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -26,7 +25,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
@@ -40,6 +38,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private ObjectMapper objectMapper;
     private Path workDir;
     private ObjectLock objectLock;
+    private Cache<String, Inventory> inventoryCache;
     private ResponseMapper responseMapper;
 
     private Set<DigestAlgorithm> fixityAlgorithms;
@@ -49,16 +48,16 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private Clock clock;
 
-    private LoadingCache<String, Inventory> inventoryCache;
-
     public DefaultOcflRepository(OcflStorage storage, ObjectMapper objectMapper,
-                                 Path workDir, ObjectLock objectLock, Set<DigestAlgorithm> fixityAlgorithms,
+                                 Path workDir, ObjectLock objectLock, Cache<String, Inventory> inventoryCache,
+                                 Set<DigestAlgorithm> fixityAlgorithms,
                                  InventoryType inventoryType, DigestAlgorithm digestAlgorithm,
                                  String contentDirectory) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
+        this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
         this.fixityAlgorithms = Enforce.notNull(fixityAlgorithms, "fixityAlgorithms cannot be null");
         this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
@@ -67,14 +66,7 @@ public class DefaultOcflRepository implements OcflRepository {
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
 
-        // TODO Obviously, this is not a very good idea if more than one process is interacting with the repository.
-        //      Perhaps the cache should be abstracted so that distributed caching can be supported?
-        // TODO make configurable
-        inventoryCache = Caffeine.newBuilder()
-                .expireAfterAccess(Duration.ofMinutes(10))
-                .expireAfterWrite(Duration.ofMinutes(10))
-                .maximumSize(1_000)
-                .build(storage::loadInventory);
+        this.inventoryCache.initialize(storage::loadInventory);
     }
 
     @Override
