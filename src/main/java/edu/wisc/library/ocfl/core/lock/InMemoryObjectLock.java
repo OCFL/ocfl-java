@@ -7,11 +7,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class InMemoryObjectLock implements ObjectLock {
 
-    private Map<String, Lock> locks;
+    private Map<String, ReentrantReadWriteLock> locks;
     private long waitTime;
     private TimeUnit timeUnit;
 
@@ -22,9 +22,31 @@ public class InMemoryObjectLock implements ObjectLock {
     }
 
     @Override
-    public void doInLock(String objectId, Runnable doInLock) {
-        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantLock());
+    public void doInReadLock(String objectId, Runnable doInLock) {
+        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).readLock();
+        doInLock(objectId, lock, doInLock);
+    }
 
+    @Override
+    public <T> T doInReadLock(String objectId, Callable<T> doInLock) {
+        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).readLock();
+        return doInLock(objectId, lock, doInLock);
+    }
+
+
+    @Override
+    public void doInWriteLock(String objectId, Runnable doInLock) {
+        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).writeLock();
+        doInLock(objectId, lock, doInLock);
+    }
+
+    @Override
+    public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
+        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).writeLock();
+        return doInLock(objectId, lock, doInLock);
+    }
+
+    private void doInLock(String objectId, Lock lock, Runnable doInLock) {
         try {
             if (lock.tryLock(waitTime, timeUnit)) {
                 try {
@@ -41,10 +63,7 @@ public class InMemoryObjectLock implements ObjectLock {
         }
     }
 
-    @Override
-    public <T> T doInLock(String objectId, Callable<T> doInLock) {
-        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantLock());
-
+    private <T> T doInLock(String objectId, Lock lock, Callable<T> doInLock) {
         try {
             if (lock.tryLock(waitTime, timeUnit)) {
                 try {
@@ -64,4 +83,5 @@ public class InMemoryObjectLock implements ObjectLock {
             throw new RuntimeException(e);
         }
     }
+
 }

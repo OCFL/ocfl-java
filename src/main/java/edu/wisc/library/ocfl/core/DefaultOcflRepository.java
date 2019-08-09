@@ -29,8 +29,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -74,6 +72,7 @@ public class DefaultOcflRepository implements OcflRepository {
         // TODO make configurable
         inventoryCache = Caffeine.newBuilder()
                 .expireAfterAccess(Duration.ofMinutes(10))
+                .expireAfterWrite(Duration.ofMinutes(10))
                 .maximumSize(1_000)
                 .build(storage::loadInventory);
     }
@@ -84,41 +83,37 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
-        // It is necessary to lock at the start of an update operation so that the diffs are computed correctly
-        return objectLock.doInLock(objectId.getObjectId(), () -> {
-            var inventory = loadInventory(objectId);
+        var inventory = loadInventory(objectId);
 
-            InventoryUpdater updater;
-            String contentDirectory;
+        InventoryUpdater updater;
+        String contentDirectory;
 
-            if (inventory != null) {
-                enforceObjectVersionForUpdate(objectId, inventory);
-                updater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
-                contentDirectory = inventory.getContentDirectory();
-            } else {
-                updater = InventoryUpdater.newInventory(
-                        objectId.getObjectId(),
-                        inventoryType,
-                        digestAlgorithm,
-                        this.contentDirectory,
-                        fixityAlgorithms,
-                        now());
-                contentDirectory = this.contentDirectory;
-            }
+        if (inventory != null) {
+            enforceObjectVersionForUpdate(objectId, inventory);
+            updater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
+            contentDirectory = inventory.getContentDirectory();
+        } else {
+            updater = InventoryUpdater.newInventory(
+                    objectId.getObjectId(),
+                    inventoryType,
+                    digestAlgorithm,
+                    this.contentDirectory,
+                    fixityAlgorithms,
+                    now());
+            contentDirectory = this.contentDirectory;
+        }
 
-            // Only needs to be cleaned on failure
-            var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-            var newInventory = stageNewVersion(updater, path, commitInfo, stagingDir, contentDirectory);
+        // Only needs to be cleaned on failure
+        var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
+        var newInventory = stageNewVersion(updater, path, commitInfo, stagingDir, contentDirectory);
 
-            try {
-                storage.storeNewVersion(newInventory, stagingDir);
-                cacheInventory(newInventory);
-                return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
-            } catch (RuntimeException e) {
-                FileUtil.safeDeletePath(stagingDir);
-                throw e;
-            }
-        });
+        try {
+            writeNewVersion(newInventory, stagingDir);
+            return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
+        } catch (RuntimeException e) {
+            FileUtil.safeDeletePath(stagingDir);
+            throw e;
+        }
     }
 
     @Override
@@ -126,30 +121,25 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
-        // It is necessary to lock at the start of an update operation so that the diffs are computed correctly
-        return objectLock.doInLock(objectId.getObjectId(), () -> {
-            var inventory = requireInventory(objectId);
-            enforceObjectVersionForUpdate(objectId, inventory);
+        var inventory = requireInventory(objectId);
+        enforceObjectVersionForUpdate(objectId, inventory);
 
-            var updater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
-            updater.addCommitInfo(commitInfo);
+        var updater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
+        updater.addCommitInfo(commitInfo);
 
-            // Only needs to be cleaned on failure
-            var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
-            var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
+        // Only needs to be cleaned on failure
+        var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
+        var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
 
-            try {
-                objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir));
-                var newInventory = updater.finalizeUpdate();
-                writeInventory(newInventory, stagingDir);
-                storage.storeNewVersion(newInventory, stagingDir);
-                cacheInventory(newInventory);
-                return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
-            } catch (RuntimeException e) {
-                FileUtil.safeDeletePath(stagingDir);
-                throw e;
-            }
-        });
+        try {
+            objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir));
+            var newInventory = updater.finalizeUpdate();
+            writeNewVersion(newInventory, stagingDir);
+            return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
+        } catch (RuntimeException e) {
+            FileUtil.safeDeletePath(stagingDir);
+            throw e;
+        }
     }
 
     @Override
@@ -211,7 +201,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     private Inventory loadInventory(ObjectId objectId) {
-        return inventoryCache.get(objectId.getObjectId());
+        return objectLock.doInReadLock(objectId.getObjectId(), () -> inventoryCache.get(objectId.getObjectId()));
     }
 
     private void cacheInventory(Inventory inventory) {
@@ -244,19 +234,15 @@ public class DefaultOcflRepository implements OcflRepository {
             }
         }
 
-        var inventory = updater.finalizeUpdate();
-        writeInventory(inventory, stagingDir);
-
-        return inventory;
+        return updater.finalizeUpdate();
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
-        var fileMap = resolveVersionContents(inventory, versionId);
         // Only needs to be cleaned on failure
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
         try {
-            storage.reconstructObjectVersion(inventory, fileMap, stagingDir);
+            storage.reconstructObjectVersion(inventory, versionId, stagingDir);
 
             FileUtil.moveDirectory(stagingDir, outputPath);
         } catch (RuntimeException e) {
@@ -265,31 +251,22 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    private Map<String, Set<String>> resolveVersionContents(Inventory inventory, VersionId versionId) {
-        var version = inventory.getVersion(versionId);
-
-        var fileMap = new HashMap<String, Set<String>>();
-
-        version.getState().forEach((id, files) -> {
-            if (!inventory.manifestContainsId(id)) {
-                throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
-                        id, inventory.getId()));
-            }
-
-            var source = inventory.getFilePath(id);
-            fileMap.put(source, files);
+    private void writeNewVersion(Inventory inventory, Path stagingDir) {
+        writeInventory(inventory, stagingDir);
+        objectLock.doInWriteLock(inventory.getId(), () -> {
+            // TODO need to verify no intermediary changes
+            storage.storeNewVersion(inventory, stagingDir);
+            cacheInventory(inventory);
         });
-
-        return fileMap;
     }
 
-    private void writeInventory(Inventory inventory, Path tempDir) {
+    private void writeInventory(Inventory inventory, Path stagingDir) {
         try {
-            var inventoryPath = tempDir.resolve(OcflConstants.INVENTORY_FILE);
+            var inventoryPath = stagingDir.resolve(OcflConstants.INVENTORY_FILE);
             objectMapper.writeValue(inventoryPath.toFile(), inventory);
             String inventoryDigest = computeDigest(inventoryPath, inventory.getDigestAlgorithm());
             Files.writeString(
-                    tempDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getValue()),
+                    stagingDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getValue()),
                     inventoryDigest + "\t" + OcflConstants.INVENTORY_FILE);
         } catch (IOException e) {
             throw new RuntimeException(e);

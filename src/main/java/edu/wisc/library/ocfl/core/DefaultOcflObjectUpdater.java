@@ -67,6 +67,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     public OcflObjectUpdater removeFile(String path) {
         Enforce.notBlank(path, "path cannot be blank");
 
+        // TODO I think there's a bug if a new file is added and then removed in the same block
         inventoryUpdater.removeFile(path);
 
         return this;
