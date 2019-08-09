@@ -93,15 +93,15 @@ public final class InventoryUpdater {
         // TODO support no-dedup?
         if (!inventoryBuilder.manifestContainsId(digest)) {
             isNew = true;
-            var versionedPath = Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), objectRelativePathStr);
-            inventoryBuilder.addFileToManifest(digest, versionedPath.toString());
+            var versionedPath = versionedPath(objectRelativePathStr);
+            inventoryBuilder.addFileToManifest(digest, versionedPath);
 
             fixityAlgorithms.forEach(fixityAlgorithm -> {
                 var fixityDigest = digest;
                 if (fixityAlgorithm != digestAlgorithm) {
                     fixityDigest = computeDigest(absolutePath, fixityAlgorithm);
                 }
-                inventoryBuilder.addFixityForFile(versionedPath.toString(), fixityAlgorithm, fixityDigest);
+                inventoryBuilder.addFixityForFile(versionedPath, fixityAlgorithm, fixityDigest);
             });
         }
 
@@ -111,7 +111,6 @@ public final class InventoryUpdater {
 
     public void removeFile(String path) {
         versionBuilder.removePath(path);
-        // TODO fail to remove non-existent file a success?
     }
 
     public void renameFile(String sourcePath, String destinationPath, UpdateOption... updateOptions) {
@@ -137,10 +136,25 @@ public final class InventoryUpdater {
         versionBuilder.addFile(srcFileId, destinationPath);
     }
 
+    /**
+     * This is an extremely dangerous method that could corrupt an object. It is needed to support the case when a file
+     * is added to a version and then removed/renamed before the version is committed. It should not be used in any
+     * other circumstance.
+     *
+     * @param path
+     */
+    public void removeFileFromManifest(String path) {
+        inventoryBuilder.removeFileFromManifest(versionedPath(path));
+    }
+
     public Inventory finalizeUpdate() {
         var version = versionBuilder.build();
         inventoryBuilder.addNewHeadVersion(newVersionId, version);
         return inventoryBuilder.build();
+    }
+
+    private String versionedPath(String unversionedPath) {
+        return Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), unversionedPath).toString();
     }
 
     private String computeDigest(Path path, DigestAlgorithm algorithm) {

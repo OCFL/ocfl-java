@@ -54,6 +54,19 @@ public class InventoryBuilder {
         return this;
     }
 
+    public InventoryBuilder removeFileFromManifest(String path) {
+        var digest = reverseManifestMap.remove(path);
+        if (digest != null) {
+            var paths = manifest.get(digest);
+            if (paths.size() == 1) {
+                manifest.remove(digest);
+            } else {
+                paths.remove(path);
+            }
+        }
+        return this;
+    }
+
     public InventoryBuilder addFixityForFile(String path, DigestAlgorithm algorithm, String value) {
         Enforce.notBlank(path, "path cannot be blank");
         Enforce.notNull(algorithm, "algorithm cannot be null");

@@ -254,7 +254,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private void writeNewVersion(Inventory inventory, Path stagingDir) {
         writeInventory(inventory, stagingDir);
         objectLock.doInWriteLock(inventory.getId(), () -> {
-            // TODO need to verify no intermediary changes
+            // TODO should invalidate cache if write failed due to being out of sync
             storage.storeNewVersion(inventory, stagingDir);
             cacheInventory(inventory);
         });
