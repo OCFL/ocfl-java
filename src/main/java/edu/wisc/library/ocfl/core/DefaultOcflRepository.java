@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.OcflObjectReader;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
+import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectId;
@@ -202,8 +204,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private Inventory requireInventory(ObjectId objectId) {
         var inventory = loadInventory(objectId);
         if (inventory == null) {
-            // TODO modeled exception
-            throw new IllegalArgumentException(String.format("Object %s was not found.", objectId));
+            throw new NotFoundException(String.format("Object %s was not found.", objectId));
         }
         return inventory;
     }
@@ -245,9 +246,13 @@ public class DefaultOcflRepository implements OcflRepository {
     private void writeNewVersion(Inventory inventory, Path stagingDir) {
         writeInventory(inventory, stagingDir);
         objectLock.doInWriteLock(inventory.getId(), () -> {
-            // TODO should invalidate cache if write failed due to being out of sync
-            storage.storeNewVersion(inventory, stagingDir);
-            cacheInventory(inventory);
+            try {
+                storage.storeNewVersion(inventory, stagingDir);
+                cacheInventory(inventory);
+            } catch (ObjectOutOfSyncException e) {
+                inventoryCache.invalidate(inventory.getId());
+                throw e;
+            }
         });
     }
 
@@ -296,8 +301,7 @@ public class DefaultOcflRepository implements OcflRepository {
         }
 
         if (inventory.getVersion(VersionId.fromValue(objectId.getVersionId())) == null) {
-            // TODO modeled exception
-            throw new IllegalArgumentException(String.format("Object %s version %s was not found.",
+            throw new NotFoundException(String.format("Object %s version %s was not found.",
                     objectId.getObjectId(), objectId.getVersionId()));
         }
     }

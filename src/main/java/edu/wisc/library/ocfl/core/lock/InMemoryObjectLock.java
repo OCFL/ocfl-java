@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.lock;
 
+import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.Map;
@@ -55,11 +56,10 @@ public class InMemoryObjectLock implements ObjectLock {
                     lock.unlock();
                 }
             } else {
-                // TODO modeled exception
-                throw new RuntimeException("Failed to acquire lock for object " + objectId);
+                throw new LockException("Failed to acquire lock for object " + objectId);
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new LockException(e);
         }
     }
 
@@ -76,11 +76,10 @@ public class InMemoryObjectLock implements ObjectLock {
                     lock.unlock();
                 }
             } else {
-                // TODO modeled exception
-                throw new RuntimeException("Failed to acquire lock for object " + objectId);
+                throw new LockException("Failed to acquire lock for object " + objectId);
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new LockException(e);
         }
     }
 

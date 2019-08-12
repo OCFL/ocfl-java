@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.*;
@@ -81,8 +82,7 @@ public final class InventoryUpdater {
             if (options.contains(OcflOption.OVERWRITE)) {
                 versionBuilder.removePath(objectRelativePathStr);
             } else {
-                // TODO modeled exception
-                throw new IllegalStateException(String.format("Cannot add file to %s because there is already a file at that location.",
+                throw new OverwriteException(String.format("Cannot add file to %s because there is already a file at that location.",
                         objectRelativePathStr));
             }
         }
@@ -90,7 +90,6 @@ public final class InventoryUpdater {
         var isNew = false;
         var digest = computeDigest(absolutePath, digestAlgorithm);
 
-        // TODO support no-dedup?
         if (!inventoryBuilder.manifestContainsId(digest)) {
             isNew = true;
             var versionedPath = versionedPath(objectRelativePathStr);
@@ -126,8 +125,7 @@ public final class InventoryUpdater {
             if (options.contains(OcflOption.OVERWRITE)) {
                 versionBuilder.removePath(destinationPath);
             } else {
-                // TODO modeled exception
-                throw new IllegalStateException(String.format("Cannot move %s to %s because there is already a file at that location.",
+                throw new OverwriteException(String.format("Cannot move %s to %s because there is already a file at that location.",
                         sourcePath, destinationPath));
             }
         }
