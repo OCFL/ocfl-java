@@ -65,8 +65,6 @@ public class DefaultOcflRepository implements OcflRepository {
 
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
-
-        this.inventoryCache.initialize(storage::loadInventory);
     }
 
     @Override
@@ -193,7 +191,8 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     private Inventory loadInventory(ObjectId objectId) {
-        return objectLock.doInReadLock(objectId.getObjectId(), () -> inventoryCache.get(objectId.getObjectId()));
+        return objectLock.doInReadLock(objectId.getObjectId(), () ->
+                inventoryCache.get(objectId.getObjectId(), storage::loadInventory));
     }
 
     private void cacheInventory(Inventory inventory) {

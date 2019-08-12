@@ -4,10 +4,7 @@ import java.util.function.Function;
 
 public interface Cache<K,V> {
 
-    // TODO this is potentially a bad idea
-    void initialize(Function<K, V> loader);
-
-    V get(K key);
+    V get(K key, Function<K, V> loader);
 
     void put(K key, V value);
 
