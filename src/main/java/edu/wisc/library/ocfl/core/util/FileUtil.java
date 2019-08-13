@@ -113,7 +113,6 @@ public final class FileUtil {
         }
     }
 
-    // TODO it would be better if this returned Stream<Path>
     public static List<Path> findFiles(Path path) {
         var files = new ArrayList<Path>();
 
