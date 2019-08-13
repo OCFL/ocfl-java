@@ -71,7 +71,6 @@ public class DefaultOcflRepository implements OcflRepository {
 
     @Override
     public ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo) {
-        // TODO additional id restrictions? eg must contain at least 1 alpha numeric character, max length?
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
@@ -213,8 +212,6 @@ public class DefaultOcflRepository implements OcflRepository {
         updater.addCommitInfo(commitInfo);
 
         var files = FileUtil.findFiles(sourcePath);
-        // TODO handle case when no files. is valid?
-
         var contentDir = FileUtil.createDirectories(stagingDir.resolve(contentDirectory));
 
         for (var file : files) {
@@ -279,7 +276,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private void enforceObjectVersionForUpdate(ObjectId objectId, Inventory inventory) {
         if (!objectId.isHead() && !objectId.getVersionId().equals(inventory.getHead().toString())) {
-            throw new IllegalStateException(String.format("Cannot update object %s because the HEAD version is %s, but version %s was specified.",
+            throw new ObjectOutOfSyncException(String.format("Cannot update object %s because the HEAD version is %s, but version %s was specified.",
                     objectId.getObjectId(), inventory.getHead(), objectId.getVersionId()));
         }
     }
