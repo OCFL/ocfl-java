@@ -11,7 +11,7 @@ public class VersionDetails {
     private CommitInfo commitInfo;
     private Collection<FileDetails> files;
 
-    private ObjectId getObjectVersionId() {
+    public ObjectId getObjectVersionId() {
         return ObjectId.version(objectId, versionId);
     }
 
