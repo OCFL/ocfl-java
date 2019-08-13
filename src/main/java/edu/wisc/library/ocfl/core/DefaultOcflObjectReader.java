@@ -33,6 +33,7 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
 
     private ResponseMapper responseMapper;
     private Set<InputStream> streams;
+    private VersionDetails versionDetails;
 
     public DefaultOcflObjectReader(OcflStorage storage, Inventory inventory, VersionId versionId, Path stagingDir) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
@@ -47,7 +48,10 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
 
     @Override
     public VersionDetails describeVersion() {
-        return responseMapper.mapVersion(inventory, versionId.toString(), version);
+        if (versionDetails == null) {
+            versionDetails = responseMapper.mapVersion(inventory, versionId.toString(), version);
+        }
+        return versionDetails;
     }
 
     @Override
