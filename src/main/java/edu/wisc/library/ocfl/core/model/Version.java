@@ -51,7 +51,7 @@ public class Version {
     private Map<String, Set<String>> copyState(Map<String, Set<String>> state) {
         Enforce.notNull(state, "state cannot be null");
         var newState = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-        state.forEach((digest, paths) -> newState.put(digest, Set.copyOf(paths)));
+        state.forEach((digest, paths) -> newState.put(digest, Collections.unmodifiableSet(new TreeSet<>(paths))));
         return newState;
     }
 

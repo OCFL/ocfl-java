@@ -85,7 +85,7 @@ public class Inventory {
     private Map<String, Set<String>> copyManifest(Map<String, Set<String>> manifest) {
         Enforce.notNull(manifest, "manifest cannot be null");
         var newManifest = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-        manifest.forEach((digest, paths) -> newManifest.put(digest, Set.copyOf(paths)));
+        manifest.forEach((digest, paths) -> newManifest.put(digest, Collections.unmodifiableSet(new TreeSet<>(paths))));
         return newManifest;
     }
 
