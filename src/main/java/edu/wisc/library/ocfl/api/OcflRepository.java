@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 
 public interface OcflRepository {
 
-    // TODO I think there needs to be copy and move versions of the put related APIs
     /**
      * Adds the object rooted at the given path to the OCFL repository under the given objectId. If their is an existing
      * object with the id, then a new version of the object is created.
