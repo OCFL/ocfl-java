@@ -3,6 +3,9 @@ package edu.wisc.library.ocfl.api.model;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 
+/**
+ * Details about a specific version of an object
+ */
 public class VersionDetails {
 
     private String objectId;
@@ -11,10 +14,16 @@ public class VersionDetails {
     private CommitInfo commitInfo;
     private Collection<FileDetails> files;
 
+    /**
+     * The ObjectId of the version
+     */
     public ObjectId getObjectVersionId() {
         return ObjectId.version(objectId, versionId);
     }
 
+    /**
+     * The object's id
+     */
     public String getObjectId() {
         return objectId;
     }
@@ -24,6 +33,9 @@ public class VersionDetails {
         return this;
     }
 
+    /**
+     * The version id
+     */
     public String getVersionId() {
         return versionId;
     }
@@ -33,6 +45,9 @@ public class VersionDetails {
         return this;
     }
 
+    /**
+     * The timestamp of when the version was created
+     */
     public OffsetDateTime getCreated() {
         return created;
     }
@@ -42,6 +57,9 @@ public class VersionDetails {
         return this;
     }
 
+    /**
+     * Optional description of the version
+     */
     public CommitInfo getCommitInfo() {
         return commitInfo;
     }
@@ -51,6 +69,9 @@ public class VersionDetails {
         return this;
     }
 
+    /**
+     * Collection of all of the files in this version of the object
+     */
     public Collection<FileDetails> getFiles() {
         return files;
     }

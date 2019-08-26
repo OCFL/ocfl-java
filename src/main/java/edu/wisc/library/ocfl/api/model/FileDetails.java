@@ -5,6 +5,9 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Encapsulates a filePath with all of its fixity information.
+ */
 public class FileDetails {
 
     private String filePath;
@@ -14,6 +17,9 @@ public class FileDetails {
         this.fixity = new HashMap<>();
     }
 
+    /**
+     * The file's path relative to the object root
+     */
     public String getFilePath() {
         return filePath;
     }
@@ -23,6 +29,9 @@ public class FileDetails {
         return this;
     }
 
+    /**
+     * Map of digest algorithm to digest value.
+     */
     public Map<String, String> getFixity() {
         return fixity;
     }

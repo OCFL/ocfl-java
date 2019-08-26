@@ -1,5 +1,5 @@
 # OCFL Java API
 
-**This project is an incomplete work-in-progress and should not be used.**
-
-Interface for interacting with an OCFL based repository.
+`ocfl-java-api` defines the interface for interacting with an [OCFL](https://ocfl.io/) repository. It currently has one
+implementation, [ocfl-java-core](https://github.com/pwinckles/ocfl-java-core). An alternate implementation could be an
+HTTP client that integrates with an HTTP based OCFL implementation.
