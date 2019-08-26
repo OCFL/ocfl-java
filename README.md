@@ -30,6 +30,7 @@ trees.
 * `HashingObjectIdPathMapper`: Similar to `PairTreeObjectIdPathMapper` except that object IDs are hashed and the depth
 is truncated. This is the most performant option because the file tree is shallow and balanced. It's disadvantage, compared
 to `PairTreeObjectIdPathMapper`, is that directory names are not reversible to object IDs.
+* `CachingObjectIdPathMapper`: This mapper can be used to wrap any `ObjectIdPathMapper` and cache its results.
 
 ### Locking
 

@@ -7,8 +7,8 @@ import java.util.BitSet;
 /**
  * This was largely copied from URLEncoder and then modified to conform the the Pairtree spec.
  *
- * https://tools.ietf.org/html/draft-kunze-pairtree-01
- *
+ * @see java.net.URLEncoder
+ * @see <a href="https://tools.ietf.org/html/draft-kunze-pairtree-01">https://tools.ietf.org/html/draft-kunze-pairtree-01</a>
  */
 public class PairTreeEncoder implements Encoder {
 

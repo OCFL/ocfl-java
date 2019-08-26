@@ -10,7 +10,9 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 /**
- * OCFL version object. A Version describes the state of an object at a particular point in time.
+ * OCFL version object. A Version describes the state of an object at a particular point in time. Versions are immutable.
+ *
+ * @see VersionBuilder
  */
 public class Version {
 
@@ -22,6 +24,9 @@ public class Version {
     @JsonIgnore
     private final Map<String, String> reverseStateMap;
 
+    /**
+     * This constructor is used by Jackson for deserialization.
+     */
     @JsonCreator
     public Version(
             @JsonProperty("created") OffsetDateTime created,
@@ -31,6 +36,9 @@ public class Version {
         this(created, message, user, state, null);
     }
 
+    /**
+     * @see VersionBuilder
+     */
     public Version(
             OffsetDateTime created,
             String message,
@@ -87,8 +95,7 @@ public class Version {
 
     /**
      * A map of all of the files that are part of this version of the object. The map is keyed on file digest ids, and the
-     * values are paths that describe where the file is located in this specific version. The value is a set to conform
-     * to the OCFL spec, but it will only ever contain a single file.
+     * values are paths that describe where the file is located in this specific version.
      */
     @JsonGetter("state")
     public Map<String, Set<String>> getState() {

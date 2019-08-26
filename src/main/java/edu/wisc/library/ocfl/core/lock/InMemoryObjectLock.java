@@ -10,12 +10,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+/**
+ * In-memory implementation of ObjectLock that uses Java's ReentrantReadWriteLock.
+ */
 public class InMemoryObjectLock implements ObjectLock {
 
     private Map<String, ReentrantReadWriteLock> locks;
     private long waitTime;
     private TimeUnit timeUnit;
 
+    /**
+     * How long to wait when attempting to acquire a lock.
+     *
+     * @param waitTime
+     * @param timeUnit
+     */
     public InMemoryObjectLock(long waitTime, TimeUnit timeUnit) {
         this.locks = new ConcurrentHashMap<>();
         this.waitTime = Enforce.expressionTrue(waitTime >= 0, waitTime, "waitTime must be at least 0");

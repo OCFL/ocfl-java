@@ -12,15 +12,15 @@ import java.util.Set;
  * An implementation of the Pairtree spec as described:
  *
  * <ul>
- * <li>https://github.com/birkland/ocfl-rfc-demo/blob/master/docs/0001-pairtree-layout.md</li>
- * <li>https://tools.ietf.org/html/draft-kunze-pairtree-01</li>
+ * <li><a href="https://github.com/birkland/ocfl-rfc-demo/blob/master/docs/0001-pairtree-layout.md">https://github.com/birkland/ocfl-rfc-demo/blob/master/docs/0001-pairtree-layout.md</a></li>
+ * <li><a href="https://tools.ietf.org/html/draft-kunze-pairtree-01">https://tools.ietf.org/html/draft-kunze-pairtree-01</a></li>
  * </ul>
  *
- * It can be configured to use either pairtree cleaning or url encoding. Url encoding should not be used when working
+ * <p>It can be configured to use either pairtree cleaning or url encoding. Url encoding should not be used when working
  * with an id space that makes frequent use of periods. The periods are not encoded, which can result in invalid directory
  * names.
  *
- * The advantage of the pairtree algorithm is that the paths can be resolved back to object ids. The disadvantage is that
+ * <p>The advantage of the pairtree algorithm is that the paths can be resolved back to object ids. The disadvantage is that
  * it creates deep, unbalanced trees. If performance is a concern, HashingObjectIdPathMapper should be used.
  */
 public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {

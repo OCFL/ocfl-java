@@ -6,6 +6,9 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+/**
+ * Used to construct Version objects.
+ */
 public class VersionBuilder {
 
     private OffsetDateTime created;
@@ -19,6 +22,12 @@ public class VersionBuilder {
         reverseStateMap = new HashMap<>();
     }
 
+    /**
+     * Used to construct a new Version that's based on an existing version. The existing version's state is copied over
+     * to the new version.
+     *
+     * @param original
+     */
     public VersionBuilder(Version original) {
         Enforce.notNull(original, "version cannot be null");
         state = original.getMutableState();

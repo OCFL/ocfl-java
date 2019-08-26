@@ -2,6 +2,9 @@ package edu.wisc.library.ocfl.core.cache;
 
 import java.util.function.Function;
 
+/**
+ * Pass-through cache implementation that never caches.
+ */
 public class NoOpCache<K, V> implements Cache<K, V> {
 
     @Override

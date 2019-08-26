@@ -4,6 +4,9 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.*;
 
+/**
+ * Used to construct Inventory objects.
+ */
 public class InventoryBuilder {
 
     private String id;
@@ -24,6 +27,12 @@ public class InventoryBuilder {
         reverseManifestMap = new HashMap<>();
     }
 
+    /**
+     * Used to construct a new Inventory that's based on an existing inventory. This should be used when creating a new
+     * version of an existing object.
+     *
+     * @param original
+     */
     public InventoryBuilder(Inventory original) {
         Enforce.notNull(original, "inventory cannot be null");
         this.id = original.getId();

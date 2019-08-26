@@ -7,6 +7,8 @@ import java.util.BitSet;
 /**
  * This code is copied from URLEncoder with one modification. It can now be configured to return uppercase or lowercase
  * hex values.
+ *
+ * @see java.net.URLEncoder
  */
 public class UrlEncoder implements Encoder {
 

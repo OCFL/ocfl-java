@@ -5,6 +5,9 @@ import edu.wisc.library.ocfl.core.cache.Cache;
 
 import java.nio.file.Path;
 
+/**
+ * Implementation of ObjectIdPathMapper that wraps a delegate ObjectIdPathMapper and caches all of the map requests.
+ */
 public class CachingObjectIdPathMapper implements ObjectIdPathMapper {
 
     private ObjectIdPathMapper delegate;

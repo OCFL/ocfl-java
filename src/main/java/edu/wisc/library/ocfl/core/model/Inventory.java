@@ -10,8 +10,11 @@ import edu.wisc.library.ocfl.core.OcflConstants;
 import java.util.*;
 
 /**
- * OCFL inventory object. Conforms to the OCFL spec and is intended to be used to encode and decode inventories.
- * The OCFL spec has not been finalized yet and is subject to change.
+ * OCFL inventory object. It is intended to be used to encode and decode inventories. Inventories are immutable. Creating
+ * a new version of an object requires creating a new inventory.
+ *
+ * @see InventoryBuilder
+ * @see <a href="https://ocfl.io/">https://ocfl.io/</a>
  */
 public class Inventory {
 
@@ -30,6 +33,9 @@ public class Inventory {
     @JsonIgnore
     private final Map<String, String> reverseManifestMap;
 
+    /**
+     * This constructor is used by Jackson for deserialization.
+     */
     @JsonCreator
     public Inventory(
             @JsonProperty("id") String id,
@@ -43,6 +49,9 @@ public class Inventory {
         this(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, null);
     }
 
+    /**
+     * @see InventoryBuilder
+     */
     public Inventory(
             String id,
             InventoryType type,
@@ -89,7 +98,7 @@ public class Inventory {
         return newManifest;
     }
 
-    public Map<VersionId, Version> copyVersions(Map<VersionId, Version> versions) {
+    private Map<VersionId, Version> copyVersions(Map<VersionId, Version> versions) {
         Enforce.notNull(versions, "versions cannot be null");
         var newVersions = new TreeMap<VersionId, Version>(Comparator.comparing(VersionId::toString));
         newVersions.putAll(versions);
@@ -103,7 +112,7 @@ public class Inventory {
     }
 
     /**
-     * The algorithm used to compute the digests that are used as file identifiers. This is always sha512.
+     * The algorithm used to compute the digests that are used as file identifiers. sha512 be default.
      */
     @JsonGetter("digestAlgorithm")
     public DigestAlgorithm getDigestAlgorithm() {
@@ -111,7 +120,7 @@ public class Inventory {
     }
 
     /**
-     * The object's id in the preservation system.
+     * The object's id
      */
     @JsonGetter("id")
     public String getId() {
@@ -127,7 +136,7 @@ public class Inventory {
     }
 
     /**
-     * The inventory's type. This is always "Object".
+     * The inventory's type and version.
      */
     @JsonGetter("type")
     public InventoryType getType() {
@@ -159,8 +168,7 @@ public class Inventory {
 
     /**
      * A map of all of the files that are part of the object across all versions of the object. The map is keyed off file
-     * digest and the value is the location of the file. The value is a set, to conform to the OCFL spec, but will only
-     * ever contain a single entry.
+     * digest and the value is the location of the file relative to the OCFL object root.
      */
     @JsonGetter("manifest")
     public Map<String, Set<String>> getManifest() {
@@ -191,6 +199,9 @@ public class Inventory {
         return new HashMap<>(versions);
     }
 
+    /**
+     * The name of the directory within a version directory that contains the object content. 'content' by default.
+     */
     @JsonGetter("contentDirectory")
     public String getContentDirectory() {
         return contentDirectory;
@@ -212,14 +223,23 @@ public class Inventory {
         return manifest.containsKey(id);
     }
 
+    /**
+     * Returns the digest that is used to identify the given path if it exists.
+     */
     public String getFileId(String path) {
         return reverseManifestMap.get(path);
     }
 
+    /**
+     * Returns the set of paths that are identified by the given digest if they exist.
+     */
     public Set<String> getFilePaths(String id) {
         return manifest.get(id);
     }
 
+    /**
+     * Returns the first path to a file that maps to the given digest
+     */
     public String getFilePath(String id) {
         // There will only ever be one entry in this set unless de-dupping is turned off
         var paths = manifest.get(id);

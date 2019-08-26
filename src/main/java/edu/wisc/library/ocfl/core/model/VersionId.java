@@ -7,6 +7,9 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+/**
+ * Represents an OCFL version identifier. It is able to handle zero-padded version ids.
+ */
 public class VersionId {
 
     private static final Pattern VALID_VERSION = Pattern.compile("^v\\d+$");
@@ -49,6 +52,9 @@ public class VersionId {
         }
     }
 
+    /**
+     * @return a new version id with an incremented version number
+     */
     public VersionId nextVersionId() {
         var nextVersionNum = versionNumber + 1;
         if (nextVersionNum > maxVersion) {
@@ -57,6 +63,9 @@ public class VersionId {
         return new VersionId(nextVersionNum, zeroPaddingWidth);
     }
 
+    /**
+     * @return a new version id with a decremented version number
+     */
     public VersionId previousVersionId() {
         if (versionNumber == 1) {
             throw new IllegalStateException("Cannot decrement version number. Current version " + toString() + " is the lowest possible.");

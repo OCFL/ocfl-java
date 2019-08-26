@@ -4,6 +4,11 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.function.Function;
 
+/**
+ * In-memory cache implementation that is a wrapper around a Caffeine cache.
+ *
+ * @see <a href="https://github.com/ben-manes/caffeine">Caffeine</a>
+ */
 public class CaffeineCache<K, V> implements Cache<K, V> {
 
     private com.github.benmanes.caffeine.cache.Cache<K, V> cache;
