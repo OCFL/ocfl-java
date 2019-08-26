@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 /**
  * Object ids are first hashed and then partitioned into a specified number of segments of a specified length. Finally,
- * the entrire hashed object id is used as the object encapsulation directory.
+ * the entire hashed object id is used as the object encapsulation directory.
  *
  * TODO example
  */
