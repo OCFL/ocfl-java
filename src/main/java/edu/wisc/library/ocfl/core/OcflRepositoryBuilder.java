@@ -202,6 +202,7 @@ public class OcflRepositoryBuilder {
      * @param repositoryRoot The path to the root directory of the OCFL repository
      */
     public OcflRepository build(Path repositoryRoot) {
+        // TODO does this make sense for any other storage layer besides local fs?
         Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
 
         initializeRepo(repositoryRoot);
