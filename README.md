@@ -34,11 +34,10 @@ After building the libraries locally, add the following to you're project's POM:
 
 ```java
 var repoDir = Paths.get("ocfl-repo");
-var workDir = Files.createTempDirectory("ocfl-work");
 
 Security.addProvider(new BouncyCastleProvider());
 
-var repo = new OcflRepositoryBuilder().build(repoDir, workDir);
+var repo = new OcflRepositoryBuilder().build(repoDir);
 
 repo.putObject(ObjectId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
 repo.getObject(ObjectId.head("o1"), Paths.get("object-in-dir"));

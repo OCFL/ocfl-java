@@ -50,6 +50,7 @@ public class OcflRepositoryBuilder {
     private ObjectMapper objectMapper;
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
+    private Path workDir;
 
     /**
      * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
@@ -193,21 +194,36 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Used to specify the directory that is used as work space to assemble new object versions. The default location
+     * is the deposit directory within the repository root.
+     *
+     * @param workDir
+     */
+    public OcflRepositoryBuilder workDir(Path workDir) {
+        this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
+        Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
+        Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");
+        return this;
+    }
+
+    /**
      * Constructs an OCFL repository. Brand new repositories are initialized on disk.
      *
      * @param repositoryRoot The path to the root directory of the OCFL repository
-     * @param workDir The path to the directory that should be used to store in-flight temporary files
      * @return
      */
-    public OcflRepository build(Path repositoryRoot, Path workDir) {
+    public OcflRepository build(Path repositoryRoot) {
         Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
-        Enforce.notNull(workDir, "workDir cannot be null");
-        Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");
 
         initializeRepo(repositoryRoot);
 
         if (storage == null) {
             storage = new FileSystemOcflStorage(repositoryRoot, objectIdPathMapper, objectMapper, namasteFileWriter);
+        }
+
+        if (workDir == null) {
+            workDir = repositoryRoot.resolve(OcflConstants.DEPOSIT_DIRECTORY);
+            FileUtil.createDirectories(workDir);
         }
 
         return new DefaultOcflRepository(storage, objectMapper, workDir,

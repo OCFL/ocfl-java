@@ -19,4 +19,6 @@ public final class OcflConstants {
     public static final InventoryType DEFAULT_INVENTORY_TYPE = InventoryType.OCFL_1_0;
     public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha512;
 
+    public static final String DEPOSIT_DIRECTORY = "deposit";
+
 }
