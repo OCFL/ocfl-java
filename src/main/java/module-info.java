@@ -5,6 +5,7 @@ module edu.wisc.library.ocfl.core {
     exports edu.wisc.library.ocfl.core.lock;
     exports edu.wisc.library.ocfl.core.mapping;
     exports edu.wisc.library.ocfl.core.model;
+    exports edu.wisc.library.ocfl.core.storage;
     exports edu.wisc.library.ocfl.core.util;
 
     requires edu.wisc.library.ocfl.api;

@@ -1,7 +1,59 @@
 # OCFL Java Core
 
 This project is an implementation of the [ocfl-java-api](https://github.com/pwinckles/ocfl-java-api) and conforms to the
-[OCFL beta 0.3 spec](https://ocfl.io/0.3/spec/). It does not implement a storage layer.
+[OCFL beta 0.3 spec](https://ocfl.io/0.3/spec/).
+
+## Requirements and Installation
+
+`ocfl-java-core` is a Java 11 project and at the minimum requires Java 11 to run.
+
+The `ocfl-java` libraries are not yet being built to a public Maven repository. Until they are, you'll need to build the
+libraries locally as follows:
+
+```bash
+git clone git@github.com:pwinckles/ocfl-java-parent.git
+git clone git@github.com:pwinckles/ocfl-java-api.git
+git clone git@github.com:pwinckles/ocfl-java-core.git
+
+cd ocfl-java-parent
+
+mvn install
+```
+
+After building the libraries locally, add the following to you're project's POM:
+
+```xml
+<dependency>
+    <groupId>edu.wisc.library.ocfl</groupId>
+    <artifactId>ocfl-java-core</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+## Example Usage
+
+```java
+var repoDir = Paths.get("ocfl-repo");
+var workDir = Files.createTempDirectory("ocfl-work");
+
+Security.addProvider(new BouncyCastleProvider());
+
+var repo = new OcflRepositoryBuilder().build(repoDir, workDir);
+
+repo.putObject(ObjectId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
+repo.getObject(ObjectId.head("o1"), Paths.get("object-in-dir"));
+
+repo.updateObject(ObjectId.head("o1"), new CommitInfo().setMessage("update"), updater -> {
+    updater.addPath(Paths.get("path-to-file2"), "file2")
+            .removeFile("file1")
+            .addPath(Paths.get("path-to-file3"), "dir1/file3");
+});
+
+repo.readObject(ObjectId.version("o1", "v1"), reader -> {
+    reader.listFiles();
+    reader.getFile("path", Paths.get("destination"));
+});
+```
 
 ## Extension Points
 
@@ -13,7 +65,7 @@ its behavior and storage layer. The core implementation class is `edu.wisc.libra
 Storage layer implementations must implement `edu.wisc.library.ocfl.core.OcflStorage`. There are the following existing
 implementations:
 
-* [ocfl-java-filesystem](https://github.com/pwinckles/ocfl-java-filesystem)
+* `FileSystemOcflStorage`: Basic implementation that stores all objects within a single root on the local filesystem.
 
 ### Object ID Mapping
 

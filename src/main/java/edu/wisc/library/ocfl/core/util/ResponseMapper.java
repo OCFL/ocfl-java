@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core;
+package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.model.Inventory;

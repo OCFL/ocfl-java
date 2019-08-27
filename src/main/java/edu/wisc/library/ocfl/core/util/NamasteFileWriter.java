@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core;
+package edu.wisc.library.ocfl.core.util;
 
 import java.io.IOException;
 import java.nio.file.Files;
