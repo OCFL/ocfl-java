@@ -4,4 +4,4 @@
 implementation, [ocfl-java-core](https://github.com/pwinckles/ocfl-java-core). An alternate implementation could be an
 HTTP client that integrates with an HTTP based OCFL implementation.
 
-See [ocfl-java-filesystem](https://github.com/pwinckles/ocfl-java-filesystem) for usage details.
+See [ocfl-java-core](https://github.com/pwinckles/ocfl-java-core) for usage details.
