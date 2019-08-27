@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Used to map Inventory objects to API response objects
+ */
 public class ResponseMapper {
 
     public ObjectDetails mapInventory(Inventory inventory) {

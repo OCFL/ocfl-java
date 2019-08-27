@@ -17,16 +17,25 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         this.cache = Enforce.notNull(cache, "cache cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public V get(K key, Function<K, V> loader) {
         return cache.get(key, loader);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void put(K key, V value) {
         cache.put(key, value);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void invalidate(K key) {
         cache.invalidate(key);

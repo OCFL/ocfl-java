@@ -31,25 +31,36 @@ public class InMemoryObjectLock implements ObjectLock {
         this.timeUnit = Enforce.notNull(timeUnit, "timeUnit cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void doInReadLock(String objectId, Runnable doInLock) {
         var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).readLock();
         doInLock(objectId, lock, doInLock);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public <T> T doInReadLock(String objectId, Callable<T> doInLock) {
         var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).readLock();
         return doInLock(objectId, lock, doInLock);
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void doInWriteLock(String objectId, Runnable doInLock) {
         var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).writeLock();
         doInLock(objectId, lock, doInLock);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
         var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).writeLock();

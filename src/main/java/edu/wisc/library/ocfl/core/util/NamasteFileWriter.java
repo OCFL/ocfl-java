@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Simple class to write out a namaste file to a given directory
+ */
 public class NamasteFileWriter {
 
     private static final String NAMASTE_PREFIX = "0=";

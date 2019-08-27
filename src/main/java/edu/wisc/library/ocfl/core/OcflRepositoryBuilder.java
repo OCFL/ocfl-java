@@ -81,7 +81,6 @@ public class OcflRepositoryBuilder {
      * Used to set the OCFL storage layer. By default it uses FileSystemOcflStorage.
      *
      * @param storage
-     * @return
      */
     public OcflRepositoryBuilder storage(OcflStorage storage) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
@@ -93,7 +92,6 @@ public class OcflRepositoryBuilder {
      * using pairtree cleaning, a 4 character encapsulation string, and "obj" as the default encapsulation directory name.
      *
      * @param objectIdPathMapper
-     * @return
      */
     public OcflRepositoryBuilder objectIdPathMapper(ObjectIdPathMapper objectIdPathMapper) {
         this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
@@ -104,7 +102,6 @@ public class OcflRepositoryBuilder {
      * Used to write namaste files.
      *
      * @param namasteFileWriter
-     * @return
      */
     public OcflRepositoryBuilder namasteFileWriter(NamasteFileWriter namasteFileWriter) {
         this.namasteFileWriter = Enforce.notNull(namasteFileWriter, "namasteFileWriter cannot be null");
@@ -115,7 +112,6 @@ public class OcflRepositoryBuilder {
      * Used to serialize and deserialize inventories. It is not recommended to override this.
      *
      * @param objectMapper
-     * @return
      */
     public OcflRepositoryBuilder objectMapper(ObjectMapper objectMapper) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
@@ -128,7 +124,6 @@ public class OcflRepositoryBuilder {
      * a distributed lock when coordinating across multiple instances accessing the same OCFL repository.
      *
      * @param objectLock
-     * @return
      */
     public OcflRepositoryBuilder objectLock(ObjectLock objectLock) {
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
@@ -142,7 +137,6 @@ public class OcflRepositoryBuilder {
      * OCFL repository, in which case no cache or a distributed cache would be better choices.
      *
      * @param inventoryCache
-     * @return
      */
     public OcflRepositoryBuilder inventoryCache(Cache<String, Inventory> inventoryCache) {
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
@@ -153,7 +147,6 @@ public class OcflRepositoryBuilder {
      * Used to specify the OCFL inventory type to apply to newly created inventories.
      *
      * @param inventoryType
-     * @return
      */
     public OcflRepositoryBuilder inventoryType(InventoryType inventoryType) {
         this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
@@ -164,7 +157,6 @@ public class OcflRepositoryBuilder {
      * Used to specify the digest algorithm to use for newly created objects. Default: sha512.
      *
      * @param digestAlgorithm
-     * @return
      */
     public OcflRepositoryBuilder digestAlgorithm(DigestAlgorithm digestAlgorithm) {
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
@@ -175,7 +167,6 @@ public class OcflRepositoryBuilder {
      * Used to specify the location of the content directory within newly created objects. Default: content.
      *
      * @param contentDirectory
-     * @return
      */
     public OcflRepositoryBuilder contentDirectory(String contentDirectory) {
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
@@ -186,7 +177,6 @@ public class OcflRepositoryBuilder {
      * Used to specify the digest algorithms to use to compute additional fixity information. Default: none.
      *
      * @param fixityAlgorithms
-     * @return
      */
     public OcflRepositoryBuilder fixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
         this.fixityAlgorithms = Enforce.notNull(fixityAlgorithms, "fixityAlgorithms cannot be null");
@@ -210,7 +200,6 @@ public class OcflRepositoryBuilder {
      * Constructs an OCFL repository. Brand new repositories are initialized on disk.
      *
      * @param repositoryRoot The path to the root directory of the OCFL repository
-     * @return
      */
     public OcflRepository build(Path repositoryRoot) {
         Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");

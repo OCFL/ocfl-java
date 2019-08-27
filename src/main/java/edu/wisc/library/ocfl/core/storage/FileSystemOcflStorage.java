@@ -43,6 +43,9 @@ public class FileSystemOcflStorage implements OcflStorage {
         this.namasteFileWriter = Enforce.notNull(namasteFileWriter, "namasteFileWriter cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Inventory loadInventory(String objectId) {
         var objectRootPath = objectRootPath(objectId);
@@ -54,6 +57,9 @@ public class FileSystemOcflStorage implements OcflStorage {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         var objectRootPath = objectRootPath(inventory.getId());
@@ -83,6 +89,9 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
         var objectRootPath = objectRootPath(inventory.getId());
@@ -112,6 +121,9 @@ public class FileSystemOcflStorage implements OcflStorage {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));

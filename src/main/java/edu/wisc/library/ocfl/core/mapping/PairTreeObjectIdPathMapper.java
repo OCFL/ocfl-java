@@ -43,6 +43,9 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
                 encapsulationSubstringLength, "encapsulationSubstringLength must be greater than 2");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Path map(String objectId) {
         var encoded = encoder.encode(objectId);

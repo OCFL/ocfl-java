@@ -20,6 +20,9 @@ public class FlatObjectIdPathMapper implements ObjectIdPathMapper {
         this.encoder = Enforce.notNull(encoder, "encoder cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Path map(String objectId) {
         return Paths.get(encodeObjectId(objectId));

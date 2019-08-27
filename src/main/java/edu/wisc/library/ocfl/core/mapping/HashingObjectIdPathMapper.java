@@ -35,6 +35,9 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
         this.minHashLength = partitionCount * partitionLength;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Path map(String objectId) {
         var hashChars = Hex.encodeHex(DigestUtils.digest(DigestUtils.getDigest(digestAlgorithm), objectId.getBytes()));

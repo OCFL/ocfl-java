@@ -16,6 +16,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Helper class that's used to accumulate changes within a new version and output an updated inventory. The same InventoryUpdater
+ * instance MUST NOT be used more than once.
+ */
 public final class InventoryUpdater {
 
     private VersionId newVersionId;
@@ -25,6 +29,16 @@ public final class InventoryUpdater {
     private DigestAlgorithm digestAlgorithm;
     private Set<DigestAlgorithm> fixityAlgorithms;
 
+    /**
+     * Creates an InventoryUpdater instance for an object that does not have a pre-existing inventory.
+     *
+     * @param objectId the id of the object
+     * @param inventoryType the inventory type
+     * @param digestAlgorithm the digest algorithm to use for computing file ids
+     * @param contentDirectory the directory to store version content in
+     * @param fixityAlgorithms the algorithms to use to compute additional fixity information
+     * @param createdTimestamp the timestamp the new version was created
+     */
     public static InventoryUpdater newInventory(
             String objectId,
             InventoryType inventoryType,
@@ -44,12 +58,28 @@ public final class InventoryUpdater {
         return new InventoryUpdater(inventoryBuilder, versionBuilder, fixityAlgorithms);
     }
 
+    /**
+     * Creates an InventoryUpdater instance that's used to insert a new version of an existing object WITHOUT copying over
+     * the state from the previous version. This should be used when an entire object is being inserted into the repository.
+     *
+     * @param inventory the original object inventory (will not be mutated)
+     * @param fixityAlgorithms the algorithms to use to compute additional fixity information
+     * @param createdTimestamp the timestamp the new version was created
+     */
     public static InventoryUpdater newVersionForInsert(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
         var inventoryBuilder = new InventoryBuilder(inventory);
         var versionBuilder = new VersionBuilder().created(createdTimestamp);
         return new InventoryUpdater(inventoryBuilder, versionBuilder, fixityAlgorithms);
     }
 
+    /**
+     * Creates an InventoryUpdater instance that's used to create a new version of an object by copying forward its current
+     * state and then applying changes to it. This should be used when an object is being selectively updated.
+     *
+     * @param inventory the original object inventory (will not be mutated)
+     * @param fixityAlgorithms the algorithms to use to compute additional fixity information
+     * @param createdTimestamp the timestamp the new version was created
+     */
     public static InventoryUpdater newVersionForUpdate(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
         var inventoryBuilder = new InventoryBuilder(inventory);
         var versionBuilder = new VersionBuilder(inventory.getHeadVersion()).created(createdTimestamp);
@@ -69,10 +99,27 @@ public final class InventoryUpdater {
         }
     }
 
+    /**
+     * Adds commit information to the new version
+     *
+     * @param commitInfo
+     */
     public void addCommitInfo(CommitInfo commitInfo) {
         versionBuilder.commitInfo(commitInfo);
     }
 
+    /**
+     * Adds a file to the version. If a file with the same digest is already in the object it will not be added again, but
+     * the path will be recorded.
+     *
+     * <p>Returns true if the file digest is new to the object and false otherwise
+     *
+     * @param absolutePath the path to the file on disk
+     * @param objectRelativePath the path to the file within the object root
+     * @param ocflOptions Optional. Use {@code OcflOption.OVERWRITE} to overwrite existing files at objectRelativePath
+     * @return true if the file digest is new to the object and false otherwise
+     * @throws OverwriteException if there is already a file at objectRelativePath
+     */
     public boolean addFile(Path absolutePath, Path objectRelativePath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
@@ -108,10 +155,23 @@ public final class InventoryUpdater {
         return isNew;
     }
 
+    /**
+     * Removes a file from the version.
+     *
+     * @param path the unversioned object root relative path
+     */
     public void removeFile(String path) {
         versionBuilder.removePath(path);
     }
 
+    /**
+     * Renames an existing file within a version
+     *
+     * @param sourcePath unversioned object root relative path to the source file
+     * @param destinationPath unversioned object root relative path to the destination file
+     * @param ocflOptions Optional. Use {@code OcflOption.OVERWRITE} to overwrite existing files at destinationPath
+     * @throws OverwriteException if there is already a file at destinationPath
+     */
     public void renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
         var srcFileId = versionBuilder.getFileId(sourcePath);
@@ -135,16 +195,20 @@ public final class InventoryUpdater {
     }
 
     /**
-     * This is an extremely dangerous method that could corrupt an object. It is needed to support the case when a file
-     * is added to a version and then removed/renamed before the version is committed. It should not be used in any
-     * other circumstance.
+     * Removes a file from the manifest. This should only ever happen if a file is added and then removed within the same
+     * update block.
      *
-     * @param path
+     * @param path unversioned object root relative path to the file
      */
     public void removeFileFromManifest(String path) {
         inventoryBuilder.removeFileFromManifest(versionedPath(path));
     }
 
+    /**
+     * Constructs a new inventory with the new version in it as HEAD.
+     *
+     * @return the newly constructed inventory
+     */
     public Inventory finalizeUpdate() {
         var version = versionBuilder.build();
         inventoryBuilder.addNewHeadVersion(newVersionId, version);

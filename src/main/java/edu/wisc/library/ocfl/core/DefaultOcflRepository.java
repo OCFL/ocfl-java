@@ -34,6 +34,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import java.util.function.Consumer;
 
+/**
+ * Primary implementation of the OcflRepository API. It is storage agnostic. It is typically instantiated using
+ * OcflRepositoryBuilder.
+ *
+ * @see OcflRepositoryBuilder
+ */
 public class DefaultOcflRepository implements OcflRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflRepository.class);
@@ -71,6 +77,9 @@ public class DefaultOcflRepository implements OcflRepository {
         clock = Clock.systemUTC();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo) {
         Enforce.notNull(objectId, "objectId cannot be null");
@@ -109,6 +118,9 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ObjectId updateObject(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
         Enforce.notNull(objectId, "objectId cannot be null");
@@ -135,6 +147,9 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void getObject(ObjectId objectId, Path outputPath) {
         Enforce.notNull(objectId, "objectId cannot be null");
@@ -150,6 +165,9 @@ public class DefaultOcflRepository implements OcflRepository {
         getObjectInternal(inventory, versionId, outputPath);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader) {
         Enforce.notNull(objectId, "objectId cannot be null");
@@ -172,6 +190,9 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ObjectDetails describeObject(String objectId) {
         Enforce.notBlank(objectId, "objectId cannot be blank");
@@ -181,6 +202,9 @@ public class DefaultOcflRepository implements OcflRepository {
         return responseMapper.mapInventory(inventory);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public VersionDetails describeVersion(ObjectId objectId) {
         Enforce.notNull(objectId, "objectId cannot be null");
@@ -311,6 +335,9 @@ public class DefaultOcflRepository implements OcflRepository {
         return OffsetDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
     }
 
+    /**
+     * This is used to manipulate the clock for testing purposes.
+     */
     public void setClock(Clock clock) {
         this.clock = clock;
     }

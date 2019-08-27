@@ -12,6 +12,9 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
+ */
 public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
     private InventoryUpdater inventoryUpdater;
@@ -25,6 +28,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         newFiles = new HashSet<>();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
@@ -51,6 +57,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notNull(input, "input cannot be null");
@@ -72,6 +81,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectUpdater removeFile(String path) {
         Enforce.notBlank(path, "path cannot be blank");
@@ -87,6 +99,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");

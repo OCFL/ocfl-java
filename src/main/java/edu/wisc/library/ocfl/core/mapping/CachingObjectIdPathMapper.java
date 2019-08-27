@@ -18,6 +18,9 @@ public class CachingObjectIdPathMapper implements ObjectIdPathMapper {
         this.cache = Enforce.notNull(cache, "cache cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Path map(String objectId) {
         return cache.get(objectId, delegate::map);

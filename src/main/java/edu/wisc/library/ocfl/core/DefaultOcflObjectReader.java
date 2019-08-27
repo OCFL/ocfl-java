@@ -22,6 +22,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Default implementation of OcflObjectReader that is used by DefaultOcflRepository to provide read access to an object.
+ */
 public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflObjectReader.class);
@@ -48,6 +51,9 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
         streams = new HashSet<>();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public VersionDetails describeVersion() {
         if (versionDetails == null) {
@@ -56,11 +62,17 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
         return versionDetails;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Collection<String> listFiles() {
         return Collections.unmodifiableCollection(version.listPaths());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectReader getFile(String sourcePath, Path destinationPath, OcflOption... ocflOptions) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
@@ -73,6 +85,9 @@ public class DefaultOcflObjectReader implements OcflObjectReader, AutoCloseable 
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public InputStream getFile(String sourcePath) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
