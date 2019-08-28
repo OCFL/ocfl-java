@@ -16,23 +16,26 @@ import java.util.Arrays;
  */
 public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
 
-    private int partitionCount;
-    private int partitionLength;
+    private int depth;
+    private int segmentLength;
     private int minHashLength;
+    private boolean useUppercase;
 
     private String digestAlgorithm;
     private ObjectIdPathMapper delegateMapper;
 
     /**
-     * @param digestAlgorithm The digest algorithm to use on the object id
-     * @param partitionCount The number of directories deep that should be created
-     * @param partitionLength The number of characters that should be in each directory name
+     * @param digestAlgorithm the digest algorithm to use on the object id
+     * @param depth the number of directories deep that should be created
+     * @param segmentLength the number of characters that should be in each directory name
+     * @param useUppercase indicates whether the digest should be encoded using lowercase or uppercase characters
      */
-    public HashingObjectIdPathMapper(String digestAlgorithm, int partitionCount, int partitionLength) {
+    public HashingObjectIdPathMapper(String digestAlgorithm, int depth, int segmentLength, boolean useUppercase) {
         this.digestAlgorithm = Enforce.notBlank(digestAlgorithm, "digestAlgorithm");
-        this.partitionCount = Enforce.expressionTrue(partitionCount >= 1, partitionCount, "partitionCount must be at least 0");
-        this.partitionLength = Enforce.expressionTrue(partitionLength >= 1, partitionLength, "partitionLength must be at least 0");
-        this.minHashLength = partitionCount * partitionLength;
+        this.depth = Enforce.expressionTrue(depth >= 1, depth, "depth must be at least 0");
+        this.segmentLength = Enforce.expressionTrue(segmentLength >= 1, segmentLength, "segmentLength must be at least 0");
+        this.minHashLength = depth * segmentLength;
+        this.useUppercase = useUppercase;
     }
 
     /**
@@ -40,7 +43,9 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
      */
     @Override
     public Path map(String objectId) {
-        var hashChars = Hex.encodeHex(DigestUtils.digest(DigestUtils.getDigest(digestAlgorithm), objectId.getBytes()));
+        var hashChars = Hex.encodeHex(
+                DigestUtils.digest(DigestUtils.getDigest(digestAlgorithm), objectId.getBytes()),
+                !useUppercase);
 
         if (hashChars.length < minHashLength) {
             throw new IllegalStateException("The hashed objectId does not contain enough characters to partition adequately.");
@@ -48,8 +53,8 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
 
         var objectPath = Paths.get("");
 
-        for (int i = 0; i < minHashLength; i += partitionLength) {
-            objectPath = objectPath.resolve(new String(Arrays.copyOfRange(hashChars, i, i + partitionLength)));
+        for (int i = 0; i < minHashLength; i += segmentLength) {
+            objectPath = objectPath.resolve(new String(Arrays.copyOfRange(hashChars, i, i + segmentLength)));
         }
 
         return objectPath.resolve(new String(hashChars));

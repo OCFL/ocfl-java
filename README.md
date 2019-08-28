@@ -37,7 +37,10 @@ var repoDir = Paths.get("ocfl-repo");
 
 Security.addProvider(new BouncyCastleProvider());
 
-var repo = new OcflRepositoryBuilder().build(repoDir);
+var repo = new OcflRepositoryBuilder().build(
+        new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().
+                withDefaultCaffeineCache().buildDefaultPairTreeMapper()),
+        repoDir.resolve("deposit"));
 
 repo.putObject(ObjectId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
 repo.getObject(ObjectId.head("o1"), Paths.get("object-in-dir"));

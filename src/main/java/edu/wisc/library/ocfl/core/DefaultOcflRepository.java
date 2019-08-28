@@ -1,6 +1,5 @@
 package edu.wisc.library.ocfl.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.OcflObjectReader;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflRepository;
@@ -19,6 +18,7 @@ import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import edu.wisc.library.ocfl.core.util.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -45,7 +45,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflRepository.class);
 
     private OcflStorage storage;
-    private ObjectMapper objectMapper;
+    private InventoryMapper inventoryMapper;
     private Path workDir;
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
@@ -58,13 +58,12 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private Clock clock;
 
-    public DefaultOcflRepository(OcflStorage storage, ObjectMapper objectMapper,
-                                 Path workDir, ObjectLock objectLock, Cache<String, Inventory> inventoryCache,
+    public DefaultOcflRepository(OcflStorage storage, Path workDir, ObjectLock objectLock,
+                                 Cache<String, Inventory> inventoryCache,
                                  Set<DigestAlgorithm> fixityAlgorithms,
                                  InventoryType inventoryType, DigestAlgorithm digestAlgorithm,
                                  String contentDirectory) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
-        this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
@@ -73,6 +72,7 @@ public class DefaultOcflRepository implements OcflRepository {
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
 
+        inventoryMapper = new InventoryMapper();
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
     }
@@ -282,7 +282,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private void writeInventory(Inventory inventory, Path stagingDir) {
         try {
             var inventoryPath = stagingDir.resolve(OcflConstants.INVENTORY_FILE);
-            objectMapper.writeValue(inventoryPath.toFile(), inventory);
+            inventoryMapper.writeValue(inventoryPath, inventory);
             String inventoryDigest = computeDigest(inventoryPath, inventory.getDigestAlgorithm());
             Files.writeString(
                     stagingDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getValue()),
@@ -339,7 +339,12 @@ public class DefaultOcflRepository implements OcflRepository {
      * This is used to manipulate the clock for testing purposes.
      */
     public void setClock(Clock clock) {
-        this.clock = clock;
+        this.clock = Enforce.notNull(clock, "clock cannot be null");
+    }
+
+    public DefaultOcflRepository setInventoryMapper(InventoryMapper inventoryMapper) {
+        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
+        return this;
     }
 
 }

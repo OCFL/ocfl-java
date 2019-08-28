@@ -1,17 +1,17 @@
 package edu.wisc.library.ocfl.core.storage;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.util.NamasteFileWriter;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import edu.wisc.library.ocfl.core.util.InventoryMapper;
+import edu.wisc.library.ocfl.core.util.NamasteFileWriter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
@@ -32,15 +32,24 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private Path repositoryRoot;
     private ObjectIdPathMapper objectIdPathMapper;
-    private ObjectMapper objectMapper;
+    private InventoryMapper inventoryMapper;
     private NamasteFileWriter namasteFileWriter;
 
-    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper, ObjectMapper objectMapper,
-                                 NamasteFileWriter namasteFileWriter) {
+    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
-        this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
+        this.inventoryMapper = new InventoryMapper();
+        this.namasteFileWriter = new NamasteFileWriter();
+    }
+
+    public FileSystemOcflStorage setInventoryMapper(InventoryMapper inventoryMapper) {
+        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
+        return this;
+    }
+
+    public FileSystemOcflStorage setNamasteFileWriter(NamasteFileWriter namasteFileWriter) {
         this.namasteFileWriter = Enforce.notNull(namasteFileWriter, "namasteFileWriter cannot be null");
+        return this;
     }
 
     /**
@@ -149,6 +158,38 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void initializeStorage(String ocflVersion) {
+        if (!Files.exists(repositoryRoot)) {
+            FileUtil.createDirectories(repositoryRoot);
+        } else {
+            Enforce.expressionTrue(Files.isDirectory(repositoryRoot), repositoryRoot,
+                    "repositoryRoot must be a directory");
+        }
+
+        if (repositoryRoot.toFile().list().length == 0) {
+            // setup new repo
+            namasteFileWriter.writeFile(repositoryRoot, ocflVersion);
+            // TODO ocfl_1.0.txt
+            // TODO ocfl_layout.json
+        } else {
+            // TODO validate existing repo
+        }
+
+        if (!Files.exists(repositoryRoot.resolve(OcflConstants.DEPOSIT_DIRECTORY))) {
+            FileUtil.createDirectories(repositoryRoot.resolve(OcflConstants.DEPOSIT_DIRECTORY));
+        }
+
+        // TODO add copy of OCFL spec -- ocfl_1.0.txt
+        // TODO add storage layout description -- ocfl_layout.json
+
+        // TODO verify can read OCFL version
+        // TODO how to verify that the repo is configured correctly to read the layout of an existing structure?
+    }
+
     private Path objectRootPath(String objectId) {
         return repositoryRoot.resolve(objectIdPathMapper.map(objectId));
     }
@@ -163,11 +204,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private Inventory parseInventory(Path inventoryPath) {
         verifyInventory(inventoryPath);
-        try {
-            return objectMapper.readValue(inventoryPath.toFile(), Inventory.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return inventoryMapper.readValue(inventoryPath);
     }
 
     private void verifyInventory(Path inventoryPath) {

@@ -71,4 +71,12 @@ public interface OcflStorage {
      */
     void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions);
 
+    /**
+     * Initializes the OCFL root. If it is an existing OCFL repository and the root has already been initialized, then
+     * this method should do nothing.
+     *
+     * @param ocflVersion the OCFL version string, such as "ocfl_1.0"
+     */
+    void initializeStorage(String ocflVersion);
+
 }

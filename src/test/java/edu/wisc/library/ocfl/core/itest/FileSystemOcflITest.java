@@ -9,10 +9,10 @@ import edu.wisc.library.ocfl.api.model.ObjectId;
 import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.core.DefaultOcflRepository;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.mapping.FlatObjectIdPathMapper;
-import edu.wisc.library.ocfl.core.mapping.UrlEncoder;
+import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.matcher.OcflMatchers;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -68,9 +68,7 @@ public class FileSystemOcflITest {
     public void putNewObjectAndUpdateMultipleTimesWithAdditionalPuts() {
         var repoName = "repo3";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
@@ -102,9 +100,7 @@ public class FileSystemOcflITest {
     public void updateObjectMakeMultipleChangesWithinTheSameVersion() {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
@@ -144,9 +140,7 @@ public class FileSystemOcflITest {
     public void renameAndRemoveFilesAddedInTheCurrentVersion() {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
@@ -174,9 +168,8 @@ public class FileSystemOcflITest {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
         var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
                 .fixityAlgorithms(Set.of(DigestAlgorithm.md5))
-                .build(repoDir);
+                .build(new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), repoDir.resolve("deposit"));
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
@@ -229,9 +222,8 @@ public class FileSystemOcflITest {
     @Test
     public void readObjectFiles() {
         var repoName = "repo4";
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(expectedRepoPath(repoName));
+        var repoDir = expectedRepoPath(repoName);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
@@ -267,9 +259,7 @@ public class FileSystemOcflITest {
     public void putObjectWithNoFiles() throws IOException {
         var repoName = "repo6";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o4";
@@ -294,9 +284,7 @@ public class FileSystemOcflITest {
     public void removeAllOfTheFilesFromAnObject() throws IOException {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
@@ -318,9 +306,7 @@ public class FileSystemOcflITest {
     public void rejectInvalidObjectIds() throws IOException {
         var repoName = "repo6";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
@@ -331,9 +317,8 @@ public class FileSystemOcflITest {
     @Test
     public void rejectObjectNotFoundWhenObjectDoesNotExists() throws IOException {
         var repoName = "repo4";
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(expectedRepoPath(repoName));
+        var repoDir = expectedRepoPath(repoName);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         assertThrows(NotFoundException.class, () -> repo.getObject(ObjectId.head("bogus"), outputPath(repoName, "bogus")));
@@ -342,9 +327,8 @@ public class FileSystemOcflITest {
     @Test
     public void rejectObjectNotFoundWhenObjectExistsButVersionDoesNot() throws IOException {
         var repoName = "repo4";
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(expectedRepoPath(repoName));
+        var repoDir = expectedRepoPath(repoName);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
@@ -356,9 +340,7 @@ public class FileSystemOcflITest {
     public void shouldUpdateObjectWhenReferenceVersionSpecifiedAndIsMostRecentVersion() {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
@@ -386,9 +368,7 @@ public class FileSystemOcflITest {
     public void rejectUpdateObjectWhenReferenceVersionSpecifiedAndIsNotMostRecentVersion() {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
@@ -414,9 +394,7 @@ public class FileSystemOcflITest {
     public void shouldCreateNewVersionWhenObjectUpdateWithNoChanges() {
         var repoName = "repo7";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
@@ -432,9 +410,8 @@ public class FileSystemOcflITest {
     @Test
     public void failGetObjectWhenInventoryFixityCheckFails() {
         var repoName = "invalid-inventory-fixity";
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(sourceRepoPath(repoName));
+        var repoDir = sourceRepoPath(repoName);
+        var repo = defaultRepo(repoDir);
 
         assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectId.head("o1"), outputPath(repoName, "blah")));
     }
@@ -442,9 +419,8 @@ public class FileSystemOcflITest {
     @Test
     public void failGetObjectWhenFileFixityCheckFails() {
         var repoName = "invalid-file-fixity";
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(sourceRepoPath(repoName));
+        var repoDir = sourceRepoPath(repoName);
+        var repo = defaultRepo(repoDir);
 
         assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectId.head("o1"), outputPath(repoName, "blah")));
     }
@@ -453,9 +429,7 @@ public class FileSystemOcflITest {
     public void putObjectWithDuplicateFiles() {
         var repoName = "repo8";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
-                .objectIdPathMapper(new FlatObjectIdPathMapper(new UrlEncoder(true)))
-                .build(repoDir);
+        var repo = defaultRepo(repoDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o5";
@@ -591,6 +565,12 @@ public class FileSystemOcflITest {
 
     private Supplier<String> comparingMessage(Object o1, Object o2, Path actualPath) {
         return () -> String.format("Comparing %s and %s:\n\n%s", o1, o2, fileToString(actualPath));
+    }
+
+    private OcflRepository defaultRepo(Path repoDir) {
+        return new OcflRepositoryBuilder().build(
+                new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
+                repoDir.resolve("deposit"));
     }
 
 }
