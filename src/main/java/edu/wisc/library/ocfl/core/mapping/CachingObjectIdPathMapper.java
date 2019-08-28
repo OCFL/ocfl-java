@@ -4,6 +4,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Implementation of ObjectIdPathMapper that wraps a delegate ObjectIdPathMapper and caches all of the map requests.
@@ -26,4 +27,11 @@ public class CachingObjectIdPathMapper implements ObjectIdPathMapper {
         return cache.get(objectId, delegate::map);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, Object> describeLayout() {
+        return delegate.describeLayout();
+    }
 }

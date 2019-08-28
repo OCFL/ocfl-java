@@ -4,6 +4,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -26,6 +27,15 @@ public class FlatObjectIdPathMapper implements ObjectIdPathMapper {
     @Override
     public Path map(String objectId) {
         return Paths.get(encodeObjectId(objectId));
+    }
+
+    @Override
+    public Map<String, Object> describeLayout() {
+        // TODO https://github.com/OCFL/spec/issues/351
+        return Map.of(
+                "uri", "https://flat-layout",
+                "description", "Flat Layout"
+        );
     }
 
     private String encodeObjectId(String objectId) {

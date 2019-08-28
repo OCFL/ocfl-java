@@ -1,5 +1,7 @@
 package edu.wisc.library.ocfl.core.storage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
@@ -23,7 +25,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class FileSystemOcflStorage implements OcflStorage {
@@ -172,22 +176,17 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         if (repositoryRoot.toFile().list().length == 0) {
             // setup new repo
+            // TODO perhaps this should be moved somewhere else so it can be used by other storage implementations
             namasteFileWriter.writeFile(repositoryRoot, ocflVersion);
-            // TODO ocfl_1.0.txt
-            // TODO ocfl_layout.json
+            writeOcflSpec(ocflVersion);
+            writeOcflLayout();
         } else {
-            // TODO validate existing repo
+            validateExistingRepo(ocflVersion);
         }
 
         if (!Files.exists(repositoryRoot.resolve(OcflConstants.DEPOSIT_DIRECTORY))) {
             FileUtil.createDirectories(repositoryRoot.resolve(OcflConstants.DEPOSIT_DIRECTORY));
         }
-
-        // TODO add copy of OCFL spec -- ocfl_1.0.txt
-        // TODO add storage layout description -- ocfl_layout.json
-
-        // TODO verify can read OCFL version
-        // TODO how to verify that the repo is configured correctly to read the layout of an existing structure?
     }
 
     private Path objectRootPath(String objectId) {
@@ -325,6 +324,45 @@ public class FileSystemOcflStorage implements OcflStorage {
     private void copy(Path src, Path dst) {
         try {
             Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void validateExistingRepo(String ocflVersion) {
+        String existingOcflVersion = null;
+
+        for (var file : repositoryRoot.toFile().listFiles()) {
+            if (file.isFile() && file.getName().startsWith("0=")) {
+                existingOcflVersion = file.getName().substring(2);
+            }
+        }
+
+        if (existingOcflVersion == null) {
+            throw new IllegalStateException("OCFL root is missing its root conformance declaration.");
+        } else if (!existingOcflVersion.equals(ocflVersion)) {
+            throw new IllegalStateException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
+                    ocflVersion, existingOcflVersion));
+        }
+
+        // TODO how to verify that the repo is configured correctly to read the layout of an existing structure?
+    }
+
+    private void writeOcflSpec(String ocflVersion) {
+        var ocflSpecFile = ocflVersion + ".txt";
+        try (var ocflSpecStream = FileSystemOcflStorage.class.getClassLoader().getResourceAsStream(ocflSpecFile)) {
+            Files.copy(ocflSpecStream, repositoryRoot.resolve(ocflSpecFile));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void writeOcflLayout() {
+        try {
+            var map = new TreeMap<String, Object>(Comparator.naturalOrder());
+            map.putAll(objectIdPathMapper.describeLayout());
+            new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true)
+                    .writeValue(repositoryRoot.resolve("ocfl_layout.json").toFile(), map);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -7,6 +7,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Object ids are first hashed and then partitioned into a specified number of segments of a specified length. Finally,
@@ -58,6 +59,16 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
         }
 
         return objectPath.resolve(new String(hashChars));
+    }
+
+    @Override
+    public Map<String, Object> describeLayout() {
+        // TODO https://github.com/OCFL/spec/issues/351
+        return Map.of(
+                "uri", String.format("https://birkland.github.io/ocfl-rfc-demo/0003-truncated-ntuple-layout?encoding=%s&depth=%s&n=%s",
+                        digestAlgorithm, depth, segmentLength),
+                "description", "Truncated n-tuple Layout"
+        );
     }
 
 }

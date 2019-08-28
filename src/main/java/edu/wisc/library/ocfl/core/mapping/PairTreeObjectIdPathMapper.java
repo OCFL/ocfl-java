@@ -6,6 +6,7 @@ import java.io.CharArrayWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -77,6 +78,15 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
         }
 
         return Paths.get(parts[0], Arrays.copyOfRange(parts, 1, parts.length));
+    }
+
+    @Override
+    public Map<String, Object> describeLayout() {
+        // TODO https://github.com/OCFL/spec/issues/351
+        return Map.of(
+                "uri", String.format("https://birkland.github.io/ocfl-rfc-demo/0001-pairtree-layout?encapsulation=%s", encapsulationSubstringLength),
+                "description", "Pairtree Layout"
+        );
     }
 
     // TODO should directories that start with a dot be allowed?

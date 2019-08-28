@@ -81,9 +81,11 @@ public class VersionBuilder {
     }
 
     public VersionBuilder commitInfo(CommitInfo commitInfo) {
-        this.message = commitInfo.getMessage();
-        if (commitInfo.getUser() != null) {
-            this.user = new User(commitInfo.getUser().getName(), commitInfo.getUser().getAddress());
+        if (commitInfo != null) {
+            this.message = commitInfo.getMessage();
+            if (commitInfo.getUser() != null) {
+                this.user = new User(commitInfo.getUser().getName(), commitInfo.getUser().getAddress());
+            }
         }
         return this;
     }
