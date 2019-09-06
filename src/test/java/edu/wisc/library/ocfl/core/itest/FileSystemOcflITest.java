@@ -21,11 +21,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
@@ -441,9 +443,86 @@ public class FileSystemOcflITest {
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
 
-    // TODO zero padded versions
-    // TODO different digest algorithms
-    // TODO different content directories
+    @Test
+    public void useZeroPaddedVersionsWhenExistingVersionIsZeroPadded() {
+        var repoName = "zero-padded";
+        var repoDir = newRepoDir(repoName);
+        copyDir(sourceRepoPath(repoName), repoDir);
+
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o1";
+
+        var sourcePathV2 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void useDifferentContentDirectoryWhenExistingObjectIsUsingDifferentDir() {
+        var repoName = "different-content";
+        var repoDir = newRepoDir(repoName);
+        copyDir(sourceRepoPath(repoName), repoDir);
+
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o1";
+
+        var sourcePathV2 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void shouldUseDifferentDigestAlgorithmWhenInventoryHasDifferent() {
+        var repoName = "different-digest";
+        var repoDir = newRepoDir(repoName);
+        copyDir(sourceRepoPath(repoName), repoDir);
+
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o1";
+
+        var sourcePathV2 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void rejectDstPathsThatAreNotRelativeToObjectRoot() {
+        var repoName = "repo9";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o1";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "/absolute/path/file3");
+            });
+        });
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "relative/../../path/file3");
+            });
+        });
+    }
+
     // TODO overwrite tests
     // TODO there's a problem with the empty directory tests in that the empty directories won't be in git
 
@@ -571,6 +650,29 @@ public class FileSystemOcflITest {
         return new OcflRepositoryBuilder().prettyPrintJson().build(
                 new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 repoDir.resolve("deposit"));
+    }
+
+    private void copyDir(Path source, Path target) {
+        try (var files = Files.walk(source)) {
+            files.forEach(f -> {
+                try {
+                    Files.copy(f, target.resolve(source.relativize(f)), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void printFiles(Path path) {
+        try {
+            Files.walk(path).forEach(System.out::println);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        ;
     }
 
 }

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,7 +37,10 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var stagingDst = stagingDir.resolve(destinationPath);
+        var normalized = Paths.get(destinationPath).normalize();
+        validateDestinationPath(normalized);
+
+        var stagingDst = stagingDir.resolve(normalized);
         var files = FileUtil.findFiles(sourcePath);
 
         if (files.size() == 0) {
@@ -65,7 +69,10 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(input, "input cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var stagingDst = stagingDir.resolve(destinationPath);
+        var normalized = Paths.get(destinationPath).normalize();
+        validateDestinationPath(normalized);
+
+        var stagingDst = stagingDir.resolve(normalized);
         var stagingRelative = stagingDir.relativize(stagingDst);
 
         FileUtil.createDirectories(stagingDst.getParent());
@@ -121,6 +128,18 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         }
 
         return this;
+    }
+
+    private void validateDestinationPath(Path destination) {
+        if (destination.isAbsolute()) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid destination %s. Path must be relative the object root.", destination));
+        }
+
+        if (destination.startsWith("..")) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid destination %s. Path cannot be outside of object root.", destination));
+        }
     }
 
     private void copyInputStream(InputStream input, Path dst) {
