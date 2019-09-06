@@ -11,6 +11,7 @@ import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.util.InventoryMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +35,7 @@ public class OcflRepositoryBuilder {
 
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
+    private InventoryMapper inventoryMapper;
 
     /**
      * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
@@ -47,6 +49,7 @@ public class OcflRepositoryBuilder {
                 .expireAfterWrite(Duration.ofMinutes(10))
                 .expireAfterAccess(Duration.ofMinutes(10))
                 .maximumSize(1_000).build());
+        inventoryMapper = InventoryMapper.defaultMapper();
     }
 
     /**
@@ -71,6 +74,25 @@ public class OcflRepositoryBuilder {
      */
     public OcflRepositoryBuilder inventoryCache(Cache<String, Inventory> inventoryCache) {
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
+        return this;
+    }
+
+    /**
+     * Changes the InventoryMapper to pretty print Inventory JSON files so that they are human readable but use more
+     * disk space.
+     */
+    public OcflRepositoryBuilder prettyPrintJson() {
+        return inventoryMapper(InventoryMapper.prettyPrintMapper());
+    }
+
+    /**
+     * Used to override the default InventoryMapper, which is used to serialize Inventories to JSON files. The default
+     * mapper will emit as little whitespace as possible.
+     *
+     * @param inventoryMapper
+     */
+    public OcflRepositoryBuilder inventoryMapper(InventoryMapper inventoryMapper) {
+        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         return this;
     }
 
@@ -130,7 +152,7 @@ public class OcflRepositoryBuilder {
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");
 
         return new DefaultOcflRepository(storage, workDir,
-                objectLock, inventoryCache, fixityAlgorithms,
+                objectLock, inventoryCache, inventoryMapper, fixityAlgorithms,
                 inventoryType, digestAlgorithm, contentDirectory);
     }
 

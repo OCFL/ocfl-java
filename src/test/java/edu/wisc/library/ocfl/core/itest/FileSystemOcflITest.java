@@ -167,7 +167,7 @@ public class FileSystemOcflITest {
     public void describeObject() {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder()
+        var repo = new OcflRepositoryBuilder().prettyPrintJson()
                 .fixityAlgorithms(Set.of(DigestAlgorithm.md5))
                 .build(new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), repoDir.resolve("deposit"));
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
@@ -568,7 +568,7 @@ public class FileSystemOcflITest {
     }
 
     private OcflRepository defaultRepo(Path repoDir) {
-        return new OcflRepositoryBuilder().build(
+        return new OcflRepositoryBuilder().prettyPrintJson().build(
                 new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 repoDir.resolve("deposit"));
     }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.io.IOException;
@@ -18,13 +19,35 @@ public class InventoryMapper {
 
     private ObjectMapper objectMapper;
 
-    public InventoryMapper() {
-        objectMapper = new ObjectMapper()
+    /**
+     * Creates an InventoryMapper that will pretty print JSON files. This should be used when you value human readability
+     * over disk space usage.
+     */
+    public static InventoryMapper prettyPrintMapper() {
+        return new InventoryMapper(standardObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true));
+    }
+
+    /**
+     * Creates an InventoryMapper that creates JSON files with as little whitespace as possible. This should be used when
+     * minimizing disk space usage is more important than human readability.
+     */
+    public static InventoryMapper defaultMapper() {
+        return new InventoryMapper(standardObjectMapper());
+    }
+    
+    private static ObjectMapper standardObjectMapper() {
+        return new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .configure(SerializationFeature.INDENT_OUTPUT, true)
                 .configure(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, false)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    }
+
+    /**
+     * Should use InventoryMapper.defaultMapper() or InventoryMapper.prettyPrintMapper() unless you know what you're doing.
+     */
+    public InventoryMapper(ObjectMapper objectMapper) {
+        this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
     }
 
     public void writeValue(Path destination, Inventory inventory) {

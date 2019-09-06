@@ -42,7 +42,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
-        this.inventoryMapper = new InventoryMapper();
+        this.inventoryMapper = InventoryMapper.defaultMapper(); // This class will never serialize an Inventory, so the pretty print doesn't matter
         this.namasteFileWriter = new NamasteFileWriter();
     }
 

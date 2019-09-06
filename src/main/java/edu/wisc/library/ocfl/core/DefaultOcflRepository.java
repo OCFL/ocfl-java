@@ -58,8 +58,10 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private Clock clock;
 
-    public DefaultOcflRepository(OcflStorage storage, Path workDir, ObjectLock objectLock,
+    public DefaultOcflRepository(OcflStorage storage, Path workDir,
+                                 ObjectLock objectLock,
                                  Cache<String, Inventory> inventoryCache,
+                                 InventoryMapper inventoryMapper,
                                  Set<DigestAlgorithm> fixityAlgorithms,
                                  InventoryType inventoryType, DigestAlgorithm digestAlgorithm,
                                  String contentDirectory) {
@@ -67,12 +69,12 @@ public class DefaultOcflRepository implements OcflRepository {
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
+        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         this.fixityAlgorithms = Enforce.notNull(fixityAlgorithms, "fixityAlgorithms cannot be null");
         this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
 
-        inventoryMapper = new InventoryMapper();
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
     }
