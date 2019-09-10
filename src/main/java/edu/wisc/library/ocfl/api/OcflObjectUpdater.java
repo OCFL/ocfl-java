@@ -63,4 +63,8 @@ public interface OcflObjectUpdater {
      */
     OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions);
 
+    // TODO add api for reinstating a file from a previous version
+
+    // TODO add api for purging a file an object
+
 }

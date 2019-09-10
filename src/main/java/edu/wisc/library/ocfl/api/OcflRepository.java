@@ -92,6 +92,8 @@ public interface OcflRepository {
      */
     VersionDetails describeVersion(ObjectId objectId);
 
+    // TODO add api for deleting an object
+
     // TODO rollbackObject?
 
     // TODO list objects? this is a daunting prospect without an index
