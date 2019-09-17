@@ -38,9 +38,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var normalized = Paths.get(destinationPath).normalize();
-        validateDestinationPath(normalized);
-
+        var normalized = normalizeDestinationPath(destinationPath);
         var stagingDst = stagingDir.resolve(normalized);
         var files = FileUtil.findFiles(sourcePath);
 
@@ -70,9 +68,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(input, "input cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var normalized = Paths.get(destinationPath).normalize();
-        validateDestinationPath(normalized);
-
+        var normalized = normalizeDestinationPath(destinationPath);
         var stagingDst = stagingDir.resolve(normalized);
         var stagingRelative = stagingDir.relativize(stagingDst);
 
@@ -115,12 +111,14 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
+        var normalizedDestination = normalizeDestinationPath(destinationPath).toString();
+
         if (!newFiles.remove(sourcePath)) {
-            inventoryUpdater.renameFile(sourcePath, destinationPath, ocflOptions);
+            inventoryUpdater.renameFile(sourcePath, normalizedDestination, ocflOptions);
         } else {
             // TODO Things get complicated when new-to-version files are mutated. Perhaps this should just not be allowed.
-            newFiles.add(destinationPath);
-            var destination = stagingDir.resolve(destinationPath);
+            newFiles.add(normalizedDestination);
+            var destination = stagingDir.resolve(normalizedDestination);
             moveFile(stagingDir.resolve(sourcePath), destination);
             cleanupEmptyDirs(stagingDir);
             inventoryUpdater.removeFile(sourcePath);
@@ -140,9 +138,20 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        inventoryUpdater.reinstateFile(VersionId.fromValue(sourceVersionId), sourcePath, destinationPath, ocflOptions);
+        var normalizedDestination = normalizeDestinationPath(destinationPath).toString();
+
+        inventoryUpdater.reinstateFile(VersionId.fromValue(sourceVersionId), sourcePath, normalizedDestination, ocflOptions);
 
         return this;
+    }
+
+    /*
+     * This is necessary to ensure that the specified paths are contained within the object root
+     */
+    private Path normalizeDestinationPath(String destinationPath) {
+        var normalized = Paths.get(destinationPath).normalize();
+        validateDestinationPath(normalized);
+        return normalized;
     }
 
     private void validateDestinationPath(Path destination) {
