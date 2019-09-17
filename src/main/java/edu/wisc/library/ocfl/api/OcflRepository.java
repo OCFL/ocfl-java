@@ -77,7 +77,7 @@ public interface OcflRepository {
     /**
      * Returns all of the details about an object and all of its versions.
      *
-     * @param objectId the id of the object to describe. The version part is ignored.
+     * @param objectId the id of the object to describe
      * @return details about the object
      * @throws NotFoundException when no object can be found for the specified objectId
      */
@@ -91,6 +91,14 @@ public interface OcflRepository {
      * @throws NotFoundException when no object can be found for the specified objectId
      */
     VersionDetails describeVersion(ObjectId objectId);
+
+    /**
+     * Permanently removes an object from the repository. Objects that have been purged are NOT recoverable. If an object
+     * with the specified id cannot be found it is considered purged and no exception is thrown.
+     *
+     * @param objectId the id of the object to purge
+     */
+    void purgeObject(String objectId);
 
     // TODO add api for deleting an object
 
