@@ -604,6 +604,50 @@ public class FileSystemOcflITest {
         });
     }
 
+    @Test
+    public void purgeObjectWhenExists() {
+        var repoName = "purge-object";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o3";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        repo.purgeObject(objectId);
+
+        assertThrows(NotFoundException.class, () -> {
+            repo.describeObject(objectId);
+        });
+
+        assertEquals(4, listAllPaths(repoDir).size());
+    }
+
+    @Test
+    public void purgeObjectDoNothingWhenDoesNotExist() {
+        var repoName = "purge-object";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o3";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        repo.purgeObject("o4");
+
+        assertThrows(NotFoundException.class, () -> {
+            repo.describeObject("o4");
+        });
+
+        assertEquals(14, listAllPaths(repoDir).size());
+    }
+
     // TODO overwrite tests
     // TODO there's a problem with the empty directory tests in that the empty directories won't be in git
 

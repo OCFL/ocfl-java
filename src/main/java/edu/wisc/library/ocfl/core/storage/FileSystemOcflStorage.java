@@ -166,6 +166,31 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void purgeObject(String objectId) {
+        var objectRootPath = objectRootPath(objectId);
+
+        if (Files.exists(objectRootPath)) {
+            try (var paths = Files.walk(objectRootPath)) {
+                paths.sorted(Comparator.reverseOrder())
+                        .forEach(f -> {
+                            try {
+                                Files.delete(f);
+                            } catch (IOException e) {
+                                throw new RuntimeException(String.format("Failed to delete file %s while purging object %s." +
+                                        " The purge failed and may need to be deleted manually.", f, objectId), e);
+                            }
+                        });
+            } catch (IOException e) {
+                throw new RuntimeException(String.format("Failed to purge object %s at %s. The object may need to be deleted manually.",
+                        objectId, objectRootPath), e);
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void initializeStorage(String ocflVersion) {
         if (!Files.exists(repositoryRoot)) {
             FileUtil.createDirectories(repositoryRoot);

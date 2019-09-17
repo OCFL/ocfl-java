@@ -72,6 +72,16 @@ public interface OcflStorage {
     void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions);
 
     /**
+     * Permanently removes an object from the repository. Objects that have been purged are NOT recoverable. If an object
+     * with the specified id cannot be found it is considered purged and no exception is thrown.
+     *
+     * <p>DefaultOcflRepository calls this method from a write lock.
+     *
+     * @param objectId the id of the object to purge
+     */
+    void purgeObject(String objectId);
+
+    /**
      * Initializes the OCFL root. If it is an existing OCFL repository and the root has already been initialized, then
      * this method should do nothing.
      *

@@ -219,6 +219,22 @@ public class DefaultOcflRepository implements OcflRepository {
         return responseMapper.mapVersion(inventory, objectId.getVersionId(), version);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void purgeObject(String objectId) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+
+        objectLock.doInWriteLock(objectId, () -> {
+            try {
+                storage.purgeObject(objectId);
+            } finally {
+                inventoryCache.invalidate(objectId);
+            }
+        });
+    }
+
     private Inventory loadInventory(ObjectId objectId) {
         return objectLock.doInReadLock(objectId.getObjectId(), () ->
                 inventoryCache.get(objectId.getObjectId(), storage::loadInventory));
