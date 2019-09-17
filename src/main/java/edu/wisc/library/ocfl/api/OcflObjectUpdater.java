@@ -63,8 +63,21 @@ public interface OcflObjectUpdater {
      */
     OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions);
 
-    // TODO add api for reinstating a file from a previous version
+    /**
+     * Reinstates a file that existed in any version of the object into the current version. This is useful when recovering
+     * a prior version of a file or adding back a file that was deleted. Both paths are relative the object's root.
+     * Use {@code OcflOption.OVERWRITE} to overwrite an existing file at the destinationPath.
+     *
+     * @param sourceVersionId the version id of the version to reinstate the sourcePath from. Cannot be the current version
+     * @param sourcePath the path to the file to be reinstated relative the object root
+     * @param destinationPath the path to reinstate the file to relative the object root
+     * @param ocflOptions optional config options. Use {@code OcflOption.OVERWRITE} to overwrite existing files within
+     *                    an object
+     * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
+     *                            not specified
+     */
+    OcflObjectUpdater reinstateFile(String sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions);
 
-    // TODO add api for purging a file an object
+    // TODO add api for purging a file in an object
 
 }
