@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * OCFL version object. A Version describes the state of an object at a particular point in time. Versions are immutable.
@@ -48,7 +49,7 @@ public class Version {
         this.created = Enforce.notNull(created, "created cannot be null");
         this.message = message;
         this.user = user;
-        this.state = Collections.unmodifiableMap(copyState(state));
+        this.state = Collections.unmodifiableMap(copyState(state, Collections::unmodifiableSet));
         if (reverseStateMap == null) {
             this.reverseStateMap = Collections.unmodifiableMap(createReverseStateMap(this.state));
         } else {
@@ -56,10 +57,10 @@ public class Version {
         }
     }
 
-    private Map<String, Set<String>> copyState(Map<String, Set<String>> state) {
+    private Map<String, Set<String>> copyState(Map<String, Set<String>> state, Function<Set<String>, Set<String>> pathSetCreator) {
         Enforce.notNull(state, "state cannot be null");
         var newState = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-        state.forEach((digest, paths) -> newState.put(digest, Collections.unmodifiableSet(new TreeSet<>(paths))));
+        state.forEach((digest, paths) -> newState.put(digest, pathSetCreator.apply(new TreeSet<>(paths))));
         return newState;
     }
 
@@ -104,7 +105,7 @@ public class Version {
 
     @JsonIgnore
     public Map<String, Set<String>> getMutableState() {
-        return copyState(state);
+        return copyState(state, Function.identity());
     }
 
     @JsonIgnore

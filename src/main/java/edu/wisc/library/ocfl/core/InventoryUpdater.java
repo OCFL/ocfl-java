@@ -195,6 +195,40 @@ public final class InventoryUpdater {
     }
 
     /**
+     * Reinstates a file that existed in any version of the object into the current version. This is useful when recovering
+     * a prior version of a file or adding back a file that was deleted. Both paths are relative the object's root.
+     * Use {@code OcflOption.OVERWRITE} to overwrite an existing file at the destinationPath.
+     *
+     * @param sourceVersionId the version id of the version to reinstate the sourcePath from
+     * @param sourcePath the path to the file to be reinstated relative the object root
+     * @param destinationPath the path to reinstate the file to relative the object root
+     * @param ocflOptions optional config options. Use {@code OcflOption.OVERWRITE} to overwrite existing files within
+     *                    an object
+     * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
+     *                            not specified
+     */
+    public void reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
+        var fileId = inventoryBuilder.getVersionFileId(sourceVersionId, sourcePath);
+
+        if (fileId == null) {
+            throw new IllegalArgumentException(String.format("Object %s version %s does not contain a file at %s",
+                    inventoryBuilder.getId(), sourceVersionId, sourcePath));
+        }
+
+        if (versionBuilder.getFileId(destinationPath) != null) {
+            if (options.contains(OcflOption.OVERWRITE)) {
+                versionBuilder.removePath(destinationPath);
+            } else {
+                throw new OverwriteException(String.format("Cannot reinstate %s from version %s to %s because there is already a file at that location.",
+                        sourcePath, sourceVersionId, destinationPath));
+            }
+        }
+
+        versionBuilder.addFile(fileId, destinationPath);
+    }
+
+    /**
      * Removes a file from the manifest. This should only ever happen if a file is added and then removed within the same
      * update block.
      *

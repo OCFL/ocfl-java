@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.core;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.io.IOException;
@@ -126,6 +127,20 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             inventoryUpdater.removeFileFromManifest(sourcePath);
             inventoryUpdater.addFile(destination, stagingDir.relativize(destination), ocflOptions);
         }
+
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public OcflObjectUpdater reinstateFile(String sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+        Enforce.notBlank(sourceVersionId, "sourceVersionId cannot be blank");
+        Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
+        Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
+
+        inventoryUpdater.reinstateFile(VersionId.fromValue(sourceVersionId), sourcePath, destinationPath, ocflOptions);
 
         return this;
     }

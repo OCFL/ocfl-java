@@ -523,6 +523,87 @@ public class FileSystemOcflITest {
         });
     }
 
+    @Test
+    public void reinstateFileThatWasRemoved() {
+        var repoName = "repo9";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o3";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.removeFile("file3");
+        });
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.reinstateFile("v1", "file3", "file3");
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void reinstateFileThatWasNeverRemoved() {
+        var repoName = "repo10";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o3";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.reinstateFile("v1", "file2", "file1");
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void shouldRejectReinstateWhenVersionDoesNotExist() {
+        var repoName = "repo10";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o3";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        assertThrows(IllegalStateException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+                updater.reinstateFile("v3", "file2", "file1");
+            });
+        });
+    }
+
+    @Test
+    public void shouldRejectReinstateWhenFileDoesNotExist() {
+        var repoName = "repo10";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o3";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+                updater.reinstateFile("v1", "file4", "file1");
+            });
+        });
+    }
+
     // TODO overwrite tests
     // TODO there's a problem with the empty directory tests in that the empty directories won't be in git
 

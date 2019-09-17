@@ -146,6 +146,16 @@ public class InventoryBuilder {
         return contentDirectory;
     }
 
+    public String getVersionFileId(VersionId versionId, String path) {
+        var version = versions.get(versionId);
+
+        if (version == null) {
+            throw new IllegalStateException(String.format("Version %s does not exist for object %s.", versionId, id));
+        }
+
+        return version.getFileId(path);
+    }
+
     public Inventory build() {
         return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, reverseManifestMap);
     }

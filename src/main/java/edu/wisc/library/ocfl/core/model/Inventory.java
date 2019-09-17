@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * OCFL inventory object. It is intended to be used to encode and decode inventories. Inventories are immutable. Creating
@@ -68,7 +69,7 @@ public class Inventory {
         this.head = Enforce.notNull(head, "head cannot be null");
         this.contentDirectory = contentDirectory != null ? contentDirectory : OcflConstants.DEFAULT_CONTENT_DIRECTORY;
         this.fixity = copyFixity(fixity);
-        this.manifest = Collections.unmodifiableMap(copyManifest(manifest));
+        this.manifest = Collections.unmodifiableMap(copyManifest(manifest, Collections::unmodifiableSet));
         this.versions = Collections.unmodifiableMap(copyVersions(versions));
         if (reverseManifestMap == null) {
             this.reverseManifestMap = createReverseManifestMap(this.manifest);
@@ -91,10 +92,10 @@ public class Inventory {
         return Collections.unmodifiableMap(newFixity);
     }
 
-    private Map<String, Set<String>> copyManifest(Map<String, Set<String>> manifest) {
+    private Map<String, Set<String>> copyManifest(Map<String, Set<String>> manifest, Function<Set<String>, Set<String>> pathSetCreator) {
         Enforce.notNull(manifest, "manifest cannot be null");
         var newManifest = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-        manifest.forEach((digest, paths) -> newManifest.put(digest, Collections.unmodifiableSet(new TreeSet<>(paths))));
+        manifest.forEach((digest, paths) -> newManifest.put(digest, pathSetCreator.apply(new TreeSet<>(paths))));
         return newManifest;
     }
 
@@ -177,7 +178,7 @@ public class Inventory {
 
     @JsonIgnore
     public Map<String, Set<String>> getMutableManifest() {
-        return copyManifest(manifest);
+        return copyManifest(manifest, Function.identity());
     }
 
     @JsonIgnore
