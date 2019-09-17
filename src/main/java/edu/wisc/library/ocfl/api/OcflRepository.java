@@ -100,8 +100,6 @@ public interface OcflRepository {
      */
     void purgeObject(String objectId);
 
-    // TODO add api for deleting an object
-
     // TODO rollbackObject?
 
     // TODO list objects? this is a daunting prospect without an index
