@@ -691,8 +691,10 @@ public class FileSystemOcflITest {
         var allPaths = new TreeSet<Path>();
 
         try (var walk = Files.walk(root)) {
-            // TODO cleanup tomorrow
-            walk.filter(p -> !p.toString().contains(".keep") && !p.toString().contains("deposit")).forEach(allPaths::add);
+            walk.filter(p -> {
+                var pStr = p.toString();
+                return !(pStr.contains(".keep") || pStr.contains("deposit"));
+            }).forEach(allPaths::add);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
