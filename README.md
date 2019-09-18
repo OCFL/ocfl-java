@@ -2,6 +2,7 @@
 
 This project is a Java implementation of the [OCFL beta 0.3 spec](https://ocfl.io/0.3/spec/).
 
+[![Build Status](https://travis-ci.com/UW-Madison-Library/ocfl-java.svg?branch=master)](https://travis-ci.com/UW-Madison-Library/ocfl-java)
 
 ## Requirements and Installation
 
