@@ -13,8 +13,8 @@
     <name>OCFL Java Parent POM</name>
 
     <modules>
-        <module>../ocfl-java-api</module>
-        <module>../ocfl-java-core</module>
+        <module>ocfl-java-api</module>
+        <module>ocfl-java-core</module>
     </modules>
 
     <properties>
