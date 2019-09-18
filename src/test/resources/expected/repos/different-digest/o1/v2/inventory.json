@@ -1,0 +1,41 @@
+{
+  "id" : "o1",
+  "type" : "https://ocfl.io/1.0/spec/#inventory",
+  "digestAlgorithm" : "sha256",
+  "head" : "v2",
+  "contentDirectory" : "content",
+  "fixity" : { },
+  "manifest" : {
+    "2b6e16bbff5690b2272a37ab78d83d7e785ff84964a146212602b25fcc21b299" : [ "v2/content/dir1/file3" ],
+    "2cbf24e88a7bb07d6721a9fc9a87a8814b68cef54b576327666001d6b36bc8fc" : [ "v1/content/file2" ],
+    "6740a1df50b9d89ea515dc1351ccedd406c4e96c1e7a92f71690d822da16d5fc" : [ "v1/content/file1" ],
+    "854435a9412fa3fef6b0ff5c264cdd7f5bd97cde413d7195ac0b242eb8b4d300" : [ "v2/content/file1" ]
+  },
+  "versions" : {
+    "v1" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "commit message",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "2cbf24e88a7bb07d6721a9fc9a87a8814b68cef54b576327666001d6b36bc8fc" : [ "file2" ],
+        "6740a1df50b9d89ea515dc1351ccedd406c4e96c1e7a92f71690d822da16d5fc" : [ "file1" ]
+      }
+    },
+    "v2" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "second",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "2b6e16bbff5690b2272a37ab78d83d7e785ff84964a146212602b25fcc21b299" : [ "dir1/file3" ],
+        "2cbf24e88a7bb07d6721a9fc9a87a8814b68cef54b576327666001d6b36bc8fc" : [ "file2" ],
+        "854435a9412fa3fef6b0ff5c264cdd7f5bd97cde413d7195ac0b242eb8b4d300" : [ "file1" ]
+      }
+    }
+  }
+}

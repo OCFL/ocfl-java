@@ -1,0 +1,49 @@
+{
+  "id" : "o3",
+  "type" : "https://ocfl.io/1.0/spec/#inventory",
+  "digestAlgorithm" : "sha512",
+  "head" : "v3",
+  "contentDirectory" : "content",
+  "fixity" : { },
+  "manifest" : {
+    "70ffe50550ae07cd0fc154cc1cd3a47b71499b5f67921b52219750441791981fb36476cd478440601bc26da16b28c8a2be4478b36091f2615ac94a575581902c" : [ "v1/content/file2" ],
+    "79c994f97612eb4ee6a3cb1fbbb45278da184ea73bfb483274bb783f0bce6a7bf8dd8cb0d4fc0eb2b065ebd28b2959b59d9a489929edf9ea7db4dcda8a09a76f" : [ "v1/content/file3" ]
+  },
+  "versions" : {
+    "v1" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "commit message",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "70ffe50550ae07cd0fc154cc1cd3a47b71499b5f67921b52219750441791981fb36476cd478440601bc26da16b28c8a2be4478b36091f2615ac94a575581902c" : [ "file2" ],
+        "79c994f97612eb4ee6a3cb1fbbb45278da184ea73bfb483274bb783f0bce6a7bf8dd8cb0d4fc0eb2b065ebd28b2959b59d9a489929edf9ea7db4dcda8a09a76f" : [ "file3" ]
+      }
+    },
+    "v2" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "2",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "70ffe50550ae07cd0fc154cc1cd3a47b71499b5f67921b52219750441791981fb36476cd478440601bc26da16b28c8a2be4478b36091f2615ac94a575581902c" : [ "file2" ]
+      }
+    },
+    "v3" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "3",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "70ffe50550ae07cd0fc154cc1cd3a47b71499b5f67921b52219750441791981fb36476cd478440601bc26da16b28c8a2be4478b36091f2615ac94a575581902c" : [ "file2" ],
+        "79c994f97612eb4ee6a3cb1fbbb45278da184ea73bfb483274bb783f0bce6a7bf8dd8cb0d4fc0eb2b065ebd28b2959b59d9a489929edf9ea7db4dcda8a09a76f" : [ "file3" ]
+      }
+    }
+  }
+}
