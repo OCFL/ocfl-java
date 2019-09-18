@@ -1,7 +1,7 @@
 # OCFL Java
 
-This project is an implementation of the [ocfl-java-api](https://github.com/pwinckles/ocfl-java-api) and conforms to the
-[OCFL beta 0.3 spec](https://ocfl.io/0.3/spec/).
+This project is a Java implementation of the [OCFL beta 0.3 spec](https://ocfl.io/0.3/spec/).
+
 
 ## Requirements and Installation
 
@@ -11,7 +11,7 @@ The `ocfl-java` libraries are not yet being built to a public Maven repository. 
 libraries locally as follows:
 
 ```bash
-$ git clone git@github.com:pwinckles/ocfl-java.git
+$ git clone git@github.com:UW-Madison-Library/ocfl-java.git
 $ cd ocfl-java
 $ mvn install
 ```
