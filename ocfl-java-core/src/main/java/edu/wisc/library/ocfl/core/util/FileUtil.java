@@ -96,6 +96,15 @@ public final class FileUtil {
         }
     }
 
+    public static void moveFileMakeParents(Path src, Path dst, StandardCopyOption... copyOptions) {
+        try {
+            Files.createDirectories(dst.getParent());
+            Files.move(src, dst, copyOptions);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void safeDeletePath(Path path) {
         if (Files.exists(path)) {
             try (var paths = Files.walk(path)) {

@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -38,6 +39,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
+
         var normalized = normalizeDestinationPath(destinationPath);
         var stagingDst = stagingDir.resolve(normalized);
         var files = FileUtil.findFiles(sourcePath);
@@ -52,10 +55,19 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             var stagingRelative = stagingDir.relativize(stagingFullPath);
             var isNew = inventoryUpdater.addFile(file, stagingRelative, ocflOptions);
             if (isNew) {
-                FileUtil.copyFileMakeParents(file, stagingFullPath);
+                if (options.contains(OcflOption.MOVE_SOURCE)) {
+                    FileUtil.moveFileMakeParents(file, stagingFullPath);
+                } else {
+                    FileUtil.copyFileMakeParents(file, stagingFullPath);
+                }
                 newFiles.add(stagingRelative.toString());
             }
         });
+
+        if (options.contains(OcflOption.MOVE_SOURCE)) {
+            // Cleanup empty dirs
+            FileUtil.safeDeletePath(sourcePath);
+        }
 
         return this;
     }

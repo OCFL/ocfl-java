@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectReader;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
@@ -31,6 +32,8 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -83,17 +86,21 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo) {
+    public ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions) {
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
+
         var inventory = loadInventory(objectId);
-        var contentDir = resolveContentDir(inventory);
         var updater = createInventoryUpdater(objectId, inventory, true);
+        updater.addCommitInfo(commitInfo);
 
         // Only needs to be cleaned on failure
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        var newInventory = stageNewVersion(updater, path, commitInfo, stagingDir, contentDir);
+        var contentDir = FileUtil.createDirectories(stagingDir.resolve(resolveContentDir(inventory)));
+
+        var newInventory = stageNewVersion(updater, path, contentDir, options);
 
         try {
             writeNewVersion(newInventory, stagingDir);
@@ -266,19 +273,25 @@ public class DefaultOcflRepository implements OcflRepository {
         return updater;
     }
 
-    private Inventory stageNewVersion(InventoryUpdater updater, Path sourcePath, CommitInfo commitInfo, Path stagingDir, String contentDirectory) {
-        updater.addCommitInfo(commitInfo);
-
+    private Inventory stageNewVersion(InventoryUpdater updater, Path sourcePath, Path contentDir, Set<OcflOption> options) {
         var files = FileUtil.findFiles(sourcePath);
-        var contentDir = FileUtil.createDirectories(stagingDir.resolve(contentDirectory));
 
         for (var file : files) {
             var relativePath = sourcePath.relativize(file);
             var isNewFile = updater.addFile(file, relativePath);
 
             if (isNewFile) {
-                FileUtil.copyFileMakeParents(file, contentDir.resolve(relativePath));
+                if (options.contains(OcflOption.MOVE_SOURCE)) {
+                    FileUtil.moveFileMakeParents(file, contentDir.resolve(relativePath));
+                } else {
+                    FileUtil.copyFileMakeParents(file, contentDir.resolve(relativePath));
+                }
             }
+        }
+
+        if (options.contains(OcflOption.MOVE_SOURCE)) {
+            // Cleanup empty dirs
+            FileUtil.safeDeletePath(sourcePath);
         }
 
         return updater.finalizeUpdate();

@@ -3,7 +3,11 @@ package edu.wisc.library.ocfl.api;
 public enum OcflOption {
 
     /**
-     * Indicates whether or not an update operation should overwrite any existing files in an object.
+     * Instructs an update operation to overwrite existing files in an object.
      */
-    OVERWRITE
+    OVERWRITE,
+    /**
+     * Instructs an update operation to move files into the repository instead of copying them.
+     */
+    MOVE_SOURCE
 }

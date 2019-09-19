@@ -14,13 +14,17 @@ public interface OcflObjectUpdater {
      * Adds a file or directory to the object being operated on. The destinationPath is where the file is inserted
      * into the object relative to the object's root.
      *
+     * <p>By default, files are copied into the OCFL repository. If {@code OcflOption.MOVE_SOURCE} is specified, then
+     * files will be moved instead. Warning: If an exception occurs and the new version is not created, the files that were
+     * will be lost. This operation is more efficient but less safe than the default copy.
+     *
      * <p>By default, the change will be rejected if there is already a file in the object at the destinationPath.
      * To overwrite, specify {@code OcflOption.OVERWRITE}.
      *
      * @param sourcePath the local file or directory to add to the object
      * @param destinationPath the location to store the sourcePath at within the object
-     * @param ocflOptions optional config options. Use {@code OcflOption.OVERWRITE} to overwrite existing files within
-     *                    an object
+     * @param ocflOptions optional config options. Use {@code OcflOption.MOVE_SOURCE} to move files into the repo instead of copying.
+     *                    Use {@code OcflOption.OVERWRITE} to overwrite existing files within an object
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
      *                            not specified
      */

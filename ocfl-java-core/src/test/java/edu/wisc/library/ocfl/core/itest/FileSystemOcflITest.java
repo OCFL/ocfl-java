@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.itest;
 
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
@@ -50,6 +51,7 @@ public class FileSystemOcflITest {
 
     private Path reposDir;
     private Path outputDir;
+    private Path inputDir;
 
     private CommitInfo defaultCommitInfo;
 
@@ -62,6 +64,7 @@ public class FileSystemOcflITest {
     public void setup() throws IOException {
         reposDir = Files.createDirectory(tempRoot.resolve("repos"));
         outputDir = Files.createDirectory(tempRoot.resolve("output"));
+        inputDir = Files.createDirectory(tempRoot.resolve("input"));
 
         defaultCommitInfo = commitInfo("Peter", "peter@example.com", "commit message");
     }
@@ -687,6 +690,82 @@ public class FileSystemOcflITest {
         assertFalse(repo.containsObject("o4"));
     }
 
+    @Test
+    public void shouldMoveFilesIntoRepoOnPutObjectWhenMoveSourceSpecified() {
+        var repoName = "repo3";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o1";
+
+        var sourcePathV1 = copyDir(sourceObjectPath(objectId, "v1"), inputDir.resolve("v1"));
+        var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
+        var sourcePathV3 = copyDir(sourceObjectPath(objectId, "v3"), inputDir.resolve("v3"));
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo, OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"), OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"), OcflOption.MOVE_SOURCE);
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        assertFalse(Files.exists(sourcePathV1));
+        assertFalse(Files.exists(sourcePathV2));
+        assertFalse(Files.exists(sourcePathV3));
+    }
+
+    @Test
+    public void shouldMoveFilesIntoRepoOnUpdateObjectWhenMoveSourceSpecified() {
+        var repoName = "repo4";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o2";
+
+        var sourcePathV1 = copyDir(sourceObjectPath(objectId, "v1"), inputDir.resolve("v1"));
+        var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
+        var sourcePathV3 = copyDir(sourceObjectPath(objectId, "v3"), inputDir.resolve("v3"));
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3", OcflOption.MOVE_SOURCE)
+                    .renameFile("file1", "dir3/file1");
+        });
+
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.removeFile("dir1/file3").removeFile("dir3/file1")
+                    .addPath(sourcePathV3.resolve("dir1"), "dir1", OcflOption.MOVE_SOURCE);
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        assertEquals(2, listAllPaths(sourcePathV2).size());
+        assertEquals(1, listAllPaths(sourcePathV3).size());
+    }
+
+    @Test
+    public void shouldMoveSrcDirContentsIntoSubdirWhenSubdirSpecifiedAsDst() {
+        var repoName = "repo12";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o2";
+
+        var sourcePathV1 = copyDir(sourceObjectPath(objectId, "v1"), inputDir.resolve("v1"));
+        var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
+
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+            updater.addPath(sourcePathV1, "sub", OcflOption.MOVE_SOURCE);
+        });
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+            updater.addPath(sourcePathV2, "sub", OcflOption.MOVE_SOURCE);
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+
     // TODO overwrite tests
     // TODO there's a problem with the empty directory tests in that the empty directories won't be in git
 
@@ -819,7 +898,7 @@ public class FileSystemOcflITest {
                 repoDir.resolve("deposit"));
     }
 
-    private void copyDir(Path source, Path target) {
+    private Path copyDir(Path source, Path target) {
         try (var files = Files.walk(source)) {
             files.forEach(f -> {
                 try {
@@ -831,6 +910,7 @@ public class FileSystemOcflITest {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        return target;
     }
 
     private void printFiles(Path path) {
