@@ -93,6 +93,14 @@ public interface OcflRepository {
     VersionDetails describeVersion(ObjectId objectId);
 
     /**
+     * Returns true if an object with the specified id exists in the repository.
+     *
+     * @param objectId the id of the object
+     * @return true if the object exists and false otherwise
+     */
+    boolean containsObject(String objectId);
+
+    /**
      * Permanently removes an object from the repository. Objects that have been purged are NOT recoverable. If an object
      * with the specified id cannot be found it is considered purged and no exception is thrown.
      *
@@ -101,6 +109,8 @@ public interface OcflRepository {
     void purgeObject(String objectId);
 
     // TODO rollbackObject?
+
+    // TODO delete head version
 
     // TODO list objects? this is a daunting prospect without an index
 

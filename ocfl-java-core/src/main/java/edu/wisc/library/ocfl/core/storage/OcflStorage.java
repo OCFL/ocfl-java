@@ -82,6 +82,14 @@ public interface OcflStorage {
     void purgeObject(String objectId);
 
     /**
+     * Returns true if an object with the specified id exists in the repository.
+     *
+     * @param objectId the id of the object
+     * @return true if the object exists and false otherwise
+     */
+    boolean containsObject(String objectId);
+
+    /**
      * Initializes the OCFL root. If it is an existing OCFL repository and the root has already been initialized, then
      * this method should do nothing.
      *

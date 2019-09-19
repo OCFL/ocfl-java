@@ -191,6 +191,14 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public boolean containsObject(String objectId) {
+        return Files.exists(objectRootPath(objectId));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void initializeStorage(String ocflVersion) {
         if (!Files.exists(repositoryRoot)) {
             FileUtil.createDirectories(repositoryRoot);

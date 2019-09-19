@@ -205,6 +205,15 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
+    public boolean containsObject(String objectId) {
+        Enforce.notNull(objectId, "objectId cannot be null");
+        return storage.containsObject(objectId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void purgeObject(String objectId) {
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
