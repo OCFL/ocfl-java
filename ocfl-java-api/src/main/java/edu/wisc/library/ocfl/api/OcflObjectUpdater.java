@@ -27,7 +27,7 @@ public interface OcflObjectUpdater {
     OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions);
 
     /**
-     * Writes the contents of the InpuStream to the object being operated on. The destinationPath is where the file is
+     * Writes the contents of the InputStream to the object being operated on. The destinationPath is where the file is
      * inserted into the object relative to the object's root.
      *
      * <p>By default, the change will be rejected if there is already a file in the object at the destinationPath.

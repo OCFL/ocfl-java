@@ -206,7 +206,7 @@ public class DefaultOcflRepository implements OcflRepository {
      */
     @Override
     public boolean containsObject(String objectId) {
-        Enforce.notNull(objectId, "objectId cannot be null");
+        Enforce.notBlank(objectId, "objectId cannot be blank");
         return storage.containsObject(objectId);
     }
 
