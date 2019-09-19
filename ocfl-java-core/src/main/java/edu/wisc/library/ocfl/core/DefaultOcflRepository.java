@@ -88,28 +88,12 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.notNull(path, "path cannot be null");
 
         var inventory = loadInventory(objectId);
-
-        InventoryUpdater updater;
-        String contentDirectory;
-
-        if (inventory != null) {
-            enforceObjectVersionForUpdate(objectId, inventory);
-            updater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
-            contentDirectory = inventory.getContentDirectory();
-        } else {
-            updater = InventoryUpdater.newInventory(
-                    objectId.getObjectId(),
-                    inventoryType,
-                    digestAlgorithm,
-                    this.contentDirectory,
-                    fixityAlgorithms,
-                    now());
-            contentDirectory = this.contentDirectory;
-        }
+        var contentDir = resolveContentDir(inventory);
+        var updater = createInventoryUpdater(objectId, inventory, true);
 
         // Only needs to be cleaned on failure
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        var newInventory = stageNewVersion(updater, path, commitInfo, stagingDir, contentDirectory);
+        var newInventory = stageNewVersion(updater, path, commitInfo, stagingDir, contentDir);
 
         try {
             writeNewVersion(newInventory, stagingDir);
@@ -128,15 +112,13 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
-        var inventory = requireInventory(objectId);
-        enforceObjectVersionForUpdate(objectId, inventory);
-
-        var updater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
+        var inventory = loadInventory(objectId);
+        var updater = createInventoryUpdater(objectId, inventory, false);
         updater.addCommitInfo(commitInfo);
 
         // Only needs to be cleaned on failure
-        var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
-        var contentDir = FileUtil.createDirectories(stagingDir.resolve(inventory.getContentDirectory()));
+        var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
+        var contentDir = FileUtil.createDirectories(stagingDir.resolve(resolveContentDir(inventory)));
 
         try {
             objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir));
@@ -252,6 +234,29 @@ public class DefaultOcflRepository implements OcflRepository {
         return inventory;
     }
 
+    private InventoryUpdater createInventoryUpdater(ObjectId objectId, Inventory inventory, boolean isInsert) {
+        InventoryUpdater updater;
+
+        if (inventory != null) {
+            enforceObjectVersionForUpdate(objectId, inventory);
+            if (isInsert) {
+                updater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
+            } else {
+                updater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
+            }
+        } else {
+            updater = InventoryUpdater.newInventory(
+                    objectId.getObjectId(),
+                    inventoryType,
+                    digestAlgorithm,
+                    this.contentDirectory,
+                    fixityAlgorithms,
+                    now());
+        }
+
+        return updater;
+    }
+
     private Inventory stageNewVersion(InventoryUpdater updater, Path sourcePath, CommitInfo commitInfo, Path stagingDir, String contentDirectory) {
         updater.addCommitInfo(commitInfo);
 
@@ -345,6 +350,13 @@ public class DefaultOcflRepository implements OcflRepository {
             throw new NotFoundException(String.format("Object %s version %s was not found.",
                     objectId.getObjectId(), objectId.getVersionId()));
         }
+    }
+
+    private String resolveContentDir(Inventory inventory) {
+        if (inventory != null) {
+            return inventory.getContentDirectory();
+        }
+        return this.contentDirectory;
     }
 
     private OffsetDateTime now() {

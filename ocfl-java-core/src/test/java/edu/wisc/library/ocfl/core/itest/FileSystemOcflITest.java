@@ -651,6 +651,25 @@ public class FileSystemOcflITest {
         assertEquals(14, listAllPaths(repoDir).size());
     }
 
+    @Test
+    public void shouldCreateNewObjectWithUpdateObjectApi() {
+        var repoName = "repo11";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o3";
+
+        var sourcePath = sourceObjectPath(objectId, "v2");
+
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            updater.addPath(sourcePath.resolve("file2"), "file2")
+                    .addPath(sourcePath.resolve("file3"), "file3");
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
     // TODO overwrite tests
     // TODO there's a problem with the empty directory tests in that the empty directories won't be in git
 

@@ -38,9 +38,9 @@ public interface OcflRepository {
     ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo);
 
     /**
-     * Updates an existing object by selectively adding, removing, moving files within the object, and creating a new
-     * version that encapsulates all of the changes. It always operates on the HEAD version of an object, but a specific
-     * version can be specified to ensure no intermediate changes were made to the object.
+     * Updates an existing object OR create a new object by selectively adding, removing, moving files within the object,
+     * and creating a new version that encapsulates all of the changes. It always operates on the HEAD version of an object,
+     * but a specific version can be specified to ensure no intermediate changes were made to the object.
      *
      * <p>If the current HEAD version of the object does not match the version specified in the request, the update will
      * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
