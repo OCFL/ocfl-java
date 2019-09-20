@@ -403,6 +403,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private Path identifyRandomObjectRoot(Path root) {
         var objectRootHolder = new ArrayList<Path>(1);
+        var objectMarkerPrefix = "0=ocfl_object";
 
         try {
             Files.walkFileTree(root, new SimpleFileVisitor<>() {
@@ -416,7 +417,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    if (file.endsWith("inventory.json")) {
+                    if (file.getFileName().toString().startsWith(objectMarkerPrefix)) {
                         objectRootHolder.add(file.getParent());
                         return FileVisitResult.TERMINATE;
                     }
