@@ -418,7 +418,18 @@ public class FileSystemOcflITest {
         var repoDir = sourceRepoPath(repoName);
         var repo = defaultRepo(repoDir);
 
-        assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectId.head("o1"), outputPath(repoName, "blah")));
+        assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectId.head("z1"), outputPath(repoName, "blah")));
+    }
+
+    @Test
+    public void failToInitRepoWhenObjectsStoredUsingDifferentLayout() {
+        var repoName = "repo3";
+        var repoDir = expectedRepoPath(repoName);
+        assertThrows(IllegalStateException.class, () -> {
+            new OcflRepositoryBuilder().prettyPrintJson().build(
+                    new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildDefaultPairTreeMapper()),
+                    repoDir.resolve("deposit"));
+        });
     }
 
     @Test

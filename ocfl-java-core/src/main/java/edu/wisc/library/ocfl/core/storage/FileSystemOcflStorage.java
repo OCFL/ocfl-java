@@ -20,14 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.TreeMap;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class FileSystemOcflStorage implements OcflStorage {
@@ -378,7 +373,23 @@ public class FileSystemOcflStorage implements OcflStorage {
                     ocflVersion, existingOcflVersion));
         }
 
-        // TODO how to verify that the repo is configured correctly to read the layout of an existing structure?
+        // TODO how to verify layout file
+
+        var objectRoot = identifyRandomObjectRoot(repositoryRoot);
+
+        if (objectRoot != null) {
+            var inventory = parseInventory(inventoryPath(objectRoot));
+            var expectedPath = objectIdPathMapper.map(inventory.getId());
+            var actualPath = repositoryRoot.relativize(objectRoot);
+            if (!expectedPath.equals(actualPath)) {
+                throw new IllegalStateException(String.format(
+                        "The OCFL client was configured to use the following layout: %s." +
+                                " This layout does not match the layout of existing objects in the repository." +
+                        " Found object %s stored at %s, but was expecting it to be stored at %s.",
+                        objectIdPathMapper.describeLayout(), inventory.getId(), actualPath, expectedPath
+                ));
+            }
+        }
     }
 
     private void writeOcflSpec(String ocflVersion) {
@@ -388,6 +399,39 @@ public class FileSystemOcflStorage implements OcflStorage {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Path identifyRandomObjectRoot(Path root) {
+        var objectRootHolder = new ArrayList<Path>(1);
+
+        try {
+            Files.walkFileTree(root, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    if (dir.endsWith("deposit")) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                    return super.preVisitDirectory(dir, attrs);
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (file.endsWith("inventory.json")) {
+                        objectRootHolder.add(file.getParent());
+                        return FileVisitResult.TERMINATE;
+                    }
+                    return super.visitFile(file, attrs);
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (objectRootHolder.isEmpty()) {
+            return null;
+        }
+
+        return objectRootHolder.get(0);
     }
 
     private void writeOcflLayout() {
