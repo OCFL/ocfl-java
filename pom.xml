@@ -47,7 +47,7 @@
 
         <java.version>11</java.version>
 
-        <jackson.version>2.9.9</jackson.version>
+        <jackson.version>2.9.10</jackson.version>
     </properties>
 
     <profiles>
