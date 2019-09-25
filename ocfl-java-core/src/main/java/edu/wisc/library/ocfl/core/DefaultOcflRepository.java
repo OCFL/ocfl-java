@@ -276,6 +276,7 @@ public class DefaultOcflRepository implements OcflRepository {
     private Inventory stageNewVersion(InventoryUpdater updater, Path sourcePath, Path contentDir, Set<OcflOption> options) {
         var files = FileUtil.findFiles(sourcePath);
 
+        // TODO parallelize? is the updater threadsafe?
         for (var file : files) {
             var relativePath = sourcePath.relativize(file);
             var isNewFile = updater.addFile(file, relativePath);

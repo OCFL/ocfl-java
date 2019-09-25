@@ -9,6 +9,8 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Path;
 
 /**
@@ -58,9 +60,25 @@ public class InventoryMapper {
         }
     }
 
+    public void writeValue(OutputStream outputStream, Inventory inventory) {
+        try {
+            objectMapper.writeValue(outputStream, inventory);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public Inventory readValue(Path path) {
         try {
             return objectMapper.readValue(path.toFile(), Inventory.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Inventory readValue(InputStream inputStream) {
+        try {
+            return objectMapper.readValue(inputStream, Inventory.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

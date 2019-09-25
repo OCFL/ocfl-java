@@ -13,7 +13,7 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.InventoryMapper;
-import edu.wisc.library.ocfl.core.util.NamasteFileWriter;
+import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
@@ -32,22 +32,15 @@ public class FileSystemOcflStorage implements OcflStorage {
     private Path repositoryRoot;
     private ObjectIdPathMapper objectIdPathMapper;
     private InventoryMapper inventoryMapper;
-    private NamasteFileWriter namasteFileWriter;
 
     public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
         this.inventoryMapper = InventoryMapper.defaultMapper(); // This class will never serialize an Inventory, so the pretty print doesn't matter
-        this.namasteFileWriter = new NamasteFileWriter();
     }
 
     public FileSystemOcflStorage setInventoryMapper(InventoryMapper inventoryMapper) {
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
-        return this;
-    }
-
-    public FileSystemOcflStorage setNamasteFileWriter(NamasteFileWriter namasteFileWriter) {
-        this.namasteFileWriter = Enforce.notNull(namasteFileWriter, "namasteFileWriter cannot be null");
         return this;
     }
 
@@ -90,7 +83,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
             FileUtil.moveDirectory(stagingDir, versionPath);
             headFixityCheck(inventory, objectRootPath);
-            copyInventoryToRoot(objectRootPath, inventory);
+            copyInventory(versionPath, objectRootPath, inventory);
         } catch (RuntimeException e) {
             rollbackChanges(objectRootPath, inventory);
             throw e;
@@ -114,6 +107,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             var src = inventory.getFilePath(id);
             var srcPath = objectRootPath.resolve(src);
 
+            // TODO parallelize?
             files.forEach(dstPath -> {
                 var path = stagingDir.resolve(dstPath);
                 FileUtil.copyFileMakeParents(srcPath, path);
@@ -205,7 +199,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         if (repositoryRoot.toFile().list().length == 0) {
             // setup new repo
             // TODO perhaps this should be moved somewhere else so it can be used by other storage implementations
-            namasteFileWriter.writeFile(repositoryRoot, ocflVersion);
+            new NamasteTypeFile(ocflVersion).writeFile(repositoryRoot);
             writeOcflSpec(ocflVersion);
             writeOcflLayout();
         } else {
@@ -242,8 +236,8 @@ public class FileSystemOcflStorage implements OcflStorage {
         var actualDigest = computeDigest(inventoryPath, algorithm);
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-            throw new FixityCheckException(String.format("Invalid inventory file. Expected %s digest: %s; Actual: %s",
-                    algorithm.getValue(), expectedDigest, actualDigest));
+            throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
+                    inventoryPath, algorithm.getValue(), expectedDigest, actualDigest));
         }
     }
 
@@ -287,19 +281,19 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private void setupNewObjectDirs(Path objectRootPath) {
         FileUtil.createDirectories(objectRootPath);
-        namasteFileWriter.writeFile(objectRootPath, OcflConstants.OCFL_OBJECT_VERSION);
+        new NamasteTypeFile(OcflConstants.OCFL_OBJECT_VERSION).writeFile(objectRootPath);
     }
 
-    private void copyInventoryToRoot(Path objectRootPath, Inventory inventory) {
-        var versionRoot = objectRootPath.resolve(inventory.getHead().toString());
+    private void copyInventory(Path sourcePath, Path destinationPath, Inventory inventory) {
         var digestAlgorithm = inventory.getDigestAlgorithm();
 
-        copy(inventoryPath(versionRoot), inventoryPath(objectRootPath));
-        copy(inventorySidecarPath(versionRoot, digestAlgorithm), inventorySidecarPath(objectRootPath, digestAlgorithm));
+        copy(inventoryPath(sourcePath), inventoryPath(destinationPath));
+        copy(inventorySidecarPath(sourcePath, digestAlgorithm), inventorySidecarPath(destinationPath, digestAlgorithm));
     }
 
     private void headFixityCheck(Inventory inventory, Path objectRootPath) {
         var versionPrefix = inventory.getHead().toString() + "/";
+        // TODO parallelize?
         inventory.getHeadVersion().getState().keySet().forEach(fileId -> {
             inventory.getFilePaths(fileId).forEach(filePath -> {
                 if (filePath.startsWith(versionPrefix)) {
@@ -334,19 +328,12 @@ public class FileSystemOcflStorage implements OcflStorage {
             if (isFirstVersion(inventory)) {
                 FileUtil.safeDeletePath(objectRootPath);
             } else {
-                rollbackInventory(objectRootPath, inventory);
+                var previousVersionRoot = objectRootPath.resolve(inventory.getHead().previousVersionId().toString());
+                copyInventory(previousVersionRoot, objectRootPath, inventory);
             }
         } catch (RuntimeException e) {
             LOG.error("Failed to rollback changes to object {} cleanly.", inventory.getId(), e);
         }
-    }
-
-    private void rollbackInventory(Path objectRootPath, Inventory inventory) {
-        var versionRoot = objectRootPath.resolve(inventory.getHead().previousVersionId().toString());
-        var digestAlgorithm = inventory.getDigestAlgorithm();
-
-        copy(inventoryPath(versionRoot), inventoryPath(objectRootPath));
-        copy(inventorySidecarPath(versionRoot, digestAlgorithm), inventorySidecarPath(objectRootPath, digestAlgorithm));
     }
 
     private void copy(Path src, Path dst) {

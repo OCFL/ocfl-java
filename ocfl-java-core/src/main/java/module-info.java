@@ -6,6 +6,7 @@ module edu.wisc.library.ocfl.core {
     exports edu.wisc.library.ocfl.core.mapping;
     exports edu.wisc.library.ocfl.core.model;
     exports edu.wisc.library.ocfl.core.storage;
+    // TODO it might be better if this package was not exported
     exports edu.wisc.library.ocfl.core.util;
 
     requires edu.wisc.library.ocfl.api;
