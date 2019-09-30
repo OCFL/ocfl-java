@@ -165,6 +165,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     /**
      * {@inheritDoc}
      */
+    // TODO I think this method should be removed in favor of the streaming implementation
     @Override
     public void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
