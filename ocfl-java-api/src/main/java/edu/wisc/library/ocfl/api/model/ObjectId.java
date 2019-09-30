@@ -3,12 +3,15 @@ package edu.wisc.library.ocfl.api.model;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Points to a specific version of an object, encapsulating an object identifier and version identifier. If the versionId
  * is HEAD, then it points to whatever the most recent version of the object is.
  */
 public class ObjectId {
+
+    private static final Pattern VALID_VERSION = Pattern.compile("^v\\d+$");
 
     public static final String HEAD = "HEAD";
 
@@ -28,7 +31,7 @@ public class ObjectId {
      * Creates an ObjectId instance that points to a specific version of an object
      *
      * @param objectId the id of the object
-     * @param versionId the id of the version
+     * @param versionId the OCFL version id of the version
      */
     public static ObjectId version(String objectId, String versionId) {
         return new ObjectId(objectId, versionId);
@@ -37,7 +40,9 @@ public class ObjectId {
     private ObjectId(String objectId, String versionId) {
         this.objectId = Enforce.notBlank(objectId, "objectId cannot be blank");
         this.versionId = Enforce.notBlank(versionId, "versionId cannot be blank");
-        // TODO enforce version id format
+        if (!HEAD.equals(versionId) && !VALID_VERSION.matcher(versionId).matches()) {
+            throw new IllegalArgumentException("Invalid VersionId: " + versionId);
+        }
     }
 
     /**
