@@ -86,6 +86,7 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
     public InputStream getFile(String sourcePath) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
 
+        // TODO validate fixity as streamed?
         var fileId = lookupFileId(sourcePath);
         return storage.retrieveFile(inventory, fileId);
     }

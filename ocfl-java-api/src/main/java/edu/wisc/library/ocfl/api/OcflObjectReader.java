@@ -50,6 +50,4 @@ public interface OcflObjectReader {
      */
     InputStream getFile(String sourcePath);
 
-    // TODO add an api that is able to lazy load inputstreams for any file in an object
-
 }

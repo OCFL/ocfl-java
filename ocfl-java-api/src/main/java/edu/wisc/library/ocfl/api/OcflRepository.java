@@ -79,6 +79,8 @@ public interface OcflRepository {
      */
     void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader);
 
+    // TODO add an api that is able to lazy load inputstreams for all files in an object
+
     /**
      * Returns all of the details about an object and all of its versions.
      *

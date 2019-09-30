@@ -113,6 +113,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var stagingRelative = stagingDir.relativize(stagingDst);
 
         FileUtil.createDirectories(stagingDst.getParent());
+        // TODO compute digest while streaming
         copyInputStream(input, stagingDst);
 
         var digest = inventoryUpdater.computeDigest(stagingDst);

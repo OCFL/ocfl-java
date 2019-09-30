@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class OcflRepositoryBuilder {
 
-    // TODO change to take in a configuration object
+    // TODO consider whether or not it would be better to implement this with a configuration object
 
     private InventoryType inventoryType = OcflConstants.DEFAULT_INVENTORY_TYPE;
     private DigestAlgorithm digestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
