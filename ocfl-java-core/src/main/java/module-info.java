@@ -2,6 +2,7 @@ module edu.wisc.library.ocfl.core {
 
     exports edu.wisc.library.ocfl.core;
     exports edu.wisc.library.ocfl.core.cache;
+    exports edu.wisc.library.ocfl.core.concurrent;
     exports edu.wisc.library.ocfl.core.lock;
     exports edu.wisc.library.ocfl.core.mapping;
     exports edu.wisc.library.ocfl.core.model;

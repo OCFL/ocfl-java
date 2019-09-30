@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class OcflRepositoryBuilder {
 
+    // TODO change to take in a configuration object
+
     private InventoryType inventoryType = OcflConstants.DEFAULT_INVENTORY_TYPE;
     private DigestAlgorithm digestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
     private String contentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
@@ -36,6 +38,9 @@ public class OcflRepositoryBuilder {
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
     private InventoryMapper inventoryMapper;
+
+    private int digestThreadPoolSize;
+    private int copyThreadPoolSize;
 
     /**
      * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
@@ -50,6 +55,8 @@ public class OcflRepositoryBuilder {
                 .expireAfterAccess(Duration.ofMinutes(10))
                 .maximumSize(1_000).build());
         inventoryMapper = InventoryMapper.defaultMapper();
+        digestThreadPoolSize = Runtime.getRuntime().availableProcessors();
+        copyThreadPoolSize = digestThreadPoolSize * 2;
     }
 
     /**
@@ -137,6 +144,26 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Sets the size of the thread pool that's used to calculate digests. Default: the number of available processors.
+     *
+     * @param digestThreadPoolSize
+     */
+    public OcflRepositoryBuilder digestThreadPoolSize(int digestThreadPoolSize) {
+        this.digestThreadPoolSize = Enforce.expressionTrue(digestThreadPoolSize > 0, digestThreadPoolSize, "digestThreadPoolSize must be greater than 0");
+        return this;
+    }
+
+    /**
+     * Sets the size of the thread pool that's used to move files around. Default: the number of available processors * 2.
+     *
+     * @param copyThreadPoolSize
+     */
+    public OcflRepositoryBuilder copyThreadPoolSize(int copyThreadPoolSize) {
+        this.copyThreadPoolSize = Enforce.expressionTrue(copyThreadPoolSize > 0, copyThreadPoolSize, "copyThreadPoolSize must be greater than 0");
+        return this;
+    }
+
+    /**
      * Constructs an OCFL repository. Brand new repositories are initialized.
      *
      * @param storage the storage layer implementation that the OCFL repository should use
@@ -153,7 +180,8 @@ public class OcflRepositoryBuilder {
 
         return new DefaultOcflRepository(storage, workDir,
                 objectLock, inventoryCache, inventoryMapper, fixityAlgorithms,
-                inventoryType, digestAlgorithm, contentDirectory);
+                inventoryType, digestAlgorithm, contentDirectory,
+                digestThreadPoolSize, copyThreadPoolSize);
     }
 
 }

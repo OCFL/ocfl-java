@@ -36,6 +36,7 @@ public class S3OcflStorage implements OcflStorage {
     private InventoryMapper inventoryMapper;
 
     // TODO object keys: https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html#object-key-guidelines
+    // TODO retries are built into client. sufficient?
 
     /**
      * {@inheritDoc}
@@ -133,6 +134,7 @@ public class S3OcflStorage implements OcflStorage {
 
         for (var file : files) {
             var contentRelativePath = stagedContent.relativize(file);
+            // TODO verify fixity of all files before uploading to s3?
             var digest = verifyFileFixity(inventory, file, contentRelativePath);
             if (inventory.getDigestAlgorithm() != DigestAlgorithm.md5) {
                 digest = computeDigest(file, DigestAlgorithm.md5);
@@ -189,7 +191,8 @@ public class S3OcflStorage implements OcflStorage {
     private String verifyFileFixity(Inventory inventory, Path file, Path contentRelativePath) {
         var expectedDigest = inventory.getHeadVersion().getFileId(contentRelativePath.toString());
         if (expectedDigest == null) {
-            throw new IllegalStateException(String.format("File not found in object %s version %s: %s", inventory.getId(), inventory.getHead(), contentRelativePath));
+            throw new IllegalStateException(String.format("File not found in object %s version %s: %s",
+                    inventory.getId(), inventory.getHead(), contentRelativePath));
         }
         var actualDigest = computeDigest(file, inventory.getDigestAlgorithm());
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
@@ -243,7 +246,6 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void uploadFile(Path localPath, Path remotePath, String md5digest) {
-        // TODO retries
         // TODO multipart upload for large files
         s3Client.putObject(PutObjectRequest.builder()
                 .bucket(bucketName)
@@ -253,7 +255,6 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void uploadFile(Path localPath, Path remotePath) {
-        // TODO retries
         // TODO multipart upload for large files
         s3Client.putObject(PutObjectRequest.builder()
                 .bucket(bucketName)

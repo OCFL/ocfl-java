@@ -44,6 +44,7 @@ public interface OcflObjectUpdater {
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
      *                            not specified
      */
+    // TODO this should probably take in a checksum
     OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions);
 
     /**

@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.core;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
@@ -13,21 +14,28 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
+ * <p>
+ * This class is NOT thread safe.
  */
 public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
     private InventoryUpdater inventoryUpdater;
     private Path stagingDir;
+    private ParallelProcess parallelProcess;
+    private ParallelProcess copyParallelProcess;
 
     private Set<String> newFiles;
 
-    public DefaultOcflObjectUpdater(InventoryUpdater inventoryUpdater, Path stagingDir) {
+    public DefaultOcflObjectUpdater(InventoryUpdater inventoryUpdater, Path stagingDir, ParallelProcess parallelProcess, ParallelProcess copyParallelProcess) {
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
+        this.parallelProcess = Enforce.notNull(parallelProcess, "parallelProcess cannot be null");
+        this.copyParallelProcess = Enforce.notNull(copyParallelProcess, "copyParallelProcess cannot be null");
         newFiles = new HashSet<>();
     }
 
@@ -37,7 +45,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     @Override
     public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
-        Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
+        // TODO and empty string should allowed to store things in the root -- add test
+        // TODO what happens when dst is empty and src is a file?
+        Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
@@ -49,18 +59,33 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             throw new IllegalArgumentException(String.format("No files were found under %s to add", sourcePath));
         }
 
-        files.forEach(file -> {
+        var filesWithDigests = parallelProcess.collection(files, file -> {
+            var digest = inventoryUpdater.computeDigest(file);
+            return Map.entry(file, digest);
+        });
+
+        var copyFiles = new HashSet<Path>();
+
+        filesWithDigests.forEach(entry -> {
+            var file = entry.getKey();
+            var digest = entry.getValue();
             var sourceRelative = sourcePath.relativize(file);
             var stagingFullPath = stagingDst.resolve(sourceRelative);
             var stagingRelative = stagingDir.relativize(stagingFullPath);
-            var isNew = inventoryUpdater.addFile(file, stagingRelative, ocflOptions);
+            var isNew = inventoryUpdater.addFile(digest, file, stagingRelative, ocflOptions);
             if (isNew) {
-                if (options.contains(OcflOption.MOVE_SOURCE)) {
-                    FileUtil.moveFileMakeParents(file, stagingFullPath);
-                } else {
-                    FileUtil.copyFileMakeParents(file, stagingFullPath);
-                }
+                copyFiles.add(file);
                 newFiles.add(stagingRelative.toString());
+            }
+        });
+
+        copyParallelProcess.collection(copyFiles, file -> {
+            var sourceRelative = sourcePath.relativize(file);
+            var stagingFullPath = stagingDst.resolve(sourceRelative);
+            if (options.contains(OcflOption.MOVE_SOURCE)) {
+                FileUtil.moveFileMakeParents(file, stagingFullPath);
+            } else {
+                FileUtil.copyFileMakeParents(file, stagingFullPath);
             }
         });
 
@@ -87,7 +112,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         FileUtil.createDirectories(stagingDst.getParent());
         copyInputStream(input, stagingDst);
 
-        var isNew = inventoryUpdater.addFile(stagingDst, stagingRelative, ocflOptions);
+        var digest = inventoryUpdater.computeDigest(stagingDst);
+        var isNew = inventoryUpdater.addFile(digest, stagingDst, stagingRelative, ocflOptions);
         if (!isNew) {
             delete(stagingDst);
         } else {
@@ -135,7 +161,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             cleanupEmptyDirs(stagingDir);
             inventoryUpdater.removeFile(sourcePath);
             inventoryUpdater.removeFileFromManifest(sourcePath);
-            inventoryUpdater.addFile(destination, stagingDir.relativize(destination), ocflOptions);
+            var digest = inventoryUpdater.computeDigest(destination);
+            inventoryUpdater.addFile(digest, destination, stagingDir.relativize(destination), ocflOptions);
         }
 
         return this;

@@ -37,6 +37,7 @@ public class ObjectId {
     private ObjectId(String objectId, String versionId) {
         this.objectId = Enforce.notBlank(objectId, "objectId cannot be blank");
         this.versionId = Enforce.notBlank(versionId, "versionId cannot be blank");
+        // TODO enforce version id format
     }
 
     /**

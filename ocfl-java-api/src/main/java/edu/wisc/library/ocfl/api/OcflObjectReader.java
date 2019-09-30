@@ -49,6 +49,9 @@ public interface OcflObjectReader {
      * @param sourcePath the object root relative path to the file to retrieve from the object
      * @return InputStream containing the file's content
      */
+    // TODO change this so that it returns a stream to the file in the repo
     InputStream getFile(String sourcePath);
+
+    // TODO add an api that is able to lazy load inputstreams for any file in an object
 
 }

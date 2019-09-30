@@ -112,6 +112,8 @@ public final class FileUtil {
                         .forEach(f -> {
                             try {
                                 Files.delete(f);
+                            } catch (NoSuchFileException e) {
+                                // Ignore
                             } catch (IOException e) {
                                 LOG.warn("Failed to delete file: {}", f, e);
                             }

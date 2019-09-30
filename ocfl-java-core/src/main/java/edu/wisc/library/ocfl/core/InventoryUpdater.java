@@ -19,6 +19,8 @@ import java.util.Set;
 /**
  * Helper class that's used to accumulate changes within a new version and output an updated inventory. The same InventoryUpdater
  * instance MUST NOT be used more than once.
+ * <p>
+ * This class is NOT thread safe.
  */
 public final class InventoryUpdater {
 
@@ -120,7 +122,7 @@ public final class InventoryUpdater {
      * @return true if the file digest is new to the object and false otherwise
      * @throws OverwriteException if there is already a file at objectRelativePath
      */
-    public boolean addFile(Path absolutePath, Path objectRelativePath, OcflOption... ocflOptions) {
+    public boolean addFile(String digest, Path absolutePath, Path objectRelativePath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
         var objectRelativePathStr = objectRelativePath.toString();
@@ -135,13 +137,13 @@ public final class InventoryUpdater {
         }
 
         var isNew = false;
-        var digest = computeDigest(absolutePath, digestAlgorithm);
 
         if (!inventoryBuilder.manifestContainsId(digest)) {
             isNew = true;
             var versionedPath = versionedPath(objectRelativePathStr);
             inventoryBuilder.addFileToManifest(digest, versionedPath);
 
+            // TODO this could be slow, but I suspect that it is unlikely to be used
             fixityAlgorithms.forEach(fixityAlgorithm -> {
                 var fixityDigest = digest;
                 if (fixityAlgorithm != digestAlgorithm) {
@@ -247,6 +249,16 @@ public final class InventoryUpdater {
         var version = versionBuilder.build();
         inventoryBuilder.addNewHeadVersion(newVersionId, version);
         return inventoryBuilder.build();
+    }
+
+    /**
+     * Computes the digest of the given file using the inventory's digest algorithm.
+     *
+     * @param path to the file
+     * @return digest
+     */
+    public String computeDigest(Path path) {
+        return computeDigest(path, digestAlgorithm);
     }
 
     private String versionedPath(String unversionedPath) {

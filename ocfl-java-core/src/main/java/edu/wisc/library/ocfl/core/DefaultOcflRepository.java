@@ -12,6 +12,8 @@ import edu.wisc.library.ocfl.api.model.ObjectId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
+import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
+import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -34,7 +36,9 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 /**
@@ -59,6 +63,9 @@ public class DefaultOcflRepository implements OcflRepository {
     private DigestAlgorithm digestAlgorithm;
     private String contentDirectory;
 
+    private ParallelProcess parallelProcess;
+    private ParallelProcess copyParallelProcess;
+
     private Clock clock;
 
     public DefaultOcflRepository(OcflStorage storage, Path workDir,
@@ -67,7 +74,7 @@ public class DefaultOcflRepository implements OcflRepository {
                                  InventoryMapper inventoryMapper,
                                  Set<DigestAlgorithm> fixityAlgorithms,
                                  InventoryType inventoryType, DigestAlgorithm digestAlgorithm,
-                                 String contentDirectory) {
+                                 String contentDirectory, int digestThreadPoolSize, int copyThreadPoolSize) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
@@ -77,9 +84,14 @@ public class DefaultOcflRepository implements OcflRepository {
         this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
+        Enforce.expressionTrue(digestThreadPoolSize > 0, digestThreadPoolSize, "digestThreadPoolSize must be greater than 0");
+        Enforce.expressionTrue(copyThreadPoolSize > 0, copyThreadPoolSize, "copyThreadPoolSize must be greater than 0");
 
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
+
+        parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(digestThreadPoolSize)));
+        copyParallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(copyThreadPoolSize)));
     }
 
     /**
@@ -96,7 +108,6 @@ public class DefaultOcflRepository implements OcflRepository {
         var updater = createInventoryUpdater(objectId, inventory, true);
         updater.addCommitInfo(commitInfo);
 
-        // Only needs to be cleaned on failure
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
         var contentDir = FileUtil.createDirectories(stagingDir.resolve(resolveContentDir(inventory)));
 
@@ -105,9 +116,8 @@ public class DefaultOcflRepository implements OcflRepository {
         try {
             writeNewVersion(newInventory, stagingDir);
             return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
-        } catch (RuntimeException e) {
+        } finally {
             FileUtil.safeDeletePath(stagingDir);
-            throw e;
         }
     }
 
@@ -123,18 +133,16 @@ public class DefaultOcflRepository implements OcflRepository {
         var updater = createInventoryUpdater(objectId, inventory, false);
         updater.addCommitInfo(commitInfo);
 
-        // Only needs to be cleaned on failure
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
         var contentDir = FileUtil.createDirectories(stagingDir.resolve(resolveContentDir(inventory)));
 
         try {
-            objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir));
+            objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir, parallelProcess, copyParallelProcess));
             var newInventory = updater.finalizeUpdate();
             writeNewVersion(newInventory, stagingDir);
             return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
-        } catch (RuntimeException e) {
+        } finally {
             FileUtil.safeDeletePath(stagingDir);
-            throw e;
         }
     }
 
@@ -275,20 +283,33 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private Inventory stageNewVersion(InventoryUpdater updater, Path sourcePath, Path contentDir, Set<OcflOption> options) {
         var files = FileUtil.findFiles(sourcePath);
+        var newFiles = new HashSet<Path>();
 
-        // TODO parallelize? is the updater threadsafe?
-        for (var file : files) {
-            var relativePath = sourcePath.relativize(file);
-            var isNewFile = updater.addFile(file, relativePath);
+        var filesWithDigests = parallelProcess.collection(files, file -> {
+            var digest = updater.computeDigest(file);
+            return Map.entry(file, digest);
+        });
+
+        // Because the InventoryUpdater is not thread safe, this MUST happen synchronously
+        for (var fileWithDigest : filesWithDigests) {
+            var file = fileWithDigest.getKey();
+            var digest = fileWithDigest.getValue();
+
+            var isNewFile = updater.addFile(digest, file, sourcePath.relativize(file));
 
             if (isNewFile) {
-                if (options.contains(OcflOption.MOVE_SOURCE)) {
-                    FileUtil.moveFileMakeParents(file, contentDir.resolve(relativePath));
-                } else {
-                    FileUtil.copyFileMakeParents(file, contentDir.resolve(relativePath));
-                }
+                newFiles.add(file);
             }
         }
+
+        copyParallelProcess.collection(newFiles, file -> {
+            var relativePath = sourcePath.relativize(file);
+            if (options.contains(OcflOption.MOVE_SOURCE)) {
+                FileUtil.moveFileMakeParents(file, contentDir.resolve(relativePath));
+            } else {
+                FileUtil.copyFileMakeParents(file, contentDir.resolve(relativePath));
+            }
+        });
 
         if (options.contains(OcflOption.MOVE_SOURCE)) {
             // Cleanup empty dirs
@@ -299,16 +320,13 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
-        // Only needs to be cleaned on failure
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
 
         try {
             storage.reconstructObjectVersion(inventory, versionId, stagingDir);
-
             FileUtil.moveDirectory(stagingDir, outputPath);
-        } catch (RuntimeException e) {
+        } finally {
             FileUtil.safeDeletePath(stagingDir);
-            throw e;
         }
     }
 
