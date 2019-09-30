@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
@@ -171,7 +173,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         var filePath = inventory.getFilePath(fileId);
 
         if (filePath == null) {
-            throw new IllegalArgumentException(String.format("File %s does not exist in object %s.", fileId, inventory.getId()));
+            throw new NotFoundException(String.format("File %s does not exist in object %s.", fileId, inventory.getId()));
         }
 
         try {
@@ -185,6 +187,26 @@ public class FileSystemOcflStorage implements OcflStorage {
         } catch (RuntimeException e) {
             FileUtil.safeDeletePath(destinationPath);
             throw e;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public InputStream retrieveFile(Inventory inventory, String fileId) {
+        var objectRootPath = objectRootPath(inventory.getId());
+
+        var filePath = inventory.getFilePath(fileId);
+
+        if (filePath == null) {
+            throw new NotFoundException(String.format("File %s does not exist in object %s.", fileId, inventory.getId()));
+        }
+
+        try {
+            return Files.newInputStream(objectRootPath.resolve(filePath));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

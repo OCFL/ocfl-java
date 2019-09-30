@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.VersionId;
 
+import java.io.InputStream;
 import java.nio.file.Path;
 
 /**
@@ -70,6 +71,15 @@ public interface OcflStorage {
      * @throws FixityCheckException if the file fails its fixity check
      */
     void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions);
+
+
+    /**
+     * Write the file that corresponds to the specified fileId (digest) to an InputStream.
+     *
+     * @param inventory the deserialized object inventory
+     * @param fileId the digest of the file to retrieve
+     */
+    InputStream retrieveFile(Inventory inventory, String fileId);
 
     /**
      * Permanently removes an object from the repository. Objects that have been purged are NOT recoverable. If an object

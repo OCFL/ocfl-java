@@ -179,9 +179,8 @@ public class DefaultOcflRepository implements OcflRepository {
         var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
         var versionId = resolveVersion(objectId, inventory);
 
-        try (var reader = new DefaultOcflObjectReader(
-                storage, inventory, versionId, stagingDir)) {
-            objectReader.accept(reader);
+        try {
+            objectReader.accept(new DefaultOcflObjectReader(storage, inventory, versionId, stagingDir));
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

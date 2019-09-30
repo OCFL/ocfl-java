@@ -43,13 +43,11 @@ public interface OcflObjectReader {
     /**
      * Retrieves the specified file and writes it to an {@code InputStream}.
      *
-     * <p>Important: The stream can only be used within the OfclObjectReader block, and will be automatically closed when
-     * it terminates.
+     * <p>Important: The caller is responsible for closing the InputStream when they are done with it.
      *
      * @param sourcePath the object root relative path to the file to retrieve from the object
      * @return InputStream containing the file's content
      */
-    // TODO change this so that it returns a stream to the file in the repo
     InputStream getFile(String sourcePath);
 
     // TODO add an api that is able to lazy load inputstreams for any file in an object
