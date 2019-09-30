@@ -45,13 +45,16 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     @Override
     public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
-        // TODO and empty string should allowed to store things in the root -- add test
-        // TODO what happens when dst is empty and src is a file?
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
         var normalized = normalizeDestinationPath(destinationPath);
+
+        if (Files.isRegularFile(sourcePath) && "".equals(normalized.toString())) {
+            throw new IllegalArgumentException("A destination path must be specified when adding a file.");
+        }
+
         var stagingDst = stagingDir.resolve(normalized);
         var files = FileUtil.findFiles(sourcePath);
 

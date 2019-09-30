@@ -776,9 +776,41 @@ public class FileSystemOcflITest {
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
 
+    @Test
+    public void failWhenAddingAFilePathWithNoDestination() {
+        var repoName = "repo13";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
-    // TODO overwrite tests
-    // TODO there's a problem with the empty directory tests in that the empty directories won't be in git
+        var objectId = "o2";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+                updater.addPath(sourcePathV1.resolve("file1"), "");
+            });
+        });
+    }
+
+    @Test
+    public void addDirectoryToRootWhenDestinationNotSpecified() {
+        var repoName = "repo13";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o2";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+            updater.addPath(sourcePathV1, "");
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
 
     private void verifyDirectoryContentsSame(Path expected, Path actual) {
         verifyDirectoryContentsSame(expected, expected.getFileName().toString(), actual);
