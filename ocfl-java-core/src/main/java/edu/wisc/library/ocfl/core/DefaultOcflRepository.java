@@ -180,7 +180,7 @@ public class DefaultOcflRepository implements OcflRepository {
         var versionId = resolveVersion(objectId, inventory);
 
         try {
-            objectReader.accept(new DefaultOcflObjectReader(storage, inventory, versionId, stagingDir));
+            objectReader.accept(new DefaultOcflObjectReader(storage, inventory, versionId));
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

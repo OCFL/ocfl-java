@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.api;
 
+import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 
 import java.io.InputStream;
@@ -34,6 +35,8 @@ public interface OcflObjectUpdater {
      * Writes the contents of the InputStream to the object being operated on. The destinationPath is where the file is
      * inserted into the object relative to the object's root.
      *
+     * <p>Pass a {@code FixityCheckInputStream} to ensure transmission fixity.
+     *
      * <p>By default, the change will be rejected if there is already a file in the object at the destinationPath.
      * To overwrite, specify {@code OcflOption.OVERWRITE}.
      *
@@ -43,8 +46,8 @@ public interface OcflObjectUpdater {
      *                    an object
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
      *                            not specified
+     * @throws FixityCheckException if the a FixityCheckInputStream is used and the digest does not match the expected value
      */
-    // TODO this should probably take in a checksum
     OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions);
 
     /**

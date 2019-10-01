@@ -1,6 +1,5 @@
 package edu.wisc.library.ocfl.core.storage;
 
-import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -57,21 +56,6 @@ public interface OcflStorage {
      * @throws FixityCheckException if one of the files fails its fixity check
      */
     void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir);
-
-    /**
-     * Write the file that corresponds to the specified fileId (digest) to the destinationPath.
-     *
-     * <p>The fixity of the file must be checked after copying it to the destinationPath.
-     *
-     * @param inventory the deserialized object inventory
-     * @param fileId the digest of the file to retrieve
-     * @param destinationPath the path to write the file to
-     * @param ocflOptions Optional. Use {@code OcflOption.OVERWRITE} to overwrite an existing
-     *                    file at the destinationPath
-     * @throws FixityCheckException if the file fails its fixity check
-     */
-    void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions);
-
 
     /**
      * Write the file that corresponds to the specified fileId (digest) to an InputStream.

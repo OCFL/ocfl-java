@@ -261,6 +261,10 @@ public final class InventoryUpdater {
         return computeDigest(path, digestAlgorithm);
     }
 
+    public DigestAlgorithm digestAlgorithm() {
+        return digestAlgorithm;
+    }
+
     private String versionedPath(String unversionedPath) {
         return Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), unversionedPath).toString();
     }

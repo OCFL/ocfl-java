@@ -1,9 +1,9 @@
 package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
+import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
 
@@ -32,7 +32,7 @@ public interface OcflObjectReader {
      * path if it already exists.
      *
      * @param sourcePath the object root relative path to the file to retrieve from the object
-     * @param destinationPath the destination to write the file to
+     * @param destinationPath the destination to write the file to, including the file name
      * @param ocflOptions optional config options. Use {@code OcflOption.OVERWRITE} to overwrite existing files within
      *                    an object
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
@@ -48,6 +48,6 @@ public interface OcflObjectReader {
      * @param sourcePath the object root relative path to the file to retrieve from the object
      * @return InputStream containing the file's content
      */
-    InputStream getFile(String sourcePath);
+    FixityCheckInputStream getFile(String sourcePath);
 
 }

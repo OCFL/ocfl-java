@@ -2,7 +2,6 @@ package edu.wisc.library.ocfl.core.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
@@ -27,7 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -160,35 +161,6 @@ public class FileSystemOcflStorage implements OcflStorage {
                 }
             }
         });
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    // TODO I think this method should be removed in favor of the streaming implementation
-    @Override
-    public void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions) {
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
-        var objectRootPath = objectRootPath(inventory.getId());
-
-        var filePath = inventory.getFilePath(fileId);
-
-        if (filePath == null) {
-            throw new NotFoundException(String.format("File %s does not exist in object %s.", fileId, inventory.getId()));
-        }
-
-        try {
-            if (options.contains(OcflOption.OVERWRITE)) {
-                FileUtil.copyFileMakeParents(objectRootPath.resolve(filePath), destinationPath, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                FileUtil.copyFileMakeParents(objectRootPath.resolve(filePath), destinationPath);
-            }
-            var digest = computeDigest(destinationPath, inventory.getDigestAlgorithm());
-            compareDigests(inventory, filePath, fileId, digest);
-        } catch (RuntimeException e) {
-            FileUtil.safeDeletePath(destinationPath);
-            throw e;
-        }
     }
 
     /**

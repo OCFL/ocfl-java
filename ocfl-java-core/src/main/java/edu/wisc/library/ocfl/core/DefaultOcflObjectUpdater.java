@@ -2,16 +2,19 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import org.apache.commons.codec.binary.Hex;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.DigestInputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -113,10 +116,15 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var stagingRelative = stagingDir.relativize(stagingDst);
 
         FileUtil.createDirectories(stagingDst.getParent());
-        // TODO compute digest while streaming
-        copyInputStream(input, stagingDst);
+        var digestInput = new DigestInputStream(input, inventoryUpdater.digestAlgorithm().getMessageDigest());
+        copyInputStream(digestInput, stagingDst);
 
-        var digest = inventoryUpdater.computeDigest(stagingDst);
+        // TODO add some tests of this
+        if (input instanceof FixityCheckInputStream) {
+            ((FixityCheckInputStream) input).checkFixity();
+        }
+
+        var digest = Hex.encodeHexString(digestInput.getMessageDigest().digest());
         var isNew = inventoryUpdater.addFile(digest, stagingDst, stagingRelative, ocflOptions);
         if (!isNew) {
             delete(stagingDst);

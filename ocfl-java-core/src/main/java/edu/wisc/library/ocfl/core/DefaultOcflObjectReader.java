@@ -3,20 +3,26 @@ package edu.wisc.library.ocfl.core;
 import edu.wisc.library.ocfl.api.OcflObjectReader;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
+import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.InputStream;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 
 /**
  * Default implementation of OcflObjectReader that is used by DefaultOcflRepository to provide read access to an object.
@@ -30,16 +36,14 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
     private Inventory inventory;
     private Version version;
     private VersionId versionId;
-    private Path stagingDir;
 
     private ResponseMapper responseMapper;
     private VersionDetails versionDetails;
 
-    public DefaultOcflObjectReader(OcflStorage storage, Inventory inventory, VersionId versionId, Path stagingDir) {
+    public DefaultOcflObjectReader(OcflStorage storage, Inventory inventory, VersionId versionId) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.versionId = Enforce.notNull(versionId, "versionId cannot be null");
-        this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
 
         version = inventory.getVersion(versionId);
         responseMapper = new ResponseMapper();
@@ -72,9 +76,23 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
-        var fileId = lookupFileId(sourcePath);
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
 
-        storage.retrieveFile(inventory, fileId, destinationPath, ocflOptions);
+        var stream = getFile(sourcePath);
+
+        FileUtil.createDirectories(destinationPath.getParent());
+
+        try {
+            if (options.contains(OcflOption.OVERWRITE)) {
+                Files.copy(stream, destinationPath, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.copy(stream, destinationPath);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        stream.checkFixity();
 
         return this;
     }
@@ -83,12 +101,11 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
      * {@inheritDoc}
      */
     @Override
-    public InputStream getFile(String sourcePath) {
+    public FixityCheckInputStream getFile(String sourcePath) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
-
-        // TODO validate fixity as streamed?
         var fileId = lookupFileId(sourcePath);
-        return storage.retrieveFile(inventory, fileId);
+        return new FixityCheckInputStream(storage.retrieveFile(inventory, fileId),
+                inventory.getDigestAlgorithm().getJavaStandardName(), fileId);
     }
 
     private String lookupFileId(String sourcePath) {

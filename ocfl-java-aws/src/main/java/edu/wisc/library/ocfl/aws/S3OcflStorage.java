@@ -1,7 +1,7 @@
 package edu.wisc.library.ocfl.aws;
 
-import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
@@ -20,7 +20,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 
@@ -100,15 +99,7 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void retrieveFile(Inventory inventory, String fileId, Path destinationPath, OcflOption... ocflOptions) {
-
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public InputStream retrieveFile(Inventory inventory, String fileId) {
+    public FixityCheckInputStream retrieveFile(Inventory inventory, String fileId) {
         return null;
     }
 
