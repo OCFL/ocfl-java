@@ -1,9 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
-import edu.wisc.library.ocfl.api.OcflObjectReader;
-import edu.wisc.library.ocfl.api.OcflObjectUpdater;
-import edu.wisc.library.ocfl.api.OcflOption;
-import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.*;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
@@ -158,11 +155,24 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.expressionTrue(Files.isDirectory(outputPath), outputPath, "outputPath must be a directory");
 
         var inventory = requireInventory(objectId);
-
         requireVersion(objectId, inventory);
         var versionId = resolveVersion(objectId, inventory);
 
         getObjectInternal(inventory, versionId, outputPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, OcflFileRetriever> lazyLoadObject(ObjectId objectId) {
+        Enforce.notNull(objectId, "objectId cannot be null");
+
+        var inventory = requireInventory(objectId);
+        requireVersion(objectId, inventory);
+        var versionId = resolveVersion(objectId, inventory);
+
+        return storage.lazyLoadObject(inventory, versionId);
     }
 
     /**

@@ -1,12 +1,15 @@
 package edu.wisc.library.ocfl.core.storage;
 
+import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.VersionId;
 
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Extension point that allows the OCFL repository to use any number of storage implementations so long as they
@@ -44,6 +47,16 @@ public interface OcflStorage {
      * @throws FixityCheckException if one of the files in the version fails its fixity check
      */
     void storeNewVersion(Inventory inventory, Path stagingDir);
+
+    /**
+     * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the
+     * object relative file paths of all of the files in the specified version of the object.
+     *
+     * @param inventory the object's inventory
+     * @param versionId the id of the version to load
+     * @return a map of {@code OcflFileRetriever} objects keyed off the object relative file paths of all of the files in the object
+     */
+    Map<String, OcflFileRetriever> lazyLoadObject(Inventory inventory, VersionId versionId);
 
     /**
      * Reconstructs a complete object at the specified version in the stagingDir.

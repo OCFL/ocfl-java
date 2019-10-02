@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.api.model.ObjectId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -71,6 +72,16 @@ public interface OcflRepository {
     void getObject(ObjectId objectId, Path outputPath);
 
     /**
+     * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the
+     * object relative file paths of all of the files in the specified version of the object.
+     *
+     * @param objectId the id and version of an object to retrieve
+     * @return a map of {@code OcflFileRetriever} objects keyed off the object relative file paths of all of the files in the object
+     * @throws NotFoundException when no object can be found for the specified objectId
+     */
+    Map<String, OcflFileRetriever> lazyLoadObject(ObjectId objectId);
+
+    /**
      * Opens an object to access individual files within the object without retrieving everything.
      *
      * @param objectId the id and version of an object to retrieve
@@ -78,8 +89,6 @@ public interface OcflRepository {
      * @throws NotFoundException when no object can be found for the specified objectId
      */
     void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader);
-
-    // TODO add an api that is able to lazy load inputstreams for all files in an object
 
     /**
      * Returns all of the details about an object and all of its versions.

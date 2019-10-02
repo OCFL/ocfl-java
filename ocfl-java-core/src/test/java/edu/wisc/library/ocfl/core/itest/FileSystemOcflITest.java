@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.itest;
 
+import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
@@ -140,6 +141,43 @@ public class FileSystemOcflITest {
 
         repo.getObject(ObjectId.version(objectId, "v1"), outputPath3);
         verifyDirectoryContentsSame(expectedOutputPath(repoName, "o2v1"), outputPath3.getFileName().toString(), outputPath3);
+    }
+
+    @Test
+    public void lazyLoadObject() throws IOException {
+        var repoName = "repo3";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o1";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+        var sourcePathV2 = sourceObjectPath(objectId, "v2");
+        var sourcePathV3 = sourceObjectPath(objectId, "v3");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+
+        var files = repo.lazyLoadObject(ObjectId.head(objectId));
+        assertEquals(2, files.size());
+        verifyStream(sourcePathV3.resolve("file2"), files.get("file2"));
+        verifyStream(sourcePathV3.resolve("file4"), files.get("file4"));
+
+        files = repo.lazyLoadObject(ObjectId.version(objectId, "v2"));
+        assertEquals(3, files.size());
+        verifyStream(sourcePathV2.resolve("file1"), files.get("file1"));
+        verifyStream(sourcePathV2.resolve("file2"), files.get("file2"));
+        verifyStream(sourcePathV2.resolve("dir1/file3"), files.get("dir1/file3"));
+
+
+        files = repo.lazyLoadObject(ObjectId.version(objectId, "v1"));
+        assertEquals(2, files.size());
+        verifyStream(sourcePathV1.resolve("file1"), files.get("file1"));
+        verifyStream(sourcePathV1.resolve("file2"), files.get("file2"));
     }
 
     @Test
@@ -887,6 +925,13 @@ public class FileSystemOcflITest {
                         comparingMessage(expectedPath, actualPath, actualPath));
             }
         }
+    }
+
+    private void verifyStream(Path expectedFile, OcflFileRetriever actual) throws IOException {
+        var stream = actual.retrieveFile();
+        var contents = inputToString(stream);
+        stream.checkFixity();
+        assertEquals(inputToString(Files.newInputStream(expectedFile)), contents);
     }
 
     private void fixTime(OcflRepository repository, String timestamp) {

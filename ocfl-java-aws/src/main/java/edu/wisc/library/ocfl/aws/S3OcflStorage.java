@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.aws;
 
+import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.core.OcflConstants;
@@ -19,6 +20,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class S3OcflStorage implements OcflStorage {
@@ -83,6 +85,14 @@ public class S3OcflStorage implements OcflStorage {
             rollback(objectRootPath, versionPath, inventory);
             throw e;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, OcflFileRetriever> lazyLoadObject(Inventory inventory, VersionId versionId) {
+        return null;
     }
 
     /**

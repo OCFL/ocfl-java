@@ -60,8 +60,8 @@ public class ResponseMapper {
         version.getState().forEach((digest, paths) -> {
             paths.forEach(path -> {
                 var details = new FileDetails()
-                        .setFilePath(path)
-                        .setStoragePath(objectRootPath.resolve(inventory.getFilePath(digest)).toString())
+                        .setObjectRelativePath(path)
+                        .setStorageRelativePath(objectRootPath.resolve(inventory.getFilePath(digest)).toString())
                         .addDigest(digestAlgorithm.getValue(), digest);
                 fileFixityMap.put(digest, details);
                 fileDetails.add(details);

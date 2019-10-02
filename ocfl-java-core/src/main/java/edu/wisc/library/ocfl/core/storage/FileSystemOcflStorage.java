@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
@@ -26,9 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -124,20 +123,37 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public Map<String, OcflFileRetriever> lazyLoadObject(Inventory inventory, VersionId versionId) {
+        var objectRootPath = objectRootPathFull(inventory.getId());
+        var version = ensureVersion(inventory, versionId);
+        var algorithm = inventory.getDigestAlgorithm();
+
+        var map = new HashMap<String, OcflFileRetriever>(version.getState().size());
+
+        version.getState().forEach((digest, paths) -> {
+            var srcPath = objectRootPath.resolve(ensureManifestPath(inventory, digest));
+
+            paths.forEach(path -> {
+                map.put(path, new FileSystemOcflFileRetriever(srcPath, algorithm, digest));
+            });
+        });
+
+        return map;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
         var objectRootPath = objectRootPathFull(inventory.getId());
-        var version = inventory.getVersion(versionId);
+        var version = ensureVersion(inventory, versionId);
 
         parallelProcess.collection(version.getState().entrySet(), entry -> {
             var id = entry.getKey();
             var files = entry.getValue();
 
-            if (!inventory.manifestContainsId(id)) {
-                throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
-                        id, inventory.getId()));
-            }
-
-            var src = inventory.getFilePath(id);
+            var src = ensureManifestPath(inventory, id);
             var srcPath = objectRootPath.resolve(src);
 
             for (var dstPath : files) {
@@ -364,6 +380,24 @@ public class FileSystemOcflStorage implements OcflStorage {
         } catch (RuntimeException e) {
             LOG.error("Failed to rollback changes to object {} cleanly.", inventory.getId(), e);
         }
+    }
+
+    private Version ensureVersion(Inventory inventory, VersionId versionId) {
+        var version = inventory.getVersion(versionId);
+
+        if (version == null) {
+            throw new IllegalStateException(String.format("Object %s does not contain version %s", inventory.getId(), versionId));
+        }
+
+        return version;
+    }
+
+    private String ensureManifestPath(Inventory inventory, String id) {
+        if (!inventory.manifestContainsId(id)) {
+            throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
+                    id, inventory.getId()));
+        }
+        return inventory.getFilePath(id);
     }
 
     private void validateExistingRepo(String ocflVersion) {

@@ -10,8 +10,8 @@ import java.util.Map;
  */
 public class FileDetails {
 
-    private String filePath;
-    private String storagePath;
+    private String objectRelativePath;
+    private String storageRelativePath;
     private Map<String, String> fixity;
 
     public FileDetails() {
@@ -21,24 +21,24 @@ public class FileDetails {
     /**
      * The file's path relative to the object root
      */
-    public String getFilePath() {
-        return filePath;
+    public String getObjectRelativePath() {
+        return objectRelativePath;
     }
 
-    public FileDetails setFilePath(String filePath) {
-        this.filePath = filePath;
+    public FileDetails setObjectRelativePath(String objectRelativePath) {
+        this.objectRelativePath = objectRelativePath;
         return this;
     }
 
     /**
      * The file's path relative to the storage root
      */
-    public String getStoragePath() {
-        return storagePath;
+    public String getStorageRelativePath() {
+        return storageRelativePath;
     }
 
-    public FileDetails setStoragePath(String storagePath) {
-        this.storagePath = storagePath;
+    public FileDetails setStorageRelativePath(String storageRelativePath) {
+        this.storageRelativePath = storageRelativePath;
         return this;
     }
 
@@ -64,8 +64,8 @@ public class FileDetails {
     @Override
     public String toString() {
         return "FileDetails{" +
-                "filePath='" + filePath + '\'' +
-                "storagePath='" + storagePath + '\'' +
+                "objectRelativePath='" + objectRelativePath + '\'' +
+                "storageRelativePath='" + storageRelativePath + '\'' +
                 ", fixity=" + fixity +
                 '}';
     }
