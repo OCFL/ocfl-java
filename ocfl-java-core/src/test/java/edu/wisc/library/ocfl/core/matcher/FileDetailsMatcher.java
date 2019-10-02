@@ -10,16 +10,19 @@ import java.util.Objects;
 public class FileDetailsMatcher extends TypeSafeMatcher<FileDetails> {
 
     private String filePath;
+    private String storagePath;
     private Map<String, String> fixity;
 
-    FileDetailsMatcher(String filePath, Map<String, String> fixity) {
+    FileDetailsMatcher(String filePath, String storagePath, Map<String, String> fixity) {
         this.filePath = filePath;
+        this.storagePath = storagePath;
         this.fixity = fixity;
     }
 
     @Override
     protected boolean matchesSafely(FileDetails item) {
         return Objects.equals(filePath, item.getFilePath())
+                && Objects.equals(storagePath, item.getStoragePath())
                 && Objects.equals(fixity, item.getFixity());
     }
 
@@ -27,6 +30,8 @@ public class FileDetailsMatcher extends TypeSafeMatcher<FileDetails> {
     public void describeTo(Description description) {
         description.appendText("FileDetails{filePath=")
                 .appendValue(filePath)
+                .appendText(", storagePath=")
+                .appendValue(storagePath)
                 .appendText(", fixity=")
                 .appendValue(fixity)
                 .appendText("}");

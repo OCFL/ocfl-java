@@ -79,7 +79,7 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public Inventory loadInventory(String objectId) {
-        var objectRootPath = objectRootPath(objectId);
+        var objectRootPath = objectRootPathFull(objectId);
 
         if (Files.exists(objectRootPath)) {
             return parseInventory(inventoryPath(objectRootPath));
@@ -93,7 +93,7 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
-        var objectRootPath = objectRootPath(inventory.getId());
+        var objectRootPath = objectRootPathFull(inventory.getId());
 
         try {
             if (isFirstVersion(inventory)) {
@@ -126,7 +126,7 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
-        var objectRootPath = objectRootPath(inventory.getId());
+        var objectRootPath = objectRootPathFull(inventory.getId());
         var version = inventory.getVersion(versionId);
 
         parallelProcess.collection(version.getState().entrySet(), entry -> {
@@ -169,7 +169,7 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public InputStream retrieveFile(Inventory inventory, String fileId) {
-        var objectRootPath = objectRootPath(inventory.getId());
+        var objectRootPath = objectRootPathFull(inventory.getId());
 
         var filePath = inventory.getFilePath(fileId);
 
@@ -189,7 +189,7 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void purgeObject(String objectId) {
-        var objectRootPath = objectRootPath(objectId);
+        var objectRootPath = objectRootPathFull(objectId);
 
         if (Files.exists(objectRootPath)) {
             try (var paths = Files.walk(objectRootPath)) {
@@ -214,7 +214,15 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public boolean containsObject(String objectId) {
-        return Files.exists(objectRootPath(objectId));
+        return Files.exists(objectRootPathFull(objectId));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String objectRootPath(String objectId) {
+        return objectIdPathMapper.map(objectId).toString();
     }
 
     /**
@@ -244,7 +252,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
-    private Path objectRootPath(String objectId) {
+    private Path objectRootPathFull(String objectId) {
         return repositoryRoot.resolve(objectIdPathMapper.map(objectId));
     }
 

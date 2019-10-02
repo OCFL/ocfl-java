@@ -44,7 +44,7 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public Inventory loadInventory(String objectId) {
-        var objectRootPath = objectRootPath(objectId);
+        var objectRootPath = objectRootPathFull(objectId);
         var inventoryPath = inventoryPath(objectRootPath);
         var tempDir = FileUtil.createTempDir(workDir, objectId);
         var localInventoryPath = tempDir.resolve(inventoryPath);
@@ -68,7 +68,7 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
-        var objectRootPath = objectRootPath(inventory.getId());
+        var objectRootPath = objectRootPathFull(inventory.getId());
         var versionPath = objectRootPath.resolve(inventory.getHead().toString());
 
         try {
@@ -124,6 +124,14 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public String objectRootPath(String objectId) {
+        return objectIdPathMapper.map(objectId).toString();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void initializeStorage(String ocflVersion) {
 
     }
@@ -156,7 +164,7 @@ public class S3OcflStorage implements OcflStorage {
         uploadFile(sidecarPath, inventorySidecarPath(versionPath.getParent(), inventory.getDigestAlgorithm()));
     }
 
-    private Path objectRootPath(String objectId) {
+    private Path objectRootPathFull(String objectId) {
         return objectIdPathMapper.map(objectId);
     }
 

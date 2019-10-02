@@ -84,6 +84,14 @@ public interface OcflStorage {
     boolean containsObject(String objectId);
 
     /**
+     * Returns the path from the storage root to the object root.
+     *
+     * @param objectId the id of the object
+     * @return the relative path from the storage root to the object root
+     */
+    String objectRootPath(String objectId);
+
+    /**
      * Initializes the OCFL root. If it is an existing OCFL repository and the root has already been initialized, then
      * this method should do nothing.
      *

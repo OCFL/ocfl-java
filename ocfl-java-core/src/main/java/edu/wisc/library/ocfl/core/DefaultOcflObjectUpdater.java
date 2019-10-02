@@ -121,7 +121,6 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var digestInput = wrapInDigestInputStream(input);
         copyInputStream(digestInput, stagingDst);
 
-        // TODO add some tests of this
         if (input instanceof FixityCheckInputStream) {
             ((FixityCheckInputStream) input).checkFixity();
         }

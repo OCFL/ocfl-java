@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -197,8 +198,9 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         var inventory = requireInventory(ObjectId.head(objectId));
+        var objectRootPath = Paths.get(storage.objectRootPath(objectId));
 
-        return responseMapper.mapInventory(inventory);
+        return responseMapper.mapInventory(inventory, objectRootPath);
     }
 
     /**
@@ -212,8 +214,9 @@ public class DefaultOcflRepository implements OcflRepository {
         requireVersion(objectId, inventory);
 
         var version = inventory.getVersion(VersionId.fromValue(objectId.getVersionId()));
+        var objectRootPath = Paths.get(storage.objectRootPath(objectId.getObjectId()));
 
-        return responseMapper.mapVersion(inventory, objectId.getVersionId(), version);
+        return responseMapper.mapVersion(inventory, objectId.getVersionId(), version, objectRootPath);
     }
 
     /**

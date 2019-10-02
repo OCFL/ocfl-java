@@ -18,8 +18,8 @@ public class OcflMatchers {
         return new CommitInfoMatcher(user.getName(), user.getAddress(), message);
     }
 
-    public static FileDetailsMatcher fileDetails(String filePath, Map<String, String> fixity) {
-        return new FileDetailsMatcher(filePath, fixity);
+    public static FileDetailsMatcher fileDetails(String filePath, String storagePath, Map<String, String> fixity) {
+        return new FileDetailsMatcher(filePath, storagePath, fixity);
     }
 
     public static VersionDetailsMatcher versionDetails(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {

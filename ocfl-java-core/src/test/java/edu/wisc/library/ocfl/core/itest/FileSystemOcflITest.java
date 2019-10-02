@@ -192,32 +192,33 @@ public class FileSystemOcflITest {
 
         assertThat(objectDetails.getVersions().get("v1"), versionDetails(objectId, "v1",
                 OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "1"),
-                fileDetails("file1", Map.of(
+                fileDetails("file1", "o1/v1/content/file1", Map.of(
                         "sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
                         "md5", "95efdf0764d92207b4698025f2518456")),
-                fileDetails("file2", Map.of(
+                fileDetails("file2", "o1/v1/content/file2", Map.of(
                         "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
                         "md5", "55c1824fcae2b1b51cef5037405fc1ad"))
         ));
 
         assertThat(objectDetails.getVersions().get("v2"), versionDetails(objectId, "v2",
                 OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "2"),
-                fileDetails("file1", Map.of(
+                fileDetails("file1", "o1/v2/content/file1", Map.of(
                         "sha512", "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
                         "md5", "a0a8bfbf51b81caf7aa5be00f5e26669")),
-                fileDetails("file2", Map.of(
+                fileDetails("file2", "o1/v1/content/file2", Map.of(
                         "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
                         "md5", "55c1824fcae2b1b51cef5037405fc1ad")),
-                fileDetails("dir1/file3", Map.of("sha512", "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2",
+                fileDetails("dir1/file3", "o1/v2/content/dir1/file3", Map.of(
+                        "sha512", "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2",
                         "md5", "72b6193fe19ec99c692eba5c798e6bdf"))
         ));
 
         assertThat(objectDetails.getVersions().get("v3"), versionDetails(objectId, "v3",
                 OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "3"),
-                fileDetails("file2", Map.of(
+                fileDetails("file2", "o1/v1/content/file2", Map.of(
                         "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
                         "md5", "55c1824fcae2b1b51cef5037405fc1ad")),
-                fileDetails("file4", Map.of(
+                fileDetails("file4", "o1/v2/content/file1", Map.of(
                         "sha512", "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
                         "md5", "a0a8bfbf51b81caf7aa5be00f5e26669"))
         ));
@@ -237,9 +238,9 @@ public class FileSystemOcflITest {
         repo.readObject(ObjectId.head(objectId), reader -> {
             assertThat(reader.describeVersion(), versionDetails(objectId, "v3",
                     OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "3"),
-                    fileDetails("dir1/dir2/file2",
+                    fileDetails("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
                             Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
-                    fileDetails("dir1/file3",
+                    fileDetails("dir1/file3", "o2/v3/content/dir1/file3",
                             Map.of("sha512", "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"))));
 
             var files = reader.listFiles();

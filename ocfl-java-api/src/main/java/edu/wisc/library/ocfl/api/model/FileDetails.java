@@ -11,6 +11,7 @@ import java.util.Map;
 public class FileDetails {
 
     private String filePath;
+    private String storagePath;
     private Map<String, String> fixity;
 
     public FileDetails() {
@@ -26,6 +27,18 @@ public class FileDetails {
 
     public FileDetails setFilePath(String filePath) {
         this.filePath = filePath;
+        return this;
+    }
+
+    /**
+     * The file's path relative to the storage root
+     */
+    public String getStoragePath() {
+        return storagePath;
+    }
+
+    public FileDetails setStoragePath(String storagePath) {
+        this.storagePath = storagePath;
         return this;
     }
 
@@ -52,6 +65,7 @@ public class FileDetails {
     public String toString() {
         return "FileDetails{" +
                 "filePath='" + filePath + '\'' +
+                "storagePath='" + storagePath + '\'' +
                 ", fixity=" + fixity +
                 '}';
     }
