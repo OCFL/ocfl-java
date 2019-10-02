@@ -5,6 +5,7 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectId;
 import edu.wisc.library.ocfl.api.model.User;
@@ -810,6 +811,46 @@ public class FileSystemOcflITest {
         });
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void writeInputStreamToObjectWhenHasFixityCheckAndValid() {
+        var repoName = "repo14";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o2";
+
+        var sourcePath = sourceObjectPath(objectId, "v1");
+
+        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+            updater.writeFile(
+                    new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5.getJavaStandardName(), "95efdf0764d92207b4698025f2518456"),
+                    "file1");
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void failInputStreamToObjectWhenHasFixityCheckAndNotValid() {
+        var repoName = "repo14";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+
+        var objectId = "o2";
+
+        var sourcePath = sourceObjectPath(objectId, "v1");
+
+        assertThrows(FixityCheckException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+                updater.writeFile(
+                        new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5.getJavaStandardName(), "bogus"),
+                        "file1");
+            });
+        });
     }
 
     private void verifyDirectoryContentsSame(Path expected, Path actual) {

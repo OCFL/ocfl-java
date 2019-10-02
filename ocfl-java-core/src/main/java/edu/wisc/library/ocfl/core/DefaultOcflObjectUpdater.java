@@ -116,7 +116,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var stagingRelative = stagingDir.relativize(stagingDst);
 
         FileUtil.createDirectories(stagingDst.getParent());
-        var digestInput = new DigestInputStream(input, inventoryUpdater.digestAlgorithm().getMessageDigest());
+
+        var digestInput = wrapInDigestInputStream(input);
         copyInputStream(digestInput, stagingDst);
 
         // TODO add some tests of this
@@ -215,6 +216,17 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             throw new IllegalArgumentException(
                     String.format("Invalid destination %s. Path cannot be outside of object root.", destination));
         }
+    }
+
+    private DigestInputStream wrapInDigestInputStream(InputStream input) {
+        if (input instanceof FixityCheckInputStream) {
+            var digestAlgorithm = ((FixityCheckInputStream) input).getMessageDigest().getAlgorithm();
+            if (inventoryUpdater.digestAlgorithm().getJavaStandardName().equalsIgnoreCase(digestAlgorithm)) {
+                return (DigestInputStream) input;
+            }
+        }
+
+        return new DigestInputStream(input, inventoryUpdater.digestAlgorithm().getMessageDigest());
     }
 
     private void copyInputStream(InputStream input, Path dst) {
