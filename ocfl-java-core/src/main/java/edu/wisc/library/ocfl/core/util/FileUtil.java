@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.util;
 
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,10 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public final class FileUtil {
 
@@ -88,6 +86,14 @@ public final class FileUtil {
         }
     }
 
+    public static void copy(Path src, Path dst, StandardCopyOption... copyOptions) {
+        try {
+            Files.copy(src, dst, copyOptions);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+    }
+
     public static void copyFileMakeParents(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
             Files.createDirectories(dst.getParent());
@@ -101,6 +107,14 @@ public final class FileUtil {
         try {
             Files.createDirectories(dst.getParent());
             Files.move(src, dst, copyOptions);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+    }
+
+    public static void delete(Path path) {
+        try {
+            Files.delete(path);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
@@ -140,6 +154,14 @@ public final class FileUtil {
         }
 
         return files;
+    }
+
+    public static StandardCopyOption[] toCopyOptions(OcflOption... ocflOptions) {
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
+        if (options.contains(OcflOption.OVERWRITE)) {
+            return new StandardCopyOption[] {StandardCopyOption.REPLACE_EXISTING};
+        }
+        return new StandardCopyOption[] {};
     }
 
 

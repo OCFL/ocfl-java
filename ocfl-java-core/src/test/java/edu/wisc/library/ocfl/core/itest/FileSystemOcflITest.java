@@ -143,7 +143,7 @@ public class FileSystemOcflITest {
     }
 
     @Test
-    public void renameAndRemoveFilesAddedInTheCurrentVersion() {
+    public void failRenameAndRemoveFilesAddedInTheCurrentVersion() {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
@@ -153,20 +153,23 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
-        var outputPath = outputPath(repoName, objectId);
 
         repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
-            updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
-                    .addPath(sourcePathV2.resolve("file3"), "file3")
-                    .renameFile("dir1/file2", "dir2/file3")
-                    .removeFile("file3");
+
+        assertThrows(UnsupportedOperationException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+                updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
+                        .addPath(sourcePathV2.resolve("file3"), "file3")
+                        .renameFile("dir1/file2", "dir2/file3");
+            });
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
-
-        repo.getObject(ObjectId.head(objectId), outputPath);
-        verifyDirectoryContentsSame(expectedOutputPath(repoName, "o3v2"), objectId, outputPath);
+        assertThrows(UnsupportedOperationException.class, () -> {
+            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+                updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
+                        .removeFile("dir1/file2");
+            });
+        });
     }
 
     @Test

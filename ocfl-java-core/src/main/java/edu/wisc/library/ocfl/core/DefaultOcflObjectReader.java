@@ -20,11 +20,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 
 /**
  * Default implementation of OcflObjectReader that is used by DefaultOcflRepository to provide read access to an object.
@@ -79,18 +76,12 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
-
         var stream = getFile(sourcePath);
 
         FileUtil.createDirectories(destinationPath.getParent());
 
         try {
-            if (options.contains(OcflOption.OVERWRITE)) {
-                Files.copy(stream, destinationPath, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                Files.copy(stream, destinationPath);
-            }
+            Files.copy(stream, destinationPath, FileUtil.toCopyOptions(ocflOptions));
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

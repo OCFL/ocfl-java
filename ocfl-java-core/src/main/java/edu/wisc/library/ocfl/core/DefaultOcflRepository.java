@@ -21,11 +21,10 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -350,18 +349,10 @@ public class DefaultOcflRepository implements OcflRepository {
         try {
             var inventoryPath = stagingDir.resolve(OcflConstants.INVENTORY_FILE);
             inventoryMapper.writeValue(inventoryPath, inventory);
-            String inventoryDigest = computeDigest(inventoryPath, inventory.getDigestAlgorithm());
+            String inventoryDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), inventoryPath);
             Files.writeString(
                     stagingDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getValue()),
                     inventoryDigest + "\t" + OcflConstants.INVENTORY_FILE);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
-    private String computeDigest(Path path, DigestAlgorithm algorithm) {
-        try {
-            return Hex.encodeHexString(DigestUtils.digest(algorithm.getMessageDigest(), path.toFile()));
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
@@ -373,7 +364,6 @@ public class DefaultOcflRepository implements OcflRepository {
                     objectId.getObjectId(), inventory.getHead(), objectId.getVersionId()));
         }
     }
-
 
     private VersionId resolveVersion(ObjectId objectId, Inventory inventory) {
         var versionId = inventory.getHead();

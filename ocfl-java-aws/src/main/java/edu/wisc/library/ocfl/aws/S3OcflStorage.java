@@ -1,7 +1,6 @@
 package edu.wisc.library.ocfl.aws;
 
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
@@ -9,18 +8,16 @@ import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 
@@ -146,7 +143,7 @@ public class S3OcflStorage implements OcflStorage {
             // TODO verify fixity of all files before uploading to s3?
             var digest = verifyFileFixity(inventory, file, contentRelativePath);
             if (inventory.getDigestAlgorithm() != DigestAlgorithm.md5) {
-                digest = computeDigest(file, DigestAlgorithm.md5);
+                digest = DigestUtil.computeDigest(DigestAlgorithm.md5, file);
             }
             var destinationPath = versionContentPath.resolve(contentRelativePath);
             uploadFile(file, destinationPath, digest);
@@ -189,7 +186,7 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void verifyInventory(String expectedDigest, Path inventoryPath, DigestAlgorithm algorithm) {
-        var actualDigest = computeDigest(inventoryPath, algorithm);
+        var actualDigest = DigestUtil.computeDigest(algorithm, inventoryPath);
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
@@ -203,7 +200,7 @@ public class S3OcflStorage implements OcflStorage {
             throw new IllegalStateException(String.format("File not found in object %s version %s: %s",
                     inventory.getId(), inventory.getHead(), contentRelativePath));
         }
-        var actualDigest = computeDigest(file, inventory.getDigestAlgorithm());
+        var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
                     file, inventory.getId(), inventory.getDigestAlgorithm().getValue(), expectedDigest, actualDigest));
@@ -221,15 +218,6 @@ public class S3OcflStorage implements OcflStorage {
                 .bucket(bucketName)
                 .key(objectRootPath.resolve(namasteFile.fileName()).toString())
                 .build(), RequestBody.fromString(namasteFile.fileContent()));
-    }
-
-    // TODO move to util?
-    private String computeDigest(Path path, DigestAlgorithm algorithm) {
-        try {
-            return Hex.encodeHexString(DigestUtils.digest(algorithm.getMessageDigest(), path.toFile()));
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
     }
 
     private void rollback(Path objectRootPath, Path versionPath, Inventory inventory) {

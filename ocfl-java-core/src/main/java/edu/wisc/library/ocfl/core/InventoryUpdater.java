@@ -2,14 +2,11 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.*;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
+import edu.wisc.library.ocfl.core.util.DigestUtil;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
@@ -148,7 +145,7 @@ public final class InventoryUpdater {
             fixityAlgorithms.forEach(fixityAlgorithm -> {
                 var fixityDigest = digest;
                 if (fixityAlgorithm != digestAlgorithm) {
-                    fixityDigest = computeDigest(absolutePath, fixityAlgorithm);
+                    fixityDigest = DigestUtil.computeDigest(fixityAlgorithm, absolutePath);
                 }
                 inventoryBuilder.addFixityForFile(versionedPath, fixityAlgorithm, fixityDigest);
             });
@@ -259,7 +256,7 @@ public final class InventoryUpdater {
      * @return digest
      */
     public String computeDigest(Path path) {
-        return computeDigest(path, digestAlgorithm);
+        return DigestUtil.computeDigest(digestAlgorithm, path);
     }
 
     public DigestAlgorithm digestAlgorithm() {
@@ -268,14 +265,6 @@ public final class InventoryUpdater {
 
     private String versionedPath(String unversionedPath) {
         return Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), unversionedPath).toString();
-    }
-
-    private String computeDigest(Path path, DigestAlgorithm algorithm) {
-        try {
-            return Hex.encodeHexString(DigestUtils.digest(algorithm.getMessageDigest(), path.toFile()));
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
     }
 
 }

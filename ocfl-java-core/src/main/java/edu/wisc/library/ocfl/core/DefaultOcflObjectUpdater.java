@@ -128,7 +128,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var digest = Hex.encodeHexString(digestInput.getMessageDigest().digest());
         var isNew = inventoryUpdater.addFile(digest, stagingDst, stagingRelative, ocflOptions);
         if (!isNew) {
-            delete(stagingDst);
+            FileUtil.delete(stagingDst);
         } else {
             newFiles.add(stagingRelative.toString());
         }
@@ -143,13 +143,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     public OcflObjectUpdater removeFile(String path) {
         Enforce.notBlank(path, "path cannot be blank");
 
-        inventoryUpdater.removeFile(path);
+        enforceNoMutationsOnNewFiles(path);
 
-        if (newFiles.remove(path)) {
-            inventoryUpdater.removeFileFromManifest(path);
-            delete(stagingDir.resolve(path));
-            cleanupEmptyDirs(stagingDir);
-        }
+        inventoryUpdater.removeFile(path);
 
         return this;
     }
@@ -162,21 +158,10 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var normalizedDestination = normalizeDestinationPath(destinationPath).toString();
+        enforceNoMutationsOnNewFiles(sourcePath);
 
-        if (!newFiles.remove(sourcePath)) {
-            inventoryUpdater.renameFile(sourcePath, normalizedDestination, ocflOptions);
-        } else {
-            // TODO Things get complicated when new-to-version files are mutated. Perhaps this should just not be allowed.
-            newFiles.add(normalizedDestination);
-            var destination = stagingDir.resolve(normalizedDestination);
-            moveFile(stagingDir.resolve(sourcePath), destination);
-            cleanupEmptyDirs(stagingDir);
-            inventoryUpdater.removeFile(sourcePath);
-            inventoryUpdater.removeFileFromManifest(sourcePath);
-            var digest = inventoryUpdater.computeDigest(destination);
-            inventoryUpdater.addFile(digest, destination, stagingDir.relativize(destination), ocflOptions);
-        }
+        var normalizedDestination = normalizeDestinationPath(destinationPath).toString();
+        inventoryUpdater.renameFile(sourcePath, normalizedDestination, ocflOptions);
 
         return this;
     }
@@ -195,6 +180,12 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         inventoryUpdater.reinstateFile(VersionId.fromValue(sourceVersionId), sourcePath, normalizedDestination, ocflOptions);
 
         return this;
+    }
+
+    private void enforceNoMutationsOnNewFiles(String path) {
+        if (newFiles.contains(path)) {
+            throw new UnsupportedOperationException(String.format("File %s was added in the current version and cannot be mutated.", path));
+        }
     }
 
     /*
@@ -232,34 +223,6 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     private void copyInputStream(InputStream input, Path dst) {
         try {
             Files.copy(input, dst);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
-    private void delete(Path path) {
-        try {
-            Files.delete(path);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
-    private void moveFile(Path source, Path destination) {
-        try {
-            Files.createDirectories(destination.getParent());
-            Files.move(source, destination);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
-    private void cleanupEmptyDirs(Path root) {
-        try (var files = Files.walk(root)) {
-            files.filter(Files::isDirectory)
-                    .filter(f -> !f.equals(root))
-                    .filter(f -> f.toFile().list().length == 0)
-                    .forEach(this::delete);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

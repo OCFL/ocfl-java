@@ -15,11 +15,10 @@ import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionId;
+import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,7 +152,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 if (Thread.interrupted()) {
                     break;
                 } else {
-                    var digest = computeDigest(path, inventory.getDigestAlgorithm());
+                    var digest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), path);
                     var paths = inventory.getFilePaths(digest);
                     if (paths == null || !paths.contains(src)) {
                         throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Was: %s",
@@ -274,7 +273,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         var expectedDigest = readInventoryDigest(sidecarPath);
         var algorithm = getDigestAlgorithmFromSidecar(sidecarPath);
 
-        var actualDigest = computeDigest(inventoryPath, algorithm);
+        var actualDigest = DigestUtil.computeDigest(algorithm, inventoryPath);
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
@@ -328,8 +327,10 @@ public class FileSystemOcflStorage implements OcflStorage {
     private void copyInventory(Path sourcePath, Path destinationPath, Inventory inventory) {
         var digestAlgorithm = inventory.getDigestAlgorithm();
 
-        copy(inventoryPath(sourcePath), inventoryPath(destinationPath));
-        copy(inventorySidecarPath(sourcePath, digestAlgorithm), inventorySidecarPath(destinationPath, digestAlgorithm));
+        FileUtil.copy(inventoryPath(sourcePath), inventoryPath(destinationPath),
+                StandardCopyOption.REPLACE_EXISTING);
+        FileUtil.copy(inventorySidecarPath(sourcePath, digestAlgorithm), inventorySidecarPath(destinationPath, digestAlgorithm),
+                StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void versionContentFixityCheck(Inventory inventory, Version version, Path versionContentPath) {
@@ -342,28 +343,13 @@ public class FileSystemOcflStorage implements OcflStorage {
                 throw new IllegalStateException(String.format("File not found in object %s version %s: %s",
                         inventory.getId(), inventory.getHead(), fileRelativePath));
             } else {
-                var actualDigest = computeDigest(file, inventory.getDigestAlgorithm());
+                var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
                 if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                     throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
                             file, inventory.getId(), inventory.getDigestAlgorithm().getValue(), expectedDigest, actualDigest));
                 }
             }
         });
-    }
-
-    private void compareDigests(Inventory inventory, String path, String expected, String actual) {
-        if (!expected.equalsIgnoreCase(actual)) {
-            throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                    path, inventory.getId(), inventory.getDigestAlgorithm().getValue(), expected, actual));
-        }
-    }
-
-    private String computeDigest(Path path, DigestAlgorithm algorithm) {
-        try {
-            return Hex.encodeHexString(DigestUtils.digest(algorithm.getMessageDigest(), path.toFile()));
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
     }
 
     private void rollbackChanges(Path objectRootPath, Inventory inventory) {
@@ -377,14 +363,6 @@ public class FileSystemOcflStorage implements OcflStorage {
             }
         } catch (RuntimeException e) {
             LOG.error("Failed to rollback changes to object {} cleanly.", inventory.getId(), e);
-        }
-    }
-
-    private void copy(Path src, Path dst) {
-        try {
-            Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
         }
     }
 
