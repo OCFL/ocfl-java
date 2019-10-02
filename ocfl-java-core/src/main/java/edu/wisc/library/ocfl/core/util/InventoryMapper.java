@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
@@ -56,7 +57,7 @@ public class InventoryMapper {
         try {
             objectMapper.writeValue(destination.toFile(), inventory);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -64,7 +65,7 @@ public class InventoryMapper {
         try {
             objectMapper.writeValue(outputStream, inventory);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -72,7 +73,7 @@ public class InventoryMapper {
         try {
             return objectMapper.readValue(path.toFile(), Inventory.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -80,7 +81,7 @@ public class InventoryMapper {
         try {
             return objectMapper.readValue(inputStream, Inventory.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 

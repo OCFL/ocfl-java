@@ -1,8 +1,9 @@
 package edu.wisc.library.ocfl.api.exception;
 
+/**
+ * Wrapper for the annoying checked IOException.
+ */
 public class RuntimeIOException extends RuntimeException {
-
-    // TODO use this when wrapping IOException
 
     public RuntimeIOException() {
     }

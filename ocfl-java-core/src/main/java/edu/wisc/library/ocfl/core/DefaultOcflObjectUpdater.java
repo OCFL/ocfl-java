@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
@@ -233,7 +234,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         try {
             Files.copy(input, dst);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -241,7 +242,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         try {
             Files.delete(path);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -250,7 +251,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             Files.createDirectories(destination.getParent());
             Files.move(source, destination);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -261,7 +262,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
                     .filter(f -> f.toFile().list().length == 0)
                     .forEach(this::delete);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 

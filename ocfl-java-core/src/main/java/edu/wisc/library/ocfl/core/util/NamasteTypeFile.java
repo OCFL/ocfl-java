@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.util;
 
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.io.IOException;
@@ -28,7 +29,7 @@ public class NamasteTypeFile {
         try {
             Files.writeString(directory.resolve(fileName()), fileContent());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 

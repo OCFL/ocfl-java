@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.aws;
 
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
@@ -219,7 +220,7 @@ public class S3OcflStorage implements OcflStorage {
         try {
             return Hex.encodeHexString(DigestUtils.digest(algorithm.getMessageDigest(), path.toFile()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 

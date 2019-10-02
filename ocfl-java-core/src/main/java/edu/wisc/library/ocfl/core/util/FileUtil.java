@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.util;
 
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,7 @@ public final class FileUtil {
         try {
             return Files.createDirectories(path);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -38,7 +39,7 @@ public final class FileUtil {
             var name = URLEncoder.encode(prefix, StandardCharsets.UTF_8) + "-" + Long.toUnsignedString(RANDOM.nextLong());
             return Files.createDirectory(rootPath.resolve(name));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -83,7 +84,7 @@ public final class FileUtil {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -92,7 +93,7 @@ public final class FileUtil {
             Files.createDirectories(dst.getParent());
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -101,7 +102,7 @@ public final class FileUtil {
             Files.createDirectories(dst.getParent());
             Files.move(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -132,7 +133,7 @@ public final class FileUtil {
                 paths.filter(Files::isRegularFile)
                         .forEach(files::add);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeIOException(e);
             }
         } else {
             files.add(path);

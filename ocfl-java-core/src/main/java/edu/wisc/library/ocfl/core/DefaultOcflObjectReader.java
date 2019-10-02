@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.core;
 import edu.wisc.library.ocfl.api.OcflObjectReader;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -89,7 +90,7 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
                 Files.copy(stream, destinationPath);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
 
         stream.checkFixity();

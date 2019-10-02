@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
@@ -107,7 +108,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 throw new ObjectOutOfSyncException(
                         String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeIOException(e);
             }
 
             FileUtil.moveDirectory(stagingDir, versionPath);
@@ -179,7 +180,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         try {
             return Files.newInputStream(objectRootPath.resolve(filePath));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -197,12 +198,12 @@ public class FileSystemOcflStorage implements OcflStorage {
                             try {
                                 Files.delete(f);
                             } catch (IOException e) {
-                                throw new RuntimeException(String.format("Failed to delete file %s while purging object %s." +
+                                throw new RuntimeIOException(String.format("Failed to delete file %s while purging object %s." +
                                         " The purge failed and may need to be deleted manually.", f, objectId), e);
                             }
                         });
             } catch (IOException e) {
-                throw new RuntimeException(String.format("Failed to purge object %s at %s. The object may need to be deleted manually.",
+                throw new RuntimeIOException(String.format("Failed to purge object %s at %s. The object may need to be deleted manually.",
                         objectId, objectRootPath), e);
             }
         }
@@ -286,7 +287,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
             return sidecars.get(0);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -298,7 +299,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             }
             return parts[0];
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -353,7 +354,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         try {
             return Hex.encodeHexString(DigestUtils.digest(algorithm.getMessageDigest(), path.toFile()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -375,7 +376,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         try {
             Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -420,7 +421,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         try (var ocflSpecStream = FileSystemOcflStorage.class.getClassLoader().getResourceAsStream(ocflSpecFile)) {
             Files.copy(ocflSpecStream, repositoryRoot.resolve(ocflSpecFile));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
@@ -448,7 +449,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
 
         if (objectRootHolder.isEmpty()) {
@@ -465,7 +466,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true)
                     .writeValue(repositoryRoot.resolve("ocfl_layout.json").toFile(), map);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeIOException(e);
         }
     }
 
