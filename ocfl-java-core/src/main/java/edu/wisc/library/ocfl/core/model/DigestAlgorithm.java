@@ -8,6 +8,8 @@ import java.security.NoSuchAlgorithmException;
 
 public enum DigestAlgorithm {
 
+    // TODO restrict content-addressing algorithms to sha256 and sha512
+    // TODO allow for extension algorithms
     md5("md5","md5"),
     sha1("sha1", "sha-1"),
     sha256("sha256", "sha-256"),
