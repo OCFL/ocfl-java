@@ -79,7 +79,7 @@ public interface OcflRepository {
      * @return a map of {@code OcflFileRetriever} objects keyed off the object relative file paths of all of the files in the object
      * @throws NotFoundException when no object can be found for the specified objectId
      */
-    Map<String, OcflFileRetriever> lazyLoadObject(ObjectId objectId);
+    Map<String, OcflFileRetriever> getObjectStreams(ObjectId objectId);
 
     /**
      * Opens an object to access individual files within the object without retrieving everything.

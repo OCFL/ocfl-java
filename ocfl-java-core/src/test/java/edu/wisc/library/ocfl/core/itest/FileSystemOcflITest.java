@@ -162,19 +162,19 @@ public class FileSystemOcflITest {
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
 
-        var files = repo.lazyLoadObject(ObjectId.head(objectId));
+        var files = repo.getObjectStreams(ObjectId.head(objectId));
         assertEquals(2, files.size());
         verifyStream(sourcePathV3.resolve("file2"), files.get("file2"));
         verifyStream(sourcePathV3.resolve("file4"), files.get("file4"));
 
-        files = repo.lazyLoadObject(ObjectId.version(objectId, "v2"));
+        files = repo.getObjectStreams(ObjectId.version(objectId, "v2"));
         assertEquals(3, files.size());
         verifyStream(sourcePathV2.resolve("file1"), files.get("file1"));
         verifyStream(sourcePathV2.resolve("file2"), files.get("file2"));
         verifyStream(sourcePathV2.resolve("dir1/file3"), files.get("dir1/file3"));
 
 
-        files = repo.lazyLoadObject(ObjectId.version(objectId, "v1"));
+        files = repo.getObjectStreams(ObjectId.version(objectId, "v1"));
         assertEquals(2, files.size());
         verifyStream(sourcePathV1.resolve("file1"), files.get("file1"));
         verifyStream(sourcePathV1.resolve("file2"), files.get("file2"));

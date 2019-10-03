@@ -165,14 +165,14 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public Map<String, OcflFileRetriever> lazyLoadObject(ObjectId objectId) {
+    public Map<String, OcflFileRetriever> getObjectStreams(ObjectId objectId) {
         Enforce.notNull(objectId, "objectId cannot be null");
 
         var inventory = requireInventory(objectId);
         requireVersion(objectId, inventory);
         var versionId = resolveVersion(objectId, inventory);
 
-        return storage.lazyLoadObject(inventory, versionId);
+        return storage.getObjectStreams(inventory, versionId);
     }
 
     /**

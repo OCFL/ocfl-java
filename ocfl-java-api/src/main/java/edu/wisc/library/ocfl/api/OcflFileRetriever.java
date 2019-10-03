@@ -10,6 +10,9 @@ public interface OcflFileRetriever {
     /**
      * Returns a new input stream of the file's content. The caller is responsible for closing the stream.
      *
+     * <p>The caller MUST call {@code checkFixity()} on the InputStream after streaming all of that data to ensure the
+     * fixity of data.
+     *
      * @return FixityCheckInputStream of the file's content
      */
     FixityCheckInputStream retrieveFile();

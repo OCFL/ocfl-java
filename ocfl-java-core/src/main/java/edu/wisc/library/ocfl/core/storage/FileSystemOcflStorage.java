@@ -123,7 +123,7 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public Map<String, OcflFileRetriever> lazyLoadObject(Inventory inventory, VersionId versionId) {
+    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
         var objectRootPath = objectRootPathFull(inventory.getId());
         var version = ensureVersion(inventory, versionId);
         var algorithm = inventory.getDigestAlgorithm();

@@ -91,7 +91,7 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public Map<String, OcflFileRetriever> lazyLoadObject(Inventory inventory, VersionId versionId) {
+    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
         return null;
     }
 

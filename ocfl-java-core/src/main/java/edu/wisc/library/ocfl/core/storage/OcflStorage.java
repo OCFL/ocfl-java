@@ -56,7 +56,7 @@ public interface OcflStorage {
      * @param versionId the id of the version to load
      * @return a map of {@code OcflFileRetriever} objects keyed off the object relative file paths of all of the files in the object
      */
-    Map<String, OcflFileRetriever> lazyLoadObject(Inventory inventory, VersionId versionId);
+    Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId);
 
     /**
      * Reconstructs a complete object at the specified version in the stagingDir.
