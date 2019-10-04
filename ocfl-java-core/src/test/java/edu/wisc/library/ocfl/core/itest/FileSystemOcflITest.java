@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectId;
@@ -18,8 +19,6 @@ import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -33,7 +32,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -44,6 +42,7 @@ import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.fileDetails;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.versionDetails;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FileSystemOcflITest {
@@ -56,11 +55,6 @@ public class FileSystemOcflITest {
     private Path inputDir;
 
     private CommitInfo defaultCommitInfo;
-
-    @BeforeAll
-    public static void beforeAll() {
-        Security.addProvider(new BouncyCastleProvider());
-    }
 
     @BeforeEach
     public void setup() throws IOException {
@@ -215,7 +209,7 @@ public class FileSystemOcflITest {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
         var repo = new OcflRepositoryBuilder().prettyPrintJson()
-                .fixityAlgorithms(Set.of(DigestAlgorithm.md5))
+                .fixityAlgorithms(Set.of(DigestAlgorithm.md5, new DigestAlgorithm("bogus")))
                 .build(new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), repoDir.resolve("deposit"));
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
@@ -482,6 +476,15 @@ public class FileSystemOcflITest {
         var repo = defaultRepo(repoDir);
 
         assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectId.head("o1"), outputPath(repoName, "blah")));
+    }
+
+    @Test
+    public void failGetObjectWhenInvalidDigestAlgorithmUsed() {
+        var repoName = "invalid-digest-algorithm";
+        var repoDir = sourceRepoPath(repoName);
+        assertThat(assertThrows(RuntimeIOException.class, () -> {
+            defaultRepo(repoDir);
+        }).getMessage(), containsString("digestAlgorithm must be sha512 or sha256"));
     }
 
     @Test
@@ -1003,7 +1006,7 @@ public class FileSystemOcflITest {
 
     private String computeDigest(Path path) {
         try {
-            return Hex.encodeHexString(DigestUtils.digest(MessageDigest.getInstance("blake2s-128"), path.toFile()));
+            return Hex.encodeHexString(DigestUtils.digest(MessageDigest.getInstance("md5"), path.toFile()));
         } catch (IOException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }

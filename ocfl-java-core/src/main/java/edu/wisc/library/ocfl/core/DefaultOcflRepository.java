@@ -361,7 +361,7 @@ public class DefaultOcflRepository implements OcflRepository {
             inventoryMapper.writeValue(inventoryPath, inventory);
             String inventoryDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), inventoryPath);
             Files.writeString(
-                    stagingDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getValue()),
+                    stagingDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName()),
                     inventoryDigest + "\t" + OcflConstants.INVENTORY_FILE);
         } catch (IOException e) {
             throw new RuntimeIOException(e);

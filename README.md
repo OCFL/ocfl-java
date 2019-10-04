@@ -32,8 +32,6 @@ After building the libraries locally, add the following to you're project's POM:
 ```java
 var repoDir = Paths.get("ocfl-repo");
 
-Security.addProvider(new BouncyCastleProvider());
-
 var repo = new OcflRepositoryBuilder().build(
         new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().
                 withDefaultCaffeineCache().buildDefaultPairTreeMapper()),

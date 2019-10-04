@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
@@ -172,7 +173,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                     var paths = inventory.getFilePaths(digest);
                     if (paths == null || !paths.contains(src)) {
                         throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Was: %s",
-                                path, inventory.getId(), inventory.getDigestAlgorithm().getValue(), digest));
+                                path, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), digest));
                     }
                 }
             }
@@ -276,7 +277,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     private Path inventorySidecarPath(Path rootPath, DigestAlgorithm digestAlgorithm) {
-        return rootPath.resolve(OcflConstants.INVENTORY_FILE + "." + digestAlgorithm.getValue());
+        return rootPath.resolve(OcflConstants.INVENTORY_FILE + "." + digestAlgorithm.getOcflName());
     }
 
     private Inventory parseInventory(Path inventoryPath) {
@@ -293,7 +294,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
-                    inventoryPath, algorithm.getValue(), expectedDigest, actualDigest));
+                    inventoryPath, algorithm.getOcflName(), expectedDigest, actualDigest));
         }
     }
 
@@ -327,7 +328,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     private DigestAlgorithm getDigestAlgorithmFromSidecar(Path inventorySidecarPath) {
-        return DigestAlgorithm.fromValue(
+        return DigestAlgorithmRegistry.getAlgorithm(
                 inventorySidecarPath.getFileName().toString().substring(OcflConstants.INVENTORY_FILE.length() + 1));
     }
 
@@ -362,7 +363,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
                 if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                     throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                            file, inventory.getId(), inventory.getDigestAlgorithm().getValue(), expectedDigest, actualDigest));
+                            file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
                 }
             }
         });

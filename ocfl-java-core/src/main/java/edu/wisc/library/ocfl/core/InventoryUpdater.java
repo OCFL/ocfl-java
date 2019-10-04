@@ -141,14 +141,18 @@ public final class InventoryUpdater {
             var versionedPath = versionedPath(objectRelativePathStr);
             inventoryBuilder.addFileToManifest(digest, versionedPath);
 
-            // TODO this could be slow, but I suspect that it is unlikely to be used
-            fixityAlgorithms.forEach(fixityAlgorithm -> {
+            // TODO this could be slow, but I suspect that it is unlikely to be used...
+            for (var fixityAlgorithm : fixityAlgorithms) {
                 var fixityDigest = digest;
-                if (fixityAlgorithm != digestAlgorithm) {
-                    fixityDigest = DigestUtil.computeDigest(fixityAlgorithm, absolutePath);
+                if (!digestAlgorithm.equals(fixityAlgorithm)) {
+                    if (fixityAlgorithm.hasJavaStandardName()) {
+                        fixityDigest = DigestUtil.computeDigest(fixityAlgorithm, absolutePath);
+                    } else {
+                        continue;
+                    }
                 }
                 inventoryBuilder.addFixityForFile(versionedPath, fixityAlgorithm, fixityDigest);
-            });
+            }
         }
 
         versionBuilder.addFile(digest, objectRelativePathStr);
@@ -226,16 +230,6 @@ public final class InventoryUpdater {
         }
 
         versionBuilder.addFile(fileId, destinationPath);
-    }
-
-    /**
-     * Removes a file from the manifest. This should only ever happen if a file is added and then removed within the same
-     * update block.
-     *
-     * @param path unversioned object root relative path to the file
-     */
-    public void removeFileFromManifest(String path) {
-        inventoryBuilder.removeFileFromManifest(versionedPath(path));
     }
 
     /**

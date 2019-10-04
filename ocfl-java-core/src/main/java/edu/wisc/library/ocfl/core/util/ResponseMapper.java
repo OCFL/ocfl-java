@@ -62,7 +62,7 @@ public class ResponseMapper {
                 var details = new FileDetails()
                         .setObjectRelativePath(path)
                         .setStorageRelativePath(objectRootPath.resolve(inventory.getFilePath(digest)).toString())
-                        .addDigest(digestAlgorithm.getValue(), digest);
+                        .addDigest(digestAlgorithm.getOcflName(), digest);
                 fileFixityMap.put(digest, details);
                 fileDetails.add(details);
             });
@@ -74,7 +74,7 @@ public class ResponseMapper {
                     paths.forEach(path -> {
                         var details = fileFixityMap.get(inventory.getFileId(path));
                         if (details != null) {
-                            details.addDigest(algorithm.getValue(), digest);
+                            details.addDigest(algorithm.getOcflName(), digest);
                         }
                     });
                 });

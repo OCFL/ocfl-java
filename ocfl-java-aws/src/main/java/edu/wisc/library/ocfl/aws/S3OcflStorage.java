@@ -152,7 +152,7 @@ public class S3OcflStorage implements OcflStorage {
             var contentRelativePath = stagedContent.relativize(file);
             // TODO verify fixity of all files before uploading to s3?
             var digest = verifyFileFixity(inventory, file, contentRelativePath);
-            if (inventory.getDigestAlgorithm() != DigestAlgorithm.md5) {
+            if (DigestAlgorithm.md5.equals(inventory.getDigestAlgorithm())) {
                 digest = DigestUtil.computeDigest(DigestAlgorithm.md5, file);
             }
             var destinationPath = versionContentPath.resolve(contentRelativePath);
@@ -180,7 +180,7 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private Path inventorySidecarPath(Path rootPath, DigestAlgorithm digestAlgorithm) {
-        return rootPath.resolve(OcflConstants.INVENTORY_FILE + "." + digestAlgorithm.getValue());
+        return rootPath.resolve(OcflConstants.INVENTORY_FILE + "." + digestAlgorithm.getOcflName());
     }
 
     private String getDigestFromSidecar(Path objectRootPath, Inventory inventory) {
@@ -200,7 +200,7 @@ public class S3OcflStorage implements OcflStorage {
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
-                    inventoryPath, algorithm.getValue(), expectedDigest, actualDigest));
+                    inventoryPath, algorithm.getOcflName(), expectedDigest, actualDigest));
         }
     }
 
@@ -213,7 +213,7 @@ public class S3OcflStorage implements OcflStorage {
         var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                    file, inventory.getId(), inventory.getDigestAlgorithm().getValue(), expectedDigest, actualDigest));
+                    file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
         }
         return actualDigest;
     }

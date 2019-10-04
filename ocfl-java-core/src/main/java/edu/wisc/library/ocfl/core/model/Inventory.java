@@ -34,6 +34,9 @@ public class Inventory {
     @JsonIgnore
     private final Map<String, String> reverseManifestMap;
 
+    @JsonIgnore
+    private final Set<DigestAlgorithm> allowedDigestAlgorithms = Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
+
     /**
      * This constructor is used by Jackson for deserialization.
      */
@@ -66,6 +69,8 @@ public class Inventory {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        Enforce.expressionTrue(allowedDigestAlgorithms.contains(digestAlgorithm), digestAlgorithm,
+                "digestAlgorithm must be sha512 or sha256");
         this.head = Enforce.notNull(head, "head cannot be null");
         this.contentDirectory = contentDirectory != null ? contentDirectory : OcflConstants.DEFAULT_CONTENT_DIRECTORY;
         this.fixity = copyFixity(fixity);
