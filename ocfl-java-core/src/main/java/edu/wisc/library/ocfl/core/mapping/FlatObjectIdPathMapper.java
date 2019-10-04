@@ -33,6 +33,7 @@ public class FlatObjectIdPathMapper implements ObjectIdPathMapper {
     public Map<String, Object> describeLayout() {
         // TODO https://github.com/OCFL/spec/issues/351
         return Map.of(
+                // TODO update to 'key' once the key is known
                 "uri", "https://flat-layout",
                 "description", "Flat Layout"
         );

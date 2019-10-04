@@ -65,6 +65,7 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
     public Map<String, Object> describeLayout() {
         // TODO https://github.com/OCFL/spec/issues/351
         return Map.of(
+                // TODO update to 'key' once the key is known
                 "uri", String.format("https://birkland.github.io/ocfl-rfc-demo/0003-truncated-ntuple-layout?encoding=%s&depth=%s&n=%s",
                         digestAlgorithm, depth, segmentLength),
                 "description", "Truncated n-tuple Layout"

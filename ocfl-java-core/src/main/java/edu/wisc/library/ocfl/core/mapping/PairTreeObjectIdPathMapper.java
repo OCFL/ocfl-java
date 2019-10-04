@@ -84,6 +84,7 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
     public Map<String, Object> describeLayout() {
         // TODO https://github.com/OCFL/spec/issues/351
         return Map.of(
+                // TODO update to 'key' once the key is known
                 "uri", String.format("https://birkland.github.io/ocfl-rfc-demo/0001-pairtree-layout?encapsulation=%s", encapsulationSubstringLength),
                 "description", "Pairtree Layout"
         );
