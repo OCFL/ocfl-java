@@ -34,7 +34,7 @@ public interface OcflRepository {
      * will be lost. This operation is more efficient but less safe than the default copy.
      *
      * @param objectId the id to store the object under. If set to a specific version, then the update will only occur
-     *                 if this version matches the current object version in the repository.
+     *                 if this version matches the head object version in the repository.
      * @param path the path to the object content
      * @param commitInfo information about the changes to the object. Can be null.
      * @param ocflOptions optional config options. Use {@code OcflOption.MOVE_SOURCE} to move files into the repo instead of copying.
@@ -51,8 +51,8 @@ public interface OcflRepository {
      * <p>If the current HEAD version of the object does not match the version specified in the request, the update will
      * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
      *
-     * @param objectId the id to store the object under. If set to a specific version, then the update will only occur
-     *                 if this version matches the current object version in the repository.
+     * @param objectId the id of the object. If set to a specific version, then the update will only occur
+     *                 if this version matches the head object version in the repository.
      * @param commitInfo information about the changes to the object. Can be null.
      * @param objectUpdater code block within which updates to an object may be made
      * @return The objectId and version of the new object version
@@ -125,8 +125,6 @@ public interface OcflRepository {
     void purgeObject(String objectId);
 
     // TODO rollbackObject?
-
-    // TODO delete head version
 
     // TODO list objects? this is a daunting prospect without an index
 
