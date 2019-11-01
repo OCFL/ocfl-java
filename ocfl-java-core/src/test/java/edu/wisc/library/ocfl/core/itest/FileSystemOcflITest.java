@@ -453,9 +453,7 @@ public class FileSystemOcflITest {
     public void failGetObjectWhenInventoryFixityCheckFails() {
         var repoName = "invalid-inventory-fixity";
         var repoDir = sourceRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
-
-        assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectId.head("z1"), outputPath(repoName, "blah")));
+        assertThrows(FixityCheckException.class, () -> defaultRepo(repoDir));
     }
 
     @Test
