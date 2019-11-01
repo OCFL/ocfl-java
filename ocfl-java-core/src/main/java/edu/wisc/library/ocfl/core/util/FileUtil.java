@@ -63,7 +63,7 @@ public final class FileUtil {
 
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    if (dir.equals(srcRoot)) {
+                    if (!dir.equals(srcRoot)) {
                         Files.createDirectory(createDstPath(dir));
                     }
                     return super.preVisitDirectory(dir, attrs);
