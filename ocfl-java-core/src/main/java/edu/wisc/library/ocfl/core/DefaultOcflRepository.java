@@ -263,6 +263,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         var inventory = loadInventory(objectId);
 
         if (inventory == null) {
+            // TODO if the mutable HEAD creation fails, this should be purged.
             inventory = createAndPersistEmptyVersion(objectId);
         }
 
