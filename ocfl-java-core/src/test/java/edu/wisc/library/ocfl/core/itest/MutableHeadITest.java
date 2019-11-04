@@ -73,8 +73,6 @@ public class MutableHeadITest {
         assertTrue(repo.hasStagedVersion(objectId));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
-
-        repo.getObject(ObjectId.head(objectId), Paths.get("/var/tmp/t"));
     }
 
     @Test
