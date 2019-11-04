@@ -28,8 +28,8 @@ public interface OcflObjectReader {
     Collection<String> listFiles();
 
     /**
-     * Writes a specific file to the given destinationPath. Use {@code OcflOption.OVERWRITE} to overwrite the destination
-     * path if it already exists.
+     * Retrieves the file at the sourcePath from the OCFL object and writes it to the destinationPath, outside of the OCFL object.
+     * Use {@code OcflOption.OVERWRITE} to overwrite the destination path if it already exists.
      *
      * @param sourcePath the logical path to the file to retrieve from the object
      * @param destinationPath the destination to write the file to, including the file name
