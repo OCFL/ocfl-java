@@ -41,14 +41,22 @@ public final class FileUtil {
         }
     }
 
+    /**
+     * Attempts to rename the source directory to the destination directory, replacing the destination. If the rename fails,
+     * the contents of the source directory are recursively moved into the destination directory file by file. Rename
+     * should only fail if the move is happening across volumes.
+     */
     public static void moveDirectory(Path srcRoot, Path dstRoot) {
         try {
             Files.move(srcRoot, dstRoot, StandardCopyOption.REPLACE_EXISTING);
             return;
         } catch (IOException e) {
             // Was unable to do a rename. Must do a deep copy.
+            // Rename should only fail if a directory is being moved across volumes.
         }
 
+        // TODO this is merging content into an existing directory rather than replacing. acceptable?
+        // TODO if not, the dst directory should NOT be removed. instead, its children must be deleted
         if (!Files.exists(dstRoot)) {
             createDirectories(dstRoot);
         } else if (Files.isRegularFile(dstRoot)) {
@@ -57,21 +65,21 @@ public final class FileUtil {
 
         try {
             Files.walkFileTree(srcRoot, Set.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<>() {
-                private Path createDstPath(Path current) {
+                private Path dstPath(Path current) {
                     return dstRoot.resolve(srcRoot.relativize(current));
                 }
 
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                     if (!dir.equals(srcRoot)) {
-                        Files.createDirectory(createDstPath(dir));
+                        Files.createDirectories(dstPath(dir));
                     }
                     return super.preVisitDirectory(dir, attrs);
                 }
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.move(file, createDstPath(file), StandardCopyOption.REPLACE_EXISTING);
+                    Files.move(file, dstPath(file), StandardCopyOption.REPLACE_EXISTING);
                     return super.visitFile(file, attrs);
                 }
 
@@ -115,6 +123,17 @@ public final class FileUtil {
     public static void delete(Path path) {
         try {
             Files.delete(path);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+    }
+
+    public static void deleteEmptyDirs(Path root) {
+        try (var files = Files.walk(root)) {
+            files.filter(Files::isDirectory)
+                    .filter(f -> !f.equals(root))
+                    .filter(f -> f.toFile().list().length == 0)
+                    .forEach(FileUtil::delete);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

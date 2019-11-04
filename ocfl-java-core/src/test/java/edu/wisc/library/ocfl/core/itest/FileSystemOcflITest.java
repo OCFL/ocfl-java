@@ -10,15 +10,11 @@ import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectId;
-import edu.wisc.library.ocfl.api.model.User;
-import edu.wisc.library.ocfl.core.DefaultOcflRepository;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.matcher.OcflMatchers;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,14 +26,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.util.*;
-import java.util.function.Supplier;
+import java.util.Map;
+import java.util.Set;
 
+import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.fileDetails;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.versionDetails;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -53,6 +45,7 @@ public class FileSystemOcflITest {
     private Path reposDir;
     private Path outputDir;
     private Path inputDir;
+    private Path workDir;
 
     private CommitInfo defaultCommitInfo;
 
@@ -61,6 +54,7 @@ public class FileSystemOcflITest {
         reposDir = Files.createDirectory(tempRoot.resolve("repos"));
         outputDir = Files.createDirectory(tempRoot.resolve("output"));
         inputDir = Files.createDirectory(tempRoot.resolve("input"));
+        workDir = Files.createDirectory(tempRoot.resolve("work"));
 
         defaultCommitInfo = commitInfo("Peter", "peter@example.com", "commit message");
     }
@@ -70,7 +64,6 @@ public class FileSystemOcflITest {
         var repoName = "repo3";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -102,7 +95,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -142,7 +134,6 @@ public class FileSystemOcflITest {
         var repoName = "repo3";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -179,7 +170,6 @@ public class FileSystemOcflITest {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -210,7 +200,7 @@ public class FileSystemOcflITest {
         var repoDir = newRepoDir(repoName);
         var repo = new OcflRepositoryBuilder().prettyPrintJson()
                 .fixityAlgorithms(Set.of(DigestAlgorithm.md5, new DigestAlgorithm("bogus")))
-                .build(new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), repoDir.resolve("deposit"));
+                .build(new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), workDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
@@ -266,7 +256,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = expectedRepoPath(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -282,7 +271,7 @@ public class FileSystemOcflITest {
             assertThat(files, containsInAnyOrder("dir1/dir2/file2", "dir1/file3"));
 
             var in = reader.getFile("dir1/file3");
-            assertEquals("This is a different file 3", inputToString(in));
+            assertEquals("This is a different file 3", ITestHelper.inputToString(in));
         });
 
         repo.readObject(ObjectId.version(objectId, "v1"), reader -> {
@@ -293,7 +282,7 @@ public class FileSystemOcflITest {
 
             var out = outputPath(repoName, "read").resolve("file1");
             reader.getFile("file1", out);
-            assertEquals("Test file 1", fileToString(out));
+            assertEquals("Test file 1", ITestHelper.fileToString(out));
         });
     }
 
@@ -302,7 +291,6 @@ public class FileSystemOcflITest {
         var repoName = "repo6";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o4";
 
@@ -327,7 +315,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -349,7 +336,6 @@ public class FileSystemOcflITest {
         var repoName = "repo6";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
 
@@ -361,7 +347,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = expectedRepoPath(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         assertThrows(NotFoundException.class, () -> repo.getObject(ObjectId.head("bogus"), outputPath(repoName, "bogus")));
     }
@@ -371,7 +356,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = expectedRepoPath(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -383,7 +367,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -411,7 +394,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -437,7 +419,6 @@ public class FileSystemOcflITest {
         var repoName = "repo7";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -490,7 +471,6 @@ public class FileSystemOcflITest {
         var repoName = "repo8";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o5";
 
@@ -499,8 +479,8 @@ public class FileSystemOcflITest {
         repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         // Which duplicate file that's preserved is non-deterministic
-        var expectedPaths = listAllPaths(expectedRepoPath(repoName));
-        var actualPaths = listAllPaths(repoDir);
+        var expectedPaths = ITestHelper.listAllPaths(expectedRepoPath(repoName));
+        var actualPaths = ITestHelper.listAllPaths(repoDir);
         assertEquals(expectedPaths.size(), actualPaths.size());
     }
 
@@ -511,7 +491,6 @@ public class FileSystemOcflITest {
         copyDir(sourceRepoPath(repoName), repoDir);
 
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -529,7 +508,6 @@ public class FileSystemOcflITest {
         copyDir(sourceRepoPath(repoName), repoDir);
 
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -547,7 +525,6 @@ public class FileSystemOcflITest {
         copyDir(sourceRepoPath(repoName), repoDir);
 
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -563,7 +540,6 @@ public class FileSystemOcflITest {
         var repoName = "repo9";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -589,7 +565,6 @@ public class FileSystemOcflITest {
         var repoName = "repo9";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -611,7 +586,6 @@ public class FileSystemOcflITest {
         var repoName = "repo10";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -630,7 +604,6 @@ public class FileSystemOcflITest {
         var repoName = "repo10";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -650,7 +623,6 @@ public class FileSystemOcflITest {
         var repoName = "repo10";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -670,7 +642,6 @@ public class FileSystemOcflITest {
         var repoName = "purge-object";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -684,7 +655,7 @@ public class FileSystemOcflITest {
             repo.describeObject(objectId);
         });
 
-        assertEquals(4, listAllPaths(repoDir).size());
+        assertEquals(4, ITestHelper.listAllPaths(repoDir).size());
     }
 
     @Test
@@ -692,7 +663,6 @@ public class FileSystemOcflITest {
         var repoName = "purge-object";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -706,7 +676,7 @@ public class FileSystemOcflITest {
             repo.describeObject("o4");
         });
 
-        assertEquals(14, listAllPaths(repoDir).size());
+        assertEquals(14, ITestHelper.listAllPaths(repoDir).size());
     }
 
     @Test
@@ -714,7 +684,6 @@ public class FileSystemOcflITest {
         var repoName = "repo11";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -733,7 +702,6 @@ public class FileSystemOcflITest {
         var repoName = "repo11";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o3";
 
@@ -750,7 +718,6 @@ public class FileSystemOcflITest {
         var repoName = "repo3";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
 
@@ -773,7 +740,6 @@ public class FileSystemOcflITest {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -794,8 +760,8 @@ public class FileSystemOcflITest {
         });
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
-        assertEquals(2, listAllPaths(sourcePathV2).size());
-        assertEquals(1, listAllPaths(sourcePathV3).size());
+        assertEquals(2, ITestHelper.listAllPaths(sourcePathV2).size());
+        assertEquals(1, ITestHelper.listAllPaths(sourcePathV3).size());
     }
 
     @Test
@@ -803,7 +769,6 @@ public class FileSystemOcflITest {
         var repoName = "repo12";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -825,7 +790,6 @@ public class FileSystemOcflITest {
         var repoName = "repo13";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -843,7 +807,6 @@ public class FileSystemOcflITest {
         var repoName = "repo13";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -861,7 +824,6 @@ public class FileSystemOcflITest {
         var repoName = "repo14";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -881,7 +843,6 @@ public class FileSystemOcflITest {
         var repoName = "repo14";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o2";
 
@@ -896,66 +857,11 @@ public class FileSystemOcflITest {
         });
     }
 
-    private void verifyDirectoryContentsSame(Path expected, Path actual) {
-        verifyDirectoryContentsSame(expected, expected.getFileName().toString(), actual);
-    }
-
-    private void verifyDirectoryContentsSame(Path expected, String expectDirName, Path actual) {
-        assertTrue(Files.exists(actual), actual + " should exist");
-        assertTrue(Files.isDirectory(actual), actual + "should be a directory");
-
-        assertEquals(expectDirName, actual.getFileName().toString());
-
-        var expectedPaths = listAllPaths(expected);
-        var actualPaths = listAllPaths(actual);
-
-        assertEquals(expectedPaths.size(), actualPaths.size(),
-                comparingMessage(expected, actual));
-
-        for (int i = 0; i < expectedPaths.size(); i++) {
-            var expectedPath = expectedPaths.get(i);
-            var actualPath = actualPaths.get(i);
-
-            assertEquals(expected.relativize(expectedPath).toString(), actual.relativize(actualPath).toString());
-
-            if (Files.isDirectory(expectedPath)) {
-                assertTrue(Files.isDirectory(actualPath), actualPath + " should be a directory");
-            } else {
-                assertTrue(Files.isRegularFile(actualPath), actualPath + " should be a file");
-                assertEquals(computeDigest(expectedPath), computeDigest(actualPath),
-                        comparingMessage(expectedPath, actualPath, actualPath));
-            }
-        }
-    }
-
     private void verifyStream(Path expectedFile, OcflFileRetriever actual) throws IOException {
         var stream = actual.retrieveFile();
-        var contents = inputToString(stream);
+        var contents = ITestHelper.inputToString(stream);
         stream.checkFixity();
-        assertEquals(inputToString(Files.newInputStream(expectedFile)), contents);
-    }
-
-    private void fixTime(OcflRepository repository, String timestamp) {
-        ((DefaultOcflRepository) repository).setClock(Clock.fixed(Instant.parse(timestamp), ZoneOffset.UTC));
-    }
-
-    private List<Path> listAllPaths(Path root) {
-        var allPaths = new TreeSet<Path>();
-
-        try (var walk = Files.walk(root)) {
-            walk.filter(p -> {
-                var pStr = p.toString();
-                return !(pStr.contains(".keep") || pStr.contains("deposit"));
-            }).forEach(allPaths::add);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        return new ArrayList<>(allPaths);
-    }
-
-    private CommitInfo commitInfo(String name, String address, String message) {
-        return new CommitInfo().setMessage(message).setUser(new User().setName(name).setAddress(address));
+        assertEquals(ITestHelper.inputToString(Files.newInputStream(expectedFile)), contents);
     }
 
     private Path outputPath(String repoName, String path) {
@@ -966,46 +872,10 @@ public class FileSystemOcflITest {
         }
     }
 
-    private Path expectedOutputPath(String repoName, String name) {
-        return Paths.get("src/test/resources/expected/output", repoName, name);
-    }
-
-    private Path expectedRepoPath(String name) {
-        return Paths.get("src/test/resources/expected/repos", name);
-    }
-
-    private Path sourceObjectPath(String objectId, String version) {
-        return Paths.get("src/test/resources/sources/objects", objectId, version);
-    }
-
-    private Path sourceRepoPath(String repo) {
-        return Paths.get("src/test/resources/sources/repos", repo);
-    }
-
-    private String fileToString(Path file) {
-        try (var input = Files.newInputStream(file)) {
-            return inputToString(input);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private String inputToString(InputStream inputStream) {
-        return new Scanner(inputStream).useDelimiter("\\A").next();
-    }
-
     private Path newRepoDir(String name) {
         try {
             return Files.createDirectory(reposDir.resolve(name));
         } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private String computeDigest(Path path) {
-        try {
-            return Hex.encodeHexString(DigestUtils.digest(MessageDigest.getInstance("md5"), path.toFile()));
-        } catch (IOException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
@@ -1018,18 +888,12 @@ public class FileSystemOcflITest {
         }
     }
 
-    private String comparingMessage(Object o1, Object o2) {
-        return String.format("Comparing %s and %s", o1, o2);
-    }
-
-    private Supplier<String> comparingMessage(Object o1, Object o2, Path actualPath) {
-        return () -> String.format("Comparing %s and %s:\n\n%s", o1, o2, fileToString(actualPath));
-    }
-
     private OcflRepository defaultRepo(Path repoDir) {
-        return new OcflRepositoryBuilder().prettyPrintJson().build(
+        var repo = new OcflRepositoryBuilder().prettyPrintJson().build(
                 new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
-                repoDir.resolve("deposit"));
+                workDir);
+        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+        return repo;
     }
 
     private Path copyDir(Path source, Path target) {

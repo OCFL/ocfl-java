@@ -31,7 +31,7 @@ public interface OcflObjectReader {
      * Writes a specific file to the given destinationPath. Use {@code OcflOption.OVERWRITE} to overwrite the destination
      * path if it already exists.
      *
-     * @param sourcePath the object root relative path to the file to retrieve from the object
+     * @param sourcePath the logical path to the file to retrieve from the object
      * @param destinationPath the destination to write the file to, including the file name
      * @param ocflOptions optional config options. Use {@code OcflOption.OVERWRITE} to overwrite existing files within
      *                    an object
@@ -45,7 +45,7 @@ public interface OcflObjectReader {
      *
      * <p>Important: The caller is responsible for closing the InputStream when they are done with it.
      *
-     * @param sourcePath the object root relative path to the file to retrieve from the object
+     * @param sourcePath the logical path to the file to retrieve from the object
      * @return InputStream containing the file's content
      */
     FixityCheckInputStream getFile(String sourcePath);

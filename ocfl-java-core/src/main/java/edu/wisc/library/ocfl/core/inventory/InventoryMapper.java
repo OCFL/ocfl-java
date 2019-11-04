@@ -1,6 +1,7 @@
-package edu.wisc.library.ocfl.core.util;
+package edu.wisc.library.ocfl.core.inventory;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -8,6 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.model.RevisionId;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,7 +55,7 @@ public class InventoryMapper {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
     }
 
-    public void writeValue(Path destination, Inventory inventory) {
+    public void write(Path destination, Inventory inventory) {
         try {
             objectMapper.writeValue(destination.toFile(), inventory);
         } catch (IOException e) {
@@ -61,7 +63,7 @@ public class InventoryMapper {
         }
     }
 
-    public void writeValue(OutputStream outputStream, Inventory inventory) {
+    public void write(OutputStream outputStream, Inventory inventory) {
         try {
             objectMapper.writeValue(outputStream, inventory);
         } catch (IOException e) {
@@ -69,17 +71,43 @@ public class InventoryMapper {
         }
     }
 
-    public Inventory readValue(Path path) {
+    public Inventory read(Path path) {
+        return readInternal(false, null, path);
+    }
+
+    public Inventory read(InputStream inputStream) {
+        return readInternal(false, null, inputStream);
+    }
+
+    public Inventory readMutableHead(RevisionId revisionId, Path path) {
+        return readInternal(true, revisionId, path);
+    }
+
+    public Inventory readMutableHead(RevisionId revisionId, InputStream inputStream) {
+        return readInternal(true, revisionId, inputStream);
+    }
+
+    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, Path path) {
         try {
-            return objectMapper.readValue(path.toFile(), Inventory.class);
+            return objectMapper.reader(
+                    new InjectableValues.Std()
+                            .addValue("revisionId", revisionId)
+                            .addValue("mutableHead", mutableHead))
+                    .forType(Inventory.class)
+                    .readValue(path.toFile());
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
     }
 
-    public Inventory readValue(InputStream inputStream) {
+    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, InputStream inputStream) {
         try {
-            return objectMapper.readValue(inputStream, Inventory.class);
+            return objectMapper.reader(
+                    new InjectableValues.Std()
+                            .addValue("revisionId", revisionId)
+                            .addValue("mutableHead", mutableHead))
+                    .forType(Inventory.class)
+                    .readValue(inputStream);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

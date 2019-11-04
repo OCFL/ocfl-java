@@ -1,9 +1,10 @@
 package edu.wisc.library.ocfl.core.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 
@@ -17,6 +18,7 @@ import java.util.function.Function;
  * @see InventoryBuilder
  * @see <a href="https://ocfl.io/">https://ocfl.io/</a>
  */
+@JsonDeserialize(builder = Inventory.JacksonBuilder.class)
 public class Inventory {
 
     private final String id;
@@ -32,26 +34,13 @@ public class Inventory {
     private final Map<VersionId, Version> versions;
 
     @JsonIgnore
-    private final Map<String, String> reverseManifestMap;
+    private final RevisionId revisionId;
 
     @JsonIgnore
-    private final Set<DigestAlgorithm> allowedDigestAlgorithms = Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
+    private final boolean mutableHead;
 
-    /**
-     * This constructor is used by Jackson for deserialization.
-     */
-    @JsonCreator
-    public Inventory(
-            @JsonProperty("id") String id,
-            @JsonProperty("type") InventoryType type,
-            @JsonProperty("digestAlgorithm") DigestAlgorithm digestAlgorithm,
-            @JsonProperty("head") VersionId head,
-            @JsonProperty("contentDirectory") String contentDirectory,
-            @JsonProperty("fixity") Map<DigestAlgorithm, Map<String, Set<String>>> fixity,
-            @JsonProperty("manifest") Map<String, Set<String>> manifest,
-            @JsonProperty("versions") Map<VersionId, Version> versions) {
-        this(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, null);
-    }
+    @JsonIgnore
+    private final Map<String, String> reverseManifestMap;
 
     /**
      * @see InventoryBuilder
@@ -65,17 +54,23 @@ public class Inventory {
             Map<DigestAlgorithm, Map<String, Set<String>>> fixity,
             Map<String, Set<String>> manifest,
             Map<VersionId, Version> versions,
+            boolean mutableHead,
+            RevisionId revisionId,
             Map<String, String> reverseManifestMap) {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        Enforce.expressionTrue(allowedDigestAlgorithms.contains(digestAlgorithm), digestAlgorithm,
+        Enforce.expressionTrue(OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm), digestAlgorithm,
                 "digestAlgorithm must be sha512 or sha256");
         this.head = Enforce.notNull(head, "head cannot be null");
-        this.contentDirectory = contentDirectory != null ? contentDirectory : OcflConstants.DEFAULT_CONTENT_DIRECTORY;
+        this.contentDirectory = contentDirectory;
         this.fixity = copyFixity(fixity);
         this.manifest = Collections.unmodifiableMap(copyManifest(manifest, Collections::unmodifiableSet));
         this.versions = Collections.unmodifiableMap(copyVersions(versions));
+
+        this.mutableHead = mutableHead;
+        this.revisionId = revisionId;
+
         if (reverseManifestMap == null) {
             this.reverseManifestMap = createReverseManifestMap(this.manifest);
         } else {
@@ -205,11 +200,22 @@ public class Inventory {
         return new HashMap<>(versions);
     }
 
+
     /**
-     * The name of the directory within a version directory that contains the object content. 'content' by default.
+     * Use {@code resolveContentDirectory()} instead
      */
     @JsonGetter("contentDirectory")
     public String getContentDirectory() {
+        return contentDirectory;
+    }
+
+    /**
+     * The name of the directory within a version directory that contains the object content. 'content' by default.
+     */
+    public String resolveContentDirectory() {
+        if (contentDirectory == null) {
+            return OcflConstants.DEFAULT_CONTENT_DIRECTORY;
+        }
         return contentDirectory;
     }
 
@@ -255,6 +261,34 @@ public class Inventory {
         return paths.iterator().next();
     }
 
+    /**
+     * Returns the set of file ids of files that have content paths that begin with the given prefix.
+     */
+    public Set<String> getFileIdsForMatchingFiles(String prefix) {
+        var set = new HashSet<String>();
+        reverseManifestMap.forEach((path, id) -> {
+            if (path.startsWith(prefix)) {
+                set.add(id);
+            }
+        });
+        return set;
+    }
+
+    /**
+     * If there's an active mutable HEAD, its revision id is returned. Otherwise, null is returned.
+     */
+    @JsonIgnore
+    public RevisionId getRevisionId() {
+        return revisionId;
+    }
+
+    /**
+     * Indicates if there's an active mutable HEAD
+     */
+    public boolean hasMutableHead() {
+        return mutableHead;
+    }
+
     @Override
     public String toString() {
         return "Inventory{" +
@@ -266,7 +300,73 @@ public class Inventory {
                 ", fixity=" + fixity +
                 ", manifest=" + manifest +
                 ", versions=" + versions +
+                ", mutableHead=" + mutableHead +
+                ", revisionId=" + revisionId +
                 '}';
+    }
+
+    /**
+     * This builder is only intended to be used by Jackson for deserializing inventory files.
+     */
+    @JsonPOJOBuilder
+    public static class JacksonBuilder {
+        String id;
+        InventoryType type;
+        DigestAlgorithm digestAlgorithm;
+        VersionId head;
+        String contentDirectory;
+        Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
+        Map<String, Set<String>> manifest;
+        Map<VersionId, Version> versions;
+
+        boolean mutableHead;
+        RevisionId revisionId;
+
+        public void withId(String id) {
+            this.id = id;
+        }
+
+        public void withType(InventoryType type) {
+            this.type = type;
+        }
+
+        public void withDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
+            this.digestAlgorithm = digestAlgorithm;
+        }
+
+        public void withHead(VersionId head) {
+            this.head = head;
+        }
+
+        public void withContentDirectory(String contentDirectory) {
+            this.contentDirectory = contentDirectory;
+        }
+
+        public void withFixity(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
+            this.fixity = fixity;
+        }
+
+        public void withManifest(Map<String, Set<String>> manifest) {
+            this.manifest = manifest;
+        }
+
+        public void withVersions(Map<VersionId, Version> versions) {
+            this.versions = versions;
+        }
+
+        @JacksonInject("mutableHead")
+        public void withMutableHead(boolean mutableHead) {
+            this.mutableHead = mutableHead;
+        }
+
+        @JacksonInject("revisionId")
+        public void withRevisionId(RevisionId revisionId) {
+            this.revisionId = revisionId;
+        }
+
+        public Inventory build() {
+            return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, mutableHead, revisionId, null);
+        }
     }
 
 }

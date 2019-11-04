@@ -34,19 +34,23 @@ public class VersionBuilder {
         reverseStateMap = original.getMutableReverseStateMap();
     }
 
-    public String getFileId(String path) {
-        return reverseStateMap.get(path);
+    public String getFileId(String logicalPath) {
+        return reverseStateMap.get(logicalPath);
     }
 
-    public VersionBuilder removePath(String path) {
-        var id = reverseStateMap.remove(path);
+    public boolean containsFileId(String fileId) {
+        return state.containsKey(fileId);
+    }
+
+    public VersionBuilder removePath(String logicalPath) {
+        var id = reverseStateMap.remove(logicalPath);
 
         if (id != null) {
             var paths = state.get(id);
             if (paths.size() == 1) {
                 state.remove(id);
             } else {
-                paths.remove(path);
+                paths.remove(logicalPath);
             }
         }
 
@@ -54,14 +58,14 @@ public class VersionBuilder {
     }
 
     /**
-     * The path field should be relative to the content directory and not the inventory root.
+     * The logicalPath field should be relative to the content directory and not the inventory root.
      */
-    public VersionBuilder addFile(String id, String path) {
+    public VersionBuilder addFile(String id, String logicalPath) {
         Enforce.notBlank(id, "id cannot be blank");
-        Enforce.notBlank(path, "path cannot be blank");
+        Enforce.notBlank(logicalPath, "logicalPath cannot be blank");
 
-        state.computeIfAbsent(id, k -> new HashSet<>()).add(path);
-        reverseStateMap.put(path, id);
+        state.computeIfAbsent(id, k -> new HashSet<>()).add(logicalPath);
+        reverseStateMap.put(logicalPath, id);
         return this;
     }
 

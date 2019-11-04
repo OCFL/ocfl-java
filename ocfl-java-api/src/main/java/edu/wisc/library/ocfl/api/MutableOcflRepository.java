@@ -15,13 +15,11 @@ import java.util.function.Consumer;
  */
 public interface MutableOcflRepository extends OcflRepository {
 
-    // TODO resolve language differences between "mutable HEAD version" and "staged version"
-
     /**
-     * Creates or updates the mutable HEAD version of the specified object. If there is an existing mutable version, then
-     * the changes are applied on top of the existing version, without creating a new version.
+     * Creates or updates the staged version (mutable HEAD) of the specified object. If there is an existing staged version,
+     * then the changes are applied on top of the existing version, without creating a new version.
      *
-     * <p>The changes contained in the mutable HEAD version are NOT part of the core OCFL object. Use {@code commitStagedVersion()}
+     * <p>The changes contained in the staged version are NOT part of the core OCFL object. Use {@code commitStagedVersion()}
      * to convert the mutable version into an immutable version that's part of the core OCFL object. This should be done
      * whenever possible.
      *
@@ -39,23 +37,24 @@ public interface MutableOcflRepository extends OcflRepository {
     ObjectId stageChanges(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
     /**
-     * Converts the mutable HEAD version into an immutable core OCFL version that can be read by any OCFL client.
+     * Converts the staged version (mutable HEAD) into an immutable core OCFL version that can be read by any OCFL client.
      *
-     * <p>This operation will fail if any object versions were created between the time the mutable HEAD version was created and
+     * <p>This operation will fail if any object versions were created between the time the staged version was created and
      * when it was committed. To resolve this problem, the staged version must either be purged using {@code purgeStagedVersion()},
      * or the object must be manually edited to resolve the version conflict.
+     *
+     * <p>If the object does not have a staged version, then nothing happens.
      *
      * @param objectId the id of the object
      * @param commitInfo information about the changes to the object. Can be null.
      * @return The objectId and version of the committed version
      * @throws NotFoundException when no object can be found for the specified objectId
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
-     * // TODO modeled exception when there is no staged version?
      */
     ObjectId commitStagedVersion(String objectId, CommitInfo commitInfo);
 
     /**
-     * Deletes the mutable HEAD version of the specified object. If the object does not have a mutable HEAD version, then
+     * Deletes the staged version (mutable HEAD) of the specified object. If the object does not have a staged version, then
      * nothing happens.
      *
      * @param objectId the id of the object
@@ -64,7 +63,7 @@ public interface MutableOcflRepository extends OcflRepository {
     void purgeStagedVersion(String objectId);
 
     /**
-     * Returns true if the object has a mutable HEAD version.
+     * Returns true if the object has a staged version (mutable HEAD).
      *
      * @param objectId the id of the object
      * @return if the object has a staged version

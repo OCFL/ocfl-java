@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
@@ -11,7 +12,7 @@ import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
-import edu.wisc.library.ocfl.core.util.InventoryMapper;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -119,6 +120,7 @@ public class OcflRepositoryBuilder {
      * @param digestAlgorithm
      */
     public OcflRepositoryBuilder digestAlgorithm(DigestAlgorithm digestAlgorithm) {
+        // TODO should enforce sha512 or sha256
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         return this;
     }
@@ -129,6 +131,7 @@ public class OcflRepositoryBuilder {
      * @param contentDirectory
      */
     public OcflRepositoryBuilder contentDirectory(String contentDirectory) {
+        // TODO need to enforce name restrictions "The contentDirectory value MUST NOT contain the forward slash (/) path separator."
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
         return this;
     }
@@ -170,6 +173,20 @@ public class OcflRepositoryBuilder {
      * @param workDir the work directory to assemble versions in before they're moved to storage
      */
     public OcflRepository build(OcflStorage storage, Path workDir) {
+        return buildDefault(storage, workDir);
+    }
+
+    /**
+     * Constructs an OCFL repository that allows the use of the Mutable HEAD Extension. Brand new repositories are initialized.
+     *
+     * @param storage the storage layer implementation that the OCFL repository should use
+     * @param workDir the work directory to assemble versions in before they're moved to storage
+     */
+    public MutableOcflRepository buildMutable(OcflStorage storage, Path workDir) {
+        return buildDefault(storage, workDir);
+    }
+
+    private DefaultOcflRepository buildDefault(OcflStorage storage, Path workDir) {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 

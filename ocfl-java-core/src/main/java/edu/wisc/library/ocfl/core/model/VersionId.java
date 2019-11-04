@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 /**
  * Represents an OCFL version identifier. It is able to handle zero-padded version ids.
  */
-public class VersionId {
+public class VersionId implements Comparable<VersionId> {
 
     private static final Pattern VALID_VERSION = Pattern.compile("^v\\d+$");
 
@@ -90,6 +90,11 @@ public class VersionId {
     @Override
     public String toString() {
         return stringValue;
+    }
+
+    @Override
+    public int compareTo(VersionId o) {
+        return Long.compare(versionNumber, o.versionNumber);
     }
 
 }

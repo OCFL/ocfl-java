@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.OcflConstants;
 
 import java.util.*;
 
@@ -14,6 +15,9 @@ public class InventoryBuilder {
     private DigestAlgorithm digestAlgorithm;
     private VersionId head;
     private String contentDirectory;
+
+    private boolean mutableHead;
+    private RevisionId revisionId;
 
     private Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
     private Map<String, Set<String>> manifest;
@@ -40,49 +44,76 @@ public class InventoryBuilder {
         this.digestAlgorithm = original.getDigestAlgorithm();
         this.head = original.getHead();
         this.contentDirectory = original.getContentDirectory();
+        this.mutableHead = original.hasMutableHead();
+        this.revisionId = original.getRevisionId();
         this.fixity = original.getMutableFixity();
         this.manifest = original.getMutableManifest();
         this.versions = original.getMutableVersions();
         this.reverseManifestMap = original.getMutableReverseManifestMap();
     }
 
-    public void addNewHeadVersion(VersionId versionId, Version version) {
+    public Set<String> getContentPaths(String fileId) {
+        return manifest.getOrDefault(fileId, new HashSet<>());
+    }
+
+    public InventoryBuilder addNewHeadVersion(VersionId versionId, Version version) {
         Enforce.notNull(versionId, "versionId cannot be null");
         Enforce.notNull(version, "version cannot be null");
 
         versions.put(versionId, version);
         head = versionId;
-    }
-
-    public InventoryBuilder addFileToManifest(String id, String path) {
-        Enforce.notBlank(id, "id cannot be blank");
-        Enforce.notBlank(path, "path cannot be blank");
-
-        manifest.computeIfAbsent(id, k -> new HashSet<>()).add(path);
-        reverseManifestMap.put(path, id);
         return this;
     }
 
-    public InventoryBuilder removeFileFromManifest(String path) {
-        var digest = reverseManifestMap.remove(path);
+    public InventoryBuilder addFileToManifest(String id, String contentPath) {
+        Enforce.notBlank(id, "id cannot be blank");
+        Enforce.notBlank(contentPath, "contentPath cannot be blank");
+
+        manifest.computeIfAbsent(id, k -> new HashSet<>()).add(contentPath);
+        reverseManifestMap.put(contentPath, id);
+        return this;
+    }
+
+    public InventoryBuilder removeFileFromManifest(String contentPath) {
+        var digest = reverseManifestMap.remove(contentPath);
         if (digest != null) {
             var paths = manifest.get(digest);
             if (paths.size() == 1) {
                 manifest.remove(digest);
             } else {
-                paths.remove(path);
+                paths.remove(contentPath);
             }
+
+            removeFileFromFixity(contentPath);
         }
         return this;
     }
 
-    public InventoryBuilder addFixityForFile(String path, DigestAlgorithm algorithm, String value) {
-        Enforce.notBlank(path, "path cannot be blank");
+    public InventoryBuilder removeFileFromFixity(String contentPath) {
+        fixity.forEach((algorithm, values) -> {
+            for (var it = values.entrySet().iterator(); it.hasNext();) {
+                var set = it.next();
+                if (set.getValue().contains(contentPath)) {
+                    if (set.getValue().size() == 1) {
+                        it.remove();
+                    } else {
+                        set.getValue().remove(contentPath);
+                    }
+                    break;
+                }
+            }
+        });
+
+        return this;
+    }
+
+    public InventoryBuilder addFixityForFile(String contentPath, DigestAlgorithm algorithm, String value) {
+        Enforce.notBlank(contentPath, "contentPath cannot be blank");
         Enforce.notNull(algorithm, "algorithm cannot be null");
         Enforce.notBlank(value, "value cannot be blank");
 
         fixity.computeIfAbsent(algorithm, k -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
-                .computeIfAbsent(value, k -> new HashSet<>()).add(path);
+                .computeIfAbsent(value, k -> new HashSet<>()).add(contentPath);
         return this;
     }
 
@@ -130,6 +161,16 @@ public class InventoryBuilder {
         return this;
     }
 
+    public InventoryBuilder mutableHead(boolean mutableHead) {
+        this.mutableHead = mutableHead;
+        return this;
+    }
+
+    public InventoryBuilder revisionId(RevisionId revisionId) {
+        this.revisionId = revisionId;
+        return this;
+    }
+
     public String getId() {
         return id;
     }
@@ -143,6 +184,9 @@ public class InventoryBuilder {
     }
 
     public String getContentDirectory() {
+        if (contentDirectory == null) {
+            return OcflConstants.DEFAULT_CONTENT_DIRECTORY;
+        }
         return contentDirectory;
     }
 
@@ -157,7 +201,7 @@ public class InventoryBuilder {
     }
 
     public Inventory build() {
-        return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, reverseManifestMap);
+        return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, mutableHead, revisionId, reverseManifestMap);
     }
 
 }

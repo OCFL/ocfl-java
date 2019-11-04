@@ -2,7 +2,6 @@ package edu.wisc.library.ocfl.core.storage;
 
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
-import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.VersionId;
@@ -87,6 +86,26 @@ public interface OcflStorage {
      * @param objectId the id of the object to purge
      */
     void purgeObject(String objectId);
+
+    /**
+     * Moves the mutable HEAD of any object into the object root and into an immutable version. The mutable HEAD does
+     * not exist at the end of the operation.
+     *
+     * <p>DefaultOcflRepository calls this method from a write lock.
+     *
+     * @param inventory the deserialized object inventory
+     * @param stagingDir the path to the staging directory that contains the inventory files
+     */
+    void commitMutableHead(Inventory inventory, Path stagingDir);
+
+    /**
+     * Permanently removes the mutable HEAD of an object. If the object does not have a mutable HEAD nothing happens.
+     *
+     * <p>DefaultOcflRepository calls this method from a write lock.
+     *
+     * @param objectId the id of the object to purge the mutable HEAD of
+     */
+    void purgeMutableHead(String objectId);
 
     /**
      * Returns true if an object with the specified id exists in the repository.

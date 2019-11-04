@@ -11,7 +11,7 @@ import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.InventoryMapper;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ public class S3OcflStorage implements OcflStorage {
 
         try {
             downloadFile(inventoryPath, localInventoryPath);
-            var inventory = inventoryMapper.readValue(localInventoryPath);
+            var inventory = inventoryMapper.read(localInventoryPath);
             var expectedDigest = getDigestFromSidecar(objectRootPath, inventory);
             verifyInventory(expectedDigest, localInventoryPath, inventory.getDigestAlgorithm());
             return inventory;
@@ -79,7 +79,8 @@ public class S3OcflStorage implements OcflStorage {
 
             // TODO write a copy to the cache?
 
-            storeContentInS3(inventory, stagingDir, versionPath.resolve(inventory.getContentDirectory()));
+            // TODO this is incorrect because you can't rely on contentDirectory being set
+            storeContentInS3(inventory, stagingDir, versionPath.resolve(inventory.resolveContentDirectory()));
             storeInventoryInS3(inventory, stagingDir, versionPath);
         } catch (RuntimeException e) {
             rollback(objectRootPath, versionPath, inventory);
@@ -123,6 +124,22 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void commitMutableHead(Inventory inventory, Path stagingDir) {
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void purgeMutableHead(String objectId) {
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean containsObject(String objectId) {
         return false;
     }
@@ -145,7 +162,7 @@ public class S3OcflStorage implements OcflStorage {
 
     private void storeContentInS3(Inventory inventory, Path sourcePath, Path versionContentPath) {
         // TODO parallelize
-        var stagedContent = sourcePath.resolve(inventory.getContentDirectory());
+        var stagedContent = sourcePath.resolve(inventory.resolveContentDirectory());
         var files = FileUtil.findFiles(sourcePath);
 
         for (var file : files) {

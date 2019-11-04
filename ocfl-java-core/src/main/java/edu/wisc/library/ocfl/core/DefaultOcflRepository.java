@@ -12,15 +12,14 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
+import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
+import edu.wisc.library.ocfl.core.inventory.MutableHeadInventoryCommitter;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.InventoryType;
-import edu.wisc.library.ocfl.core.model.VersionId;
+import edu.wisc.library.ocfl.core.model.*;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.InventoryMapper;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +44,7 @@ import java.util.function.Consumer;
  *
  * @see OcflRepositoryBuilder
  */
-public class DefaultOcflRepository implements OcflRepository {
+public class DefaultOcflRepository implements MutableOcflRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflRepository.class);
 
@@ -107,7 +106,7 @@ public class DefaultOcflRepository implements OcflRepository {
         updater.addCommitInfo(commitInfo);
 
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        var contentDir = FileUtil.createDirectories(stagingDir.resolve(resolveContentDir(inventory)));
+        var contentDir = FileUtil.createDirectories(resolveContentDir(inventory, stagingDir));
 
         var newInventory = stageNewVersion(updater, path, contentDir, options);
 
@@ -132,7 +131,7 @@ public class DefaultOcflRepository implements OcflRepository {
         updater.addCommitInfo(commitInfo);
 
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        var contentDir = FileUtil.createDirectories(stagingDir.resolve(resolveContentDir(inventory)));
+        var contentDir = FileUtil.createDirectories(resolveContentDir(inventory, stagingDir));
 
         try {
             objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir, parallelProcess, copyParallelProcess));
@@ -253,6 +252,95 @@ public class DefaultOcflRepository implements OcflRepository {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ObjectId stageChanges(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
+        Enforce.notNull(objectId, "objectId cannot be null");
+        Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
+
+        var inventory = loadInventory(objectId);
+
+        if (inventory == null) {
+            inventory = createAndPersistEmptyVersion(objectId);
+        }
+
+        enforceObjectVersionForUpdate(objectId, inventory);
+        var updater = InventoryUpdater.mutateHead(inventory, fixityAlgorithms, now());
+        updater.addCommitInfo(commitInfo);
+
+        var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
+        var revisionDir = FileUtil.createDirectories(resolveRevisionDir(inventory, stagingDir));
+
+        try {
+            objectUpdater.accept(new DefaultOcflObjectUpdater(updater, revisionDir, parallelProcess, copyParallelProcess));
+            var newInventory = updater.finalizeUpdate();
+            writeNewVersion(newInventory, stagingDir);
+            return ObjectId.version(objectId.getObjectId(), newInventory.getHead().toString());
+        } finally {
+            FileUtil.safeDeletePath(stagingDir);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ObjectId commitStagedVersion(String objectId, CommitInfo commitInfo) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+
+        var inventory = requireInventory(ObjectId.head(objectId));
+
+        if (inventory.hasMutableHead()) {
+            var newInventory = new MutableHeadInventoryCommitter().commit(inventory, now(), commitInfo);
+            var stagingDir = FileUtil.createTempDir(workDir, objectId);
+            writeInventory(newInventory, stagingDir);
+
+            try {
+                objectLock.doInWriteLock(inventory.getId(), () -> {
+                    try {
+                        storage.commitMutableHead(newInventory, stagingDir);
+                        cacheInventory(newInventory);
+                    } catch (ObjectOutOfSyncException e) {
+                        inventoryCache.invalidate(inventory.getId());
+                        throw e;
+                    }
+                });
+            } finally {
+                FileUtil.safeDeletePath(stagingDir);
+            }
+        }
+
+        return ObjectId.version(objectId, inventory.getHead().toString());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void purgeStagedVersion(String objectId) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+
+        objectLock.doInWriteLock(objectId, () -> {
+            try {
+                storage.purgeMutableHead(objectId);
+            } finally {
+                inventoryCache.invalidate(objectId);
+            }
+        });
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean hasStagedVersion(String objectId) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+        var inventory = requireInventory(ObjectId.head(objectId));
+        return inventory.hasMutableHead();
+    }
+
     private Inventory loadInventory(ObjectId objectId) {
         return objectLock.doInReadLock(objectId.getObjectId(), () ->
                 inventoryCache.get(objectId.getObjectId(), storage::loadInventory));
@@ -285,7 +373,7 @@ public class DefaultOcflRepository implements OcflRepository {
                     objectId.getObjectId(),
                     inventoryType,
                     digestAlgorithm,
-                    this.contentDirectory,
+                    contentDirectory,
                     fixityAlgorithms,
                     now());
         }
@@ -357,14 +445,34 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private void writeInventory(Inventory inventory, Path stagingDir) {
         try {
-            var inventoryPath = stagingDir.resolve(OcflConstants.INVENTORY_FILE);
-            inventoryMapper.writeValue(inventoryPath, inventory);
+            var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
+            inventoryMapper.write(inventoryPath, inventory);
             String inventoryDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), inventoryPath);
-            Files.writeString(
-                    stagingDir.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName()),
+            Files.writeString(ObjectPaths.inventorySidecarPath(stagingDir, inventory),
                     inventoryDigest + "\t" + OcflConstants.INVENTORY_FILE);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
+        }
+    }
+
+    private Inventory createAndPersistEmptyVersion(ObjectId objectId) {
+        LOG.info("Creating object {} with an empty version.", objectId.getObjectId());
+
+        var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
+        FileUtil.createDirectories(resolveContentDir(null, stagingDir));
+
+        try {
+            var updater = createInventoryUpdater(objectId, null, true);
+
+            updater.addCommitInfo(new CommitInfo()
+                    .setMessage("Auto-generated empty object version.")
+                    .setUser(new edu.wisc.library.ocfl.api.model.User().setName("ocfl-java")));
+
+            var inventory = updater.finalizeUpdate();
+            writeNewVersion(inventory, stagingDir);
+            return inventory;
+        } finally {
+            FileUtil.safeDeletePath(stagingDir);
         }
     }
 
@@ -396,11 +504,19 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    private String resolveContentDir(Inventory inventory) {
+    private Path resolveContentDir(Inventory inventory, Path parent) {
+        var content = this.contentDirectory;
         if (inventory != null) {
-            return inventory.getContentDirectory();
+            content = inventory.resolveContentDirectory();
         }
-        return this.contentDirectory;
+        return parent.resolve(content);
+    }
+
+    private Path resolveRevisionDir(Inventory inventory, Path parent) {
+        var contentDir = resolveContentDir(inventory, parent);
+        var newRevision = inventory.getRevisionId() == null ?
+                new RevisionId(1) : inventory.getRevisionId().nextRevisionId();
+        return contentDir.resolve(newRevision.toString());
     }
 
     private OffsetDateTime now() {
@@ -414,11 +530,6 @@ public class DefaultOcflRepository implements OcflRepository {
      */
     public void setClock(Clock clock) {
         this.clock = Enforce.notNull(clock, "clock cannot be null");
-    }
-
-    public DefaultOcflRepository setInventoryMapper(InventoryMapper inventoryMapper) {
-        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
-        return this;
     }
 
 }

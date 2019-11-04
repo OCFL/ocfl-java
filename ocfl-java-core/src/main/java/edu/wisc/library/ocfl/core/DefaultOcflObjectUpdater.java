@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
+import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.apache.commons.codec.binary.Hex;
@@ -76,19 +77,16 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         filesWithDigests.forEach(entry -> {
             var file = entry.getKey();
             var digest = entry.getValue();
-            var sourceRelative = sourcePath.relativize(file);
-            var stagingFullPath = stagingDst.resolve(sourceRelative);
-            var stagingRelative = stagingDir.relativize(stagingFullPath);
-            var isNew = inventoryUpdater.addFile(digest, file, stagingRelative, ocflOptions);
+            var stagingRelativePath = stagingRelativePath(sourcePath, stagingDst, file);
+            var isNew = inventoryUpdater.addFile(digest, file, stagingRelativePath, ocflOptions);
             if (isNew) {
                 copyFiles.add(file);
-                newFiles.add(stagingRelative.toString());
+                newFiles.add(stagingRelativePath.toString());
             }
         });
 
         copyParallelProcess.collection(copyFiles, file -> {
-            var sourceRelative = sourcePath.relativize(file);
-            var stagingFullPath = stagingDst.resolve(sourceRelative);
+            var stagingFullPath = stagingFullPath(sourcePath, stagingDst, file);
             if (options.contains(OcflOption.MOVE_SOURCE)) {
                 FileUtil.moveFileMakeParents(file, stagingFullPath);
             } else {
@@ -207,6 +205,16 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             throw new IllegalArgumentException(
                     String.format("Invalid destination %s. Path cannot be outside of object root.", destination));
         }
+    }
+
+    private Path stagingFullPath(Path sourceRoot, Path destinationRoot, Path file) {
+        var sourceRelative = sourceRoot.relativize(file);
+        return destinationRoot.resolve(sourceRelative);
+    }
+
+    private Path stagingRelativePath(Path sourceRoot, Path destinationRoot, Path file) {
+        var stagingFullPath = stagingFullPath(sourceRoot, destinationRoot, file);
+        return stagingDir.relativize(stagingFullPath);
     }
 
     private DigestInputStream wrapInDigestInputStream(InputStream input) {

@@ -9,17 +9,15 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.DigestAlgorithmRegistry;
+import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.Version;
-import edu.wisc.library.ocfl.core.model.VersionId;
+import edu.wisc.library.ocfl.core.model.*;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.InventoryMapper;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +27,7 @@ import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -78,13 +77,20 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public Inventory loadInventory(String objectId) {
+        Inventory inventory = null;
         var objectRootPath = objectRootPathFull(objectId);
 
         if (Files.exists(objectRootPath)) {
-            return parseInventory(inventoryPath(objectRootPath));
+            var mutableHeadInventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
+            if (Files.exists(mutableHeadInventoryPath)) {
+                ensureRootObjectHasNotChanged(objectId, objectRootPath);
+                inventory = parseMutableHeadInventory(mutableHeadInventoryPath);
+            } else {
+                inventory = parseInventory(ObjectPaths.inventoryPath(objectRootPath));
+            }
         }
 
-        return null;
+        return inventory;
     }
 
     /**
@@ -93,30 +99,12 @@ public class FileSystemOcflStorage implements OcflStorage {
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         var objectRootPath = objectRootPathFull(inventory.getId());
+        var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
 
-        try {
-            if (isFirstVersion(inventory)) {
-                setupNewObjectDirs(objectRootPath);
-            }
-
-            var versionPath = objectRootPath.resolve(inventory.getHead().toString());
-
-            try {
-                Files.createDirectory(versionPath);
-            } catch (FileAlreadyExistsException e) {
-                throw new ObjectOutOfSyncException(
-                        String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
-            } catch (IOException e) {
-                throw new RuntimeIOException(e);
-            }
-
-            FileUtil.moveDirectory(stagingDir, versionPath);
-            versionContentFixityCheck(inventory, inventory.getHeadVersion(), versionPath.resolve(inventory.getContentDirectory()));
-            copyInventory(versionPath, objectRootPath, inventory);
-            // TODO verify inventory integrity again?
-        } catch (RuntimeException e) {
-            rollbackChanges(objectRootPath, inventory);
-            throw e;
+        if (inventory.hasMutableHead()) {
+            storeNewMutableHeadVersion(inventory, objectRoot, stagingDir);
+        } else {
+            storeNewVersion(inventory, objectRoot, stagingDir);
         }
     }
 
@@ -215,7 +203,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                                 Files.delete(f);
                             } catch (IOException e) {
                                 throw new RuntimeIOException(String.format("Failed to delete file %s while purging object %s." +
-                                        " The purge failed and may need to be deleted manually.", f, objectId), e);
+                                        " The purge failed the object may need to be deleted manually.", f, objectId), e);
                             }
                         });
             } catch (IOException e) {
@@ -229,8 +217,73 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void commitMutableHead(Inventory inventory, Path stagingDir) {
+        var objectRootPath = objectRootPathFull(inventory.getId());
+        var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
+
+        ensureRootObjectHasNotChanged(inventory, objectRoot);
+
+        if (!Files.exists(objectRoot.mutableHeadVersion().inventoryFile())) {
+            throw new ObjectOutOfSyncException(String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", inventory.getId()));
+        }
+
+        var versionRoot = objectRoot.headVersion();
+
+        createVersionDirectory(inventory, versionRoot);
+
+        try {
+            // TODO does moving this back in failure cases make sense?
+            // TODO should a copy be done instead?
+            FileUtil.moveDirectory(objectRoot.mutableHeadPath(), versionRoot.path());
+            versionContentFixityCheck(inventory, versionRoot.contentPath(), inventory.getHead().toString(), objectRoot.path());
+
+            // TODO make backup?
+            copyInventory(ObjectPaths.version(inventory, stagingDir), versionRoot);
+            FileUtil.deleteEmptyDirs(versionRoot.contentPath());
+
+            copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
+            // TODO verify inventory integrity again?
+            // TODO failure conditions of this?
+            FileUtil.safeDeletePath(objectRoot.mutableHeadExtensionPath());
+        } catch (RuntimeException e) {
+            // TODO this results in the loss of everything that was in the mutable HEAD...
+            FileUtil.safeDeletePath(versionRoot.path());
+            throw e;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void purgeMutableHead(String objectId) {
+        var objectRootPath = objectRootPathFull(objectId);
+        var extensionRoot = objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH);
+
+        if (Files.exists(extensionRoot)) {
+            try (var paths = Files.walk(extensionRoot)) {
+                paths.sorted(Comparator.reverseOrder())
+                        .forEach(f -> {
+                            try {
+                                Files.delete(f);
+                            } catch (IOException e) {
+                                throw new RuntimeIOException(String.format("Failed to delete file %s while purging mutable HEAD of object %s." +
+                                        " The purge failed and the mutable HEAD may need to be deleted manually.", f, objectId), e);
+                            }
+                        });
+            } catch (IOException e) {
+                throw new RuntimeIOException(String.format("Failed to purge mutable HEAD of object %s at %s. The object may need to be deleted manually.",
+                        objectId, extensionRoot), e);
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean containsObject(String objectId) {
-        return Files.exists(objectRootPathFull(objectId));
+        return Files.exists(ObjectPaths.inventoryPath(objectRootPathFull(objectId)));
     }
 
     /**
@@ -262,27 +315,25 @@ public class FileSystemOcflStorage implements OcflStorage {
         } else {
             validateExistingRepo(ocflVersion);
         }
-
-        if (!Files.exists(repositoryRoot.resolve(OcflConstants.DEPOSIT_DIRECTORY))) {
-            FileUtil.createDirectories(repositoryRoot.resolve(OcflConstants.DEPOSIT_DIRECTORY));
-        }
     }
 
     private Path objectRootPathFull(String objectId) {
         return repositoryRoot.resolve(objectIdPathMapper.map(objectId));
     }
 
-    private Path inventoryPath(Path rootPath) {
-        return rootPath.resolve(OcflConstants.INVENTORY_FILE);
-    }
-
-    private Path inventorySidecarPath(Path rootPath, DigestAlgorithm digestAlgorithm) {
-        return rootPath.resolve(OcflConstants.INVENTORY_FILE + "." + digestAlgorithm.getOcflName());
-    }
-
     private Inventory parseInventory(Path inventoryPath) {
+        if (Files.notExists(inventoryPath)) {
+            // TODO if there's not root inventory should we look for the inventory in the latest version directory?
+            throw new IllegalStateException("Missing inventory at " + inventoryPath);
+        }
         verifyInventory(inventoryPath);
-        return inventoryMapper.readValue(inventoryPath);
+        return inventoryMapper.read(inventoryPath);
+    }
+
+    private Inventory parseMutableHeadInventory(Path inventoryPath) {
+        verifyInventory(inventoryPath);
+        var revisionId = identifyLatestRevision(inventoryPath.getParent());
+        return inventoryMapper.readMutableHead(revisionId, inventoryPath);
     }
 
     private void verifyInventory(Path inventoryPath) {
@@ -298,15 +349,35 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
+    private RevisionId identifyLatestRevision(Path versionPath) {
+        try (var files = Files.list(versionPath)) {
+            var result = files.filter(Files::isDirectory)
+                    .map(Path::getFileName).map(Path::toString)
+                    .filter(RevisionId::isRevisionId)
+                    .map(RevisionId::fromValue)
+                    .max(Comparator.naturalOrder());
+            if (result.isEmpty()) {
+                return null;
+            }
+            return result.get();
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+    }
+
     private Path findInventorySidecar(Path objectRootPath) {
-        try (var files = Files.list(objectRootPath)) {
+        return findGenericInventorySidecar(objectRootPath, OcflConstants.INVENTORY_FILE + ".");
+    }
+
+    private Path findGenericInventorySidecar(Path path, String prefix) {
+        try (var files = Files.list(path)) {
             var sidecars = files
-                    .filter(file -> file.getFileName().toString().startsWith(OcflConstants.INVENTORY_FILE + "."))
+                    .filter(file -> file.getFileName().toString().startsWith(prefix))
                     .collect(Collectors.toList());
 
             if (sidecars.size() != 1) {
-                throw new IllegalStateException(String.format("Expected there to be one inventory sidecar file, but found %s.",
-                        sidecars.size()));
+                throw new IllegalStateException(String.format("Expected there to be one inventory sidecar file in %s, but found %s.",
+                        path, sidecars.size()));
             }
 
             return sidecars.get(0);
@@ -327,9 +398,106 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
+    // TODO enforce sha256/sha512?
     private DigestAlgorithm getDigestAlgorithmFromSidecar(Path inventorySidecarPath) {
         return DigestAlgorithmRegistry.getAlgorithm(
                 inventorySidecarPath.getFileName().toString().substring(OcflConstants.INVENTORY_FILE.length() + 1));
+    }
+
+    private void storeNewVersion(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir) {
+        ensureNoMutableHead(objectRoot);
+
+        var versionRoot = objectRoot.headVersion();
+
+        var isFirstVersion = isFirstVersion(inventory);
+
+        try {
+            if (isFirstVersion) {
+                setupNewObjectDirs(objectRoot.path());
+            }
+
+            createVersionDirectory(inventory, versionRoot);
+
+            try {
+                FileUtil.moveDirectory(stagingDir, versionRoot.path());
+                versionContentFixityCheck(inventory, versionRoot.contentPath(), inventory.getHead().toString(), objectRoot.path());
+                copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
+                // TODO verify inventory integrity again?
+            } catch (RuntimeException e) {
+                FileUtil.safeDeletePath(versionRoot.path());
+                throw e;
+            }
+        } catch (RuntimeException e) {
+            if (isFirstVersion) {
+                FileUtil.safeDeletePath(objectRoot.path());
+            }
+            throw e;
+        }
+    }
+
+    private void storeNewMutableHeadVersion(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir) {
+        ensureRootObjectHasNotChanged(inventory, objectRoot);
+
+        var versionRoot = objectRoot.headVersion();
+        var revisionPath = versionRoot.contentRoot().headRevisionPath();
+
+        var stagingVersionRoot = ObjectPaths.version(inventory, stagingDir);
+
+        var isNewMutableHead = Files.notExists(versionRoot.inventoryFile());
+
+        try {
+            createRevisionDirectory(inventory, versionRoot);
+
+            // TODO there's a little funniness in the ordering here...
+            if (isNewMutableHead) {
+                var rootSidecar = objectRoot.inventorySidecar();
+                FileUtil.copy(rootSidecar,
+                        versionRoot.path().getParent().resolve("root-" + rootSidecar.getFileName().toString()),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            try {
+                FileUtil.moveDirectory(stagingVersionRoot.contentRoot().headRevisionPath(), revisionPath);
+                versionContentFixityCheck(inventory, revisionPath, objectRoot.path().relativize(revisionPath).toString(), objectRoot.path());
+
+                // TODO handle failure? backup?
+                copyInventory(stagingVersionRoot, versionRoot);
+                // TODO verify inventory integrity?
+            } catch (RuntimeException e) {
+                FileUtil.safeDeletePath(revisionPath);
+                throw e;
+            }
+        } catch (RuntimeException e) {
+            if (isNewMutableHead) {
+                FileUtil.safeDeletePath(versionRoot.path().getParent());
+            }
+            throw e;
+        }
+
+        deleteMutableHeadFilesNotInManifest(inventory, objectRoot, versionRoot);
+    }
+
+    private void createVersionDirectory(Inventory inventory, ObjectPaths.VersionRoot versionRoot) {
+        try {
+            Files.createDirectory(versionRoot.path());
+        } catch (FileAlreadyExistsException e) {
+            throw new ObjectOutOfSyncException(
+                    String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+    }
+
+    private void createRevisionDirectory(Inventory inventory, ObjectPaths.VersionRoot versionRoot) {
+        try {
+            Files.createDirectories(versionRoot.contentPath());
+            Files.createDirectory(versionRoot.contentRoot().headRevisionPath());
+        } catch (FileAlreadyExistsException e) {
+            throw new ObjectOutOfSyncException(
+                    String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
     }
 
     private boolean isFirstVersion(Inventory inventory) {
@@ -341,45 +509,69 @@ public class FileSystemOcflStorage implements OcflStorage {
         new NamasteTypeFile(OcflConstants.OCFL_OBJECT_VERSION).writeFile(objectRootPath);
     }
 
-    private void copyInventory(Path sourcePath, Path destinationPath, Inventory inventory) {
-        var digestAlgorithm = inventory.getDigestAlgorithm();
-
-        FileUtil.copy(inventoryPath(sourcePath), inventoryPath(destinationPath),
-                StandardCopyOption.REPLACE_EXISTING);
-        FileUtil.copy(inventorySidecarPath(sourcePath, digestAlgorithm), inventorySidecarPath(destinationPath, digestAlgorithm),
-                StandardCopyOption.REPLACE_EXISTING);
+    private void copyInventory(ObjectPaths.HasInventory source, ObjectPaths.HasInventory destination) {
+        FileUtil.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
+        FileUtil.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private void versionContentFixityCheck(Inventory inventory, Version version, Path versionContentPath) {
-        var files = FileUtil.findFiles(versionContentPath);
+    private void copyInventoryToRootWithRollback(ObjectPaths.HasInventory source, ObjectPaths.ObjectRoot objectRoot, Inventory inventory) {
+        try {
+            copyInventory(source, objectRoot);
+        } catch (RuntimeException e) {
+            try {
+                var previousVersionRoot = objectRoot.version(inventory.getHead().previousVersionId());
+                copyInventory(previousVersionRoot, objectRoot);
+            } catch (RuntimeException e1) {
+                LOG.error("Failed to rollback inventory at {}", objectRoot.inventoryFile(), e1);
+            }
+            throw e;
+        }
+    }
+
+    private void deleteMutableHeadFilesNotInManifest(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, ObjectPaths.VersionRoot versionRoot) {
+        var files = FileUtil.findFiles(versionRoot.contentPath());
+        files.forEach(file -> {
+            if (inventory.getFileId(objectRoot.path().relativize(file).toString()) == null) {
+                try {
+                    Files.delete(file);
+                } catch (IOException e) {
+                    LOG.warn("Failed to delete file: {}", file, e);
+                }
+            }
+        });
+    }
+
+    private void versionContentFixityCheck(Inventory inventory, Path fileRoot, String contentPrefix, Path objectRootPath) {
+        var version = inventory.getHeadVersion();
+        var files = FileUtil.findFiles(fileRoot);
+        var fileIds = inventory.getFileIdsForMatchingFiles(contentPrefix + "/");
+
+        var expected = ConcurrentHashMap.<String>newKeySet(fileIds.size());
+        expected.addAll(fileIds);
 
         parallelProcess.collection(files, file -> {
-            var fileRelativePath = versionContentPath.relativize(file);
-            var expectedDigest = version.getFileId(fileRelativePath.toString());
+            var fileContentPath = objectRootPath.relativize(file);
+            var expectedDigest = inventory.getFileId(fileContentPath.toString());
             if (expectedDigest == null) {
-                throw new IllegalStateException(String.format("File not found in object %s version %s: %s",
-                        inventory.getId(), inventory.getHead(), fileRelativePath));
+                throw new IllegalStateException(String.format("File not listed in object %s manifest: %s",
+                        inventory.getId(), fileContentPath));
+            } else if (version.getPaths(expectedDigest) == null) {
+                throw new IllegalStateException(String.format("File not found in object %s version %s state: %s",
+                        inventory.getId(), inventory.getHead(), fileContentPath));
             } else {
                 var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
                 if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                     throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
                             file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
                 }
+
+                expected.remove(expectedDigest);
             }
         });
-    }
 
-    private void rollbackChanges(Path objectRootPath, Inventory inventory) {
-        try {
-            FileUtil.safeDeletePath(objectRootPath.resolve(inventory.getHead().toString()));
-            if (isFirstVersion(inventory)) {
-                FileUtil.safeDeletePath(objectRootPath);
-            } else {
-                var previousVersionRoot = objectRootPath.resolve(inventory.getHead().previousVersionId().toString());
-                copyInventory(previousVersionRoot, objectRootPath, inventory);
-            }
-        } catch (RuntimeException e) {
-            LOG.error("Failed to rollback changes to object {} cleanly.", inventory.getId(), e);
+        if (!expected.isEmpty()) {
+            var filePaths = expected.stream().map(inventory::getFilePath).collect(Collectors.toList());
+            throw new IllegalStateException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
         }
     }
 
@@ -401,6 +593,41 @@ public class FileSystemOcflStorage implements OcflStorage {
         return inventory.getFilePath(id);
     }
 
+    private void ensureNoMutableHead(ObjectPaths.ObjectRoot objectRoot) {
+        if (Files.exists(objectRoot.mutableHeadVersion().inventoryFile())) {
+            // TODO modeled exception?
+            throw new IllegalStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
+                    objectRoot.objectId()));
+        }
+    }
+
+    private void ensureRootObjectHasNotChanged(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
+        var savedSidecarPath = ObjectPaths.inventorySidecarPath(objectRoot.mutableHeadExtensionPath(), inventory);
+        if (Files.exists(savedSidecarPath)) {
+            var expectedDigest = readInventoryDigest(savedSidecarPath);
+            var actualDigest = readInventoryDigest(objectRoot.inventorySidecar());
+
+            if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
+                throw new ObjectOutOfSyncException(
+                        String.format("The mutable HEAD of object %s is out of sync with the root object state.", inventory.getId()));
+            }
+        }
+    }
+
+    private void ensureRootObjectHasNotChanged(String objectId, Path objectRootPath) {
+        var savedSidecarPath = findGenericInventorySidecar(objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH), "root-" + OcflConstants.INVENTORY_FILE + ".");
+        if (Files.exists(savedSidecarPath)) {
+            var rootSidecarPath = findInventorySidecar(objectRootPath);
+            var expectedDigest = readInventoryDigest(savedSidecarPath);
+            var actualDigest = readInventoryDigest(rootSidecarPath);
+
+            if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
+                throw new ObjectOutOfSyncException(
+                        String.format("The mutable HEAD of object %s is out of sync with the root object state.", objectId));
+            }
+        }
+    }
+
     private void validateExistingRepo(String ocflVersion) {
         String existingOcflVersion = null;
 
@@ -418,12 +645,10 @@ public class FileSystemOcflStorage implements OcflStorage {
                     ocflVersion, existingOcflVersion));
         }
 
-        // TODO how to verify layout file
-
         var objectRoot = identifyRandomObjectRoot(repositoryRoot);
 
         if (objectRoot != null) {
-            var inventory = parseInventory(inventoryPath(objectRoot));
+            var inventory = parseInventory(ObjectPaths.inventoryPath(objectRoot));
             var expectedPath = objectIdPathMapper.map(inventory.getId());
             var actualPath = repositoryRoot.relativize(objectRoot);
             if (!expectedPath.equals(actualPath)) {
