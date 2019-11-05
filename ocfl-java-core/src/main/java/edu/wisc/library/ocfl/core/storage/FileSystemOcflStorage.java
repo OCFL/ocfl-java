@@ -13,11 +13,11 @@ import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.*;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,14 +41,19 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private ParallelProcess parallelProcess;
 
+    private boolean checkNewVersionFixity;
+
+    // TODO revist how this object is constructed and configured
+
     /**
-     * Creates a new FileSystemOcflStorage object. Its thread pool is size is set to the number of available processors.
+     * Creates a new FileSystemOcflStorage object. Its thread pool is size is set to the number of available processors,
+     * and fixity checks are not performed when a version is moved into the object.
      *
      * @param repositoryRoot OCFL repository root directory
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
      */
     public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
-        this(repositoryRoot, objectIdPathMapper, Runtime.getRuntime().availableProcessors());
+        this(repositoryRoot, objectIdPathMapper, Runtime.getRuntime().availableProcessors(), false);
     }
 
     /**
@@ -57,14 +62,19 @@ public class FileSystemOcflStorage implements OcflStorage {
      * @param repositoryRoot OCFL repository root directory
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
      * @param threadPoolSize The size of the object's thread pool, used when calculating digests
+     * @param checkNewVersionFixity If a fixity check should be performed on the contents of a new version's
+     *                              content directory after moving it into the object. In most cases, this should not be
+     *                              required, especially if the OCFL client's work directory is on the same volume as the
+     *                              storage root.
      */
-    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper, int threadPoolSize) {
+    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper, int threadPoolSize, boolean checkNewVersionFixity) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
 
         this.inventoryMapper = InventoryMapper.defaultMapper(); // This class will never serialize an Inventory, so the pretty print doesn't matter
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
+        this.checkNewVersionFixity = checkNewVersionFixity;
     }
 
     public FileSystemOcflStorage setInventoryMapper(InventoryMapper inventoryMapper) {
@@ -234,6 +244,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         try {
             // TODO does moving this back in failure cases make sense?
             // TODO should a copy be done instead?
+            // TODO should do the fixity check before moving
             FileUtil.moveDirectory(objectRoot.mutableHeadPath(), versionRoot.path());
             versionContentFixityCheck(inventory, versionRoot.contentPath(), inventory.getHead().toString(), objectRoot.path());
 
@@ -542,36 +553,38 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     private void versionContentFixityCheck(Inventory inventory, Path fileRoot, String contentPrefix, Path objectRootPath) {
-        var version = inventory.getHeadVersion();
-        var files = FileUtil.findFiles(fileRoot);
-        var fileIds = inventory.getFileIdsForMatchingFiles(contentPrefix + "/");
+        if (checkNewVersionFixity) {
+            var version = inventory.getHeadVersion();
+            var files = FileUtil.findFiles(fileRoot);
+            var fileIds = inventory.getFileIdsForMatchingFiles(contentPrefix + "/");
 
-        var expected = ConcurrentHashMap.<String>newKeySet(fileIds.size());
-        expected.addAll(fileIds);
+            var expected = ConcurrentHashMap.<String>newKeySet(fileIds.size());
+            expected.addAll(fileIds);
 
-        parallelProcess.collection(files, file -> {
-            var fileContentPath = objectRootPath.relativize(file);
-            var expectedDigest = inventory.getFileId(fileContentPath.toString());
-            if (expectedDigest == null) {
-                throw new IllegalStateException(String.format("File not listed in object %s manifest: %s",
-                        inventory.getId(), fileContentPath));
-            } else if (version.getPaths(expectedDigest) == null) {
-                throw new IllegalStateException(String.format("File not found in object %s version %s state: %s",
-                        inventory.getId(), inventory.getHead(), fileContentPath));
-            } else {
-                var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
-                if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-                    throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                            file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
+            parallelProcess.collection(files, file -> {
+                var fileContentPath = objectRootPath.relativize(file);
+                var expectedDigest = inventory.getFileId(fileContentPath.toString());
+                if (expectedDigest == null) {
+                    throw new IllegalStateException(String.format("File not listed in object %s manifest: %s",
+                            inventory.getId(), fileContentPath));
+                } else if (version.getPaths(expectedDigest) == null) {
+                    throw new IllegalStateException(String.format("File not found in object %s version %s state: %s",
+                            inventory.getId(), inventory.getHead(), fileContentPath));
+                } else {
+                    var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
+                    if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
+                        throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
+                                file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
+                    }
+
+                    expected.remove(expectedDigest);
                 }
+            });
 
-                expected.remove(expectedDigest);
+            if (!expected.isEmpty()) {
+                var filePaths = expected.stream().map(inventory::getFilePath).collect(Collectors.toList());
+                throw new IllegalStateException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
             }
-        });
-
-        if (!expected.isEmpty()) {
-            var filePaths = expected.stream().map(inventory::getFilePath).collect(Collectors.toList());
-            throw new IllegalStateException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
         }
     }
 
