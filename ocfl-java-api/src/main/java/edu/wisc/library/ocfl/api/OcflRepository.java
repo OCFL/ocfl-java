@@ -73,10 +73,10 @@ public interface OcflRepository {
 
     /**
      * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the
-     * object relative file paths of all of the files in the specified version of the object.
+     * logical file paths of all of the files in the specified version of the object.
      *
      * @param objectId the id and version of an object to retrieve
-     * @return a map of {@code OcflFileRetriever} objects keyed off the object relative file paths of all of the files in the object
+     * @return a map of {@code OcflFileRetriever} objects keyed off the logical file paths of all of the files in the object
      * @throws NotFoundException when no object can be found for the specified objectId
      */
     Map<String, OcflFileRetriever> getObjectStreams(ObjectId objectId);

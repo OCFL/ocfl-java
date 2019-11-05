@@ -1,6 +1,6 @@
 # OCFL Java
 
-This project is a Java implementation of the [OCFL beta 0.3 spec](https://ocfl.io/0.3/spec/).
+This project is a Java implementation of the [OCFL draft spec](https://ocfl.io/draft/spec/).
 
 [![Build Status](https://travis-ci.com/UW-Madison-Library/ocfl-java.svg?branch=master)](https://travis-ci.com/UW-Madison-Library/ocfl-java)
 
@@ -30,12 +30,13 @@ After building the libraries locally, add the following to you're project's POM:
 ## Example Usage
 
 ```java
-var repoDir = Paths.get("ocfl-repo");
+var repoDir = Paths.get("ocfl-repo"); // This directory contains the OCFL storage root.
+var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL versions. It cannot be within the OCFL storage root.
 
 var repo = new OcflRepositoryBuilder().build(
-        new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().
-                withDefaultCaffeineCache().buildDefaultPairTreeMapper()),
-        repoDir.resolve("deposit"));
+        new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder()
+                .withDefaultCaffeineCache().buildDefaultPairTreeMapper()),
+        workDir);
 
 repo.putObject(ObjectId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
 repo.getObject(ObjectId.head("o1"), Paths.get("object-in-dir"));

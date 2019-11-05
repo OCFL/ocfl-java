@@ -139,6 +139,8 @@ public class OcflRepositoryBuilder {
     /**
      * Used to specify the digest algorithms to use to compute additional fixity information. Default: none.
      *
+     * <p>Adding fixity algorithms increases the latency of repository operations without providing any additional security.
+     *
      * @param fixityAlgorithms
      */
     public OcflRepositoryBuilder fixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
@@ -170,7 +172,7 @@ public class OcflRepositoryBuilder {
      * Constructs an OCFL repository. Brand new repositories are initialized.
      *
      * @param storage the storage layer implementation that the OCFL repository should use
-     * @param workDir the work directory to assemble versions in before they're moved to storage
+     * @param workDir the work directory to assemble versions in before they're moved to storage -- cannot be within the OCFL storage root
      */
     public OcflRepository build(OcflStorage storage, Path workDir) {
         return buildDefault(storage, workDir);
@@ -180,7 +182,7 @@ public class OcflRepositoryBuilder {
      * Constructs an OCFL repository that allows the use of the Mutable HEAD Extension. Brand new repositories are initialized.
      *
      * @param storage the storage layer implementation that the OCFL repository should use
-     * @param workDir the work directory to assemble versions in before they're moved to storage
+     * @param workDir the work directory to assemble versions in before they're moved to storage -- cannot be within the OCFL storage root
      */
     public MutableOcflRepository buildMutable(OcflStorage storage, Path workDir) {
         return buildDefault(storage, workDir);

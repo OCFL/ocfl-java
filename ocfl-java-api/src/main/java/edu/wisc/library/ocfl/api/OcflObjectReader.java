@@ -20,8 +20,7 @@ public interface OcflObjectReader {
     VersionDetails describeVersion();
 
     /**
-     * Returns a list of all of the paths, relative the object root, of all of the files within the object at the current
-     * version.
+     * Returns a list of all of the logical paths of all of the files within the object at the current version.
      *
      * @return list of all files in an object
      */
@@ -43,7 +42,8 @@ public interface OcflObjectReader {
     /**
      * Retrieves the specified file and writes it to an {@code InputStream}.
      *
-     * <p>Important: The caller is responsible for closing the InputStream when they are done with it.
+     * <p>Important: The caller MUST close the InputStream when they are done with it. Additionally, the caller may call
+     * {@code checkFixity()} on the stream after all of the data has streamed to ensure the fixity of the data.
      *
      * @param sourcePath the logical path to the file to retrieve from the object
      * @return InputStream containing the file's content

@@ -22,7 +22,7 @@ public interface OcflObjectUpdater {
      * To overwrite, specify {@code OcflOption.OVERWRITE}.
      *
      * @param sourcePath the local file or directory to add to the object
-     * @param destinationPath the location to store the sourcePath at within the object
+     * @param destinationPath the logical path to store the sourcePath at within the object
      * @param ocflOptions optional config options. Use {@code OcflOption.MOVE_SOURCE} to move files into the repo instead of copying.
      *                    Use {@code OcflOption.OVERWRITE} to overwrite existing files within an object
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
