@@ -45,6 +45,12 @@ public class FixityCheckInputStream extends DigestInputStream {
         return expectedDigestValue;
     }
 
+    @Override
+    public void on(boolean on) {
+        // TODO all the fixity check to be disabled
+        super.on(on);
+    }
+
     private static MessageDigest messageDigest(String digestAlgorithm) {
         try {
             return MessageDigest.getInstance(digestAlgorithm);
