@@ -288,7 +288,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectId commitStagedVersion(String objectId, CommitInfo commitInfo) {
+    public ObjectId commitStagedChanges(String objectId, CommitInfo commitInfo) {
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         var inventory = requireInventory(ObjectId.head(objectId));
@@ -320,7 +320,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public void purgeStagedVersion(String objectId) {
+    public void purgeStagedChanges(String objectId) {
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         objectLock.doInWriteLock(objectId, () -> {
@@ -336,7 +336,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public boolean hasStagedVersion(String objectId) {
+    public boolean hasStagedChanges(String objectId) {
         Enforce.notBlank(objectId, "objectId cannot be blank");
         var inventory = requireInventory(ObjectId.head(objectId));
         return inventory.hasMutableHead();

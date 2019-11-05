@@ -8,7 +8,6 @@ import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
-import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -17,7 +16,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,7 +56,7 @@ public class MutableHeadITest {
 
         repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        assertFalse(repo.hasStagedVersion(objectId));
+        assertFalse(repo.hasStagedChanges(objectId));
 
         repo.stageChanges(ObjectId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
@@ -70,7 +68,7 @@ public class MutableHeadITest {
                     .removeFile("dir1/file4");
         });
 
-        assertTrue(repo.hasStagedVersion(objectId));
+        assertTrue(repo.hasStagedChanges(objectId));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
@@ -87,7 +85,7 @@ public class MutableHeadITest {
 
         repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        assertFalse(repo.hasStagedVersion(objectId));
+        assertFalse(repo.hasStagedChanges(objectId));
 
         repo.stageChanges(ObjectId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
@@ -99,9 +97,9 @@ public class MutableHeadITest {
                     .removeFile("dir1/file4");
         });
 
-        repo.purgeStagedVersion(objectId);
+        repo.purgeStagedChanges(objectId);
 
-        assertFalse(repo.hasStagedVersion(objectId));
+        assertFalse(repo.hasStagedChanges(objectId));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
@@ -122,7 +120,7 @@ public class MutableHeadITest {
                     .removeFile("dir1/file3");
         });
 
-        assertTrue(repo.hasStagedVersion(objectId));
+        assertTrue(repo.hasStagedChanges(objectId));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
@@ -142,9 +140,9 @@ public class MutableHeadITest {
             updater.writeFile(new ByteArrayInputStream("file4" .getBytes()), "file4").removeFile("dir1/file3");
         });
 
-        repo.commitStagedVersion(objectId, defaultCommitInfo.setMessage("commit"));
+        repo.commitStagedChanges(objectId, defaultCommitInfo.setMessage("commit"));
 
-        assertFalse(repo.hasStagedVersion(objectId));
+        assertFalse(repo.hasStagedChanges(objectId));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
