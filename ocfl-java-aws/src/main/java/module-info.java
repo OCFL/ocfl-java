@@ -11,6 +11,8 @@ module edu.wisc.library.ocfl.aws {
     requires org.apache.commons.codec;
     requires org.slf4j;
     requires software.amazon.awssdk.core;
+    requires software.amazon.awssdk.awscore;
     requires software.amazon.awssdk.services.s3;
+    requires software.amazon.awssdk.utils;
 
 }
