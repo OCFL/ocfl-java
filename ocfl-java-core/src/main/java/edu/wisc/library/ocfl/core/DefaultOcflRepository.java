@@ -65,6 +65,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     private Clock clock;
 
+    private boolean closed = false;
+
     public DefaultOcflRepository(OcflStorage storage, Path workDir,
                                  ObjectLock objectLock,
                                  Cache<String, Inventory> inventoryCache,
@@ -96,6 +98,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions) {
+        ensureOpen();
+
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
@@ -123,6 +127,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public ObjectId updateObject(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
+        ensureOpen();
+
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
@@ -148,6 +154,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public void getObject(ObjectId objectId, Path outputPath) {
+        ensureOpen();
+
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(outputPath, "outputPath cannot be null");
         Enforce.expressionTrue(Files.exists(outputPath), outputPath, "outputPath must exist");
@@ -165,6 +173,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public Map<String, OcflFileRetriever> getObjectStreams(ObjectId objectId) {
+        ensureOpen();
+
         Enforce.notNull(objectId, "objectId cannot be null");
 
         var inventory = requireInventory(objectId);
@@ -179,6 +189,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader) {
+        ensureOpen();
+
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectReader, "objectReader cannot be null");
 
@@ -203,6 +215,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public ObjectDetails describeObject(String objectId) {
+        ensureOpen();
+
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         var inventory = requireInventory(ObjectId.head(objectId));
@@ -216,6 +230,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public VersionDetails describeVersion(ObjectId objectId) {
+        ensureOpen();
+
         Enforce.notNull(objectId, "objectId cannot be null");
 
         var inventory = requireInventory(objectId);
@@ -232,6 +248,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public boolean containsObject(String objectId) {
+        ensureOpen();
+
         Enforce.notBlank(objectId, "objectId cannot be blank");
         return storage.containsObject(objectId);
     }
@@ -241,6 +259,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public void purgeObject(String objectId) {
+        ensureOpen();
+
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         objectLock.doInWriteLock(objectId, () -> {
@@ -257,6 +277,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public ObjectId stageChanges(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
+        ensureOpen();
+
         Enforce.notNull(objectId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
@@ -289,6 +311,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public ObjectId commitStagedChanges(String objectId, CommitInfo commitInfo) {
+        ensureOpen();
+
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         var inventory = requireInventory(ObjectId.head(objectId));
@@ -321,6 +345,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public void purgeStagedChanges(String objectId) {
+        ensureOpen();
+
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         objectLock.doInWriteLock(objectId, () -> {
@@ -337,9 +363,22 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     @Override
     public boolean hasStagedChanges(String objectId) {
+        ensureOpen();
+
         Enforce.notBlank(objectId, "objectId cannot be blank");
         var inventory = requireInventory(ObjectId.head(objectId));
         return inventory.hasMutableHead();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close() {
+        closed = true;
+        parallelProcess.shutdown();
+        copyParallelProcess.shutdown();
+        storage.close();
     }
 
     private Inventory loadInventory(ObjectId objectId) {
@@ -532,6 +571,12 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         // OCFL spec has timestamps reported at second granularity. Unfortunately, it's difficult to make Jackson
         // interact with ISO 8601 at anything other than nanosecond granularity.
         return OffsetDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private void ensureOpen() {
+        if (closed) {
+            throw new IllegalStateException(DefaultOcflRepository.class.getName() + " is closed.");
+        }
     }
 
     /**

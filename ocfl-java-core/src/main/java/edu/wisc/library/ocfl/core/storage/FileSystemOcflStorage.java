@@ -39,6 +39,8 @@ public class FileSystemOcflStorage implements OcflStorage {
     private ObjectIdPathMapper objectIdPathMapper;
     private InventoryMapper inventoryMapper;
 
+    private boolean closed = false;
+
     private ParallelProcess parallelProcess;
 
     private boolean checkNewVersionFixity;
@@ -87,6 +89,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public Inventory loadInventory(String objectId) {
+        ensureOpen();
+
         Inventory inventory = null;
         var objectRootPath = objectRootPathFull(objectId);
 
@@ -108,6 +112,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
+        ensureOpen();
+
         var objectRootPath = objectRootPathFull(inventory.getId());
         var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
 
@@ -123,6 +129,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
+        ensureOpen();
+
         var objectRootPath = objectRootPathFull(inventory.getId());
         var version = ensureVersion(inventory, versionId);
         var algorithm = inventory.getDigestAlgorithm();
@@ -145,6 +153,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
+        ensureOpen();
+
         var objectRootPath = objectRootPathFull(inventory.getId());
         var version = ensureVersion(inventory, versionId);
 
@@ -183,6 +193,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public InputStream retrieveFile(Inventory inventory, String fileId) {
+        ensureOpen();
+
         var objectRootPath = objectRootPathFull(inventory.getId());
 
         var filePath = inventory.getFilePath(fileId);
@@ -203,6 +215,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void purgeObject(String objectId) {
+        ensureOpen();
+
         var objectRootPath = objectRootPathFull(objectId);
 
         if (Files.exists(objectRootPath)) {
@@ -228,6 +242,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void commitMutableHead(Inventory inventory, Path stagingDir) {
+        ensureOpen();
+
         var objectRootPath = objectRootPathFull(inventory.getId());
         var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
 
@@ -268,6 +284,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void purgeMutableHead(String objectId) {
+        ensureOpen();
+
         var objectRootPath = objectRootPathFull(objectId);
         var extensionRoot = objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH);
 
@@ -294,6 +312,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public boolean containsObject(String objectId) {
+        ensureOpen();
+
         return Files.exists(ObjectPaths.inventoryPath(objectRootPathFull(objectId)));
     }
 
@@ -302,6 +322,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public String objectRootPath(String objectId) {
+        ensureOpen();
+
         return objectIdPathMapper.map(objectId).toString();
     }
 
@@ -310,6 +332,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void initializeStorage(String ocflVersion) {
+        ensureOpen();
+
         if (!Files.exists(repositoryRoot)) {
             FileUtil.createDirectories(repositoryRoot);
         } else {
@@ -326,6 +350,15 @@ public class FileSystemOcflStorage implements OcflStorage {
         } else {
             validateExistingRepo(ocflVersion);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close() {
+        closed = true;
+        parallelProcess.shutdown();
     }
 
     private Path objectRootPathFull(String objectId) {
@@ -726,6 +759,12 @@ public class FileSystemOcflStorage implements OcflStorage {
                     .writeValue(repositoryRoot.resolve("ocfl_layout.json").toFile(), map);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
+        }
+    }
+
+    private void ensureOpen() {
+        if (closed) {
+            throw new IllegalStateException(FileSystemOcflStorage.class.getName() + " is closed.");
         }
     }
 

@@ -40,4 +40,8 @@ public class ParallelProcess {
         return completionService.mergeAllCancelOnException();
     }
 
+    public void shutdown() {
+        ExecutorTerminator.shutdown(executor);
+    }
+
 }

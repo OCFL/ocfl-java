@@ -15,6 +15,7 @@ import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.matcher.OcflMatchers;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -102,6 +103,22 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void rejectRequestsWhenRepoClosed() {
+        var repoName = "repo15";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        repo.close();
+
+        var objectId = "o1";
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+
+        assertThat(assertThrows(IllegalStateException.class, () -> {
+            repo.putObject(ObjectId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
+        }).getMessage(), containsString("is closed"));
     }
 
     @Test

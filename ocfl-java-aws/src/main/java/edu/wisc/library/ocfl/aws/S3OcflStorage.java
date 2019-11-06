@@ -160,6 +160,14 @@ public class S3OcflStorage implements OcflStorage {
 
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close() {
+
+    }
+
     private void storeContentInS3(Inventory inventory, Path sourcePath, Path versionContentPath) {
         // TODO parallelize
         var stagedContent = sourcePath.resolve(inventory.resolveContentDirectory());

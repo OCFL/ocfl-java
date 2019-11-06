@@ -16,6 +16,13 @@ public final class ExecutorTerminator {
 
     public static ExecutorService addShutdownHook(ExecutorService executor) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            shutdown(executor);
+        }));
+        return executor;
+    }
+
+    public static void shutdown(ExecutorService executor) {
+        if (!executor.isShutdown()) {
             executor.shutdown();
             try {
                 if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
@@ -25,8 +32,7 @@ public final class ExecutorTerminator {
             } catch (InterruptedException e) {
                 LOG.warn("Interrupted shutting down executor", e);
             }
-        }));
-        return executor;
+        }
     }
 
 }

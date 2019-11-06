@@ -131,4 +131,10 @@ public interface OcflStorage {
      */
     void initializeStorage(String ocflVersion);
 
+    /**
+     * Shutsdown any resources the OclfStorage may have open, such as ExecutorServices. Once closed, additional requests
+     * will be rejected. Calling this method is optional. Resources will otherwise be closed using shutdown hooks.
+     */
+    void close();
+
 }
