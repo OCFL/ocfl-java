@@ -12,6 +12,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.inventory.MutableHeadInventoryCommitter;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
@@ -19,7 +20,6 @@ import edu.wisc.library.ocfl.core.model.*;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -395,8 +395,9 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         for (var fileWithDigest : filesWithDigests) {
             var file = fileWithDigest.getKey();
             var digest = fileWithDigest.getValue();
+            var logicalPath = createLogicalPath(sourcePath, file);
 
-            var isNewFile = updater.addFile(digest, file, sourcePath.relativize(file));
+            var isNewFile = updater.addFile(digest, file, logicalPath);
 
             if (isNewFile) {
                 newFiles.add(file);
@@ -404,11 +405,11 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         }
 
         copyParallelProcess.collection(newFiles, file -> {
-            var relativePath = sourcePath.relativize(file);
+            var logicalPath = createLogicalPath(sourcePath, file);
             if (options.contains(OcflOption.MOVE_SOURCE)) {
-                FileUtil.moveFileMakeParents(file, contentDir.resolve(relativePath));
+                FileUtil.moveFileMakeParents(file, contentDir.resolve(logicalPath));
             } else {
-                FileUtil.copyFileMakeParents(file, contentDir.resolve(relativePath));
+                FileUtil.copyFileMakeParents(file, contentDir.resolve(logicalPath));
             }
         });
 
@@ -418,6 +419,13 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         }
 
         return updater.finalizeUpdate();
+    }
+
+    private Path createLogicalPath(Path sourcePath, Path file) {
+        if (Files.isRegularFile(sourcePath) && sourcePath.equals(file)) {
+            return file.getFileName();
+        }
+        return sourcePath.relativize(file);
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {

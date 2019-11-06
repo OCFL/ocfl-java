@@ -91,6 +91,20 @@ public class FileSystemOcflITest {
     }
 
     @Test
+    public void putObjectWithPathToSingleFile() {
+        var repoName = "repo15";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+
+        repo.putObject(ObjectId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
     public void updateObjectMakeMultipleChangesWithinTheSameVersion() {
         var repoName = "repo4";
         var repoDir = newRepoDir(repoName);
