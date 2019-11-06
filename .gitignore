@@ -2,3 +2,8 @@
 *.swp
 .attach*
 *.iml
+
+# eclipse files
+.project
+.classpath
+.settings
