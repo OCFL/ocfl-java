@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
+import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -176,7 +177,7 @@ public class MutableHeadITest {
 
     private MutableOcflRepository defaultRepo(Path repoDir) {
         var repo = new OcflRepositoryBuilder().prettyPrintJson().buildMutable(
-                new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
+                new FileSystemOcflStorageBuilder().build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 workDir);
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;

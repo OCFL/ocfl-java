@@ -34,7 +34,7 @@ var repoDir = Paths.get("ocfl-repo"); // This directory contains the OCFL storag
 var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL versions. It cannot be within the OCFL storage root.
 
 var repo = new OcflRepositoryBuilder().build(
-        new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder()
+        new FileSystemOcflStorageBuilder().build(repoDir, new ObjectIdPathMapperBuilder()
                 .withDefaultCaffeineCache().buildDefaultPairTreeMapper()),
         workDir);
 

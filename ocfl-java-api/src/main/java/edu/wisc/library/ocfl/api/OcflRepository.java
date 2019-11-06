@@ -126,7 +126,8 @@ public interface OcflRepository {
 
     /**
      * Shutsdown any resources the OcflRepository may have open, such as ExecutorServices. Once closed, additional requests
-     * will be rejected. Calling this method is optional. Resources will otherwise be closed using shutdown hooks.
+     * will be rejected. Calling this method is optional, and it is more efficient to just let the shutdown hooks take care
+     * of closing the resources.
      */
     void close();
 

@@ -35,11 +35,11 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemOcflStorage.class);
 
+    private boolean closed = false;
+
     private Path repositoryRoot;
     private ObjectIdPathMapper objectIdPathMapper;
     private InventoryMapper inventoryMapper;
-
-    private boolean closed = false;
 
     private ParallelProcess parallelProcess;
 
@@ -55,11 +55,12 @@ public class FileSystemOcflStorage implements OcflStorage {
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
      */
     public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
-        this(repositoryRoot, objectIdPathMapper, Runtime.getRuntime().availableProcessors(), false);
+        this(repositoryRoot, objectIdPathMapper, Runtime.getRuntime().availableProcessors(),
+                false, InventoryMapper.defaultMapper());
     }
 
     /**
-     * Creates a new FileSystemOcflStorage object.
+     * Creates a new FileSystemOcflStorage object. Consider using {@code FileSystemOcflStorageBuilder} instead.
      *
      * @param repositoryRoot OCFL repository root directory
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
@@ -68,13 +69,14 @@ public class FileSystemOcflStorage implements OcflStorage {
      *                              content directory after moving it into the object. In most cases, this should not be
      *                              required, especially if the OCFL client's work directory is on the same volume as the
      *                              storage root.
+     * @param inventoryMapper mapper used to parse inventory files
      */
-    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper, int threadPoolSize, boolean checkNewVersionFixity) {
+    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper, int threadPoolSize,
+                                 boolean checkNewVersionFixity, InventoryMapper inventoryMapper) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
+        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
-
-        this.inventoryMapper = InventoryMapper.defaultMapper(); // This class will never serialize an Inventory, so the pretty print doesn't matter
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
     }
