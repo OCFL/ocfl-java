@@ -1,6 +1,5 @@
 package edu.wisc.library.ocfl.core.inventory;
 
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import org.junit.jupiter.api.BeforeAll;

@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.model;
+package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -19,6 +19,13 @@ public class VersionId implements Comparable<VersionId> {
     private final long maxVersion;
     private final String stringValue;
 
+    /**
+     * Creates a new VersionId from a version string in the format of "vN" where "N" is an integer greater than 0.
+     * Zero-padded values are supported.
+     *
+     * @param value
+     * @return
+     */
     @JsonCreator
     public static VersionId fromValue(String value) {
         if (!VALID_VERSION.matcher(value).matches()) {
@@ -35,6 +42,21 @@ public class VersionId implements Comparable<VersionId> {
         return new VersionId(Long.valueOf(numPart), padding);
     }
 
+    /**
+     * Creates a new VersionId. Zero-padding is not used.
+     *
+     * @param versionNumber the version number, must be greater than 0
+     */
+    public VersionId(long versionNumber) {
+        this(versionNumber, 0);
+    }
+
+    /**
+     * Creates a new VersionId
+     *
+     * @param versionNumber the version number, must be greater than 0
+     * @param zeroPaddingWidth the width of zero-padding, or 0 if the version is not zero-padded
+     */
     public VersionId(long versionNumber, int zeroPaddingWidth) {
         this.versionNumber = Enforce.expressionTrue(versionNumber > 0, versionNumber, "versionNumber must be greater than 0");
         this.zeroPaddingWidth = Enforce.expressionTrue(zeroPaddingWidth >= 0, zeroPaddingWidth, "zeroPaddingWidth must be greater than or equal to 0");

@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.model;
 
+import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 

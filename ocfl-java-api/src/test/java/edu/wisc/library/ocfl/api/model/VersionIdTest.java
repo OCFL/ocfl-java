@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.model;
+package edu.wisc.library.ocfl.api.model;
 
 import org.junit.jupiter.api.Test;
 
