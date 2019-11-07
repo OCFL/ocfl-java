@@ -415,7 +415,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             var result = files.filter(Files::isDirectory)
                     .map(Path::getFileName).map(Path::toString)
                     .filter(RevisionId::isRevisionId)
-                    .map(RevisionId::fromValue)
+                    .map(RevisionId::fromString)
                     .max(Comparator.naturalOrder());
             if (result.isEmpty()) {
                 return null;

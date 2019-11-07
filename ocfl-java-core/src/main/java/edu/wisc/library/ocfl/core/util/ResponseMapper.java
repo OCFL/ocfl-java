@@ -19,10 +19,10 @@ public class ResponseMapper {
     public ObjectDetails mapInventory(Inventory inventory, Path objectRootPath) {
         var details = new ObjectDetails()
                 .setId(inventory.getId())
-                .setHeadVersionId(inventory.getHead().toString());
+                .setHeadVersionId(inventory.getHead());
 
         var versionMap = inventory.getVersions().entrySet().stream()
-                .map(entry -> mapVersion(inventory, entry.getKey().toString(), entry.getValue(), objectRootPath))
+                .map(entry -> mapVersion(inventory, entry.getKey(), entry.getValue(), objectRootPath))
                 .collect(Collectors.toMap(VersionDetails::getVersionId, Function.identity()));
 
         details.setVersions(versionMap);
@@ -30,7 +30,7 @@ public class ResponseMapper {
         return details;
     }
 
-    public VersionDetails mapVersion(Inventory inventory, String versionId, Version version, Path objectRootPath) {
+    public VersionDetails mapVersion(Inventory inventory, VersionId versionId, Version version, Path objectRootPath) {
         var details = new VersionDetails()
                 .setObjectId(inventory.getId())
                 .setVersionId(versionId)

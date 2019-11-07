@@ -4,7 +4,7 @@ import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
-import edu.wisc.library.ocfl.api.model.ObjectId;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 
 import java.nio.file.Path;
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 public interface OcflRepository {
 
     /**
-     * Adds the object rooted at the given path to the OCFL repository under the given objectId. If their is an existing
+     * Adds the object rooted at the given path to the OCFL repository under the given objectVersionId. If their is an existing
      * object with the id, then a new version of the object is created.
      *
      * <p>It is important to note that the files present in the given path should comprise the entirety of the object. Files
@@ -33,15 +33,15 @@ public interface OcflRepository {
      * files will be moved instead. Warning: If an exception occurs and the new version is not created, the files that were
      * will be lost. This operation is more efficient but less safe than the default copy.
      *
-     * @param objectId the id to store the object under. If set to a specific version, then the update will only occur
+     * @param objectVersionId the id to store the object under. If set to a specific version, then the update will only occur
      *                 if this version matches the head object version in the repository.
      * @param path the path to the object content
      * @param commitInfo information about the changes to the object. Can be null.
      * @param ocflOptions optional config options. Use {@code OcflOption.MOVE_SOURCE} to move files into the repo instead of copying.
-     * @return The objectId and version of the new object version
+     * @return The objectVersionId and version of the new object version
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectId putObject(ObjectId objectId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions);
+    ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions);
 
     /**
      * Updates an existing object OR create a new object by selectively adding, removing, moving files within the object,
@@ -51,44 +51,44 @@ public interface OcflRepository {
      * <p>If the current HEAD version of the object does not match the version specified in the request, the update will
      * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
      *
-     * @param objectId the id of the object. If set to a specific version, then the update will only occur
+     * @param objectVersionId the id of the object. If set to a specific version, then the update will only occur
      *                 if this version matches the head object version in the repository.
      * @param commitInfo information about the changes to the object. Can be null.
      * @param objectUpdater code block within which updates to an object may be made
-     * @return The objectId and version of the new object version
-     * @throws NotFoundException when no object can be found for the specified objectId
+     * @return The objectVersionId and version of the new object version
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectId updateObject(ObjectId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
+    ObjectVersionId updateObject(ObjectVersionId objectVersionId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
     /**
      * Returns the entire contents of the object at the specified version. The outputPath MUST exist, MUST be a directory,
      * and SHOULD be empty. The contents of outputPath will be overwritten.
      *
-     * @param objectId the id and version of an object to retrieve
+     * @param objectVersionId the id and version of an object to retrieve
      * @param outputPath the directory to write the object files to
-     * @throws NotFoundException when no object can be found for the specified objectId
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
-    void getObject(ObjectId objectId, Path outputPath);
+    void getObject(ObjectVersionId objectVersionId, Path outputPath);
 
     /**
      * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the
      * logical file paths of all of the files in the specified version of the object.
      *
-     * @param objectId the id and version of an object to retrieve
+     * @param objectVersionId the id and version of an object to retrieve
      * @return a map of {@code OcflFileRetriever} objects keyed off the logical file paths of all of the files in the object
-     * @throws NotFoundException when no object can be found for the specified objectId
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
-    Map<String, OcflFileRetriever> getObjectStreams(ObjectId objectId);
+    Map<String, OcflFileRetriever> getObjectStreams(ObjectVersionId objectVersionId);
 
     /**
      * Opens an object to access individual files within the object without retrieving everything.
      *
-     * @param objectId the id and version of an object to retrieve
+     * @param objectVersionId the id and version of an object to retrieve
      * @param objectReader coe block within which object files can be accessed
-     * @throws NotFoundException when no object can be found for the specified objectId
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
-    void readObject(ObjectId objectId, Consumer<OcflObjectReader> objectReader);
+    void readObject(ObjectVersionId objectVersionId, Consumer<OcflObjectReader> objectReader);
 
     /**
      * Returns all of the details about an object and all of its versions.
@@ -102,11 +102,11 @@ public interface OcflRepository {
     /**
      * Returns the details about a specific version of an object.
      *
-     * @param objectId the id and version of the object to describe
+     * @param objectVersionId the id and version of the object to describe
      * @return details about the object version
-     * @throws NotFoundException when no object can be found for the specified objectId
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
-    VersionDetails describeVersion(ObjectId objectId);
+    VersionDetails describeVersion(ObjectVersionId objectVersionId);
 
     /**
      * Returns true if an object with the specified id exists in the repository.

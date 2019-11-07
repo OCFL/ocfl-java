@@ -9,7 +9,8 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
-import edu.wisc.library.ocfl.api.model.ObjectId;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.matcher.OcflMatchers;
@@ -75,19 +76,19 @@ public class FileSystemOcflITest {
         var outputPath2 = outputPath(repoName, objectId + "2");
         var outputPath3 = outputPath(repoName, objectId + "3");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
-        repo.putObject(ObjectId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
 
-        repo.getObject(ObjectId.head(objectId), outputPath1);
+        repo.getObject(ObjectVersionId.head(objectId), outputPath1);
         verifyDirectoryContentsSame(expectedOutputPath(repoName, "o1v3"), objectId, outputPath1);
 
-        repo.getObject(ObjectId.version(objectId, "v2"), outputPath2);
+        repo.getObject(ObjectVersionId.version(objectId, "v2"), outputPath2);
         verifyDirectoryContentsSame(sourcePathV2, outputPath2.getFileName().toString(), outputPath2);
 
-        repo.getObject(ObjectId.version(objectId, "v1"), outputPath3);
+        repo.getObject(ObjectVersionId.version(objectId, "v1"), outputPath3);
         verifyDirectoryContentsSame(sourcePathV1, outputPath3.getFileName().toString(), outputPath3);
     }
 
@@ -101,7 +102,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
 
@@ -117,7 +118,7 @@ public class FileSystemOcflITest {
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
         assertThat(assertThrows(IllegalStateException.class, () -> {
-            repo.putObject(ObjectId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
+            repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
         }).getMessage(), containsString("is closed"));
     }
 
@@ -136,27 +137,27 @@ public class FileSystemOcflITest {
         var outputPath2 = outputPath(repoName, objectId + "2");
         var outputPath3 = outputPath(repoName, objectId + "3");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3")
                     .renameFile("file1", "dir3/file1");
         });
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .writeFile(input(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         });
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
 
-        repo.getObject(ObjectId.head(objectId), outputPath1);
+        repo.getObject(ObjectVersionId.head(objectId), outputPath1);
         verifyDirectoryContentsSame(expectedOutputPath(repoName, "o2v3"), objectId, outputPath1);
 
-        repo.getObject(ObjectId.version(objectId, "v2"), outputPath2);
+        repo.getObject(ObjectVersionId.version(objectId, "v2"), outputPath2);
         verifyDirectoryContentsSame(expectedOutputPath(repoName, "o2v2"), outputPath2.getFileName().toString(), outputPath2);
 
-        repo.getObject(ObjectId.version(objectId, "v1"), outputPath3);
+        repo.getObject(ObjectVersionId.version(objectId, "v1"), outputPath3);
         verifyDirectoryContentsSame(expectedOutputPath(repoName, "o2v1"), outputPath3.getFileName().toString(), outputPath3);
     }
 
@@ -172,25 +173,25 @@ public class FileSystemOcflITest {
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
         var sourcePathV3 = sourceObjectPath(objectId, "v3");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
-        repo.putObject(ObjectId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
 
-        var files = repo.getObjectStreams(ObjectId.head(objectId));
+        var files = repo.getObjectStreams(ObjectVersionId.head(objectId));
         assertEquals(2, files.size());
         verifyStream(sourcePathV3.resolve("file2"), files.get("file2"));
         verifyStream(sourcePathV3.resolve("file4"), files.get("file4"));
 
-        files = repo.getObjectStreams(ObjectId.version(objectId, "v2"));
+        files = repo.getObjectStreams(ObjectVersionId.version(objectId, "v2"));
         assertEquals(3, files.size());
         verifyStream(sourcePathV2.resolve("file1"), files.get("file1"));
         verifyStream(sourcePathV2.resolve("file2"), files.get("file2"));
         verifyStream(sourcePathV2.resolve("dir1/file3"), files.get("dir1/file3"));
 
 
-        files = repo.getObjectStreams(ObjectId.version(objectId, "v1"));
+        files = repo.getObjectStreams(ObjectVersionId.version(objectId, "v1"));
         assertEquals(2, files.size());
         verifyStream(sourcePathV1.resolve("file1"), files.get("file1"));
         verifyStream(sourcePathV1.resolve("file2"), files.get("file2"));
@@ -207,10 +208,10 @@ public class FileSystemOcflITest {
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         assertThrows(UnsupportedOperationException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
                 updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
                         .addPath(sourcePathV2.resolve("file3"), "file3")
                         .renameFile("dir1/file2", "dir2/file3");
@@ -218,7 +219,7 @@ public class FileSystemOcflITest {
         });
 
         assertThrows(UnsupportedOperationException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
                 updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
                         .removeFile("dir1/file2");
             });
@@ -236,17 +237,17 @@ public class FileSystemOcflITest {
 
         var objectId = "o1";
 
-        repo.putObject(ObjectId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo.setMessage("1"));
-        repo.putObject(ObjectId.head(objectId), sourceObjectPath(objectId, "v2"), defaultCommitInfo.setMessage("2"));
-        repo.putObject(ObjectId.head(objectId), sourceObjectPath(objectId, "v3"), defaultCommitInfo.setMessage("3"));
+        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo.setMessage("1"));
+        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v2"), defaultCommitInfo.setMessage("2"));
+        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v3"), defaultCommitInfo.setMessage("3"));
 
         var objectDetails = repo.describeObject(objectId);
 
         assertEquals(objectId, objectDetails.getId());
-        assertEquals("v3", objectDetails.getHeadVersionId());
+        assertEquals(VersionId.fromString("v3"), objectDetails.getHeadVersionId());
         assertEquals(3, objectDetails.getVersions().size());
 
-        assertThat(objectDetails.getVersions().get("v1"), versionDetails(objectId, "v1",
+        assertThat(objectDetails.getVersions().get(VersionId.fromString("v1")), versionDetails(objectId, "v1",
                 OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "1"),
                 fileDetails("file1", "o1/v1/content/file1", Map.of(
                         "sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
@@ -256,7 +257,7 @@ public class FileSystemOcflITest {
                         "md5", "55c1824fcae2b1b51cef5037405fc1ad"))
         ));
 
-        assertThat(objectDetails.getVersions().get("v2"), versionDetails(objectId, "v2",
+        assertThat(objectDetails.getVersions().get(VersionId.fromString("v2")), versionDetails(objectId, "v2",
                 OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "2"),
                 fileDetails("file1", "o1/v2/content/file1", Map.of(
                         "sha512", "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
@@ -269,7 +270,7 @@ public class FileSystemOcflITest {
                         "md5", "72b6193fe19ec99c692eba5c798e6bdf"))
         ));
 
-        assertThat(objectDetails.getVersions().get("v3"), versionDetails(objectId, "v3",
+        assertThat(objectDetails.getVersions().get(VersionId.fromString("v3")), versionDetails(objectId, "v3",
                 OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "3"),
                 fileDetails("file2", "o1/v1/content/file2", Map.of(
                         "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
@@ -279,7 +280,7 @@ public class FileSystemOcflITest {
                         "md5", "a0a8bfbf51b81caf7aa5be00f5e26669"))
         ));
 
-        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersions().get("v3"));
+        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersions().get(VersionId.fromString("v3")));
     }
 
     @Test
@@ -290,7 +291,7 @@ public class FileSystemOcflITest {
 
         var objectId = "o2";
 
-        repo.readObject(ObjectId.head(objectId), reader -> {
+        repo.readObject(ObjectVersionId.head(objectId), reader -> {
             assertThat(reader.describeVersion(), versionDetails(objectId, "v3",
                     OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "3"),
                     fileDetails("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
@@ -305,8 +306,8 @@ public class FileSystemOcflITest {
             assertEquals("This is a different file 3", ITestHelper.inputToString(in));
         });
 
-        repo.readObject(ObjectId.version(objectId, "v1"), reader -> {
-            assertEquals("v1", reader.describeVersion().getVersionId());
+        repo.readObject(ObjectVersionId.version(objectId, "v1"), reader -> {
+            assertEquals(VersionId.fromString("v1"), reader.describeVersion().getVersionId());
 
             var files = reader.listFiles();
             assertThat(files, containsInAnyOrder("dir1/dir2/file2", "file1"));
@@ -327,7 +328,7 @@ public class FileSystemOcflITest {
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
 
-        repo.putObject(ObjectId.head(objectId), empty, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), empty, defaultCommitInfo);
 
         var details = repo.describeObject(objectId);
 
@@ -336,7 +337,7 @@ public class FileSystemOcflITest {
 
         var outputPath = outputPath(repoName, objectId);
 
-        repo.getObject(ObjectId.head(objectId), outputPath);
+        repo.getObject(ObjectVersionId.head(objectId), outputPath);
 
         assertEquals(0, outputPath.toFile().list().length);
     }
@@ -349,16 +350,16 @@ public class FileSystemOcflITest {
 
         var objectId = "o2";
 
-        repo.putObject(ObjectId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo);
 
-        repo.readObject(ObjectId.head(objectId), reader -> {
+        repo.readObject(ObjectVersionId.head(objectId), reader -> {
             repo.updateObject(reader.describeVersion().getObjectVersionId(), defaultCommitInfo.setMessage("delete content"), updater -> {
                 reader.listFiles().forEach(updater::removeFile);
             });
         });
 
         var outputPath = outputPath(repoName, objectId);
-        repo.getObject(ObjectId.head(objectId), outputPath);
+        repo.getObject(ObjectVersionId.head(objectId), outputPath);
         assertEquals(0, outputPath.toFile().list().length);
     }
 
@@ -370,7 +371,7 @@ public class FileSystemOcflITest {
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
 
-        assertThrows(IllegalArgumentException.class, () -> repo.putObject(ObjectId.head(".."), empty, defaultCommitInfo));
+        assertThrows(IllegalArgumentException.class, () -> repo.putObject(ObjectVersionId.head(".."), empty, defaultCommitInfo));
     }
 
     @Test
@@ -379,7 +380,7 @@ public class FileSystemOcflITest {
         var repoDir = expectedRepoPath(repoName);
         var repo = defaultRepo(repoDir);
 
-        assertThrows(NotFoundException.class, () -> repo.getObject(ObjectId.head("bogus"), outputPath(repoName, "bogus")));
+        assertThrows(NotFoundException.class, () -> repo.getObject(ObjectVersionId.head("bogus"), outputPath(repoName, "bogus")));
     }
 
     @Test
@@ -390,7 +391,7 @@ public class FileSystemOcflITest {
 
         var objectId = "o2";
 
-        assertThrows(NotFoundException.class, () -> repo.getObject(ObjectId.version(objectId, "v100"), outputPath(repoName, objectId)));
+        assertThrows(NotFoundException.class, () -> repo.getObject(ObjectVersionId.version(objectId, "v100"), outputPath(repoName, objectId)));
     }
 
     @Test
@@ -405,14 +406,14 @@ public class FileSystemOcflITest {
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
         var sourcePathV3 = sourceObjectPath(objectId, "v3");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        repo.updateObject(ObjectId.version(objectId, "v1"), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultCommitInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3")
                     .renameFile("file1", "dir3/file1");
         });
 
-        repo.updateObject(ObjectId.version(objectId, "v2"), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.version(objectId, "v2"), defaultCommitInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .writeFile(input(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         });
@@ -432,14 +433,14 @@ public class FileSystemOcflITest {
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
         var sourcePathV3 = sourceObjectPath(objectId, "v3");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        repo.updateObject(ObjectId.version(objectId, "v1"), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultCommitInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3")
                     .renameFile("file1", "dir3/file1");
         });
 
-        assertThrows(ObjectOutOfSyncException.class, () -> repo.updateObject(ObjectId.version(objectId, "v1"), defaultCommitInfo.setMessage("3"), updater -> {
+        assertThrows(ObjectOutOfSyncException.class, () -> repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultCommitInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .writeFile(input(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         }));
@@ -453,8 +454,8 @@ public class FileSystemOcflITest {
 
         var objectId = "o1";
 
-        repo.putObject(ObjectId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo.setMessage("1"));
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo.setMessage("1"));
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
             // no op
         });
 
@@ -485,7 +486,7 @@ public class FileSystemOcflITest {
         var repoDir = sourceRepoPath(repoName);
         var repo = defaultRepo(repoDir);
 
-        assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectId.head("o1"), outputPath(repoName, "blah")));
+        assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectVersionId.head("o1"), outputPath(repoName, "blah")));
     }
 
     @Test
@@ -507,7 +508,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         // Which duplicate file that's preserved is non-deterministic
         var expectedPaths = ITestHelper.listAllPaths(expectedRepoPath(repoName));
@@ -527,7 +528,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
@@ -544,7 +545,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
@@ -561,7 +562,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
@@ -576,16 +577,16 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("test".getBytes()), "/absolute/path/file3");
             });
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("test".getBytes()), "relative/../../path/file3");
             });
         });
@@ -601,12 +602,12 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
             updater.removeFile("file3");
         });
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
-            updater.reinstateFile("v1", "file3", "file3");
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.reinstateFile(VersionId.fromString("v1"), "file3", "file3");
         });
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
@@ -622,9 +623,9 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
-            updater.reinstateFile("v1", "file2", "file1");
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.reinstateFile(VersionId.fromString("v1"), "file2", "file1");
         });
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
@@ -640,11 +641,11 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         assertThrows(IllegalStateException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
-                updater.reinstateFile("v3", "file2", "file1");
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+                updater.reinstateFile(VersionId.fromString("v3"), "file2", "file1");
             });
         });
     }
@@ -659,11 +660,11 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
-                updater.reinstateFile("v1", "file4", "file1");
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+                updater.reinstateFile(VersionId.fromString("v1"), "file4", "file1");
             });
         });
     }
@@ -678,7 +679,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         repo.purgeObject(objectId);
 
@@ -699,7 +700,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
         repo.purgeObject("o4");
 
@@ -720,7 +721,7 @@ public class FileSystemOcflITest {
 
         var sourcePath = sourceObjectPath(objectId, "v2");
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
             updater.addPath(sourcePath.resolve("file2"), "file2")
                     .addPath(sourcePath.resolve("file3"), "file3");
         });
@@ -738,7 +739,7 @@ public class FileSystemOcflITest {
 
         var sourcePath = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectId.head(objectId), sourcePath, defaultCommitInfo.setMessage("1"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePath, defaultCommitInfo.setMessage("1"));
 
         assertTrue(repo.containsObject(objectId));
         assertFalse(repo.containsObject("o4"));
@@ -756,9 +757,9 @@ public class FileSystemOcflITest {
         var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
         var sourcePathV3 = copyDir(sourceObjectPath(objectId, "v3"), inputDir.resolve("v3"));
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo, OcflOption.MOVE_SOURCE);
-        repo.putObject(ObjectId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"), OcflOption.MOVE_SOURCE);
-        repo.putObject(ObjectId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"), OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo, OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"), OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"), OcflOption.MOVE_SOURCE);
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
         assertFalse(Files.exists(sourcePathV1));
@@ -778,14 +779,14 @@ public class FileSystemOcflITest {
         var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
         var sourcePathV3 = copyDir(sourceObjectPath(objectId, "v3"), inputDir.resolve("v3"));
 
-        repo.putObject(ObjectId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3", OcflOption.MOVE_SOURCE)
                     .renameFile("file1", "dir3/file1");
         });
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .addPath(sourcePathV3.resolve("dir1"), "dir1", OcflOption.MOVE_SOURCE);
         });
@@ -806,10 +807,10 @@ public class FileSystemOcflITest {
         var sourcePathV1 = copyDir(sourceObjectPath(objectId, "v1"), inputDir.resolve("v1"));
         var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
             updater.addPath(sourcePathV1, "sub", OcflOption.MOVE_SOURCE);
         });
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
             updater.addPath(sourcePathV2, "sub", OcflOption.MOVE_SOURCE);
         });
 
@@ -827,7 +828,7 @@ public class FileSystemOcflITest {
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
         assertThrows(IllegalArgumentException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
                 updater.addPath(sourcePathV1.resolve("file1"), "");
             });
         });
@@ -843,7 +844,7 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
             updater.addPath(sourcePathV1, "");
         });
 
@@ -860,7 +861,7 @@ public class FileSystemOcflITest {
 
         var sourcePath = sourceObjectPath(objectId, "v1");
 
-        repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
             updater.writeFile(
                     new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5.getJavaStandardName(), "95efdf0764d92207b4698025f2518456"),
                     "file1");
@@ -880,7 +881,7 @@ public class FileSystemOcflITest {
         var sourcePath = sourceObjectPath(objectId, "v1");
 
         assertThrows(FixityCheckException.class, () -> {
-            repo.updateObject(ObjectId.head(objectId), defaultCommitInfo, updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
                 updater.writeFile(
                         new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5.getJavaStandardName(), "bogus"),
                         "file1");

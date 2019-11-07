@@ -35,7 +35,7 @@ public class InventoryMapperTest {
     @Test
     public void shouldRoundTripMutableHeadInventory() throws IOException {
         var original = readFile("simple-inventory.json");
-        var revision = RevisionId.fromValue("r2");
+        var revision = RevisionId.fromString("r2");
         var inventory = mapper.readMutableHead(revision, new ByteArrayInputStream(original.getBytes()));
         assertTrue(inventory.hasMutableHead());
         assertEquals(revision, inventory.getRevisionId());

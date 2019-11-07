@@ -8,8 +8,8 @@ import java.util.Map;
 public class ObjectDetails {
 
     private String id;
-    private String headVersionId;
-    private Map<String, VersionDetails> versions;
+    private VersionId headVersionId;
+    private Map<VersionId, VersionDetails> versions;
 
     /**
      * The version details of the head version of the object
@@ -33,11 +33,11 @@ public class ObjectDetails {
     /**
      * The version id of the head version of the object
      */
-    public String getHeadVersionId() {
+    public VersionId getHeadVersionId() {
         return headVersionId;
     }
 
-    public ObjectDetails setHeadVersionId(String headVersionId) {
+    public ObjectDetails setHeadVersionId(VersionId headVersionId) {
         this.headVersionId = headVersionId;
         return this;
     }
@@ -45,11 +45,11 @@ public class ObjectDetails {
     /**
      * Map of version id to version details for all of the versions of the object.
      */
-    public Map<String, VersionDetails> getVersions() {
+    public Map<VersionId, VersionDetails> getVersions() {
         return versions;
     }
 
-    public ObjectDetails setVersions(Map<String, VersionDetails> versions) {
+    public ObjectDetails setVersions(Map<VersionId, VersionDetails> versions) {
         this.versions = versions;
         return this;
     }

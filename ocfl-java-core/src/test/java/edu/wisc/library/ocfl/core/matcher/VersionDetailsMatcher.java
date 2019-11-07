@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core.matcher;
 
 import edu.wisc.library.ocfl.api.model.FileDetails;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
+import edu.wisc.library.ocfl.api.model.VersionId;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -14,13 +15,13 @@ import java.util.Objects;
 public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
 
     private String objectId;
-    private String versionId;
+    private VersionId versionId;
     private CommitInfoMatcher commitInfoMatcher;
     private Collection<Matcher<FileDetails>> fileDetailsMatchers;
 
     VersionDetailsMatcher(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
         this.objectId = objectId;
-        this.versionId = versionId;
+        this.versionId = VersionId.fromString(versionId);
         this.commitInfoMatcher = commitInfoMatcher;
         this.fileDetailsMatchers = Arrays.asList(fileDetailsMatchers);
     }

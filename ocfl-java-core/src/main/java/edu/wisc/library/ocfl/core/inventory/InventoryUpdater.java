@@ -57,7 +57,7 @@ public final class InventoryUpdater {
                 .contentDirectory(contentDirectory);
 
         var versionBuilder = new VersionBuilder().created(createdTimestamp);
-        return new InventoryUpdater(VersionId.fromValue(OcflConstants.DEFAULT_INITIAL_VERSION_ID),
+        return new InventoryUpdater(VersionId.fromString(OcflConstants.DEFAULT_INITIAL_VERSION_ID),
                 null, inventoryBuilder, versionBuilder, fixityAlgorithms);
     }
 

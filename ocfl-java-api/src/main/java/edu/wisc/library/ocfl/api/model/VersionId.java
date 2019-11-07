@@ -27,7 +27,7 @@ public class VersionId implements Comparable<VersionId> {
      * @return
      */
     @JsonCreator
-    public static VersionId fromValue(String value) {
+    public static VersionId fromString(String value) {
         if (!VALID_VERSION.matcher(value).matches()) {
             throw new IllegalArgumentException("Invalid VersionId: " + value);
         }

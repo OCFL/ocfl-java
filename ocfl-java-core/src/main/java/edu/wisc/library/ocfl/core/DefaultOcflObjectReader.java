@@ -55,7 +55,7 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
     public VersionDetails describeVersion() {
         if (versionDetails == null) {
             var objectRootPath = Paths.get(storage.objectRootPath(inventory.getId()));
-            versionDetails = responseMapper.mapVersion(inventory, versionId.toString(), version, objectRootPath);
+            versionDetails = responseMapper.mapVersion(inventory, versionId, version, objectRootPath);
         }
         return versionDetails;
     }

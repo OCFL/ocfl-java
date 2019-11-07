@@ -168,14 +168,14 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      * {@inheritDoc}
      */
     @Override
-    public OcflObjectUpdater reinstateFile(String sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
-        Enforce.notBlank(sourceVersionId, "sourceVersionId cannot be blank");
+    public OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+        Enforce.notNull(sourceVersionId, "sourceVersionId cannot be null");
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
         var normalizedDestination = normalizeDestinationPath(destinationPath).toString();
 
-        inventoryUpdater.reinstateFile(VersionId.fromValue(sourceVersionId), sourcePath, normalizedDestination, ocflOptions);
+        inventoryUpdater.reinstateFile(sourceVersionId, sourcePath, normalizedDestination, ocflOptions);
 
         return this;
     }

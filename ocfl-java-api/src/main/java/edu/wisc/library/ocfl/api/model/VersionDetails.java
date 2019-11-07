@@ -9,7 +9,7 @@ import java.util.Collection;
 public class VersionDetails {
 
     private String objectId;
-    private String versionId;
+    private VersionId versionId;
     private OffsetDateTime created;
     private CommitInfo commitInfo;
     private Collection<FileDetails> files;
@@ -17,8 +17,8 @@ public class VersionDetails {
     /**
      * The ObjectId of the version
      */
-    public ObjectId getObjectVersionId() {
-        return ObjectId.version(objectId, versionId);
+    public ObjectVersionId getObjectVersionId() {
+        return ObjectVersionId.version(objectId, versionId);
     }
 
     /**
@@ -36,11 +36,11 @@ public class VersionDetails {
     /**
      * The version id
      */
-    public String getVersionId() {
+    public VersionId getVersionId() {
         return versionId;
     }
 
-    public VersionDetails setVersionId(String versionId) {
+    public VersionDetails setVersionId(VersionId versionId) {
         this.versionId = versionId;
         return this;
     }

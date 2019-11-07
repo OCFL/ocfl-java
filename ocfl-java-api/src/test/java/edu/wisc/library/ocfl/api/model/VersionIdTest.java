@@ -9,39 +9,39 @@ public class VersionIdTest {
 
     @Test
     public void shouldCreateVersionWhenValidNoPadding() {
-        var versionId = VersionId.fromValue("v3");
+        var versionId = VersionId.fromString("v3");
         assertEquals("v3", versionId.toString());
     }
 
     @Test
     public void shouldCreateVersionWhenValidWithPadding() {
-        var versionId = VersionId.fromValue("v004");
+        var versionId = VersionId.fromString("v004");
         assertEquals("v004", versionId.toString());
     }
 
     @Test
     public void shouldFailWhenNoLeadingV() {
-        assertThrows(IllegalArgumentException.class, () -> VersionId.fromValue("1"));
+        assertThrows(IllegalArgumentException.class, () -> VersionId.fromString("1"));
     }
 
     @Test
     public void shouldFailWhenZero() {
-        assertThrows(IllegalArgumentException.class, () -> VersionId.fromValue("v0"));
+        assertThrows(IllegalArgumentException.class, () -> VersionId.fromString("v0"));
     }
 
     @Test
     public void shouldFailWhenMultipleZeros() {
-        assertThrows(IllegalArgumentException.class, () -> VersionId.fromValue("v00"));
+        assertThrows(IllegalArgumentException.class, () -> VersionId.fromString("v00"));
     }
 
     @Test
     public void shouldFailWhenHasExtraChars() {
-        assertThrows(IllegalArgumentException.class, () -> VersionId.fromValue("v1.2"));
+        assertThrows(IllegalArgumentException.class, () -> VersionId.fromString("v1.2"));
     }
 
     @Test
     public void shouldIncrementVersionWhenNoPadding() {
-        var versionId = VersionId.fromValue("v3");
+        var versionId = VersionId.fromString("v3");
         var nextVersion = versionId.nextVersionId();
         assertEquals("v3", versionId.toString());
         assertEquals("v4", nextVersion.toString());
@@ -49,7 +49,7 @@ public class VersionIdTest {
 
     @Test
     public void shouldIncrementVersionWhenHasPadding() {
-        var versionId = VersionId.fromValue("v03");
+        var versionId = VersionId.fromString("v03");
         var nextVersion = versionId.nextVersionId();
         assertEquals("v03", versionId.toString());
         assertEquals("v04", nextVersion.toString());
@@ -57,7 +57,7 @@ public class VersionIdTest {
 
     @Test
     public void shouldDecrementVersionWhenNoPadding() {
-        var versionId = VersionId.fromValue("v3");
+        var versionId = VersionId.fromString("v3");
         var previousVersion = versionId.previousVersionId();
         assertEquals("v3", versionId.toString());
         assertEquals("v2", previousVersion.toString());
@@ -65,7 +65,7 @@ public class VersionIdTest {
 
     @Test
     public void shouldDecrementVersionWhenHasPadding() {
-        var versionId = VersionId.fromValue("v03");
+        var versionId = VersionId.fromString("v03");
         var previousVersion = versionId.previousVersionId();
         assertEquals("v03", versionId.toString());
         assertEquals("v02", previousVersion.toString());
@@ -73,13 +73,13 @@ public class VersionIdTest {
 
     @Test
     public void shouldFailDecrementWhenPreviousVersion0() {
-        var versionId = VersionId.fromValue("v1");
+        var versionId = VersionId.fromString("v1");
         assertThrows(IllegalStateException.class, versionId::previousVersionId);
     }
 
     @Test
     public void shouldFailIncrementWhenNextVersionIsIllegalPaddedNumber() {
-        var versionId = VersionId.fromValue("v09");
+        var versionId = VersionId.fromString("v09");
         assertThrows(IllegalStateException.class, versionId::nextVersionId);
     }
 

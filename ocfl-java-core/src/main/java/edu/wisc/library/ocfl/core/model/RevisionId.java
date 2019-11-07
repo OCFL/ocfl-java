@@ -20,7 +20,7 @@ public class RevisionId implements Comparable<RevisionId> {
         return VALID_REVISION.matcher(value).matches();
     }
 
-    public static RevisionId fromValue(String value) {
+    public static RevisionId fromString(String value) {
         if (!VALID_REVISION.matcher(value).matches()) {
             throw new IllegalArgumentException("Invalid RevisionId: " + value);
         }

@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
+import edu.wisc.library.ocfl.api.model.VersionId;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -80,7 +81,7 @@ public interface OcflObjectUpdater {
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
      *                            not specified
      */
-    OcflObjectUpdater reinstateFile(String sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions);
+    OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions);
 
     // TODO add api for purging a file in an object
 
