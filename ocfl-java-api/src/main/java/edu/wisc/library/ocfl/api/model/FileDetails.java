@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class FileDetails {
 
-    private String objectRelativePath;
+    private String path;
     private String storageRelativePath;
     private Map<String, String> fixity;
 
@@ -19,19 +19,23 @@ public class FileDetails {
     }
 
     /**
-     * The file's path relative to the object root
+     * The file's logical path within the object
+     *
+     * @return logical path
      */
-    public String getObjectRelativePath() {
-        return objectRelativePath;
+    public String getPath() {
+        return path;
     }
 
-    public FileDetails setObjectRelativePath(String objectRelativePath) {
-        this.objectRelativePath = objectRelativePath;
+    public FileDetails setPath(String path) {
+        this.path = path;
         return this;
     }
 
     /**
      * The file's path relative to the storage root
+     *
+     * @return storage relative path
      */
     public String getStorageRelativePath() {
         return storageRelativePath;
@@ -44,6 +48,8 @@ public class FileDetails {
 
     /**
      * Map of digest algorithm to digest value.
+     *
+     * @return digest map
      */
     public Map<String, String> getFixity() {
         return fixity;
@@ -64,7 +70,7 @@ public class FileDetails {
     @Override
     public String toString() {
         return "FileDetails{" +
-                "objectRelativePath='" + objectRelativePath + '\'' +
+                "path='" + path + '\'' +
                 "storageRelativePath='" + storageRelativePath + '\'' +
                 ", fixity=" + fixity +
                 '}';

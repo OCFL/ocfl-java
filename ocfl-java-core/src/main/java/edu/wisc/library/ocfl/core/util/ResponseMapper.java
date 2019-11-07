@@ -5,9 +5,8 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,7 +34,7 @@ public class ResponseMapper {
                 .setObjectId(inventory.getId())
                 .setVersionId(versionId)
                 .setCreated(version.getCreated())
-                .setFiles(mapFileDetails(inventory, version, objectRootPath));
+                .setFileMap(mapFileDetails(inventory, version, objectRootPath));
 
         var commitInfo = new CommitInfo().setMessage(version.getMessage());
 
@@ -51,8 +50,8 @@ public class ResponseMapper {
     }
 
     // TODO this isn't very efficient
-    private Collection<FileDetails> mapFileDetails(Inventory inventory, Version version, Path objectRootPath) {
-        var fileDetails = new ArrayList<FileDetails>();
+    private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version, Path objectRootPath) {
+        var fileDetailsMap = new HashMap<String, FileDetails>();
         var fileFixityMap = new HashMap<String, FileDetails>();
 
         var digestAlgorithm = inventory.getDigestAlgorithm();
@@ -60,11 +59,11 @@ public class ResponseMapper {
         version.getState().forEach((digest, paths) -> {
             paths.forEach(path -> {
                 var details = new FileDetails()
-                        .setObjectRelativePath(path)
+                        .setPath(path)
                         .setStorageRelativePath(objectRootPath.resolve(inventory.getFilePath(digest)).toString())
                         .addDigest(digestAlgorithm.getOcflName(), digest);
                 fileFixityMap.put(digest, details);
-                fileDetails.add(details);
+                fileDetailsMap.put(path, details);
             });
         });
 
@@ -81,7 +80,7 @@ public class ResponseMapper {
             }
         });
 
-        return fileDetails;
+        return fileDetailsMap;
     }
 
 }

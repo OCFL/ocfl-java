@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Primary implementation of the OcflRepository API. It is storage agnostic. It is typically instantiated using
@@ -172,6 +173,33 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
+    public OcflObjectVersion getObject(ObjectVersionId objectVersionId) {
+        ensureOpen();
+
+        Enforce.notNull(objectVersionId, "objectId cannot be null");
+
+        var inventory = requireInventory(objectVersionId);
+        requireVersion(objectVersionId, inventory);
+        var versionId = resolveVersion(objectVersionId, inventory);
+
+        var versionDetails = createVersionDetails(inventory, versionId);
+        var objectStreams = storage.getObjectStreams(inventory, versionId);
+
+        var files = versionDetails.getFiles().stream()
+                .map(file -> {
+                    return new OcflObjectVersionFile(file, objectStreams.get(file.getPath()));
+                })
+                .collect(Collectors.toMap(OcflObjectVersionFile::getPath, v -> v));
+
+        versionDetails.setFileMap(null);
+
+        return new OcflObjectVersion(versionDetails, files);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Map<String, OcflFileRetriever> getObjectStreams(ObjectVersionId objectVersionId) {
         ensureOpen();
 
@@ -236,11 +264,9 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         var inventory = requireInventory(objectVersionId);
         requireVersion(objectVersionId, inventory);
+        var versionId = resolveVersion(objectVersionId, inventory);
 
-        var version = inventory.getVersion(objectVersionId.getVersionId());
-        var objectRootPath = Paths.get(storage.objectRootPath(objectVersionId.getObjectId()));
-
-        return responseMapper.mapVersion(inventory, objectVersionId.getVersionId(), version, objectRootPath);
+        return createVersionDetails(inventory, versionId);
     }
 
     /**
@@ -565,6 +591,13 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         var newRevision = inventory.getRevisionId() == null ?
                 new RevisionId(1) : inventory.getRevisionId().nextRevisionId();
         return contentDir.resolve(newRevision.toString());
+    }
+
+    private VersionDetails createVersionDetails(Inventory inventory, VersionId versionId) {
+        var version = inventory.getVersion(versionId);
+        var objectRootPath = Paths.get(storage.objectRootPath(inventory.getId()));
+
+        return responseMapper.mapVersion(inventory, versionId, version, objectRootPath);
     }
 
     private OffsetDateTime now() {

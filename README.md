@@ -38,19 +38,17 @@ var repo = new OcflRepositoryBuilder().build(
                 .withDefaultCaffeineCache().buildDefaultPairTreeMapper()),
         workDir);
 
-repo.putObject(ObjectId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
-repo.getObject(ObjectId.head("o1"), Paths.get("object-in-dir"));
+repo.putObject(ObjectVersionId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
+repo.getObject(ObjectVersionId.head("o1"), Paths.get("object-in-dir"));
 
-repo.updateObject(ObjectId.head("o1"), new CommitInfo().setMessage("update"), updater -> {
+repo.updateObject(ObjectVersionId.head("o1"), new CommitInfo().setMessage("update"), updater -> {
     updater.addPath(Paths.get("path-to-file2"), "file2")
             .removeFile("file1")
             .addPath(Paths.get("path-to-file3"), "dir1/file3");
 });
 
-repo.readObject(ObjectId.version("o1", "v1"), reader -> {
-    reader.listFiles();
-    reader.getFile("path", Paths.get("destination"));
-});
+// Contains object details and lazy-load resource handles
+var objectVersion = repo.getObject(ObjectVersionId.version("o1", "v1"));
 ```
 
 ## Extension Points

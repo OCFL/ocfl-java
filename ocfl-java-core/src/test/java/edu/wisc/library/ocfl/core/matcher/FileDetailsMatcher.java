@@ -21,7 +21,7 @@ public class FileDetailsMatcher extends TypeSafeMatcher<FileDetails> {
 
     @Override
     protected boolean matchesSafely(FileDetails item) {
-        return Objects.equals(filePath, item.getObjectRelativePath())
+        return Objects.equals(filePath, item.getPath())
                 && Objects.equals(storagePath, item.getStorageRelativePath())
                 && Objects.equals(fixity, item.getFixity());
     }

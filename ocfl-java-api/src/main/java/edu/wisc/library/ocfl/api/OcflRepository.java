@@ -72,6 +72,15 @@ public interface OcflRepository {
     void getObject(ObjectVersionId objectVersionId, Path outputPath);
 
     /**
+     * Returns the details about a specific version of an object along with lazy-loading handles to all of the files in
+     * the object.
+     *
+     * @param objectVersionId the id and version of an object to retrieve
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
+     */
+    OcflObjectVersion getObject(ObjectVersionId objectVersionId);
+
+    /**
      * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the
      * logical file paths of all of the files in the specified version of the object.
      *
@@ -79,6 +88,7 @@ public interface OcflRepository {
      * @return a map of {@code OcflFileRetriever} objects keyed off the logical file paths of all of the files in the object
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
+    @Deprecated
     Map<String, OcflFileRetriever> getObjectStreams(ObjectVersionId objectVersionId);
 
     /**
@@ -88,6 +98,7 @@ public interface OcflRepository {
      * @param objectReader coe block within which object files can be accessed
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
+    @Deprecated
     void readObject(ObjectVersionId objectVersionId, Consumer<OcflObjectReader> objectReader);
 
     /**

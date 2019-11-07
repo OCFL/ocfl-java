@@ -13,7 +13,6 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
-import edu.wisc.library.ocfl.core.matcher.OcflMatchers;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
@@ -32,8 +31,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
-import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.fileDetails;
-import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.versionDetails;
+import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.commitInfo;
+import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -58,7 +57,7 @@ public class FileSystemOcflITest {
         inputDir = Files.createDirectory(tempRoot.resolve("input"));
         workDir = Files.createDirectory(tempRoot.resolve("work"));
 
-        defaultCommitInfo = commitInfo("Peter", "peter@example.com", "commit message");
+        defaultCommitInfo = ITestHelper.commitInfo("Peter", "peter@example.com", "commit message");
     }
 
     @Test
@@ -245,10 +244,10 @@ public class FileSystemOcflITest {
 
         assertEquals(objectId, objectDetails.getId());
         assertEquals(VersionId.fromString("v3"), objectDetails.getHeadVersionId());
-        assertEquals(3, objectDetails.getVersions().size());
+        assertEquals(3, objectDetails.getVersionMap().size());
 
-        assertThat(objectDetails.getVersions().get(VersionId.fromString("v1")), versionDetails(objectId, "v1",
-                OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "1"),
+        assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
+                commitInfo(defaultCommitInfo.getUser(), "1"),
                 fileDetails("file1", "o1/v1/content/file1", Map.of(
                         "sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
                         "md5", "95efdf0764d92207b4698025f2518456")),
@@ -257,8 +256,8 @@ public class FileSystemOcflITest {
                         "md5", "55c1824fcae2b1b51cef5037405fc1ad"))
         ));
 
-        assertThat(objectDetails.getVersions().get(VersionId.fromString("v2")), versionDetails(objectId, "v2",
-                OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "2"),
+        assertThat(objectDetails.getVersion(VersionId.fromString("v2")), versionDetails(objectId, "v2",
+                commitInfo(defaultCommitInfo.getUser(), "2"),
                 fileDetails("file1", "o1/v2/content/file1", Map.of(
                         "sha512", "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
                         "md5", "a0a8bfbf51b81caf7aa5be00f5e26669")),
@@ -270,8 +269,8 @@ public class FileSystemOcflITest {
                         "md5", "72b6193fe19ec99c692eba5c798e6bdf"))
         ));
 
-        assertThat(objectDetails.getVersions().get(VersionId.fromString("v3")), versionDetails(objectId, "v3",
-                OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "3"),
+        assertThat(objectDetails.getVersion(VersionId.fromString("v3")), versionDetails(objectId, "v3",
+                commitInfo(defaultCommitInfo.getUser(), "3"),
                 fileDetails("file2", "o1/v1/content/file2", Map.of(
                         "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
                         "md5", "55c1824fcae2b1b51cef5037405fc1ad")),
@@ -280,7 +279,7 @@ public class FileSystemOcflITest {
                         "md5", "a0a8bfbf51b81caf7aa5be00f5e26669"))
         ));
 
-        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersions().get(VersionId.fromString("v3")));
+        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersion(VersionId.fromString("v3")));
     }
 
     @Test
@@ -293,7 +292,7 @@ public class FileSystemOcflITest {
 
         repo.readObject(ObjectVersionId.head(objectId), reader -> {
             assertThat(reader.describeVersion(), versionDetails(objectId, "v3",
-                    OcflMatchers.commitInfo(defaultCommitInfo.getUser(), "3"),
+                    commitInfo(defaultCommitInfo.getUser(), "3"),
                     fileDetails("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
                             Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
                     fileDetails("dir1/file3", "o2/v3/content/dir1/file3",
@@ -319,6 +318,61 @@ public class FileSystemOcflITest {
     }
 
     @Test
+    public void getObjectFilesFromLazyLoadGetObject() {
+        var repoName = "repo4";
+        var repoDir = expectedRepoPath(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o2";
+
+        var objectVersion = repo.getObject(ObjectVersionId.head(objectId));
+
+        // TODO refactor if we decide to go with this API
+        assertEquals(objectId, objectVersion.getObjectId());
+        assertEquals(VersionId.fromString("v3"), objectVersion.getVersionId());
+        assertEquals(ObjectVersionId.version(objectId, "v3"), objectVersion.getObjectVersionId());
+        assertThat(objectVersion.getCommitInfo(), commitInfo(defaultCommitInfo.getUser(), "3"));
+        assertEquals(2, objectVersion.getFiles().size());
+
+        var file = objectVersion.getFile("dir1/dir2/file2");
+        assertEquals("dir1/dir2/file2", file.getPath());
+        assertEquals("o2/v1/content/dir1/dir2/file2", file.getStorageRelativePath());
+        assertEquals(Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6"),
+                file.getFixity());
+        assertEquals("Test file 2", ITestHelper.inputToString(file.getStream()));
+
+        file = objectVersion.getFile("dir1/file3");
+        assertEquals("dir1/file3", file.getPath());
+        assertEquals("o2/v3/content/dir1/file3", file.getStorageRelativePath());
+        assertEquals(Map.of("sha512", "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"),
+                file.getFixity());
+        assertEquals("This is a different file 3", ITestHelper.inputToString(file.getStream()));
+
+
+        objectVersion = repo.getObject(ObjectVersionId.version(objectId, "v1"));
+
+        assertEquals(objectId, objectVersion.getObjectId());
+        assertEquals(VersionId.fromString("v1"), objectVersion.getVersionId());
+        assertEquals(ObjectVersionId.version(objectId, "v1"), objectVersion.getObjectVersionId());
+        assertThat(objectVersion.getCommitInfo(), commitInfo(defaultCommitInfo.getUser(), defaultCommitInfo.getMessage()));
+        assertEquals(2, objectVersion.getFiles().size());
+
+        file = objectVersion.getFile("dir1/dir2/file2");
+        assertEquals("dir1/dir2/file2", file.getPath());
+        assertEquals("o2/v1/content/dir1/dir2/file2", file.getStorageRelativePath());
+        assertEquals(Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6"),
+                file.getFixity());
+        assertEquals("Test file 2", ITestHelper.inputToString(file.getStream()));
+
+        file = objectVersion.getFile("file1");
+        assertEquals("file1", file.getPath());
+        assertEquals("o2/v1/content/file1", file.getStorageRelativePath());
+        assertEquals(Map.of("sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e"),
+                file.getFixity());
+        assertEquals("Test file 1", ITestHelper.inputToString(file.getStream()));
+    }
+
+    @Test
     public void putObjectWithNoFiles() throws IOException {
         var repoName = "repo6";
         var repoDir = newRepoDir(repoName);
@@ -332,7 +386,7 @@ public class FileSystemOcflITest {
 
         var details = repo.describeObject(objectId);
 
-        assertEquals(1, details.getVersions().size());
+        assertEquals(1, details.getVersionMap().size());
         assertEquals(0, details.getHeadVersion().getFiles().size());
 
         var outputPath = outputPath(repoName, objectId);

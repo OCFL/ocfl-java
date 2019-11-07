@@ -100,7 +100,13 @@ public class ITestHelper {
     }
 
     public static String inputToString(InputStream inputStream) {
-        return new Scanner(inputStream).useDelimiter("\\A").next();
+        var string = new Scanner(inputStream).useDelimiter("\\A").next();
+        try {
+            inputStream.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return string;
     }
 
     public static void fixTime(OcflRepository repository, String timestamp) {
