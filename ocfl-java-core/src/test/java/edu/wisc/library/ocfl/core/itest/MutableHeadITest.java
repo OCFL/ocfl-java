@@ -177,7 +177,9 @@ public class MutableHeadITest {
 
     private MutableOcflRepository defaultRepo(Path repoDir) {
         var repo = new OcflRepositoryBuilder().prettyPrintJson().buildMutable(
-                new FileSystemOcflStorageBuilder().build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
+                new FileSystemOcflStorageBuilder()
+                        .checkNewVersionFixity(true)
+                        .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 workDir);
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;

@@ -4,6 +4,7 @@ import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.core.OcflConstants;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -11,7 +12,6 @@ import edu.wisc.library.ocfl.core.model.VersionId;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,7 +124,7 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void commitMutableHead(Inventory inventory, Path stagingDir) {
+    public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
 
     }
 

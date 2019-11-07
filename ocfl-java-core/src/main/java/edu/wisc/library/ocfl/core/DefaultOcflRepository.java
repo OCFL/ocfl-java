@@ -325,7 +325,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
             try {
                 objectLock.doInWriteLock(inventory.getId(), () -> {
                     try {
-                        storage.commitMutableHead(newInventory, stagingDir);
+                        storage.commitMutableHead(inventory, newInventory, stagingDir);
                         cacheInventory(newInventory);
                     } catch (ObjectOutOfSyncException e) {
                         inventoryCache.invalidate(inventory.getId());

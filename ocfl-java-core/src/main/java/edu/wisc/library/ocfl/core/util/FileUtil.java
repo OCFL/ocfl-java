@@ -183,5 +183,12 @@ public final class FileUtil {
         return new StandardCopyOption[] {};
     }
 
+    public static boolean hasChildren(Path path) {
+        if (Files.exists(path) && Files.isDirectory(path)) {
+            var list = path.toFile().list();
+            return list != null && list.length > 0;
+        }
+        return false;
+    }
 
 }

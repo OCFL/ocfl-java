@@ -93,10 +93,11 @@ public interface OcflStorage {
      *
      * <p>DefaultOcflRepository calls this method from a write lock.
      *
-     * @param inventory the deserialized object inventory
+     * @param oldInventory the deserialized inventory of the object BEFORE it was rewritten for the commit
+     * @param newInventory the deserialized inventory of the object AFTER it was rewritten for the commit
      * @param stagingDir the path to the staging directory that contains the inventory files
      */
-    void commitMutableHead(Inventory inventory, Path stagingDir);
+    void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir);
 
     /**
      * Permanently removes the mutable HEAD of an object. If the object does not have a mutable HEAD nothing happens.

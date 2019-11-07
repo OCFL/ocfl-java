@@ -45,8 +45,6 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private boolean checkNewVersionFixity;
 
-    // TODO revist how this object is constructed and configured
-
     /**
      * Creates a new FileSystemOcflStorage object. Its thread pool is size is set to the number of available processors,
      * and fixity checks are not performed when a version is moved into the object.
@@ -243,42 +241,55 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void commitMutableHead(Inventory inventory, Path stagingDir) {
+    public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
         ensureOpen();
 
-        var objectRootPath = objectRootPathFull(inventory.getId());
-        var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
+        var objectRootPath = objectRootPathFull(newInventory.getId());
+        var objectRoot = ObjectPaths.objectRoot(newInventory, objectRootPath);
 
-        ensureRootObjectHasNotChanged(inventory, objectRoot);
+        ensureRootObjectHasNotChanged(newInventory, objectRoot);
 
         if (!Files.exists(objectRoot.mutableHeadVersion().inventoryFile())) {
-            throw new ObjectOutOfSyncException(String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", inventory.getId()));
+            throw new ObjectOutOfSyncException(String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", newInventory.getId()));
         }
 
         var versionRoot = objectRoot.headVersion();
+        var stagingRoot = ObjectPaths.version(newInventory, stagingDir);
 
-        createVersionDirectory(inventory, versionRoot);
+        versionContentFixityCheck(oldInventory, objectRoot, objectRoot.mutableHeadVersion().contentPath());
+
+        createVersionDirectory(newInventory, versionRoot);
 
         try {
-            // TODO does moving this back in failure cases make sense?
-            // TODO should a copy be done instead?
-            // TODO should do the fixity check before moving
             FileUtil.moveDirectory(objectRoot.mutableHeadPath(), versionRoot.path());
-            versionContentFixityCheck(inventory, versionRoot.contentPath(), inventory.getHead().toString(), objectRoot.path());
 
-            // TODO make backup?
-            copyInventory(ObjectPaths.version(inventory, stagingDir), versionRoot);
-            FileUtil.deleteEmptyDirs(versionRoot.contentPath());
+            try {
+                copyInventoryToRootWithRollback(stagingRoot, objectRoot, newInventory);
+                // TODO this is still slightly dangerous if one file succeeds and the other fails...
+                copyInventory(stagingRoot, versionRoot);
+            } catch (RuntimeException e) {
+                try {
+                    FileUtil.moveDirectory(versionRoot.path(), objectRoot.mutableHeadPath());
+                } catch (RuntimeException e1) {
+                    LOG.error("Failed to move {} back to {}", versionRoot.path(), objectRoot.mutableHeadPath(), e1);
+                }
+                throw e;
+            }
 
-            copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
-            // TODO verify inventory integrity again?
-            // TODO failure conditions of this?
-            FileUtil.safeDeletePath(objectRoot.mutableHeadExtensionPath());
+            try {
+                // TODO need to decide how to handle empty revisions..
+                FileUtil.deleteEmptyDirs(versionRoot.contentPath());
+            } catch (RuntimeException e) {
+                // This does not fail the commit
+                LOG.error("Failed to delete an empty directory. It may need to be deleted manually.", e);
+            }
         } catch (RuntimeException e) {
-            // TODO this results in the loss of everything that was in the mutable HEAD...
             FileUtil.safeDeletePath(versionRoot.path());
             throw e;
         }
+
+        // TODO failure conditions of this?
+        FileUtil.safeDeletePath(objectRoot.mutableHeadExtensionPath());
     }
 
     /**
@@ -343,7 +354,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                     "repositoryRoot must be a directory");
         }
 
-        if (repositoryRoot.toFile().list().length == 0) {
+        if (!FileUtil.hasChildren(repositoryRoot)) {
             // setup new repo
             // TODO perhaps this should be moved somewhere else so it can be used by other storage implementations
             new NamasteTypeFile(ocflVersion).writeFile(repositoryRoot);
@@ -466,7 +477,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
             try {
                 FileUtil.moveDirectory(stagingDir, versionRoot.path());
-                versionContentFixityCheck(inventory, versionRoot.contentPath(), inventory.getHead().toString(), objectRoot.path());
+                optionalVersionContentFixityCheck(inventory, objectRoot, versionRoot.contentPath());
                 copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
                 // TODO verify inventory integrity again?
             } catch (RuntimeException e) {
@@ -486,7 +497,6 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         var versionRoot = objectRoot.headVersion();
         var revisionPath = versionRoot.contentRoot().headRevisionPath();
-
         var stagingVersionRoot = ObjectPaths.version(inventory, stagingDir);
 
         var isNewMutableHead = Files.notExists(versionRoot.inventoryFile());
@@ -494,19 +504,13 @@ public class FileSystemOcflStorage implements OcflStorage {
         try {
             createRevisionDirectory(inventory, versionRoot);
 
-            // TODO there's a little funniness in the ordering here...
             if (isNewMutableHead) {
-                var rootSidecar = objectRoot.inventorySidecar();
-                FileUtil.copy(rootSidecar,
-                        versionRoot.path().getParent().resolve("root-" + rootSidecar.getFileName().toString()),
-                        StandardCopyOption.REPLACE_EXISTING);
+                copyRootInventorySidecar(objectRoot, versionRoot);
             }
 
             try {
                 FileUtil.moveDirectory(stagingVersionRoot.contentRoot().headRevisionPath(), revisionPath);
-                versionContentFixityCheck(inventory, revisionPath, objectRoot.path().relativize(revisionPath).toString(), objectRoot.path());
-
-                // TODO handle failure? backup?
+                optionalVersionContentFixityCheck(inventory, objectRoot, revisionPath);
                 copyInventory(stagingVersionRoot, versionRoot);
                 // TODO verify inventory integrity?
             } catch (RuntimeException e) {
@@ -520,7 +524,15 @@ public class FileSystemOcflStorage implements OcflStorage {
             throw e;
         }
 
+        // TODO since this isn't guaranteed to have completed do we need to run it on commit?
         deleteMutableHeadFilesNotInManifest(inventory, objectRoot, versionRoot);
+    }
+
+    private void copyRootInventorySidecar(ObjectPaths.ObjectRoot objectRoot, ObjectPaths.VersionRoot versionRoot) {
+        var rootSidecar = objectRoot.inventorySidecar();
+        FileUtil.copy(rootSidecar,
+                versionRoot.path().getParent().resolve("root-" + rootSidecar.getFileName().toString()),
+                StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void createVersionDirectory(Inventory inventory, ObjectPaths.VersionRoot versionRoot) {
@@ -581,45 +593,49 @@ public class FileSystemOcflStorage implements OcflStorage {
                 try {
                     Files.delete(file);
                 } catch (IOException e) {
-                    LOG.warn("Failed to delete file: {}", file, e);
+                    LOG.warn("Failed to delete file: {}. It should be manually deleted.", file, e);
                 }
             }
         });
     }
 
-    private void versionContentFixityCheck(Inventory inventory, Path fileRoot, String contentPrefix, Path objectRootPath) {
+    private void optionalVersionContentFixityCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath) {
         if (checkNewVersionFixity) {
-            var version = inventory.getHeadVersion();
-            var files = FileUtil.findFiles(fileRoot);
-            var fileIds = inventory.getFileIdsForMatchingFiles(contentPrefix + "/");
+            versionContentFixityCheck(inventory, objectRoot, contentPath);
+        }
+    }
 
-            var expected = ConcurrentHashMap.<String>newKeySet(fileIds.size());
-            expected.addAll(fileIds);
+    private void versionContentFixityCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath) {
+        var version = inventory.getHeadVersion();
+        var files = FileUtil.findFiles(contentPath);
+        var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath).toString() + "/");
 
-            parallelProcess.collection(files, file -> {
-                var fileContentPath = objectRootPath.relativize(file);
-                var expectedDigest = inventory.getFileId(fileContentPath.toString());
-                if (expectedDigest == null) {
-                    throw new IllegalStateException(String.format("File not listed in object %s manifest: %s",
-                            inventory.getId(), fileContentPath));
-                } else if (version.getPaths(expectedDigest) == null) {
-                    throw new IllegalStateException(String.format("File not found in object %s version %s state: %s",
-                            inventory.getId(), inventory.getHead(), fileContentPath));
-                } else {
-                    var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
-                    if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-                        throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                                file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
-                    }
+        var expected = ConcurrentHashMap.<String>newKeySet(fileIds.size());
+        expected.addAll(fileIds);
 
-                    expected.remove(expectedDigest);
+        parallelProcess.collection(files, file -> {
+            var fileContentPath = objectRoot.path().relativize(file);
+            var expectedDigest = inventory.getFileId(fileContentPath.toString());
+            if (expectedDigest == null) {
+                throw new IllegalStateException(String.format("File not listed in object %s manifest: %s",
+                        inventory.getId(), fileContentPath));
+            } else if (version.getPaths(expectedDigest) == null) {
+                throw new IllegalStateException(String.format("File not found in object %s version %s state: %s",
+                        inventory.getId(), inventory.getHead(), fileContentPath));
+            } else {
+                var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
+                if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
+                    throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
+                            file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
                 }
-            });
 
-            if (!expected.isEmpty()) {
-                var filePaths = expected.stream().map(inventory::getFilePath).collect(Collectors.toList());
-                throw new IllegalStateException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
+                expected.remove(expectedDigest);
             }
+        });
+
+        if (!expected.isEmpty()) {
+            var filePaths = expected.stream().map(inventory::getFilePath).collect(Collectors.toList());
+            throw new IllegalStateException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
         }
     }
 

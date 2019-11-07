@@ -921,7 +921,9 @@ public class FileSystemOcflITest {
 
     private OcflRepository defaultRepo(Path repoDir) {
         var repo = new OcflRepositoryBuilder().prettyPrintJson().build(
-                new FileSystemOcflStorageBuilder().build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
+                new FileSystemOcflStorageBuilder()
+                        .checkNewVersionFixity(true)
+                        .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 workDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;
