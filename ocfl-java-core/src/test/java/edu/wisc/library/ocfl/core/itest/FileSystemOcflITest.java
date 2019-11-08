@@ -12,6 +12,7 @@ import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
@@ -229,7 +230,7 @@ public class FileSystemOcflITest {
     public void describeObject() {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder().prettyPrintJson()
+        var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper())
                 .fixityAlgorithms(Set.of(DigestAlgorithm.md5, new DigestAlgorithm("bogus")))
                 .build(new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), workDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
@@ -528,7 +529,7 @@ public class FileSystemOcflITest {
         var repoName = "repo3";
         var repoDir = expectedRepoPath(repoName);
         assertThrows(IllegalStateException.class, () -> {
-            new OcflRepositoryBuilder().prettyPrintJson().build(
+            new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).build(
                     new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildDefaultPairTreeMapper()),
                     repoDir.resolve("deposit"));
         });
@@ -978,6 +979,7 @@ public class FileSystemOcflITest {
         var repo = new OcflRepositoryBuilder().prettyPrintJson().build(
                 new FileSystemOcflStorageBuilder()
                         .checkNewVersionFixity(true)
+                        .inventoryMapper(ITestHelper.testInventoryMapper())
                         .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 workDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");

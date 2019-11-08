@@ -1,9 +1,17 @@
 package edu.wisc.library.ocfl.core.itest;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.core.DefaultOcflRepository;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -131,6 +139,16 @@ public class ITestHelper {
 
     public static Path sourceRepoPath(String repo) {
         return Paths.get("src/test/resources/sources/repos", repo);
+    }
+
+    public static InventoryMapper testInventoryMapper() {
+        return new InventoryMapper(new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .configure(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, false)
+                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                .configure(SerializationFeature.INDENT_OUTPUT, true)
+                .setDefaultPrettyPrinter(new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("  ", "\n"))));
     }
 
 }

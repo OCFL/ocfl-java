@@ -175,7 +175,7 @@ public class MutableHeadITest {
     }
 
     private MutableOcflRepository defaultRepo(Path repoDir) {
-        var repo = new OcflRepositoryBuilder().prettyPrintJson().buildMutable(
+        var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).buildMutable(
                 new FileSystemOcflStorageBuilder()
                         .checkNewVersionFixity(true)
                         .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
