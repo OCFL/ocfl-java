@@ -34,7 +34,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     private ParallelProcess parallelProcess;
     private ParallelProcess copyParallelProcess;
 
-    private Set<String> newFiles;
+    private Set<Path> newFiles;
 
     public DefaultOcflObjectUpdater(InventoryUpdater inventoryUpdater, Path stagingDir, ParallelProcess parallelProcess, ParallelProcess copyParallelProcess) {
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
@@ -81,7 +81,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             var isNew = inventoryUpdater.addFile(digest, file, stagingRelativePath, ocflOptions);
             if (isNew) {
                 copyFiles.add(file);
-                newFiles.add(stagingRelativePath.toString());
+                newFiles.add(stagingRelativePath);
             }
         });
 
@@ -128,7 +128,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         if (!isNew) {
             FileUtil.delete(stagingDst);
         } else {
-            newFiles.add(stagingRelative.toString());
+            newFiles.add(stagingRelative);
         }
 
         return this;
@@ -141,9 +141,11 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     public OcflObjectUpdater removeFile(String path) {
         Enforce.notBlank(path, "path cannot be blank");
 
-        enforceNoMutationsOnNewFiles(path);
+        var filePath = Paths.get(path);
 
-        inventoryUpdater.removeFile(path);
+        enforceNoMutationsOnNewFiles(filePath);
+
+        inventoryUpdater.removeFile(filePath);
 
         return this;
     }
@@ -156,10 +158,13 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        enforceNoMutationsOnNewFiles(sourcePath);
+        var sourceFilePath = Paths.get(sourcePath);
 
-        var normalizedDestination = normalizeDestinationPath(destinationPath).toString();
-        inventoryUpdater.renameFile(sourcePath, normalizedDestination, ocflOptions);
+        enforceNoMutationsOnNewFiles(sourceFilePath);
+
+        var normalizedDestination = normalizeDestinationPath(destinationPath);
+
+        inventoryUpdater.renameFile(sourceFilePath, normalizedDestination, ocflOptions);
 
         return this;
     }
@@ -173,14 +178,15 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var normalizedDestination = normalizeDestinationPath(destinationPath).toString();
+        var sourceFilePath = Paths.get(sourcePath);
+        var normalizedDestination = normalizeDestinationPath(destinationPath);
 
-        inventoryUpdater.reinstateFile(sourceVersionId, sourcePath, normalizedDestination, ocflOptions);
+        inventoryUpdater.reinstateFile(sourceVersionId, sourceFilePath, normalizedDestination, ocflOptions);
 
         return this;
     }
 
-    private void enforceNoMutationsOnNewFiles(String path) {
+    private void enforceNoMutationsOnNewFiles(Path path) {
         if (newFiles.contains(path)) {
             throw new UnsupportedOperationException(String.format("File %s was added in the current version and cannot be mutated.", path));
         }

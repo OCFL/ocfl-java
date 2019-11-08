@@ -169,6 +169,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         getObjectInternal(inventory, versionId, outputPath);
     }
 
+    // TODO think about how the file separator problem applies to reads
     /**
      * {@inheritDoc}
      */

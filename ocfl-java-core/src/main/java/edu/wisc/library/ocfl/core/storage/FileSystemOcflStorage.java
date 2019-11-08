@@ -30,9 +30,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class FileSystemOcflStorage implements OcflStorage {
@@ -81,11 +85,6 @@ public class FileSystemOcflStorage implements OcflStorage {
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
-    }
-
-    public FileSystemOcflStorage setInventoryMapper(InventoryMapper inventoryMapper) {
-        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
-        return this;
     }
 
     /**
@@ -192,6 +191,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         });
     }
 
+    // TODO should this have a different return value?
     /**
      * {@inheritDoc}
      */
@@ -254,7 +254,8 @@ public class FileSystemOcflStorage implements OcflStorage {
         ensureRootObjectHasNotChanged(newInventory, objectRoot);
 
         if (!Files.exists(objectRoot.mutableHeadVersion().inventoryFile())) {
-            throw new ObjectOutOfSyncException(String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", newInventory.getId()));
+            throw new ObjectOutOfSyncException(
+                    String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", newInventory.getId()));
         }
 
         var versionRoot = objectRoot.headVersion();
@@ -593,7 +594,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     private void deleteMutableHeadFilesNotInManifest(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, ObjectPaths.VersionRoot versionRoot) {
         var files = FileUtil.findFiles(versionRoot.contentPath());
         files.forEach(file -> {
-            if (inventory.getFileId(objectRoot.path().relativize(file).toString()) == null) {
+            if (inventory.getFileId(objectRoot.path().relativize(file)) == null) {
                 try {
                     Files.delete(file);
                 } catch (IOException e) {
@@ -612,14 +613,14 @@ public class FileSystemOcflStorage implements OcflStorage {
     private void versionContentFixityCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath) {
         var version = inventory.getHeadVersion();
         var files = FileUtil.findFiles(contentPath);
-        var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath).toString() + "/");
+        var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath));
 
         var expected = ConcurrentHashMap.<String>newKeySet(fileIds.size());
         expected.addAll(fileIds);
 
         parallelProcess.collection(files, file -> {
-            var fileContentPath = objectRoot.path().relativize(file);
-            var expectedDigest = inventory.getFileId(fileContentPath.toString());
+            var fileContentPath = FileUtil.pathToStringStandardSeparator(objectRoot.path().relativize(file));
+            var expectedDigest = inventory.getFileId(fileContentPath);
             if (expectedDigest == null) {
                 throw new IllegalStateException(String.format("File not listed in object %s manifest: %s",
                         inventory.getId(), fileContentPath));
@@ -740,13 +741,14 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     private Path identifyRandomObjectRoot(Path root) {
-        var objectRootHolder = new ArrayList<Path>(1);
+        var ref = new AtomicReference<Path>();
         var objectMarkerPrefix = "0=ocfl_object";
 
         try {
             Files.walkFileTree(root, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    // TODO remove this
                     if (dir.endsWith("deposit")) {
                         return FileVisitResult.SKIP_SUBTREE;
                     }
@@ -756,7 +758,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     if (file.getFileName().toString().startsWith(objectMarkerPrefix)) {
-                        objectRootHolder.add(file.getParent());
+                        ref.set(file.getParent());
                         return FileVisitResult.TERMINATE;
                     }
                     return super.visitFile(file, attrs);
@@ -766,11 +768,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             throw new RuntimeIOException(e);
         }
 
-        if (objectRootHolder.isEmpty()) {
-            return null;
-        }
-
-        return objectRootHolder.get(0);
+        return ref.get();
     }
 
     private void writeOcflLayout() {

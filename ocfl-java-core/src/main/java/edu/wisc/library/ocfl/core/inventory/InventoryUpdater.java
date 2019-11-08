@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.model.*;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -143,7 +144,7 @@ public final class InventoryUpdater {
     public boolean addFile(String digest, Path absolutePath, Path logicalPath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
-        var logicalPathStr = logicalPath.toString();
+        var logicalPathStr = FileUtil.pathToStringStandardSeparator(logicalPath);
 
         if (versionBuilder.getFileId(logicalPathStr) != null) {
             if (options.contains(OcflOption.OVERWRITE)) {
@@ -184,12 +185,14 @@ public final class InventoryUpdater {
      *
      * @param logicalPath the logical path of the file to remove
      */
-    public void removeFile(String logicalPath) {
+    public void removeFile(Path logicalPath) {
+        var pathStr = FileUtil.pathToStringStandardSeparator(logicalPath);
+
         if (isMutableHead()) {
-            var fileId = versionBuilder.getFileId(logicalPath);
+            var fileId = versionBuilder.getFileId(pathStr);
 
             if (fileId != null) {
-                versionBuilder.removePath(logicalPath);
+                versionBuilder.removePath(pathStr);
 
                 var contentPaths = Set.copyOf(inventoryBuilder.getContentPaths(fileId));
 
@@ -201,7 +204,7 @@ public final class InventoryUpdater {
                 });
             }
         } else {
-            versionBuilder.removePath(logicalPath);
+            versionBuilder.removePath(pathStr);
         }
     }
 
@@ -213,26 +216,29 @@ public final class InventoryUpdater {
      * @param ocflOptions Optional. Use {@code OcflOption.OVERWRITE} to overwrite existing files at destinationPath
      * @throws OverwriteException if there is already a file at destinationPath
      */
-    public void renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+    public void renameFile(Path sourcePath, Path destinationPath, OcflOption... ocflOptions) {
+        var srcPathStr = FileUtil.pathToStringStandardSeparator(sourcePath);
+        var destPathStr = FileUtil.pathToStringStandardSeparator(destinationPath);
+
         var options = new HashSet<>(Arrays.asList(ocflOptions));
-        var srcFileId = versionBuilder.getFileId(sourcePath);
+        var srcFileId = versionBuilder.getFileId(srcPathStr);
 
         if (srcFileId == null) {
             throw new IllegalArgumentException(String.format("The following path was not found in object %s: %s",
-                    inventoryBuilder.getId(), sourcePath));
+                    inventoryBuilder.getId(), srcPathStr));
         }
 
-        if (versionBuilder.getFileId(destinationPath) != null) {
+        if (versionBuilder.getFileId(destPathStr) != null) {
             if (options.contains(OcflOption.OVERWRITE)) {
-                versionBuilder.removePath(destinationPath);
+                versionBuilder.removePath(destPathStr);
             } else {
                 throw new OverwriteException(String.format("Cannot move %s to %s because there is already a file at that location.",
-                        sourcePath, destinationPath));
+                        srcPathStr, destPathStr));
             }
         }
 
-        versionBuilder.removePath(sourcePath);
-        versionBuilder.addFile(srcFileId, destinationPath);
+        versionBuilder.removePath(srcPathStr);
+        versionBuilder.addFile(srcFileId, destPathStr);
     }
 
     /**
@@ -248,25 +254,28 @@ public final class InventoryUpdater {
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
      *                            not specified
      */
-    public void reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+    public void reinstateFile(VersionId sourceVersionId, Path sourcePath, Path destinationPath, OcflOption... ocflOptions) {
+        var srcPathStr = FileUtil.pathToStringStandardSeparator(sourcePath);
+        var destPathStr = FileUtil.pathToStringStandardSeparator(destinationPath);
+
         var options = new HashSet<>(Arrays.asList(ocflOptions));
-        var fileId = inventoryBuilder.getVersionFileId(sourceVersionId, sourcePath);
+        var fileId = inventoryBuilder.getVersionFileId(sourceVersionId, srcPathStr);
 
         if (fileId == null) {
             throw new IllegalArgumentException(String.format("Object %s version %s does not contain a file at %s",
-                    inventoryBuilder.getId(), sourceVersionId, sourcePath));
+                    inventoryBuilder.getId(), sourceVersionId, srcPathStr));
         }
 
-        if (versionBuilder.getFileId(destinationPath) != null) {
+        if (versionBuilder.getFileId(destPathStr) != null) {
             if (options.contains(OcflOption.OVERWRITE)) {
-                versionBuilder.removePath(destinationPath);
+                versionBuilder.removePath(destPathStr);
             } else {
                 throw new OverwriteException(String.format("Cannot reinstate %s from version %s to %s because there is already a file at that location.",
-                        sourcePath, sourceVersionId, destinationPath));
+                        srcPathStr, sourceVersionId, destPathStr));
             }
         }
 
-        versionBuilder.addFile(fileId, destinationPath);
+        versionBuilder.addFile(fileId, destPathStr);
     }
 
     /**
@@ -295,15 +304,18 @@ public final class InventoryUpdater {
     }
 
     private String contentPath(String logicalPath) {
+        Path contentPath;
+
         if (isMutableHead()) {
-            return OcflConstants.MUTABLE_HEAD_VERSION_PATH
-                    .resolve(inventoryBuilder.getContentDirectory())
-                    .resolve(newRevisionId.toString())
-                    .resolve(logicalPath)
-                    .toString();
+            contentPath = Paths.get(OcflConstants.MUTABLE_HEAD_VERSION_PATH,
+                    inventoryBuilder.getContentDirectory(),
+                    newRevisionId.toString(),
+                    logicalPath);
+        } else {
+            contentPath = Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), logicalPath);
         }
 
-        return Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), logicalPath).toString();
+        return FileUtil.pathToStringStandardSeparator(contentPath);
     }
 
     private boolean isMutableHead() {

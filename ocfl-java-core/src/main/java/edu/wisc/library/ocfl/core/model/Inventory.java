@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 
@@ -244,6 +246,13 @@ public class Inventory {
     }
 
     /**
+     * Returns the digest that is used to identify the given path if it exists.
+     */
+    public String getFileId(Path path) {
+        return reverseManifestMap.get(FileUtil.pathToStringStandardSeparator(path));
+    }
+
+    /**
      * Returns the set of paths that are identified by the given digest if they exist.
      */
     public Set<String> getFilePaths(String id) {
@@ -265,10 +274,11 @@ public class Inventory {
     /**
      * Returns the set of file ids of files that have content paths that begin with the given prefix.
      */
-    public Set<String> getFileIdsForMatchingFiles(String prefix) {
+    public Set<String> getFileIdsForMatchingFiles(Path path) {
+        var pathStr = FileUtil.pathToStringStandardSeparator(path) + "/";
         var set = new HashSet<String>();
-        reverseManifestMap.forEach((path, id) -> {
-            if (path.startsWith(prefix)) {
+        reverseManifestMap.forEach((contentPath, id) -> {
+            if (contentPath.startsWith(pathStr)) {
                 set.add(id);
             }
         });

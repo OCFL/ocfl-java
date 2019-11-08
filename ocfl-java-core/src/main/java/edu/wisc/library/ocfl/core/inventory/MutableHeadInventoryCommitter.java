@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
 
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +42,7 @@ public class MutableHeadInventoryCommitter {
                 .commitInfo(commitInfo);
 
         var versionStr = original.getHead().toString();
-        var mutableHeadFileIds = original.getFileIdsForMatchingFiles(OcflConstants.MUTABLE_HEAD_VERSION_PATH.toString() + "/");
+        var mutableHeadFileIds = original.getFileIdsForMatchingFiles(Paths.get(OcflConstants.MUTABLE_HEAD_VERSION_PATH));
         var reverseFixityMap = createReverseFixityMap(original.getFixity());
 
         mutableHeadFileIds.forEach(fileId -> {
@@ -64,7 +65,7 @@ public class MutableHeadInventoryCommitter {
     }
 
     private String rewritePath(String path, String version) {
-        return path.replace(OcflConstants.MUTABLE_HEAD_VERSION_PATH.toString(), version);
+        return path.replace(OcflConstants.MUTABLE_HEAD_VERSION_PATH, version);
     }
 
     public Map<String, Map<DigestAlgorithm, String>> createReverseFixityMap(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {

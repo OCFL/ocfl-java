@@ -78,6 +78,15 @@ public final class ObjectPaths {
         private Inventory inventory;
         private Path path;
 
+        private Path inventoryFile;
+        private Path inventorySidecar;
+        private Path headVersionPath;
+        private Path mutableHeadExtPath;
+        private Path mutableHeadPath;
+
+        private VersionRoot headVersion;
+        private VersionRoot mutableHeadVersion;
+
         private ObjectRoot(Inventory inventory, Path path) {
             this.inventory = inventory;
             this.path = path == null ? Paths.get("") : path;
@@ -93,12 +102,18 @@ public final class ObjectPaths {
 
         @Override
         public Path inventoryFile() {
-            return ObjectPaths.inventoryPath(path);
+            if (inventoryFile == null) {
+                inventoryFile = ObjectPaths.inventoryPath(path);
+            }
+            return inventoryFile;
         }
 
         @Override
         public Path inventorySidecar() {
-            return ObjectPaths.inventorySidecarPath(path, inventory);
+            if (inventorySidecar == null) {
+                inventorySidecar = ObjectPaths.inventorySidecarPath(path, inventory);
+            }
+            return inventorySidecar;
         }
 
         public Path versionPath(VersionId versionId) {
@@ -109,18 +124,28 @@ public final class ObjectPaths {
         }
 
         public Path headVersionPath() {
-            if (inventory.hasMutableHead()) {
-                return mutableHeadPath();
+            if (headVersionPath == null) {
+                if (inventory.hasMutableHead()) {
+                    headVersionPath = mutableHeadPath();
+                } else {
+                    headVersionPath = path.resolve(inventory.getHead().toString());;
+                }
             }
-            return path.resolve(inventory.getHead().toString());
+            return headVersionPath;
         }
 
         public Path mutableHeadExtensionPath() {
-            return path.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH);
+            if (mutableHeadExtPath == null) {
+                mutableHeadExtPath = path.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH);
+            }
+            return mutableHeadExtPath;
         }
 
         public Path mutableHeadPath() {
-            return path.resolve(OcflConstants.MUTABLE_HEAD_VERSION_PATH);
+            if (mutableHeadPath == null) {
+                mutableHeadPath = path.resolve(OcflConstants.MUTABLE_HEAD_VERSION_PATH);
+            }
+            return mutableHeadPath;
         }
 
         public VersionRoot version(VersionId versionId) {
@@ -128,11 +153,17 @@ public final class ObjectPaths {
         }
 
         public VersionRoot headVersion() {
-            return new VersionRoot(inventory, headVersionPath());
+            if (headVersion == null) {
+                headVersion = new VersionRoot(inventory, headVersionPath());
+            }
+            return headVersion;
         }
 
         public VersionRoot mutableHeadVersion() {
-            return new VersionRoot(inventory, mutableHeadPath());
+            if (mutableHeadVersion == null) {
+                mutableHeadVersion = new VersionRoot(inventory, mutableHeadPath());
+            }
+            return mutableHeadVersion;
         }
 
     }
@@ -144,6 +175,12 @@ public final class ObjectPaths {
 
         private Inventory inventory;
         private Path path;
+
+        private Path inventoryFile;
+        private Path inventorySidecar;
+        private Path contentPath;
+
+        private ContentRoot contentRoot;
 
         private VersionRoot(Inventory inventory, Path path) {
             this.inventory = inventory;
@@ -160,20 +197,32 @@ public final class ObjectPaths {
 
         @Override
         public Path inventoryFile() {
-            return ObjectPaths.inventoryPath(path);
+            if (inventoryFile == null) {
+                inventoryFile = ObjectPaths.inventoryPath(path);
+            }
+            return inventoryFile;
         }
 
         @Override
         public Path inventorySidecar() {
-            return ObjectPaths.inventorySidecarPath(path, inventory);
+            if (inventorySidecar == null) {
+                inventorySidecar = ObjectPaths.inventorySidecarPath(path, inventory);
+            }
+            return inventorySidecar;
         }
 
         public Path contentPath() {
-            return path.resolve(inventory.resolveContentDirectory());
+            if (contentPath == null) {
+                contentPath = path.resolve(inventory.resolveContentDirectory());
+            }
+            return contentPath;
         }
 
         public ContentRoot contentRoot() {
-            return new ContentRoot(inventory, contentPath());
+            if (contentRoot == null) {
+                contentRoot = new ContentRoot(inventory, contentPath());
+            }
+            return contentRoot;
         }
 
     }

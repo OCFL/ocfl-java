@@ -60,7 +60,8 @@ public class ResponseMapper {
             paths.forEach(path -> {
                 var details = new FileDetails()
                         .setPath(path)
-                        .setStorageRelativePath(objectRootPath.resolve(inventory.getFilePath(digest)).toString())
+                        .setStorageRelativePath(
+                                FileUtil.pathToStringStandardSeparator(objectRootPath.resolve(inventory.getFilePath(digest))))
                         .addDigest(digestAlgorithm.getOcflName(), digest);
                 fileFixityMap.put(digest, details);
                 fileDetailsMap.put(path, details);

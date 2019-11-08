@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
+import edu.wisc.library.ocfl.api.util.Enforce;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,6 +190,23 @@ public final class FileUtil {
             return list != null && list.length > 0;
         }
         return false;
+    }
+
+    /**
+     * Returns a string representation of a Path that uses '/' as the file separator.
+     *
+     * @param path the path to represent as a string
+     * @return path using '/' as the separator
+     */
+    public static String pathToStringStandardSeparator(Path path) {
+        Enforce.notNull(path, "path cannot be null");
+        var separator = path.getFileSystem().getSeparator().charAt(0);
+        var pathStr = path.toString();
+
+        if (separator == '/') {
+            return pathStr;
+        }
+        return pathStr.replace(separator, '/');
     }
 
 }
