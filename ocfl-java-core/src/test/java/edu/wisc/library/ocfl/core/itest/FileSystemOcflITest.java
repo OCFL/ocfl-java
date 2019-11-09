@@ -12,7 +12,6 @@ import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
@@ -232,7 +231,9 @@ public class FileSystemOcflITest {
         var repoDir = newRepoDir(repoName);
         var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper())
                 .fixityAlgorithms(Set.of(DigestAlgorithm.md5, new DigestAlgorithm("bogus")))
-                .build(new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), workDir);
+                .build(new FileSystemOcflStorageBuilder()
+                        .objectMapper(ITestHelper.prettyPrintMapper())
+                        .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), workDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
 
         var objectId = "o1";
@@ -979,6 +980,7 @@ public class FileSystemOcflITest {
         var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).build(
                 new FileSystemOcflStorageBuilder()
                         .checkNewVersionFixity(true)
+                        .objectMapper(ITestHelper.prettyPrintMapper())
                         .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 workDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");

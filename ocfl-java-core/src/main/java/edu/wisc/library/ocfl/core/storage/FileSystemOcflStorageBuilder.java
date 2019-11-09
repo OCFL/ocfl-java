@@ -1,5 +1,7 @@
 package edu.wisc.library.ocfl.core.storage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
@@ -15,11 +17,13 @@ public class FileSystemOcflStorageBuilder {
     private InventoryMapper inventoryMapper;
     private int threadPoolSize;
     private boolean checkNewVersionFixity;
+    private ObjectMapper objectMapper;
 
     public FileSystemOcflStorageBuilder() {
         this.inventoryMapper = InventoryMapper.defaultMapper();
         this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.checkNewVersionFixity = false;
+        this.objectMapper = new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
     }
 
     /**
@@ -29,6 +33,16 @@ public class FileSystemOcflStorageBuilder {
      */
     public FileSystemOcflStorageBuilder inventoryMapper(InventoryMapper inventoryMapper) {
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
+        return this;
+    }
+
+    /**
+     * Overrides the default ObjectMapper that's used to serialize ocfl_layout.json
+     *
+     * @param objectMapper
+     */
+    public FileSystemOcflStorageBuilder objectMapper(ObjectMapper objectMapper) {
+        this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
         return this;
     }
 
@@ -62,7 +76,7 @@ public class FileSystemOcflStorageBuilder {
      */
     public FileSystemOcflStorage build(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
         return new FileSystemOcflStorage(repositoryRoot, objectIdPathMapper, threadPoolSize,
-                checkNewVersionFixity, inventoryMapper);
+                checkNewVersionFixity, inventoryMapper, objectMapper);
     }
 
 }

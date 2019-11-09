@@ -48,6 +48,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     private Path repositoryRoot;
     private ObjectIdPathMapper objectIdPathMapper;
     private InventoryMapper inventoryMapper;
+    private ObjectMapper objectMapper;
 
     private ParallelProcess parallelProcess;
 
@@ -62,7 +63,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
         this(repositoryRoot, objectIdPathMapper, Runtime.getRuntime().availableProcessors(),
-                false, InventoryMapper.defaultMapper());
+                false, InventoryMapper.defaultMapper(),
+                new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true));
     }
 
     /**
@@ -76,15 +78,17 @@ public class FileSystemOcflStorage implements OcflStorage {
      *                              required, especially if the OCFL client's work directory is on the same volume as the
      *                              storage root.
      * @param inventoryMapper mapper used to parse inventory files
+     * @param objectMapper mapper used to write ocfl_layout.json
      */
     public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper, int threadPoolSize,
-                                 boolean checkNewVersionFixity, InventoryMapper inventoryMapper) {
+                                 boolean checkNewVersionFixity, InventoryMapper inventoryMapper, ObjectMapper objectMapper) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
+        this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
     }
 
     /**
@@ -775,8 +779,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         try {
             var map = new TreeMap<String, Object>(Comparator.naturalOrder());
             map.putAll(objectIdPathMapper.describeLayout());
-            new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true)
-                    .writeValue(repositoryRoot.resolve("ocfl_layout.json").toFile(), map);
+            objectMapper.writeValue(repositoryRoot.resolve("ocfl_layout.json").toFile(), map);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

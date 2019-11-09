@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core.itest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -142,14 +143,21 @@ public class ITestHelper {
     }
 
     public static InventoryMapper testInventoryMapper() {
-        return new InventoryMapper(new ObjectMapper()
+        return new InventoryMapper(prettyPrintMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .configure(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, false)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-                .setDefaultPrettyPrinter(new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("  ", "\n")))
-                .configure(SerializationFeature.INDENT_OUTPUT, true)
-                );
+        );
+    }
+
+    public static ObjectMapper prettyPrintMapper() {
+        return new ObjectMapper().setDefaultPrettyPrinter(prettyPrinter())
+                .configure(SerializationFeature.INDENT_OUTPUT, true);
+    }
+
+    public static PrettyPrinter prettyPrinter() {
+        return new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("  ", "\n"));
     }
 
 }
