@@ -178,6 +178,7 @@ public class MutableHeadITest {
         var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).buildMutable(
                 new FileSystemOcflStorageBuilder()
                         .checkNewVersionFixity(true)
+                        .objectMapper(ITestHelper.prettyPrintMapper())
                         .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
                 workDir);
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
