@@ -4,8 +4,6 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -43,7 +41,7 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
      * {@inheritDoc}
      */
     @Override
-    public Path map(String objectId) {
+    public String map(String objectId) {
         var hashChars = Hex.encodeHex(
                 DigestUtils.digest(DigestUtils.getDigest(digestAlgorithm), objectId.getBytes()),
                 !useUppercase);
@@ -52,13 +50,14 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
             throw new IllegalStateException("The hashed objectId does not contain enough characters to partition adequately.");
         }
 
-        var objectPath = Paths.get("");
+        var pathBuilder = new StringBuilder();
 
         for (int i = 0; i < minHashLength; i += segmentLength) {
-            objectPath = objectPath.resolve(new String(Arrays.copyOfRange(hashChars, i, i + segmentLength)));
+            pathBuilder.append(new String(Arrays.copyOfRange(hashChars, i, i + segmentLength)))
+                    .append("/");
         }
 
-        return objectPath.resolve(new String(hashChars));
+        return pathBuilder.append(new String(hashChars)).toString();
     }
 
     @Override

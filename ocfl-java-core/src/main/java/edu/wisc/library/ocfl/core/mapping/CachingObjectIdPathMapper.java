@@ -3,7 +3,6 @@ package edu.wisc.library.ocfl.core.mapping;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 
-import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -12,9 +11,9 @@ import java.util.Map;
 public class CachingObjectIdPathMapper implements ObjectIdPathMapper {
 
     private ObjectIdPathMapper delegate;
-    private Cache<String, Path> cache;
+    private Cache<String, String> cache;
 
-    public CachingObjectIdPathMapper(ObjectIdPathMapper delegate, Cache<String, Path> cache) {
+    public CachingObjectIdPathMapper(ObjectIdPathMapper delegate, Cache<String, String> cache) {
         this.delegate = Enforce.notNull(delegate, "delegate not null");
         this.cache = Enforce.notNull(cache, "cache cannot be null");
     }
@@ -23,7 +22,7 @@ public class CachingObjectIdPathMapper implements ObjectIdPathMapper {
      * {@inheritDoc}
      */
     @Override
-    public Path map(String objectId) {
+    public String map(String objectId) {
         return cache.get(objectId, delegate::map);
     }
 

@@ -14,7 +14,7 @@ public interface ObjectIdPathMapper {
      * @param objectId
      * @return the path to the object root relative to the OCFL root
      */
-    Path map(String objectId);
+    String map(String objectId);
 
     /**
      * Returns map containing a description of the file layout. At the minimum, this map MUST contain 'uri' and 'description'

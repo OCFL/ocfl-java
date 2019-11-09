@@ -17,10 +17,10 @@ public class PairTreeObjectIdPathMapperTest {
 
     @Test
     public void rfcExamples() {
-        assertEquals("ar/k+/12/34/5=/6/45=6", mapper.map("ark:12345/6").toString());
-        assertEquals("ar/k+/=1/30/30/=x/t1/2t/3/12t3", mapper.map("ark:/13030/xt12t3").toString());
-        assertEquals("ht/tp/+=/=n/2t/,i/nf/o=/ur/n+/nb/n+/se/+k/b+/re/po/s-/1/os-1", mapper.map("http://n2t.info/urn:nbn:se:kb:repos-1").toString());
-        assertEquals("wh/at/-t/he/-^/2a/@^/3f/#!/^5/e!/^3/f/!^3f", mapper.map("what-the-*@?#!^!?").toString());
+        assertEquals("ar/k+/12/34/5=/6/45=6", mapper.map("ark:12345/6"));
+        assertEquals("ar/k+/=1/30/30/=x/t1/2t/3/12t3", mapper.map("ark:/13030/xt12t3"));
+        assertEquals("ht/tp/+=/=n/2t/,i/nf/o=/ur/n+/nb/n+/se/+k/b+/re/po/s-/1/os-1", mapper.map("http://n2t.info/urn:nbn:se:kb:repos-1"));
+        assertEquals("wh/at/-t/he/-^/2a/@^/3f/#!/^5/e!/^3/f/!^3f", mapper.map("what-the-*@?#!^!?"));
     }
 
     @Test

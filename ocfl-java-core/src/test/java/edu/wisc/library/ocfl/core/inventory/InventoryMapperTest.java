@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.inventory;
 
+import edu.wisc.library.ocfl.core.itest.ITestHelper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,7 +20,7 @@ public class InventoryMapperTest {
 
     @BeforeAll
     public static void setup() {
-        mapper = InventoryMapper.prettyPrintMapper();
+        mapper = ITestHelper.testInventoryMapper();
     }
 
     @Test

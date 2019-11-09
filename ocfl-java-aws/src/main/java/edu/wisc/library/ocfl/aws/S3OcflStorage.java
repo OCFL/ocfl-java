@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -44,14 +45,15 @@ public class S3OcflStorage implements OcflStorage {
     @Override
     public Inventory loadInventory(String objectId) {
         var objectRootPath = objectRootPathFull(objectId);
-        var inventoryPath = inventoryPath(objectRootPath);
+        // TODO change
+        var inventoryPath = inventoryPath(Paths.get(objectRootPath));
         var tempDir = FileUtil.createTempDir(workDir, objectId);
         var localInventoryPath = tempDir.resolve(inventoryPath);
 
         try {
             downloadFile(inventoryPath, localInventoryPath);
             var inventory = inventoryMapper.read(localInventoryPath);
-            var expectedDigest = getDigestFromSidecar(objectRootPath, inventory);
+            var expectedDigest = getDigestFromSidecar(Paths.get(objectRootPath), inventory);
             verifyInventory(expectedDigest, localInventoryPath, inventory.getDigestAlgorithm());
             return inventory;
         } catch (NoSuchKeyException e) {
@@ -67,7 +69,8 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
-        var objectRootPath = objectRootPathFull(inventory.getId());
+        // TODO this is wrong
+        var objectRootPath = Paths.get(objectRootPathFull(inventory.getId()));
         var versionPath = objectRootPath.resolve(inventory.getHead().toString());
 
         try {
@@ -149,7 +152,7 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public String objectRootPath(String objectId) {
-        return objectIdPathMapper.map(objectId).toString();
+        return objectIdPathMapper.map(objectId);
     }
 
     /**
@@ -196,7 +199,7 @@ public class S3OcflStorage implements OcflStorage {
         uploadFile(sidecarPath, inventorySidecarPath(versionPath.getParent(), inventory.getDigestAlgorithm()));
     }
 
-    private Path objectRootPathFull(String objectId) {
+    private String objectRootPathFull(String objectId) {
         return objectIdPathMapper.map(objectId);
     }
 

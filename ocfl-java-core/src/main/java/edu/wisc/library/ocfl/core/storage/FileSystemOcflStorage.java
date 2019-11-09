@@ -342,7 +342,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     public String objectRootPath(String objectId) {
         ensureOpen();
 
-        return objectIdPathMapper.map(objectId).toString();
+        return objectIdPathMapper.map(objectId);
     }
 
     /**
@@ -718,7 +718,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         if (objectRoot != null) {
             var inventory = parseInventory(ObjectPaths.inventoryPath(objectRoot));
-            var expectedPath = objectIdPathMapper.map(inventory.getId());
+            var expectedPath = Paths.get(objectIdPathMapper.map(inventory.getId()));
             var actualPath = repositoryRoot.relativize(objectRoot);
             if (!expectedPath.equals(actualPath)) {
                 throw new IllegalStateException(String.format(

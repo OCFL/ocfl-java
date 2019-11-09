@@ -2,8 +2,6 @@ package edu.wisc.library.ocfl.core.mapping;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,8 +23,8 @@ public class FlatObjectIdPathMapper implements ObjectIdPathMapper {
      * {@inheritDoc}
      */
     @Override
-    public Path map(String objectId) {
-        return Paths.get(encodeObjectId(objectId));
+    public String map(String objectId) {
+        return encodeObjectId(objectId);
     }
 
     @Override

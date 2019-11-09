@@ -158,6 +158,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
+        // TODO Revert these path conversions. They must be treated as opaque strings
         var sourceFilePath = Paths.get(sourcePath);
 
         enforceNoMutationsOnNewFiles(sourceFilePath);

@@ -147,8 +147,9 @@ public class ITestHelper {
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .configure(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, false)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                .setDefaultPrettyPrinter(new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("  ", "\n")))
                 .configure(SerializationFeature.INDENT_OUTPUT, true)
-                .setDefaultPrettyPrinter(new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("  ", "\n"))));
+                );
     }
 
 }

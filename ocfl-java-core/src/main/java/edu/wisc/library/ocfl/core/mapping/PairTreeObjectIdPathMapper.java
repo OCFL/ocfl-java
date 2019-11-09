@@ -48,11 +48,11 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
      * {@inheritDoc}
      */
     @Override
-    public Path map(String objectId) {
+    public String map(String objectId) {
         var encoded = encoder.encode(objectId);
 
         if (encoded.length() < 3) {
-            return Path.of(encoded, defaultEncapsulationName);
+            return String.join("/", encoded, defaultEncapsulationName);
         }
 
         var charArrayWriter = new CharArrayWriter();
@@ -77,7 +77,7 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
             parts[partIndex] = validateDir(objectId, encoded.substring(encoded.length() - encapsulationSubstringLength));
         }
 
-        return Paths.get(parts[0], Arrays.copyOfRange(parts, 1, parts.length));
+        return String.join("/", parts);
     }
 
     @Override

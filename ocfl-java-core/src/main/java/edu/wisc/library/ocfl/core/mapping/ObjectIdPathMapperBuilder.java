@@ -6,7 +6,6 @@ import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 
-import java.nio.file.Path;
 import java.time.Duration;
 
 /**
@@ -23,7 +22,7 @@ public class ObjectIdPathMapperBuilder {
     private static final String DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha256.getJavaStandardName();
 
     private boolean useUppercase = false;
-    private Cache<String, Path> cache;
+    private Cache<String, String> cache;
 
     /**
      * Indicates whether or not characters in hex strings should be upper or lower case.
@@ -58,7 +57,7 @@ public class ObjectIdPathMapperBuilder {
      * Configures the ObjectIdPathMapper to use a custom cache implementation
      * @param cache
      */
-    public ObjectIdPathMapperBuilder withCustomCache(Cache<String, Path> cache) {
+    public ObjectIdPathMapperBuilder withCustomCache(Cache<String, String> cache) {
         this.cache = cache;
         return this;
     }
