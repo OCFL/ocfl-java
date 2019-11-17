@@ -12,14 +12,14 @@ public class BackslashPathSeparatorConstraintTest {
     @Test
     @EnabledOnOs(OS.LINUX)
     public void shouldAllowBackslashesOnLinux() {
-        new BackslashPathSeparatorConstraint().apply('/', "path\\with\\backslashes");
+        new BackslashPathSeparatorConstraint().apply('\\', "path\\with\\backslashes");
     }
 
     @Test
     @EnabledOnOs(OS.WINDOWS)
     public void shouldNotAllowBackslashesOnWindows() {
         assertThrows(PathConstraintException.class, () -> {
-            new BackslashPathSeparatorConstraint().apply('/', "path\\with\\backslashes");
+            new BackslashPathSeparatorConstraint().apply('\\', "path\\with\\backslashes");
         });
     }
 
