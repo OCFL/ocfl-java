@@ -71,28 +71,29 @@ public class InventoryMapper {
         }
     }
 
-    public Inventory read(Path path) {
-        return readInternal(false, null, path);
+    public Inventory read(String objectRootPath, Path path) {
+        return readInternal(false, null, objectRootPath, path);
     }
 
-    public Inventory read(InputStream inputStream) {
-        return readInternal(false, null, inputStream);
+    public Inventory read(String objectRootPath, InputStream inputStream) {
+        return readInternal(false, null, objectRootPath, inputStream);
     }
 
-    public Inventory readMutableHead(RevisionId revisionId, Path path) {
-        return readInternal(true, revisionId, path);
+    public Inventory readMutableHead(String objectRootPath, RevisionId revisionId, Path path) {
+        return readInternal(true, revisionId, objectRootPath, path);
     }
 
-    public Inventory readMutableHead(RevisionId revisionId, InputStream inputStream) {
-        return readInternal(true, revisionId, inputStream);
+    public Inventory readMutableHead(String objectRootPath, RevisionId revisionId, InputStream inputStream) {
+        return readInternal(true, revisionId, objectRootPath, inputStream);
     }
 
-    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, Path path) {
+    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, Path path) {
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()
                             .addValue("revisionId", revisionId)
-                            .addValue("mutableHead", mutableHead))
+                            .addValue("mutableHead", mutableHead)
+                            .addValue("objectRootPath", objectRootPath))
                     .forType(Inventory.class)
                     .readValue(path.toFile());
         } catch (IOException e) {
@@ -100,12 +101,13 @@ public class InventoryMapper {
         }
     }
 
-    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, InputStream inputStream) {
+    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, InputStream inputStream) {
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()
                             .addValue("revisionId", revisionId)
-                            .addValue("mutableHead", mutableHead))
+                            .addValue("mutableHead", mutableHead)
+                            .addValue("objectRootPath", objectRootPath))
                     .forType(Inventory.class)
                     .readValue(inputStream);
         } catch (IOException e) {

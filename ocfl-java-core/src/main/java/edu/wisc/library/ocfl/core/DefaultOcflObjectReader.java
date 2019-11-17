@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -54,8 +53,7 @@ public class DefaultOcflObjectReader implements OcflObjectReader {
     @Override
     public VersionDetails describeVersion() {
         if (versionDetails == null) {
-            var objectRootPath = Paths.get(storage.objectRootPath(inventory.getId()));
-            versionDetails = responseMapper.mapVersion(inventory, versionId, version, objectRootPath);
+            versionDetails = responseMapper.mapVersion(inventory, versionId, version);
         }
         return versionDetails;
     }

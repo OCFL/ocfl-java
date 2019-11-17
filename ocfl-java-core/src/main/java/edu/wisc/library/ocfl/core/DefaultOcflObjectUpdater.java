@@ -10,6 +10,8 @@ import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,10 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.DigestInputStream;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
@@ -29,12 +28,14 @@ import java.util.Set;
  */
 public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflObjectUpdater.class);
+
     private InventoryUpdater inventoryUpdater;
     private Path stagingDir;
     private ParallelProcess parallelProcess;
     private ParallelProcess copyParallelProcess;
 
-    private Set<Path> newFiles;
+    private Set<String> newFiles;
 
     public DefaultOcflObjectUpdater(InventoryUpdater inventoryUpdater, Path stagingDir, ParallelProcess parallelProcess, ParallelProcess copyParallelProcess) {
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
@@ -54,13 +55,10 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
-        var normalized = normalizeDestinationPath(destinationPath);
-
-        if (Files.isRegularFile(sourcePath) && "".equals(normalized.toString())) {
-            throw new IllegalArgumentException("A destination path must be specified when adding a file.");
+        if (destinationPath.isBlank() && Files.isRegularFile(sourcePath)) {
+            throw new IllegalArgumentException("A non-blank destination path must be specified when adding a file.");
         }
 
-        var stagingDst = stagingDir.resolve(normalized);
         var files = FileUtil.findFiles(sourcePath);
 
         if (files.size() == 0) {
@@ -72,24 +70,29 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             return Map.entry(file, digest);
         });
 
-        var copyFiles = new HashSet<Path>();
+        var copyFiles = new HashMap<Path, String>();
 
         filesWithDigests.forEach(entry -> {
             var file = entry.getKey();
             var digest = entry.getValue();
-            var stagingRelativePath = stagingRelativePath(sourcePath, stagingDst, file);
-            var isNew = inventoryUpdater.addFile(digest, file, stagingRelativePath, ocflOptions);
-            if (isNew) {
-                copyFiles.add(file);
-                newFiles.add(stagingRelativePath);
+            var logicalPath = logicalPath(sourcePath, file, destinationPath);
+            var result = inventoryUpdater.addFile(digest, file, logicalPath, ocflOptions);
+            if (result.isNew()) {
+                copyFiles.put(file, result.getPathUnderContentDir());
+                newFiles.add(logicalPath);
             }
         });
 
-        copyParallelProcess.collection(copyFiles, file -> {
-            var stagingFullPath = stagingFullPath(sourcePath, stagingDst, file);
+        copyParallelProcess.map(copyFiles, (file, pathUnderContentDir) -> {
+            var stagingFullPath = stagingFullPath(pathUnderContentDir);
+
+            // TODO this is not currently overwritting existing files, which means that it's not possible to add a file
+            // TODO with the same logical path multiple times within the same update block. Should it be?
             if (options.contains(OcflOption.MOVE_SOURCE)) {
+                LOG.debug("Moving file <{}> to <{}>", file, stagingFullPath);
                 FileUtil.moveFileMakeParents(file, stagingFullPath);
             } else {
+                LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
                 FileUtil.copyFileMakeParents(file, stagingFullPath);
             }
         });
@@ -110,25 +113,26 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(input, "input cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var normalized = normalizeDestinationPath(destinationPath);
-        var stagingDst = stagingDir.resolve(normalized);
-        var stagingRelative = stagingDir.relativize(stagingDst);
-
-        FileUtil.createDirectories(stagingDst.getParent());
-
+        var tempPath = stagingDir.resolve(UUID.randomUUID().toString());
         var digestInput = wrapInDigestInputStream(input);
-        copyInputStream(digestInput, stagingDst);
+        LOG.debug("Writing input stream to temp file: {}", tempPath);
+        copyInputStream(digestInput, tempPath);
 
         if (input instanceof FixityCheckInputStream) {
             ((FixityCheckInputStream) input).checkFixity();
         }
 
         var digest = Hex.encodeHexString(digestInput.getMessageDigest().digest());
-        var isNew = inventoryUpdater.addFile(digest, stagingDst, stagingRelative, ocflOptions);
-        if (!isNew) {
-            FileUtil.delete(stagingDst);
+        var result = inventoryUpdater.addFile(digest, tempPath, destinationPath, ocflOptions);
+
+        if (!result.isNew()) {
+            LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", tempPath, digest);
+            FileUtil.delete(tempPath);
         } else {
-            newFiles.add(stagingRelative);
+            var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
+            LOG.debug("Moving file <{}> to <{}>", tempPath, stagingFullPath);
+            FileUtil.moveFileMakeParents(tempPath, stagingFullPath);
+            newFiles.add(destinationPath);
         }
 
         return this;
@@ -141,11 +145,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     public OcflObjectUpdater removeFile(String path) {
         Enforce.notBlank(path, "path cannot be blank");
 
-        var filePath = Paths.get(path);
-
-        enforceNoMutationsOnNewFiles(filePath);
-
-        inventoryUpdater.removeFile(filePath);
+        enforceNoMutationsOnNewFiles(path);
+        inventoryUpdater.removeFile(path);
 
         return this;
     }
@@ -158,14 +159,10 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        // TODO Revert these path conversions. They must be treated as opaque strings
-        var sourceFilePath = Paths.get(sourcePath);
+        enforceNoMutationsOnNewFiles(sourcePath);
+        enforceNoMutationsOnNewFiles(destinationPath);
 
-        enforceNoMutationsOnNewFiles(sourceFilePath);
-
-        var normalizedDestination = normalizeDestinationPath(destinationPath);
-
-        inventoryUpdater.renameFile(sourceFilePath, normalizedDestination, ocflOptions);
+        inventoryUpdater.renameFile(sourcePath, destinationPath, ocflOptions);
 
         return this;
     }
@@ -179,54 +176,32 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        var sourceFilePath = Paths.get(sourcePath);
-        var normalizedDestination = normalizeDestinationPath(destinationPath);
+        enforceNoMutationsOnNewFiles(destinationPath);
 
-        inventoryUpdater.reinstateFile(sourceVersionId, sourceFilePath, normalizedDestination, ocflOptions);
+        inventoryUpdater.reinstateFile(sourceVersionId, sourcePath, destinationPath, ocflOptions);
 
         return this;
     }
 
-    private void enforceNoMutationsOnNewFiles(Path path) {
+    // TODO Think about changing the way versions are built so that this might be easier to support
+    private void enforceNoMutationsOnNewFiles(String path) {
         if (newFiles.contains(path)) {
             throw new UnsupportedOperationException(String.format("File %s was added in the current version and cannot be mutated.", path));
         }
     }
 
-    /*
-     * This is necessary to ensure that the specified paths are contained within the object root
-     */
-    private Path normalizeDestinationPath(String destinationPath) {
-        var normalized = Paths.get(destinationPath).normalize();
-        validateDestinationPath(normalized);
-        return normalized;
+    private String logicalPath(Path sourcePath, Path sourceFile, String destinationPath) {
+        var sourceRelative = FileUtil.pathToStringStandardSeparator(sourcePath.relativize(sourceFile));
+        return FileUtil.pathJoinIgnoreEmpty(destinationPath, sourceRelative);
     }
 
-    private void validateDestinationPath(Path destination) {
-        if (destination.isAbsolute()) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid destination %s. Path must be relative the object root.", destination));
-        }
-
-        if (destination.startsWith("..")) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid destination %s. Path cannot be outside of object root.", destination));
-        }
-    }
-
-    private Path stagingFullPath(Path sourceRoot, Path destinationRoot, Path file) {
-        var sourceRelative = sourceRoot.relativize(file);
-        return destinationRoot.resolve(sourceRelative);
-    }
-
-    private Path stagingRelativePath(Path sourceRoot, Path destinationRoot, Path file) {
-        var stagingFullPath = stagingFullPath(sourceRoot, destinationRoot, file);
-        return stagingDir.relativize(stagingFullPath);
+    private Path stagingFullPath(String pathUnderContentDir) {
+        return Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), pathUnderContentDir));
     }
 
     private DigestInputStream wrapInDigestInputStream(InputStream input) {
-        if (input instanceof FixityCheckInputStream) {
-            var digestAlgorithm = ((FixityCheckInputStream) input).getMessageDigest().getAlgorithm();
+        if (input instanceof DigestInputStream) {
+            var digestAlgorithm = ((DigestInputStream) input).getMessageDigest().getAlgorithm();
             if (inventoryUpdater.digestAlgorithm().getJavaStandardName().equalsIgnoreCase(digestAlgorithm)) {
                 return (DigestInputStream) input;
             }

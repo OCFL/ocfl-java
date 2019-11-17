@@ -42,8 +42,12 @@ public class Inventory {
     @JsonIgnore
     private final boolean mutableHead;
 
+    // TODO This map is rarely used. Perhaps it should be computed on demand
     @JsonIgnore
     private final Map<String, String> reverseManifestMap;
+
+    @JsonIgnore
+    private final String objectRootPath;
 
     /**
      * @see InventoryBuilder
@@ -59,6 +63,7 @@ public class Inventory {
             Map<VersionId, Version> versions,
             boolean mutableHead,
             RevisionId revisionId,
+            String objectRootPath,
             Map<String, String> reverseManifestMap) {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
@@ -73,6 +78,7 @@ public class Inventory {
 
         this.mutableHead = mutableHead;
         this.revisionId = revisionId;
+        this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be null");
 
         if (reverseManifestMap == null) {
             this.reverseManifestMap = createReverseManifestMap(this.manifest);
@@ -300,6 +306,14 @@ public class Inventory {
         return mutableHead;
     }
 
+    /**
+     * The relative path from the storage root to the OCFL object directory
+     */
+    @JsonIgnore
+    public String getObjectRootPath() {
+        return objectRootPath;
+    }
+
     @Override
     public String toString() {
         return "Inventory{" +
@@ -313,6 +327,7 @@ public class Inventory {
                 ", versions=" + versions +
                 ", mutableHead=" + mutableHead +
                 ", revisionId=" + revisionId +
+                ", objectRootPath=" + objectRootPath +
                 '}';
     }
 
@@ -332,6 +347,7 @@ public class Inventory {
 
         boolean mutableHead;
         RevisionId revisionId;
+        String objectRootPath;
 
         public void withId(String id) {
             this.id = id;
@@ -375,9 +391,16 @@ public class Inventory {
             this.revisionId = revisionId;
         }
 
-        public Inventory build() {
-            return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, mutableHead, revisionId, null);
+        @JacksonInject("objectRootPath")
+        public void withObjectRootPath(String objectRootPath) {
+            this.objectRootPath = objectRootPath;
         }
+
+        public Inventory build() {
+            return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity,
+                    manifest, versions, mutableHead, revisionId, objectRootPath, null);
+        }
+
     }
 
 }

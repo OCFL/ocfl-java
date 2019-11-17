@@ -209,4 +209,105 @@ public final class FileUtil {
         return pathStr.replace(separator, '/');
     }
 
+    /**
+     * Joins all of the parts together as a path separated by '/'. Leading and trailing slashes on path parts are normalized,
+     * but slashes within parts are not changed. Empty parts are ignored.
+     *
+     * @param parts the path parts to join
+     * @return joined path with empty elements left out
+     */
+    public static String pathJoinIgnoreEmpty(String... parts) {
+        return pathJoin(false, parts);
+    }
+
+    /**
+     * Joins all of the parts together as a path separated by '/'. Leading and trailing slashes on path parts are normalized,
+     * but slashes within parts are not changed. Throws an IllegalArgumentException if empty parts are encountered.
+     *
+     * @param parts the path parts to join
+     * @return joined path
+     */
+    public static String pathJoinFailEmpty(String... parts) {
+        return pathJoin(true, parts);
+    }
+
+    private static String pathJoin(boolean failOnEmpty, String... parts) {
+        if (parts == null || parts.length == 0) {
+            return "";
+        }
+
+        var pathBuilder = new StringBuilder();
+        var addSeparator = false;
+
+        for (var i = 0; i < parts.length; i++) {
+            var part = parts[i];
+
+            if (failOnEmpty && (part == null || part.isEmpty())) {
+                throw new IllegalArgumentException(String.format("Path cannot be joined because it contains empty parts: %s", Arrays.asList(parts)));
+            }
+
+            if (part != null && !part.isEmpty()) {
+                String strippedPart;
+
+                if (i == 0) {
+                    strippedPart = firstPathPart(part);
+                } else {
+                    strippedPart = stripSlashes(part);
+                }
+
+                if (!strippedPart.isEmpty()) {
+                    if (addSeparator) {
+                        pathBuilder.append("/");
+                    }
+                    pathBuilder.append(strippedPart);
+                    addSeparator = true;
+                } else if (failOnEmpty) {
+                    throw new IllegalArgumentException(String.format("Path cannot be joined because it contains empty parts: %s", Arrays.asList(parts)));
+                }
+            }
+        }
+
+        return pathBuilder.toString();
+    }
+
+    private static String stripSlashes(String path) {
+        int startIndex;
+        int endIndex = path.length();
+
+        for (startIndex = 0; startIndex < path.length(); startIndex++) {
+            if (path.charAt(startIndex) != '/') {
+                break;
+            }
+        }
+
+        if (startIndex != path.length()) {
+            for (endIndex = path.length(); endIndex > 0; endIndex--) {
+                if (path.charAt(endIndex - 1) != '/') {
+                    break;
+                }
+            }
+        }
+
+        if (startIndex == path.length()) {
+            // no non-slash chars
+            return "";
+        } else if (startIndex == 0 && endIndex == path.length()) {
+            // no leading or trailing slash
+            return path;
+        } else if (endIndex == path.length()) {
+            // leading slash
+            return path.substring(startIndex);
+        } else {
+            return path.substring(startIndex, endIndex);
+        }
+    }
+
+    private static String firstPathPart(String path) {
+        var stripped = stripSlashes(path);
+        if (path.charAt(0) == '/') {
+            return "/" + stripped;
+        }
+        return stripped;
+    }
+
 }

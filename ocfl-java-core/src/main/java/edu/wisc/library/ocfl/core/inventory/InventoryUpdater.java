@@ -7,11 +7,11 @@ import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.model.*;
+import edu.wisc.library.ocfl.core.path.ContentPathBuilder;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,92 +30,146 @@ public final class InventoryUpdater {
 
     private InventoryBuilder inventoryBuilder;
     private VersionBuilder versionBuilder;
+    private ContentPathBuilder contentPathBuilder;
     private DigestAlgorithm digestAlgorithm;
     private Set<DigestAlgorithm> fixityAlgorithms;
 
-    /**
-     * Creates an InventoryUpdater instance for an object that does not have a pre-existing inventory.
-     *
-     * @param objectId the id of the object
-     * @param inventoryType the inventory type
-     * @param digestAlgorithm the digest algorithm to use for computing file ids
-     * @param contentDirectory the directory to store version content in
-     * @param fixityAlgorithms the algorithms to use to compute additional fixity information
-     * @param createdTimestamp the timestamp the new version was created
-     */
-    public static InventoryUpdater newInventory(
-            String objectId,
-            InventoryType inventoryType,
-            DigestAlgorithm digestAlgorithm,
-            String contentDirectory,
-            Set<DigestAlgorithm> fixityAlgorithms,
-            OffsetDateTime createdTimestamp) {
-
-        var inventoryBuilder = new InventoryBuilder()
-                .id(objectId)
-                .type(inventoryType)
-                .digestAlgorithm(digestAlgorithm)
-                .contentDirectory(contentDirectory);
-
-        var versionBuilder = new VersionBuilder().created(createdTimestamp);
-        return new InventoryUpdater(VersionId.fromString(OcflConstants.DEFAULT_INITIAL_VERSION_ID),
-                null, inventoryBuilder, versionBuilder, fixityAlgorithms);
+    public static InventoryUpdater.Builder builder() {
+        return new Builder();
     }
 
-    /**
-     * Creates an InventoryUpdater instance that's used to insert a new version of an existing object WITHOUT copying over
-     * the state from the previous version. This should be used when an entire object is being inserted into the repository.
-     *
-     * @param inventory the original object inventory (will not be mutated)
-     * @param fixityAlgorithms the algorithms to use to compute additional fixity information
-     * @param createdTimestamp the timestamp the new version was created
-     */
-    public static InventoryUpdater newVersionForInsert(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
-        var inventoryBuilder = new InventoryBuilder(inventory);
-        var versionBuilder = new VersionBuilder().created(createdTimestamp);
-        return new InventoryUpdater(inventoryBuilder.getHead().nextVersionId(), null, inventoryBuilder, versionBuilder, fixityAlgorithms);
-    }
+    public static class Builder {
 
-    /**
-     * Creates an InventoryUpdater instance that's used to create a new version of an object by copying forward its current
-     * state and then applying changes to it. This should be used when an object is being selectively updated.
-     *
-     * @param inventory the original object inventory (will not be mutated)
-     * @param fixityAlgorithms the algorithms to use to compute additional fixity information
-     * @param createdTimestamp the timestamp the new version was created
-     */
-    public static InventoryUpdater newVersionForUpdate(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
-        var inventoryBuilder = new InventoryBuilder(inventory);
-        var versionBuilder = new VersionBuilder(inventory.getHeadVersion()).created(createdTimestamp);
-        return new InventoryUpdater(inventoryBuilder.getHead().nextVersionId(), null, inventoryBuilder, versionBuilder, fixityAlgorithms);
-    }
+        private ContentPathBuilder.Builder contentPathBuilderBuilder;
+        private Set<DigestAlgorithm> fixityAlgorithms;
+        private InventoryType defaultInventoryType;
+        private String defaultContentDirectory;
+        private DigestAlgorithm defaultDigestAlgorithm;
 
-    public static InventoryUpdater mutateHead(Inventory inventory, Set<DigestAlgorithm> fixityAlgorithms, OffsetDateTime createdTimestamp) {
-        var inventoryBuilder = new InventoryBuilder(inventory);
-        var versionBuilder = new VersionBuilder(inventory.getHeadVersion()).created(createdTimestamp);
-
-        var versionId = inventory.getHead();
-        if (!inventory.hasMutableHead()) {
-            versionId = versionId.nextVersionId();
+        public Builder contentPathBuilderBuilder(ContentPathBuilder.Builder contentPathBuilderBuilder) {
+            this.contentPathBuilderBuilder = Enforce.notNull(contentPathBuilderBuilder, "contentPathBuilderBuilder cannot be null");
+            return this;
         }
 
-        var revisionId = inventory.getRevisionId();
-        if (revisionId == null) {
-            revisionId = new RevisionId(1);
-        } else {
-            revisionId = revisionId.nextRevisionId();
+        public Builder fixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
+            this.fixityAlgorithms = fixityAlgorithms;
+            return this;
         }
 
-        inventoryBuilder.mutableHead(true).revisionId(revisionId);
+        public Builder defaultInventoryType(InventoryType defaultInventoryType) {
+            this.defaultInventoryType = Enforce.notNull(defaultInventoryType, "defaultInventoryType cannot be null");
+            return this;
+        }
 
-        return new InventoryUpdater(versionId, revisionId, inventoryBuilder, versionBuilder, fixityAlgorithms);
+        public Builder defaultContentDirectory(String defaultContentDirectory) {
+            this.defaultContentDirectory = Enforce.notBlank(defaultContentDirectory, "defaultContentDirectory cannot be blank");
+            return this;
+        }
+
+        public Builder defaultDigestAlgorithm(DigestAlgorithm defaultDigestAlgorithm) {
+            this.defaultDigestAlgorithm = Enforce.notNull(defaultDigestAlgorithm, "defaultDigestAlgorithm cannot be null");
+            return this;
+        }
+
+        /**
+         * Creates an InventoryUpdater instance for an object that does not have a pre-existing inventory.
+         *
+         * @param objectId the id of the object
+         * @param createdTimestamp the timestamp the new version was created
+         */
+        public InventoryUpdater newInventory(String objectId, String objectRootPath, OffsetDateTime createdTimestamp) {
+            var versionId = VersionId.fromString(OcflConstants.DEFAULT_INITIAL_VERSION_ID);
+
+            var inventoryBuilder = new InventoryBuilder()
+                    .id(objectId)
+                    .type(defaultInventoryType)
+                    .digestAlgorithm(defaultDigestAlgorithm)
+                    .contentDirectory(defaultContentDirectory)
+                    .objectRootPath(objectRootPath);
+
+            var versionBuilder = new VersionBuilder().created(createdTimestamp);
+
+            var contentPathBuilder = contentPathBuilderBuilder
+                    .buildStandardVersion(inventoryBuilder.getObjectRootPath(), inventoryBuilder.getContentDirectory(), versionId);
+
+            return new InventoryUpdater(versionId, null,
+                    inventoryBuilder, versionBuilder, contentPathBuilder, fixityAlgorithms);
+        }
+
+        /**
+         * Creates an InventoryUpdater instance that's used to insert a new version of an existing object WITHOUT copying over
+         * the state from the previous version. This should be used when an entire object is being inserted into the repository.
+         *
+         * @param inventory the original object inventory (will not be mutated)
+         * @param createdTimestamp the timestamp the new version was created
+         */
+        public InventoryUpdater newVersionForInsert(Inventory inventory, OffsetDateTime createdTimestamp) {
+            var inventoryBuilder = new InventoryBuilder(inventory);
+            var versionBuilder = new VersionBuilder().created(createdTimestamp);
+            var versionId = inventoryBuilder.getHead().nextVersionId();
+            var contentPathBuilder = contentPathBuilderBuilder
+                    .buildStandardVersion(inventory.getObjectRootPath(),inventoryBuilder.getContentDirectory(), versionId);
+            return new InventoryUpdater(versionId, null,
+                    inventoryBuilder, versionBuilder, contentPathBuilder, fixityAlgorithms);
+        }
+
+        /**
+         * Creates an InventoryUpdater instance that's used to create a new version of an object by copying forward its current
+         * state and then applying changes to it. This should be used when an object is being selectively updated.
+         *
+         * @param inventory the original object inventory (will not be mutated)
+         * @param createdTimestamp the timestamp the new version was created
+         */
+        public InventoryUpdater newVersionForUpdate(Inventory inventory, OffsetDateTime createdTimestamp) {
+            var inventoryBuilder = new InventoryBuilder(inventory);
+            var versionBuilder = new VersionBuilder(inventory.getHeadVersion()).created(createdTimestamp);
+            var versionId = inventoryBuilder.getHead().nextVersionId();
+            var contentPathBuilder = contentPathBuilderBuilder
+                    .buildStandardVersion(inventory.getObjectRootPath(),inventoryBuilder.getContentDirectory(), versionId);
+            return new InventoryUpdater(versionId, null,
+                    inventoryBuilder, versionBuilder, contentPathBuilder, fixityAlgorithms);
+        }
+
+        /**
+         * Creates an InventoryUpdater instance that's used to create or update the mutable HEAD version of an object.
+         *
+         * @param inventory the original object inventory (will not be mutated)
+         * @param createdTimestamp the timestamp the new version was created
+         */
+        public InventoryUpdater mutateHead(Inventory inventory, OffsetDateTime createdTimestamp) {
+            var inventoryBuilder = new InventoryBuilder(inventory);
+            var versionBuilder = new VersionBuilder(inventory.getHeadVersion()).created(createdTimestamp);
+
+            var versionId = inventory.getHead();
+            if (!inventory.hasMutableHead()) {
+                versionId = versionId.nextVersionId();
+            }
+
+            var revisionId = inventory.getRevisionId();
+            if (revisionId == null) {
+                revisionId = new RevisionId(1);
+            } else {
+                revisionId = revisionId.nextRevisionId();
+            }
+
+            inventoryBuilder.mutableHead(true).revisionId(revisionId);
+
+            var contentPathBuilder = contentPathBuilderBuilder
+                    .buildMutableVersion(inventory.getObjectRootPath(),inventoryBuilder.getContentDirectory(), revisionId);
+
+            return new InventoryUpdater(versionId, revisionId,
+                    inventoryBuilder, versionBuilder, contentPathBuilder, fixityAlgorithms);
+        }
+
     }
 
-    private InventoryUpdater(VersionId newVersionId, RevisionId newRevisionId, InventoryBuilder inventoryBuilder, VersionBuilder versionBuilder, Set<DigestAlgorithm> fixityAlgorithms) {
+    private InventoryUpdater(VersionId newVersionId, RevisionId newRevisionId, InventoryBuilder inventoryBuilder,
+                             VersionBuilder versionBuilder, ContentPathBuilder contentPathBuilder, Set<DigestAlgorithm> fixityAlgorithms) {
         this.newVersionId = Enforce.notNull(newVersionId, "newVersionId cannot be null");
         this.newRevisionId = newRevisionId;
         this.inventoryBuilder = Enforce.notNull(inventoryBuilder, "inventoryBuilder cannot be null");
         this.versionBuilder = Enforce.notNull(versionBuilder, "versionBuilder cannot be null");
+        this.contentPathBuilder = Enforce.notNull(contentPathBuilder, "contentPathBuilder cannot be null");
         this.fixityAlgorithms = fixityAlgorithms != null ? fixityAlgorithms : new HashSet<>();
         this.digestAlgorithm = inventoryBuilder.getDigestAlgorithm();
     }
@@ -141,25 +195,23 @@ public final class InventoryUpdater {
      * @return true if the file digest is new to the object and false otherwise
      * @throws OverwriteException if there is already a file at logicalPath
      */
-    public boolean addFile(String digest, Path absolutePath, Path logicalPath, OcflOption... ocflOptions) {
+    public AddFileResult addFile(String digest, Path absolutePath, String logicalPath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
+        var isNew = false;
+        var contentPath = contentPath(digest, logicalPath);
+        // TODO enforce logicalPath constraints?
 
-        var logicalPathStr = FileUtil.pathToStringStandardSeparator(logicalPath);
-
-        if (versionBuilder.getFileId(logicalPathStr) != null) {
+        if (versionBuilder.getFileId(logicalPath) != null) {
             if (options.contains(OcflOption.OVERWRITE)) {
-                versionBuilder.removePath(logicalPathStr);
+                versionBuilder.removePath(logicalPath);
             } else {
                 throw new OverwriteException(String.format("Cannot add file to %s because there is already a file at that location.",
-                        logicalPathStr));
+                        logicalPath));
             }
         }
 
-        var isNew = false;
-
         if (!inventoryBuilder.manifestContainsId(digest)) {
             isNew = true;
-            var contentPath = contentPath(logicalPathStr);
             inventoryBuilder.addFileToManifest(digest, contentPath);
 
             // TODO this could be slow, but I suspect that it is unlikely to be used...
@@ -176,8 +228,8 @@ public final class InventoryUpdater {
             }
         }
 
-        versionBuilder.addFile(digest, logicalPathStr);
-        return isNew;
+        versionBuilder.addFile(digest, logicalPath);
+        return new AddFileResult(isNew, contentPath, pathUnderContentDir(contentPath));
     }
 
     /**
@@ -185,26 +237,24 @@ public final class InventoryUpdater {
      *
      * @param logicalPath the logical path of the file to remove
      */
-    public void removeFile(Path logicalPath) {
-        var pathStr = FileUtil.pathToStringStandardSeparator(logicalPath);
-
+    public void removeFile(String logicalPath) {
         if (isMutableHead()) {
-            var fileId = versionBuilder.getFileId(pathStr);
+            var fileId = versionBuilder.getFileId(logicalPath);
 
             if (fileId != null) {
-                versionBuilder.removePath(pathStr);
+                versionBuilder.removePath(logicalPath);
 
                 var contentPaths = Set.copyOf(inventoryBuilder.getContentPaths(fileId));
 
                 contentPaths.forEach(contentPath -> {
-                    if (contentPath.startsWith(OcflConstants.MUTABLE_HEAD_VERSION_PATH.toString())
+                    if (contentPath.startsWith(OcflConstants.MUTABLE_HEAD_VERSION_PATH)
                             && !versionBuilder.containsFileId(fileId)) {
                         inventoryBuilder.removeFileFromManifest(contentPath);
                     }
                 });
             }
         } else {
-            versionBuilder.removePath(pathStr);
+            versionBuilder.removePath(logicalPath);
         }
     }
 
@@ -216,29 +266,26 @@ public final class InventoryUpdater {
      * @param ocflOptions Optional. Use {@code OcflOption.OVERWRITE} to overwrite existing files at destinationPath
      * @throws OverwriteException if there is already a file at destinationPath
      */
-    public void renameFile(Path sourcePath, Path destinationPath, OcflOption... ocflOptions) {
-        var srcPathStr = FileUtil.pathToStringStandardSeparator(sourcePath);
-        var destPathStr = FileUtil.pathToStringStandardSeparator(destinationPath);
-
+    public void renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
-        var srcFileId = versionBuilder.getFileId(srcPathStr);
+        var srcFileId = versionBuilder.getFileId(sourcePath);
 
         if (srcFileId == null) {
             throw new IllegalArgumentException(String.format("The following path was not found in object %s: %s",
-                    inventoryBuilder.getId(), srcPathStr));
+                    inventoryBuilder.getId(), sourcePath));
         }
 
-        if (versionBuilder.getFileId(destPathStr) != null) {
+        if (versionBuilder.getFileId(destinationPath) != null) {
             if (options.contains(OcflOption.OVERWRITE)) {
-                versionBuilder.removePath(destPathStr);
+                versionBuilder.removePath(destinationPath);
             } else {
                 throw new OverwriteException(String.format("Cannot move %s to %s because there is already a file at that location.",
-                        srcPathStr, destPathStr));
+                        sourcePath, destinationPath));
             }
         }
 
-        versionBuilder.removePath(srcPathStr);
-        versionBuilder.addFile(srcFileId, destPathStr);
+        versionBuilder.removePath(sourcePath);
+        versionBuilder.addFile(srcFileId, destinationPath);
     }
 
     /**
@@ -254,28 +301,25 @@ public final class InventoryUpdater {
      * @throws OverwriteException if there is already a file at the destinationPath and {@code OcflOption.OVERWRITE} was
      *                            not specified
      */
-    public void reinstateFile(VersionId sourceVersionId, Path sourcePath, Path destinationPath, OcflOption... ocflOptions) {
-        var srcPathStr = FileUtil.pathToStringStandardSeparator(sourcePath);
-        var destPathStr = FileUtil.pathToStringStandardSeparator(destinationPath);
-
+    public void reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
-        var fileId = inventoryBuilder.getVersionFileId(sourceVersionId, srcPathStr);
+        var fileId = inventoryBuilder.getVersionFileId(sourceVersionId, sourcePath);
 
         if (fileId == null) {
             throw new IllegalArgumentException(String.format("Object %s version %s does not contain a file at %s",
-                    inventoryBuilder.getId(), sourceVersionId, srcPathStr));
+                    inventoryBuilder.getId(), sourceVersionId, sourcePath));
         }
 
-        if (versionBuilder.getFileId(destPathStr) != null) {
+        if (versionBuilder.getFileId(destinationPath) != null) {
             if (options.contains(OcflOption.OVERWRITE)) {
-                versionBuilder.removePath(destPathStr);
+                versionBuilder.removePath(destinationPath);
             } else {
                 throw new OverwriteException(String.format("Cannot reinstate %s from version %s to %s because there is already a file at that location.",
-                        srcPathStr, sourceVersionId, destPathStr));
+                        sourcePath, sourceVersionId, destinationPath));
             }
         }
 
-        versionBuilder.addFile(fileId, destPathStr);
+        versionBuilder.addFile(fileId, destinationPath);
     }
 
     /**
@@ -303,23 +347,59 @@ public final class InventoryUpdater {
         return digestAlgorithm;
     }
 
-    private String contentPath(String logicalPath) {
-        Path contentPath;
-
-        if (isMutableHead()) {
-            contentPath = Paths.get(OcflConstants.MUTABLE_HEAD_VERSION_PATH,
-                    inventoryBuilder.getContentDirectory(),
-                    newRevisionId.toString(),
-                    logicalPath);
-        } else {
-            contentPath = Paths.get(newVersionId.toString(), inventoryBuilder.getContentDirectory(), logicalPath);
-        }
-
-        return FileUtil.pathToStringStandardSeparator(contentPath);
-    }
-
     private boolean isMutableHead() {
         return newRevisionId != null;
+    }
+
+    private String contentPath(String fileId, String logicalPath) {
+        var existingPaths = inventoryBuilder.getContentPaths(fileId);
+        if (existingPaths.isEmpty()) {
+            return contentPathBuilder.fromLogicalPath(logicalPath);
+        }
+        return existingPaths.iterator().next();
+    }
+
+    private String pathUnderContentDir(String contentPath) {
+        var contentDirectory = inventoryBuilder.getContentDirectory();
+        String prefix;
+
+        if (isMutableHead()) {
+            prefix = FileUtil.pathJoinFailEmpty(
+                    OcflConstants.MUTABLE_HEAD_VERSION_PATH,
+                    contentDirectory);
+        } else {
+            prefix = FileUtil.pathJoinFailEmpty(
+                    newVersionId.toString(),
+                    contentDirectory);
+        }
+
+        return contentPath.substring(prefix.length() + 1);
+    }
+
+    public static class AddFileResult {
+
+        private boolean isNew;
+        private String contentPath;
+        private String pathUnderContentDir;
+
+        private AddFileResult(boolean isNew, String contentPath, String pathUnderContentDir) {
+            this.isNew = isNew;
+            this.contentPath = contentPath;
+            this.pathUnderContentDir = pathUnderContentDir;
+        }
+
+        public boolean isNew() {
+            return isNew;
+        }
+
+        public String getContentPath() {
+            return contentPath;
+        }
+
+        public String getPathUnderContentDir() {
+            return pathUnderContentDir;
+        }
+
     }
 
 }

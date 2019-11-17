@@ -3,10 +3,7 @@ package edu.wisc.library.ocfl.core.itest;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
-import edu.wisc.library.ocfl.api.exception.FixityCheckException;
-import edu.wisc.library.ocfl.api.exception.NotFoundException;
-import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
+import edu.wisc.library.ocfl.api.exception.*;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -624,7 +621,23 @@ public class FileSystemOcflITest {
     }
 
     @Test
-    public void rejectDstPathsThatAreNotRelativeToObjectRoot() {
+    public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() {
+        var repoName = "repo16";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.writeFile(new ByteArrayInputStream("test1".getBytes()), "backslash\\path\\file");
+            updater.writeFile(new ByteArrayInputStream("test3".getBytes()), "fi\u0080le");
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+    }
+
+    @Test
+    public void rejectPathsWhenInvalidAndNotSanitized() {
         var repoName = "repo9";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
@@ -635,15 +648,33 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(PathConstraintException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
-                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "/absolute/path/file3");
+                updater.writeFile(new ByteArrayInputStream("test2".getBytes()), "file/");
             });
         });
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(PathConstraintException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
-                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "relative/../../path/file3");
+                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "/absolute/path/file");
+            });
+        });
+
+        assertThrows(PathConstraintException.class, () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "empty//path/file");
+            });
+        });
+
+        assertThrows(PathConstraintException.class, () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "relative/../../path/file");
+            });
+        });
+
+        assertThrows(PathConstraintException.class, () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("test".getBytes()), "./file");
             });
         });
     }

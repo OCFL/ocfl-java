@@ -19,6 +19,7 @@ public class InventoryBuilder {
 
     private boolean mutableHead;
     private RevisionId revisionId;
+    private String objectRootPath;
 
     private Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
     private Map<String, Set<String>> manifest;
@@ -47,6 +48,7 @@ public class InventoryBuilder {
         this.contentDirectory = original.getContentDirectory();
         this.mutableHead = original.hasMutableHead();
         this.revisionId = original.getRevisionId();
+        this.objectRootPath = original.getObjectRootPath();
         this.fixity = original.getMutableFixity();
         this.manifest = original.getMutableManifest();
         this.versions = original.getMutableVersions();
@@ -172,6 +174,11 @@ public class InventoryBuilder {
         return this;
     }
 
+    public InventoryBuilder objectRootPath(String objectRootPath) {
+        this.objectRootPath = objectRootPath;
+        return this;
+    }
+
     public String getId() {
         return id;
     }
@@ -191,6 +198,10 @@ public class InventoryBuilder {
         return contentDirectory;
     }
 
+    public String getObjectRootPath() {
+        return objectRootPath;
+    }
+
     public String getVersionFileId(VersionId versionId, String path) {
         var version = versions.get(versionId);
 
@@ -202,7 +213,8 @@ public class InventoryBuilder {
     }
 
     public Inventory build() {
-        return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity, manifest, versions, mutableHead, revisionId, reverseManifestMap);
+        return new Inventory(id, type, digestAlgorithm, head, contentDirectory,
+                fixity, manifest, versions, mutableHead, revisionId, objectRootPath, reverseManifestMap);
     }
 
 }

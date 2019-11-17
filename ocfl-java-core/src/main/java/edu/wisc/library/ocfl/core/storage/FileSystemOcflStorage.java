@@ -99,15 +99,16 @@ public class FileSystemOcflStorage implements OcflStorage {
         ensureOpen();
 
         Inventory inventory = null;
-        var objectRootPath = objectRootPathFull(objectId);
+        var objectRootPathStr = objectRootPath(objectId);
+        var objectRootPath = repositoryRoot.resolve(objectRootPathStr);
 
         if (Files.exists(objectRootPath)) {
             var mutableHeadInventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
             if (Files.exists(mutableHeadInventoryPath)) {
                 ensureRootObjectHasNotChanged(objectId, objectRootPath);
-                inventory = parseMutableHeadInventory(mutableHeadInventoryPath);
+                inventory = parseMutableHeadInventory(objectRootPathStr, mutableHeadInventoryPath);
             } else {
-                inventory = parseInventory(ObjectPaths.inventoryPath(objectRootPath));
+                inventory = parseInventory(objectRootPathStr, ObjectPaths.inventoryPath(objectRootPath));
             }
         }
 
@@ -173,6 +174,10 @@ public class FileSystemOcflStorage implements OcflStorage {
             var srcPath = objectRootPath.resolve(src);
 
             for (var dstPath : files) {
+                // TODO this is not safe. Instead: Paths.get(stagingDir.toString() + "/" + dstPath)
+                // TODO MUST ensure that the logical path does not contain "." or ".."
+                // TODO MUST ensure that the logical path does not start with "/" or "C:/"
+                // TODO Paths with empty filenames eg "//"
                 var path = stagingDir.resolve(dstPath);
 
                 if (Thread.interrupted()) {
@@ -184,6 +189,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 if (Thread.interrupted()) {
                     break;
                 } else {
+                    // TODO it is more efficient if the file is streamed to the new location and the digest computed en route
                     var digest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), path);
                     var paths = inventory.getFilePaths(digest);
                     if (paths == null || !paths.contains(src)) {
@@ -387,19 +393,19 @@ public class FileSystemOcflStorage implements OcflStorage {
         return repositoryRoot.resolve(objectIdPathMapper.map(objectId));
     }
 
-    private Inventory parseInventory(Path inventoryPath) {
+    private Inventory parseInventory(String objectRootPath, Path inventoryPath) {
         if (Files.notExists(inventoryPath)) {
             // TODO if there's not root inventory should we look for the inventory in the latest version directory?
             throw new IllegalStateException("Missing inventory at " + inventoryPath);
         }
         verifyInventory(inventoryPath);
-        return inventoryMapper.read(inventoryPath);
+        return inventoryMapper.read(objectRootPath, inventoryPath);
     }
 
-    private Inventory parseMutableHeadInventory(Path inventoryPath) {
+    private Inventory parseMutableHeadInventory(String objectRootPath, Path inventoryPath) {
         verifyInventory(inventoryPath);
         var revisionId = identifyLatestRevision(inventoryPath.getParent());
-        return inventoryMapper.readMutableHead(revisionId, inventoryPath);
+        return inventoryMapper.readMutableHead(objectRootPath, revisionId, inventoryPath);
     }
 
     private void verifyInventory(Path inventoryPath) {
@@ -614,6 +620,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
+    // TODO this is now optional, but, at the very least, I think I should still make sure all of the referenced files are there
     private void versionContentFixityCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath) {
         var version = inventory.getHeadVersion();
         var files = FileUtil.findFiles(contentPath);
@@ -721,7 +728,8 @@ public class FileSystemOcflStorage implements OcflStorage {
         var objectRoot = identifyRandomObjectRoot(repositoryRoot);
 
         if (objectRoot != null) {
-            var inventory = parseInventory(ObjectPaths.inventoryPath(objectRoot));
+            var inventory = parseInventory(FileUtil.pathToStringStandardSeparator(repositoryRoot.relativize(objectRoot)),
+                    ObjectPaths.inventoryPath(objectRoot));
             var expectedPath = Paths.get(objectIdPathMapper.map(inventory.getId()));
             var actualPath = repositoryRoot.relativize(objectRoot);
             if (!expectedPath.equals(actualPath)) {

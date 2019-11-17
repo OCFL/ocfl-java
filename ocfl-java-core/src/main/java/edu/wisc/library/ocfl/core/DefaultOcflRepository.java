@@ -17,6 +17,9 @@ import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.path.ContentPathBuilder;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -27,14 +30,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -55,10 +54,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
     private ResponseMapper responseMapper;
+    private InventoryUpdater.Builder inventoryUpdaterBuilder;
 
-    private Set<DigestAlgorithm> fixityAlgorithms;
-    private InventoryType inventoryType;
-    private DigestAlgorithm digestAlgorithm;
     private String contentDirectory;
 
     private ParallelProcess parallelProcess;
@@ -68,10 +65,15 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     private boolean closed = false;
 
+    /**
+     * @see OcflRepositoryBuilder
+     */
     public DefaultOcflRepository(OcflStorage storage, Path workDir,
                                  ObjectLock objectLock,
                                  Cache<String, Inventory> inventoryCache,
                                  InventoryMapper inventoryMapper,
+                                 PathSanitizer pathSanitizer,
+                                 ContentPathConstraintProcessor contentPathConstraintProcessor,
                                  Set<DigestAlgorithm> fixityAlgorithms,
                                  InventoryType inventoryType, DigestAlgorithm digestAlgorithm,
                                  String contentDirectory, int digestThreadPoolSize, int copyThreadPoolSize) {
@@ -80,12 +82,18 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
-        this.fixityAlgorithms = Enforce.notNull(fixityAlgorithms, "fixityAlgorithms cannot be null");
-        this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
-        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
         Enforce.expressionTrue(digestThreadPoolSize > 0, digestThreadPoolSize, "digestThreadPoolSize must be greater than 0");
         Enforce.expressionTrue(copyThreadPoolSize > 0, copyThreadPoolSize, "copyThreadPoolSize must be greater than 0");
+
+        inventoryUpdaterBuilder = InventoryUpdater.builder()
+                .defaultInventoryType(inventoryType)
+                .defaultContentDirectory(contentDirectory)
+                .defaultDigestAlgorithm(digestAlgorithm)
+                .fixityAlgorithms(fixityAlgorithms)
+                .contentPathBuilderBuilder(ContentPathBuilder.builder()
+                        .pathSanitizer(pathSanitizer)
+                        .contentPathConstraintProcessor(contentPathConstraintProcessor));
 
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
@@ -101,6 +109,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     public ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions) {
         ensureOpen();
 
+        // TODO max object id length? should probably be 255 bytes
+
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
@@ -114,6 +124,9 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         var contentDir = FileUtil.createDirectories(resolveContentDir(inventory, stagingDir));
 
         var newInventory = stageNewVersion(updater, path, contentDir, options);
+
+        // TODO Since the fixity check after moving the version into the object is now optional, should there be an optional
+        //      fixity check after files are put in the staging directory? Add an OcflOption
 
         try {
             writeNewVersion(newInventory, stagingDir);
@@ -142,6 +155,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         try {
             objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir, parallelProcess, copyParallelProcess));
+            // TODO there is a bad bug here: if the user swallows all exceptions, then a potentially corrupted version will be created
+            // TODO either need a validation step or need to change the way updates are made
             var newInventory = updater.finalizeUpdate();
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
@@ -169,7 +184,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         getObjectInternal(inventory, versionId, outputPath);
     }
 
-    // TODO think about how the file separator problem applies to reads
     /**
      * {@inheritDoc}
      */
@@ -249,9 +263,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         var inventory = requireInventory(ObjectVersionId.head(objectId));
-        var objectRootPath = Paths.get(storage.objectRootPath(objectId));
 
-        return responseMapper.mapInventory(inventory, objectRootPath);
+        return responseMapper.mapInventory(inventory);
     }
 
     /**
@@ -317,14 +330,14 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         }
 
         enforceObjectVersionForUpdate(objectId, inventory);
-        var updater = InventoryUpdater.mutateHead(inventory, fixityAlgorithms, now());
+        var updater = inventoryUpdaterBuilder.mutateHead(inventory, now());
         updater.addCommitInfo(commitInfo);
 
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        var revisionDir = FileUtil.createDirectories(resolveRevisionDir(inventory, stagingDir));
+        var contentDir = FileUtil.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
 
         try {
-            objectUpdater.accept(new DefaultOcflObjectUpdater(updater, revisionDir, parallelProcess, copyParallelProcess));
+            objectUpdater.accept(new DefaultOcflObjectUpdater(updater, contentDir, parallelProcess, copyParallelProcess));
             var newInventory = updater.finalizeUpdate();
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectId.getObjectId(), newInventory.getHead());
@@ -391,7 +404,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     @Override
     public boolean hasStagedChanges(String objectId) {
         ensureOpen();
-
+        // TODO return false if object does not exist?
         Enforce.notBlank(objectId, "objectId cannot be blank");
         var inventory = requireInventory(ObjectVersionId.head(objectId));
         return inventory.hasMutableHead();
@@ -431,18 +444,13 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         if (inventory != null) {
             enforceObjectVersionForUpdate(objectId, inventory);
             if (isInsert) {
-                updater = InventoryUpdater.newVersionForInsert(inventory, fixityAlgorithms, now());
+                updater = inventoryUpdaterBuilder.newVersionForInsert(inventory, now());
             } else {
-                updater = InventoryUpdater.newVersionForUpdate(inventory, fixityAlgorithms, now());
+                updater = inventoryUpdaterBuilder.newVersionForUpdate(inventory, now());
             }
         } else {
-            updater = InventoryUpdater.newInventory(
-                    objectId.getObjectId(),
-                    inventoryType,
-                    digestAlgorithm,
-                    contentDirectory,
-                    fixityAlgorithms,
-                    now());
+            var objectRootPath = storage.objectRootPath(objectId.getObjectId());
+            updater = inventoryUpdaterBuilder.newInventory(objectId.getObjectId(), objectRootPath, now());
         }
 
         return updater;
@@ -450,7 +458,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     private Inventory stageNewVersion(InventoryUpdater updater, Path sourcePath, Path contentDir, Set<OcflOption> options) {
         var files = FileUtil.findFiles(sourcePath);
-        var newFiles = new HashSet<Path>();
+        var newFiles = new HashMap<Path, String>();
 
         var filesWithDigests = parallelProcess.collection(files, file -> {
             var digest = updater.computeDigest(file);
@@ -463,19 +471,18 @@ public class DefaultOcflRepository implements MutableOcflRepository {
             var digest = fileWithDigest.getValue();
             var logicalPath = createLogicalPath(sourcePath, file);
 
-            var isNewFile = updater.addFile(digest, file, logicalPath);
+            var result = updater.addFile(digest, file, FileUtil.pathToStringStandardSeparator(logicalPath));
 
-            if (isNewFile) {
-                newFiles.add(file);
+            if (result.isNew()) {
+                newFiles.put(file, result.getPathUnderContentDir());
             }
         }
 
-        copyParallelProcess.collection(newFiles, file -> {
-            var logicalPath = createLogicalPath(sourcePath, file);
+        copyParallelProcess.map(newFiles, (file, pathUnderContentDir) -> {
             if (options.contains(OcflOption.MOVE_SOURCE)) {
-                FileUtil.moveFileMakeParents(file, contentDir.resolve(logicalPath));
+                FileUtil.moveFileMakeParents(file, contentDir.resolve(pathUnderContentDir));
             } else {
-                FileUtil.copyFileMakeParents(file, contentDir.resolve(logicalPath));
+                FileUtil.copyFileMakeParents(file, contentDir.resolve(pathUnderContentDir));
             }
         });
 
@@ -596,9 +603,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     private VersionDetails createVersionDetails(Inventory inventory, VersionId versionId) {
         var version = inventory.getVersion(versionId);
-        var objectRootPath = Paths.get(storage.objectRootPath(inventory.getId()));
-
-        return responseMapper.mapVersion(inventory, versionId, version, objectRootPath);
+        return responseMapper.mapVersion(inventory, versionId, version);
     }
 
     private OffsetDateTime now() {

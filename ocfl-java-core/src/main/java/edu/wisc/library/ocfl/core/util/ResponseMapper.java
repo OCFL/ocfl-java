@@ -4,7 +4,6 @@ import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -15,13 +14,13 @@ import java.util.stream.Collectors;
  */
 public class ResponseMapper {
 
-    public ObjectDetails mapInventory(Inventory inventory, Path objectRootPath) {
+    public ObjectDetails mapInventory(Inventory inventory) {
         var details = new ObjectDetails()
                 .setId(inventory.getId())
                 .setHeadVersionId(inventory.getHead());
 
         var versionMap = inventory.getVersions().entrySet().stream()
-                .map(entry -> mapVersion(inventory, entry.getKey(), entry.getValue(), objectRootPath))
+                .map(entry -> mapVersion(inventory, entry.getKey(), entry.getValue()))
                 .collect(Collectors.toMap(VersionDetails::getVersionId, Function.identity()));
 
         details.setVersions(versionMap);
@@ -29,12 +28,12 @@ public class ResponseMapper {
         return details;
     }
 
-    public VersionDetails mapVersion(Inventory inventory, VersionId versionId, Version version, Path objectRootPath) {
+    public VersionDetails mapVersion(Inventory inventory, VersionId versionId, Version version) {
         var details = new VersionDetails()
                 .setObjectId(inventory.getId())
                 .setVersionId(versionId)
                 .setCreated(version.getCreated())
-                .setFileMap(mapFileDetails(inventory, version, objectRootPath));
+                .setFileMap(mapFileDetails(inventory, version));
 
         var commitInfo = new CommitInfo().setMessage(version.getMessage());
 
@@ -50,7 +49,8 @@ public class ResponseMapper {
     }
 
     // TODO this isn't very efficient
-    private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version, Path objectRootPath) {
+    private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
+        var objectRootPath = inventory.getObjectRootPath();
         var fileDetailsMap = new HashMap<String, FileDetails>();
         var fileFixityMap = new HashMap<String, FileDetails>();
 
@@ -61,7 +61,7 @@ public class ResponseMapper {
                 var details = new FileDetails()
                         .setPath(path)
                         .setStorageRelativePath(
-                                FileUtil.pathToStringStandardSeparator(objectRootPath.resolve(inventory.getFilePath(digest))))
+                                FileUtil.pathJoinFailEmpty(objectRootPath, inventory.getFilePath(digest)))
                         .addDigest(digestAlgorithm.getOcflName(), digest);
                 fileFixityMap.put(digest, details);
                 fileDetailsMap.put(path, details);

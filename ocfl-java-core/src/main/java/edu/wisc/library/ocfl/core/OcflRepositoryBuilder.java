@@ -12,6 +12,10 @@ import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryType;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
+import edu.wisc.library.ocfl.core.path.sanitize.NoOpPathSanitizer;
+import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 
 import java.nio.file.Files;
@@ -39,6 +43,8 @@ public class OcflRepositoryBuilder {
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
     private InventoryMapper inventoryMapper;
+    private PathSanitizer pathSanitizer;
+    private ContentPathConstraintProcessor contentPathConstraintProcessor;
 
     private int digestThreadPoolSize;
     private int copyThreadPoolSize;
@@ -56,6 +62,8 @@ public class OcflRepositoryBuilder {
                 .expireAfterAccess(Duration.ofMinutes(10))
                 .maximumSize(1_000).build());
         inventoryMapper = InventoryMapper.defaultMapper();
+        pathSanitizer = new NoOpPathSanitizer();
+        contentPathConstraintProcessor = DefaultContentPathConstraints.none();
         digestThreadPoolSize = Runtime.getRuntime().availableProcessors();
         copyThreadPoolSize = digestThreadPoolSize * 2;
     }
@@ -105,11 +113,58 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Overrides the default NoOpPathSanitizer. PathSanitizers are used to clean logical file paths so that they can
+     * safely be used as content paths to store files on disk.
+     *
+     * @param pathSanitizer
+     */
+    public OcflRepositoryBuilder pathSanitizer(PathSanitizer pathSanitizer) {
+        this.pathSanitizer = Enforce.notNull(pathSanitizer, "pathSanitizer cannot be null");
+        return this;
+    }
+
+    /**
+     * Overrides the default ContentPathConstraintProcessor that is used to enforce restrictions on what constitutes a valid
+     * content path. By default, there are no restrictions.
+     *
+     * <p>Path constraints are applied AFTER the logical path has been sanitized, and are used to attempt to
+     * ensure the portability of content paths. The following default generic constraint configurations are provided:
+     *
+     * <ul>
+     *     <li>{@link DefaultContentPathConstraints#unix()}</li>
+     *     <li>{@link DefaultContentPathConstraints#windows()}</li>
+     *     <li>{@link DefaultContentPathConstraints#cloud()}</li>
+     *     <li>{@link DefaultContentPathConstraints#all()}</li>
+     *     <li>{@link DefaultContentPathConstraints#none()}</li>
+     * </ul>
+     *
+     * <p>Constraints should be applied that target filesystems that are NOT the local filesystem. The local filesystem
+     * will enforce its own constraints just fine. This mechanism is intended to enforce path constraints that the local
+     * filesystem does not.
+     *
+     * <p>The following constraints are ALWAYS applied:
+     *
+     * <ul>
+     *     <li>Cannot have a trailing /</li>
+     *     <li>Cannot contain the following filenames: '.', '..'</li>
+     *     <li>Cannot contain an empty filename</li>
+     *     <li>Windows only: Cannot contain a \</li>
+     * </ul>
+     *
+     * @param contentPathConstraintProcessor
+     */
+    public OcflRepositoryBuilder contentPathConstraintProcessor(ContentPathConstraintProcessor contentPathConstraintProcessor) {
+        this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
+        return this;
+    }
+
+    /**
      * Used to specify the OCFL inventory type to apply to newly created inventories.
      *
      * @param inventoryType
      */
     public OcflRepositoryBuilder inventoryType(InventoryType inventoryType) {
+        // TODO This probably should not be configurable -- it is likely tied to the OCFL spec version
         this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
         return this;
     }
@@ -198,9 +253,10 @@ public class OcflRepositoryBuilder {
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");
 
         return new DefaultOcflRepository(storage, workDir,
-                objectLock, inventoryCache, inventoryMapper, fixityAlgorithms,
-                inventoryType, digestAlgorithm, contentDirectory,
-                digestThreadPoolSize, copyThreadPoolSize);
+                objectLock, inventoryCache, inventoryMapper,
+                pathSanitizer, contentPathConstraintProcessor,
+                fixityAlgorithms, inventoryType, digestAlgorithm,
+                contentDirectory, digestThreadPoolSize, copyThreadPoolSize);
     }
 
 }

@@ -26,22 +26,26 @@ public class InventoryMapperTest {
     @Test
     public void shouldRoundTripInventory() throws IOException {
         var original = readFile("simple-inventory.json");
-        var inventory = mapper.read(new ByteArrayInputStream(original.getBytes()));
+        var objectRoot = "path/to/obj1";
+        var inventory = mapper.read(objectRoot, new ByteArrayInputStream(original.getBytes()));
         assertFalse(inventory.hasMutableHead());
         assertNull(inventory.getRevisionId());
         var output = writeInventoryToString(inventory);
         assertEquals(original, output);
+        assertEquals(objectRoot, inventory.getObjectRootPath());
     }
 
     @Test
     public void shouldRoundTripMutableHeadInventory() throws IOException {
         var original = readFile("simple-inventory.json");
+        var objectRoot = "path/to/obj2";
         var revision = RevisionId.fromString("r2");
-        var inventory = mapper.readMutableHead(revision, new ByteArrayInputStream(original.getBytes()));
+        var inventory = mapper.readMutableHead(objectRoot, revision, new ByteArrayInputStream(original.getBytes()));
         assertTrue(inventory.hasMutableHead());
         assertEquals(revision, inventory.getRevisionId());
         var output = writeInventoryToString(inventory);
         assertEquals(original, output);
+        assertEquals(objectRoot, inventory.getObjectRootPath());
     }
 
     private String readFile(String name) throws IOException {

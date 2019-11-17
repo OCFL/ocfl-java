@@ -21,7 +21,6 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
     private boolean useUppercase;
 
     private String digestAlgorithm;
-    private ObjectIdPathMapper delegateMapper;
 
     /**
      * @param digestAlgorithm the digest algorithm to use on the object id

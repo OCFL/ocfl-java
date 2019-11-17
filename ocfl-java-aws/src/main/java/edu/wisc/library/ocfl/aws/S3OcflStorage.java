@@ -52,7 +52,7 @@ public class S3OcflStorage implements OcflStorage {
 
         try {
             downloadFile(inventoryPath, localInventoryPath);
-            var inventory = inventoryMapper.read(localInventoryPath);
+            var inventory = inventoryMapper.read(objectRootPath, localInventoryPath);
             var expectedDigest = getDigestFromSidecar(Paths.get(objectRootPath), inventory);
             verifyInventory(expectedDigest, localInventoryPath, inventory.getDigestAlgorithm());
             return inventory;

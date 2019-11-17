@@ -1,11 +1,9 @@
 package edu.wisc.library.ocfl.core.mapping;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.io.CharArrayWriter;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +30,7 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
     private String defaultEncapsulationName;
     private int encapsulationSubstringLength;
 
+    // TODO awoods would like this to support a max depth and using the full object id as the encapsulation dir
     /**
      * @param encoder The algorithm to use to encode an identifier
      * @param defaultEncapsulationName The directory name to use to encapsulate an object when the encoded identifier is less than 3 characters long
@@ -52,7 +51,7 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
         var encoded = encoder.encode(objectId);
 
         if (encoded.length() < 3) {
-            return String.join("/", encoded, defaultEncapsulationName);
+            return FileUtil.pathJoinFailEmpty(encoded, defaultEncapsulationName);
         }
 
         var charArrayWriter = new CharArrayWriter();
@@ -77,7 +76,7 @@ public class PairTreeObjectIdPathMapper implements ObjectIdPathMapper {
             parts[partIndex] = validateDir(objectId, encoded.substring(encoded.length() - encapsulationSubstringLength));
         }
 
-        return String.join("/", parts);
+        return FileUtil.pathJoinFailEmpty(parts);
     }
 
     @Override
