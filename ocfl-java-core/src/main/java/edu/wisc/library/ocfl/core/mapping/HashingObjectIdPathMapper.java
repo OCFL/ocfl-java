@@ -4,6 +4,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -42,7 +43,7 @@ public class HashingObjectIdPathMapper implements ObjectIdPathMapper {
     @Override
     public String map(String objectId) {
         var hashChars = Hex.encodeHex(
-                DigestUtils.digest(DigestUtils.getDigest(digestAlgorithm), objectId.getBytes()),
+                DigestUtils.digest(DigestUtils.getDigest(digestAlgorithm), objectId.getBytes(StandardCharsets.UTF_8)),
                 !useUppercase);
 
         if (hashChars.length < minHashLength) {

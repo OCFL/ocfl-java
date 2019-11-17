@@ -3,6 +3,8 @@ package edu.wisc.library.ocfl.core.path.constraint;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Validates that a path or filename are not longer than a fixed number of characters or bytes
  */
@@ -60,7 +62,7 @@ public class PathLengthConstraint implements PathConstraint, FileNameConstraint 
         if (type == Type.CHARACTERS) {
             validateLength(path.length(), message(path));
         } else {
-            validateLength(path.getBytes().length, message(path));
+            validateLength(path.getBytes(StandardCharsets.UTF_8).length, message(path));
         }
     }
 
@@ -72,7 +74,7 @@ public class PathLengthConstraint implements PathConstraint, FileNameConstraint 
         if (type == Type.CHARACTERS) {
             validateLength(fileName.length(), message(fileName, path));
         } else {
-            validateLength(fileName.getBytes().length, message(fileName, path));
+            validateLength(fileName.getBytes(StandardCharsets.UTF_8).length, message(fileName, path));
         }
     }
 
