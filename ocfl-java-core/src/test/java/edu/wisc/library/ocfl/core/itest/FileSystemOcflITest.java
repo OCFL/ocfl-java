@@ -15,6 +15,8 @@ import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
@@ -621,6 +623,7 @@ public class FileSystemOcflITest {
     }
 
     @Test
+    @EnabledOnOs(OS.LINUX)
     public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() {
         var repoName = "repo16";
         var repoDir = newRepoDir(repoName);
