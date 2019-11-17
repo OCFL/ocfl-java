@@ -53,10 +53,6 @@
 
     <profiles>
         <profile>
-            <!--
-            There is a bug in 11.0.2 that prevents the javadoc from being generated. Must be built with 12 or 11.0.5.
-            https://bugs.openjdk.java.net/browse/JDK-8208269
-            -->
             <id>release</id>
             <build>
                 <plugins>
@@ -192,6 +188,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M3</version>
+                <configuration>
+                    <argLine>-Dfile.encoding=UTF-8</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
