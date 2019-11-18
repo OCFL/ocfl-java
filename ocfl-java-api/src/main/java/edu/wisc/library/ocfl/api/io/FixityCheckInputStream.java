@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
  */
 public class FixityCheckInputStream extends DigestInputStream {
 
+    private boolean enabled = true;
     private final String expectedDigestValue;
 
     /**
@@ -31,23 +32,39 @@ public class FixityCheckInputStream extends DigestInputStream {
      * Performs a fixity check and throws an exception if the check fails. This should only be called after the entire
      * contents of the stream has been read.
      *
+     * <p>If the check is disabled, nothing happens
+     *
      * @throws FixityCheckException when the actual digest value does not match the expected value
      */
     public void checkFixity() {
-        var actualDigest = Hex.encodeHexString(digest.digest());
-        if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
-            throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
-                    digest.getAlgorithm(), expectedDigestValue, actualDigest));
+        if (enabled) {
+            var actualDigest = Hex.encodeHexString(digest.digest());
+            if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
+                throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
+                        digest.getAlgorithm(), expectedDigestValue, actualDigest));
+            }
         }
+
     }
 
     public String getExpectedDigestValue() {
         return expectedDigestValue;
     }
 
+    /**
+     * By default fixity checking is enabled. Use this method to disable it, and prevent needless digest computation
+     *
+     * @param enabled if fixity should be checked
+     * @return this stream
+     */
+    public FixityCheckInputStream enableFixityCheck(boolean enabled) {
+        on(enabled);
+        return this;
+    }
+
     @Override
     public void on(boolean on) {
-        // TODO all the fixity check to be disabled
+        enabled = on;
         super.on(on);
     }
 

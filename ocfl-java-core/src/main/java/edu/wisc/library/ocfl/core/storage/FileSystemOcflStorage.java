@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
-import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
+import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.DigestAlgorithmRegistry;
@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
@@ -211,24 +210,19 @@ public class FileSystemOcflStorage implements OcflStorage {
         });
     }
 
-    // TODO should this have a different return value?
     /**
      * {@inheritDoc}
      */
     @Override
-    public InputStream retrieveFile(Inventory inventory, String fileId) {
+    public FixityCheckInputStream retrieveFile(Inventory inventory, String fileId) {
         ensureOpen();
 
         var objectRootPath = objectRootPathFull(inventory.getId());
-
-        var filePath = inventory.getFilePath(fileId);
-
-        if (filePath == null) {
-            throw new NotFoundException(String.format("File %s does not exist in object %s.", fileId, inventory.getId()));
-        }
+        var srcPath = objectRootPath.resolve(ensureManifestPath(inventory, fileId));
 
         try {
-            return Files.newInputStream(objectRootPath.resolve(filePath));
+            return new FixityCheckInputStream(Files.newInputStream(objectRootPath.resolve(srcPath)),
+                    inventory.getDigestAlgorithm().getJavaStandardName(), fileId);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
