@@ -191,34 +191,32 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         var objectRootPath = objectRootPathFull(inventory.getId());
         var version = ensureVersion(inventory, versionId);
+        var digestAlgorithm = inventory.getDigestAlgorithm().getJavaStandardName();
 
         parallelProcess.collection(version.getState().entrySet(), entry -> {
             var id = entry.getKey();
             var files = entry.getValue();
 
-            var src = ensureManifestPath(inventory, id);
-            var srcPath = objectRootPath.resolve(src);
+            var srcPath = objectRootPath.resolve(ensureManifestPath(inventory, id));
 
-            for (var dstPath : files) {
-                logicalPathConstraints.apply(dstPath);
-                var path = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), dstPath));
+            for (var logicalPath : files) {
+                logicalPathConstraints.apply(logicalPath);
+                var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
+
+                FileUtil.createDirectories(destination.getParent());
 
                 if (Thread.interrupted()) {
                     break;
-                } else {
-                    FileUtil.copyFileMakeParents(srcPath, path);
                 }
 
-                if (Thread.interrupted()) {
-                    break;
-                } else {
-                    // TODO it is more efficient if the file is streamed to the new location and the digest computed en route
-                    var digest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), path);
-                    var paths = inventory.getContentPaths(digest);
-                    if (paths == null || !paths.contains(src)) {
-                        throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Was: %s",
-                                path, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), digest));
-                    }
+                try (var stream = new FixityCheckInputStream(Files.newInputStream(srcPath), digestAlgorithm, id)) {
+                    Files.copy(stream, destination);
+                    stream.checkFixity();
+                } catch (IOException e) {
+                    throw new RuntimeIOException(e);
+                } catch (FixityCheckException e) {
+                    throw new FixityCheckException(
+                            String.format("File %s in object %s failed its fixity check.", logicalPath, inventory.getId()), e);
                 }
             }
         });
