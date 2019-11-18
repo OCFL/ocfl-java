@@ -624,7 +624,7 @@ public class FileSystemOcflITest {
 
     @Test
     @EnabledOnOs(OS.LINUX)
-    public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() {
+    public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() throws IOException {
         var repoName = "repo16";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
@@ -636,7 +636,14 @@ public class FileSystemOcflITest {
             updater.writeFile(new ByteArrayInputStream("test3".getBytes()), "fi\u0080le");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        var expectedRepoPath = expectedRepoPath(repoName);
+        var backslashFile = expectedRepoPath.resolve("o1/v1/content/backslash\\path\\file");
+        try {
+            Files.write(backslashFile, "test1".getBytes());
+            verifyDirectoryContentsSame(expectedRepoPath, repoDir);
+        } finally {
+            Files.deleteIfExists(backslashFile);
+        }
     }
 
     @Test
