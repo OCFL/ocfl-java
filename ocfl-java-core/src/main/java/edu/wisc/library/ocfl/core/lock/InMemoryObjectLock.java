@@ -22,8 +22,8 @@ public class InMemoryObjectLock implements ObjectLock {
     /**
      * How long to wait when attempting to acquire a lock.
      *
-     * @param waitTime
-     * @param timeUnit
+     * @param waitTime how long to wait for the lock
+     * @param timeUnit unit of wait time
      */
     public InMemoryObjectLock(long waitTime, TimeUnit timeUnit) {
         this.locks = new ConcurrentHashMap<>();

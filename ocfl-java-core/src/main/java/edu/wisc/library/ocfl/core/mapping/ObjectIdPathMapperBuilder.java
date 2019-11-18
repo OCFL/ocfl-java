@@ -30,6 +30,7 @@ public class ObjectIdPathMapperBuilder {
      * <p>Default: false
      *
      * @param useUppercase whether or not hex characters should be in uppercase
+     * @return builder
      */
     public ObjectIdPathMapperBuilder useUppercase(boolean useUppercase) {
         this.useUppercase = useUppercase;
@@ -45,7 +46,9 @@ public class ObjectIdPathMapperBuilder {
 
     /**
      * Configures the ObjectIdPathMapper to use a Caffeine cache with a custom duration
-     * @param expireAfterAccess
+     *
+     * @param expireAfterAccess how long to keep inventories in the cache after last access
+     * @return builder
      */
     public ObjectIdPathMapperBuilder withCaffeineCache(Duration expireAfterAccess) {
         Enforce.notNull(expireAfterAccess, "expireAfterAccess cannot be null");
@@ -55,7 +58,9 @@ public class ObjectIdPathMapperBuilder {
 
     /**
      * Configures the ObjectIdPathMapper to use a custom cache implementation
-     * @param cache
+     *
+     * @param cache cache
+     * @return builder
      */
     public ObjectIdPathMapperBuilder withCustomCache(Cache<String, String> cache) {
         this.cache = cache;
@@ -64,6 +69,8 @@ public class ObjectIdPathMapperBuilder {
 
     /**
      * Builds a FlatObjectIdPathMapper using a UrlEncoder.
+     *
+     * @return mapper
      */
     public ObjectIdPathMapper buildFlatMapper() {
         return applyCache(new FlatObjectIdPathMapper(new UrlEncoder(useUppercase)));
@@ -72,6 +79,8 @@ public class ObjectIdPathMapperBuilder {
     /**
      * Builds a PairTreeObjectIdPathMapper using a PairTreeEncoder, "obj" as the encapsulation string, and an encapsulation
      * length of 4.
+     *
+     * @return mapper
      */
     public ObjectIdPathMapper buildDefaultPairTreeMapper() {
         return buildPairTreeMapper(DEFAULT_ENCAPSULATION_NAME, DEFAULT_ENCAPSULATION_LENGTH);
@@ -82,6 +91,7 @@ public class ObjectIdPathMapperBuilder {
      *
      * @param encapsulationName The directory name to use to encapsulate an object when the encoded identifier is less than 3 characters long
      * @param encapsulationSubstringLength The number of characters from the end of an encoded identifier to use to encapsulate an object
+     * @return mapper
      */
     public ObjectIdPathMapper buildPairTreeMapper(String encapsulationName, int encapsulationSubstringLength) {
         return applyCache(new PairTreeObjectIdPathMapper(
@@ -90,6 +100,8 @@ public class ObjectIdPathMapperBuilder {
 
     /**
      * Builds a HashingObjectIdPathMapper using sha256, 3 character segment length, and depth of 3.
+     *
+     * @return mapper
      */
     public ObjectIdPathMapper buildDefaultTruncatedHashMapper() {
         return buildTruncatedHashMapper(DEFAULT_DIGEST_ALGORITHM, DEFAULT_HASH_DEPTH, DEFAULT_HASH_SEGMENT_LENGTH);
@@ -101,6 +113,7 @@ public class ObjectIdPathMapperBuilder {
      * @param digestAlgorithm the digest algorithm to use on the object id
      * @param depth the number of directories deep that should be created
      * @param segmentLength the number of characters that should be in each directory name
+     * @return mapper
      */
     public ObjectIdPathMapper buildTruncatedHashMapper(String digestAlgorithm, int depth, int segmentLength) {
         return applyCache(new HashingObjectIdPathMapper(digestAlgorithm, depth, segmentLength, useUppercase));

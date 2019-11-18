@@ -52,7 +52,7 @@ public final class DefaultContentPathConstraints {
      *
      * <ul>
      *   <li><a href="https://en.wikipedia.org/wiki/Comparison_of_file_systems#Limits">Comparison of File Systems</a></li>
-     * <ul>
+     * </ul>
      *
      * @return ContentPathConstraintProcessor
      */
@@ -73,7 +73,7 @@ public final class DefaultContentPathConstraints {
      * <ul>
      *   <li><a href="https://en.wikipedia.org/wiki/Comparison_of_file_systems#Limits">Comparison of File Systems</a></li>
      *   <li><a href="https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file">Windows File Naming</a></li>
-     * <ul>
+     * </ul>
      *
      * @return ContentPathConstraintProcessor
      */
@@ -99,7 +99,7 @@ public final class DefaultContentPathConstraints {
      *   <li><a href="https://docs.microsoft.com/en-us/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata">Azure Blob Storage</a></li>
      *   <li><a href="https://cloud.google.com/storage/docs/naming#objectnames">Google Cloud Storage</a></li>
      *   <li><a href="https://stackoverflow.com/questions/54805654/do-we-have-list-of-unsupported-characters-for-azure-blob-file-names/58039891#58039891">Azure additional</a></li>
-     * <ul>
+     * </ul>
      *
      * @return ContentPathConstraintProcessor
      */
@@ -130,7 +130,7 @@ public final class DefaultContentPathConstraints {
      *   <li><a href="https://docs.microsoft.com/en-us/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata">Azure Blob Storage</a></li>
      *   <li><a href="https://cloud.google.com/storage/docs/naming#objectnames">Google Cloud Storage</a></li>
      *   <li><a href="https://stackoverflow.com/questions/54805654/do-we-have-list-of-unsupported-characters-for-azure-blob-file-names/58039891#58039891">Azure additional</a></li>
-     * <ul>
+     * </ul>
      *
      * @return ContentPathConstraintProcessor
      */

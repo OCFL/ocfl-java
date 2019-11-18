@@ -27,6 +27,8 @@ public class InventoryMapper {
     /**
      * Creates an InventoryMapper that will pretty print JSON files. This should be used when you value human readability
      * over disk space usage.
+     *
+     * @return mapper
      */
     public static InventoryMapper prettyPrintMapper() {
         return new InventoryMapper(standardObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true));
@@ -35,6 +37,8 @@ public class InventoryMapper {
     /**
      * Creates an InventoryMapper that creates JSON files with as little whitespace as possible. This should be used when
      * minimizing disk space usage is more important than human readability.
+     *
+     * @return mapper
      */
     public static InventoryMapper defaultMapper() {
         return new InventoryMapper(standardObjectMapper());
@@ -50,6 +54,8 @@ public class InventoryMapper {
 
     /**
      * Should use InventoryMapper.defaultMapper() or InventoryMapper.prettyPrintMapper() unless you know what you're doing.
+     *
+     * @param objectMapper object mapper
      */
     public InventoryMapper(ObjectMapper objectMapper) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");

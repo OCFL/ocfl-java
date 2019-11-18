@@ -20,8 +20,8 @@ import java.util.Set;
 /**
  * Helper class that's used to accumulate changes within a new version and output an updated inventory. The same InventoryUpdater
  * instance MUST NOT be used more than once.
- * <p>
- * This class is NOT thread safe.
+ *
+ * <p>This class is NOT thread safe.
  */
 public final class InventoryUpdater {
 
@@ -75,7 +75,9 @@ public final class InventoryUpdater {
          * Creates an InventoryUpdater instance for an object that does not have a pre-existing inventory.
          *
          * @param objectId the id of the object
+         * @param objectRootPath path to ocfl object root
          * @param createdTimestamp the timestamp the new version was created
+         * @return inventory updater
          */
         public InventoryUpdater newInventory(String objectId, String objectRootPath, OffsetDateTime createdTimestamp) {
             var versionId = VersionId.fromString(OcflConstants.DEFAULT_INITIAL_VERSION_ID);
@@ -102,6 +104,7 @@ public final class InventoryUpdater {
          *
          * @param inventory the original object inventory (will not be mutated)
          * @param createdTimestamp the timestamp the new version was created
+         * @return inventory updater
          */
         public InventoryUpdater newVersionForInsert(Inventory inventory, OffsetDateTime createdTimestamp) {
             var inventoryBuilder = new InventoryBuilder(inventory);
@@ -119,6 +122,7 @@ public final class InventoryUpdater {
          *
          * @param inventory the original object inventory (will not be mutated)
          * @param createdTimestamp the timestamp the new version was created
+         * @return inventory updater
          */
         public InventoryUpdater newVersionForUpdate(Inventory inventory, OffsetDateTime createdTimestamp) {
             var inventoryBuilder = new InventoryBuilder(inventory);
@@ -135,6 +139,7 @@ public final class InventoryUpdater {
          *
          * @param inventory the original object inventory (will not be mutated)
          * @param createdTimestamp the timestamp the new version was created
+         * @return inventory updater
          */
         public InventoryUpdater mutateHead(Inventory inventory, OffsetDateTime createdTimestamp) {
             var inventoryBuilder = new InventoryBuilder(inventory);
@@ -177,7 +182,7 @@ public final class InventoryUpdater {
     /**
      * Adds commit information to the new version
      *
-     * @param commitInfo
+     * @param commitInfo commit info
      */
     public void addCommitInfo(CommitInfo commitInfo) {
         versionBuilder.commitInfo(commitInfo);
@@ -189,6 +194,7 @@ public final class InventoryUpdater {
      *
      * <p>Returns true if the file digest is new to the object and false otherwise
      *
+     * @param digest file digest
      * @param absolutePath the path to the file on disk
      * @param logicalPath the logical path of the file
      * @param ocflOptions Optional. Use {@code OcflOption.OVERWRITE} to overwrite existing files at the logicalPath

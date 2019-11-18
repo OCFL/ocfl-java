@@ -55,6 +55,8 @@ public class DigestAlgorithm {
 
     /**
      * The OCFL name for the digest algorithm.
+     *
+     * @return standardized ocfl name for the digest algorithm
      */
     @JsonValue
     public String getOcflName() {
@@ -63,6 +65,8 @@ public class DigestAlgorithm {
 
     /**
      * The Java name for the digest algorithm.
+     *
+     * @return name of the digest algorithm in Java
      */
     public String getJavaStandardName() {
         return javaStandardName;
@@ -70,6 +74,8 @@ public class DigestAlgorithm {
 
     /**
      * Indicates whether or not there is a Java mapping for the algorithm.
+     *
+     * @return whether or not the digest algorithm has a Java name
      */
     public boolean hasJavaStandardName() {
         return javaStandardName != null;
@@ -77,6 +83,8 @@ public class DigestAlgorithm {
 
     /**
      * Returns a new MessageDigest
+     *
+     * @return MessageDigest
      */
     public MessageDigest getMessageDigest() {
         try {

@@ -60,8 +60,8 @@ public class PairTreeEncoder implements Encoder {
      *
      * https://tools.ietf.org/html/draft-kunze-pairtree-01
      *
-     * @param input
-     * @return
+     * @param input original string
+     * @return encoded string
      */
     @Override
     public String encode(String input) {

@@ -30,6 +30,8 @@ public final class DigestAlgorithmRegistry {
 
     /**
      * Adds a new algorithm to the registry
+     *
+     * @param algorithm algorithm to add to the registry
      */
     public static void register(DigestAlgorithm algorithm) {
         Enforce.notNull(algorithm, "algorithm cannot be null");
@@ -38,6 +40,9 @@ public final class DigestAlgorithmRegistry {
 
     /**
      * Retrieves the algorithm that corresponds to the OCFL name from the registry
+     *
+     * @param ocflName name of the algorithm to retrieve
+     * @return DigestAlgorithm
      */
     public static DigestAlgorithm getAlgorithm(String ocflName) {
         Enforce.notBlank(ocflName, "ocflName cannot be blank");

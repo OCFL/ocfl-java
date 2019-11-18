@@ -67,6 +67,20 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     /**
      * @see OcflRepositoryBuilder
+     *
+     * @param storage storage layer
+     * @param workDir path to the directory to use for assembling ocfl versions
+     * @param objectLock locking client
+     * @param inventoryCache inventory cache
+     * @param inventoryMapper object mapper for serializing inventories
+     * @param pathSanitizer content path sanitizer
+     * @param contentPathConstraintProcessor content path constraint processor
+     * @param fixityAlgorithms additional digest algorithms to add to the fixity block
+     * @param inventoryType ocfl inventory type
+     * @param digestAlgorithm the default algorithm to use in ocfl inventories
+     * @param contentDirectory the default name for a version's content directory
+     * @param digestThreadPoolSize number of threads to use for computing digests
+     * @param copyThreadPoolSize number of threads to use for copying files
      */
     public DefaultOcflRepository(OcflStorage storage, Path workDir,
                                  ObjectLock objectLock,
@@ -578,6 +592,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     /**
      * This is used to manipulate the clock for testing purposes.
+     *
+     * @param clock clock
      */
     public void setClock(Clock clock) {
         this.clock = Enforce.notNull(clock, "clock cannot be null");

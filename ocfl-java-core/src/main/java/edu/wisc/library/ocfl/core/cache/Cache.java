@@ -26,15 +26,15 @@ public interface Cache<K,V> {
     /**
      * Inserts a value into the cache.
      *
-     * @param key
-     * @param value
+     * @param key key
+     * @param value value
      */
     void put(K key, V value);
 
     /**
      * Invalidates the key in the cache.
      *
-     * @param key
+     * @param key key
      */
     void invalidate(K key);
 

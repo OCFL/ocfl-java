@@ -11,7 +11,7 @@ public interface ObjectIdPathMapper {
     /**
      * Maps an objectId to its path within the OCFL root
      *
-     * @param objectId
+     * @param objectId object id
      * @return the path to the object root relative to the OCFL root
      */
     String map(String objectId);

@@ -73,7 +73,8 @@ public class OcflRepositoryBuilder {
      * for the lock before failing. Override to change the wait period or implement a different type of lock, such as
      * a distributed lock when coordinating across multiple instances accessing the same OCFL repository.
      *
-     * @param objectLock
+     * @param objectLock object lock
+     * @return builder
      */
     public OcflRepositoryBuilder objectLock(ObjectLock objectLock) {
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
@@ -86,7 +87,8 @@ public class OcflRepositoryBuilder {
      * In memory implementations of this cache will become troublesome if multiple processes are accessing the same
      * OCFL repository, in which case no cache or a distributed cache would be better choices.
      *
-     * @param inventoryCache
+     * @param inventoryCache inventory cache
+     * @return builder
      */
     public OcflRepositoryBuilder inventoryCache(Cache<String, Inventory> inventoryCache) {
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
@@ -96,6 +98,7 @@ public class OcflRepositoryBuilder {
     /**
      * Changes the InventoryMapper to pretty print Inventory JSON files so that they are human readable but use more
      * disk space.
+     * @return builder
      */
     public OcflRepositoryBuilder prettyPrintJson() {
         return inventoryMapper(InventoryMapper.prettyPrintMapper());
@@ -105,7 +108,8 @@ public class OcflRepositoryBuilder {
      * Used to override the default InventoryMapper, which is used to serialize Inventories to JSON files. The default
      * mapper will emit as little whitespace as possible.
      *
-     * @param inventoryMapper
+     * @param inventoryMapper inventory serializer
+     * @return builder
      */
     public OcflRepositoryBuilder inventoryMapper(InventoryMapper inventoryMapper) {
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
@@ -116,7 +120,8 @@ public class OcflRepositoryBuilder {
      * Overrides the default NoOpPathSanitizer. PathSanitizers are used to clean logical file paths so that they can
      * safely be used as content paths to store files on disk.
      *
-     * @param pathSanitizer
+     * @param pathSanitizer path sanitizer
+     * @return builder
      */
     public OcflRepositoryBuilder pathSanitizer(PathSanitizer pathSanitizer) {
         this.pathSanitizer = Enforce.notNull(pathSanitizer, "pathSanitizer cannot be null");
@@ -151,7 +156,8 @@ public class OcflRepositoryBuilder {
      *     <li>Windows only: Cannot contain a \</li>
      * </ul>
      *
-     * @param contentPathConstraintProcessor
+     * @param contentPathConstraintProcessor constraint processor
+     * @return builder
      */
     public OcflRepositoryBuilder contentPathConstraintProcessor(ContentPathConstraintProcessor contentPathConstraintProcessor) {
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
@@ -161,7 +167,8 @@ public class OcflRepositoryBuilder {
     /**
      * Used to specify the OCFL inventory type to apply to newly created inventories.
      *
-     * @param inventoryType
+     * @param inventoryType inventory type
+     * @return builder
      */
     public OcflRepositoryBuilder inventoryType(InventoryType inventoryType) {
         // TODO This probably should not be configurable -- it is likely tied to the OCFL spec version
@@ -172,7 +179,8 @@ public class OcflRepositoryBuilder {
     /**
      * Used to specify the digest algorithm to use for newly created objects. Default: sha512.
      *
-     * @param digestAlgorithm
+     * @param digestAlgorithm digest algorithm
+     * @return builder
      */
     public OcflRepositoryBuilder digestAlgorithm(DigestAlgorithm digestAlgorithm) {
         // TODO should enforce sha512 or sha256
@@ -183,7 +191,8 @@ public class OcflRepositoryBuilder {
     /**
      * Used to specify the location of the content directory within newly created objects. Default: content.
      *
-     * @param contentDirectory
+     * @param contentDirectory content directory
+     * @return builder
      */
     public OcflRepositoryBuilder contentDirectory(String contentDirectory) {
         // TODO need to enforce name restrictions "The contentDirectory value MUST NOT contain the forward slash (/) path separator."
@@ -196,7 +205,8 @@ public class OcflRepositoryBuilder {
      *
      * <p>Adding fixity algorithms increases the latency of repository operations without providing any additional security.
      *
-     * @param fixityAlgorithms
+     * @param fixityAlgorithms fixity algorithms
+     * @return builder
      */
     public OcflRepositoryBuilder fixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
         this.fixityAlgorithms = Enforce.notNull(fixityAlgorithms, "fixityAlgorithms cannot be null");
@@ -206,7 +216,8 @@ public class OcflRepositoryBuilder {
     /**
      * Sets the size of the thread pool that's used to calculate digests. Default: the number of available processors.
      *
-     * @param digestThreadPoolSize
+     * @param digestThreadPoolSize digest thread pool size
+     * @return builder
      */
     public OcflRepositoryBuilder digestThreadPoolSize(int digestThreadPoolSize) {
         this.digestThreadPoolSize = Enforce.expressionTrue(digestThreadPoolSize > 0, digestThreadPoolSize, "digestThreadPoolSize must be greater than 0");
@@ -216,7 +227,8 @@ public class OcflRepositoryBuilder {
     /**
      * Sets the size of the thread pool that's used to move files around. Default: the number of available processors * 2.
      *
-     * @param copyThreadPoolSize
+     * @param copyThreadPoolSize copy thread pool size
+     * @return builder
      */
     public OcflRepositoryBuilder copyThreadPoolSize(int copyThreadPoolSize) {
         this.copyThreadPoolSize = Enforce.expressionTrue(copyThreadPoolSize > 0, copyThreadPoolSize, "copyThreadPoolSize must be greater than 0");
@@ -228,6 +240,7 @@ public class OcflRepositoryBuilder {
      *
      * @param storage the storage layer implementation that the OCFL repository should use
      * @param workDir the work directory to assemble versions in before they're moved to storage -- cannot be within the OCFL storage root
+     * @return OcflRepository
      */
     public OcflRepository build(OcflStorage storage, Path workDir) {
         return buildDefault(storage, workDir);
@@ -238,6 +251,7 @@ public class OcflRepositoryBuilder {
      *
      * @param storage the storage layer implementation that the OCFL repository should use
      * @param workDir the work directory to assemble versions in before they're moved to storage -- cannot be within the OCFL storage root
+     * @return MutableOcflRepository
      */
     public MutableOcflRepository buildMutable(OcflStorage storage, Path workDir) {
         return buildDefault(storage, workDir);

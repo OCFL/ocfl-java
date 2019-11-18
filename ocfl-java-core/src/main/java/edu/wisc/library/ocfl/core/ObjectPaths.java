@@ -19,6 +19,9 @@ public final class ObjectPaths {
 
     /**
      * Path to an inventory file within the given directory
+     *
+     * @param directory parent directory of an inventory file
+     * @return path to inventory file
      */
     public static Path inventoryPath(Path directory) {
         return directory.resolve(OcflConstants.INVENTORY_FILE);
@@ -26,6 +29,10 @@ public final class ObjectPaths {
 
     /**
      * Path to an inventory sidecar file within the given directory
+     *
+     * @param directory parent directory of an inventory file
+     * @param inventory deserialized inventory
+     * @return path to inventory sidecar
      */
     public static Path inventorySidecarPath(Path directory, Inventory inventory) {
         return directory.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName());
@@ -33,6 +40,9 @@ public final class ObjectPaths {
 
     /**
      * Path to an inventory file within the mutable HEAD
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return path to the mutable HEAD inventory file
      */
     public static Path mutableHeadInventoryPath(Path objectRootPath) {
         return inventoryPath(objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_VERSION_PATH));
@@ -40,6 +50,10 @@ public final class ObjectPaths {
 
     /**
      * Creates an ObjectRoot using absolute paths
+     *
+     * @param inventory deserialized inventory
+     * @param objectRootPath path to the root of an ocfl object
+     * @return ObjectRoot
      */
     public static ObjectRoot objectRoot(Inventory inventory, Path objectRootPath) {
         Enforce.notNull(inventory, "inventory cannot be null");
@@ -49,6 +63,9 @@ public final class ObjectPaths {
 
     /**
      * Creates an ObjectRoot with paths relative to the object's root
+     *
+     * @param inventory deserialized inventory
+     * @return ObjectRoot
      */
     public static ObjectRoot objectRoot(Inventory inventory) {
         Enforce.notNull(inventory, "inventory cannot be null");
@@ -58,6 +75,10 @@ public final class ObjectPaths {
     /**
      * Creates a VersionRoot object. This can be used on any valid version directory. There is no requirement for the
      * directory to be located within the object root.
+     *
+     * @param inventory deserialized inventory
+     * @param location path to the root of the version
+     * @return VersionRoot
      */
     public static VersionRoot version(Inventory inventory, Path location) {
         Enforce.notNull(inventory, "inventory cannot be null");
