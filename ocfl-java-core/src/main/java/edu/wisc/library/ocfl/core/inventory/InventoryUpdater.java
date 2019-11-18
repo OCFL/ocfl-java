@@ -8,6 +8,9 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.model.*;
 import edu.wisc.library.ocfl.core.path.ContentPathBuilder;
+import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
@@ -16,6 +19,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Helper class that's used to accumulate changes within a new version and output an updated inventory. The same InventoryUpdater
@@ -31,6 +35,7 @@ public final class InventoryUpdater {
     private InventoryBuilder inventoryBuilder;
     private VersionBuilder versionBuilder;
     private ContentPathBuilder contentPathBuilder;
+    private PathConstraintProcessor logicalPathConstraints;
     private DigestAlgorithm digestAlgorithm;
     private Set<DigestAlgorithm> fixityAlgorithms;
 
@@ -169,7 +174,8 @@ public final class InventoryUpdater {
     }
 
     private InventoryUpdater(VersionId newVersionId, RevisionId newRevisionId, InventoryBuilder inventoryBuilder,
-                             VersionBuilder versionBuilder, ContentPathBuilder contentPathBuilder, Set<DigestAlgorithm> fixityAlgorithms) {
+                             VersionBuilder versionBuilder, ContentPathBuilder contentPathBuilder,
+                             Set<DigestAlgorithm> fixityAlgorithms) {
         this.newVersionId = Enforce.notNull(newVersionId, "newVersionId cannot be null");
         this.newRevisionId = newRevisionId;
         this.inventoryBuilder = Enforce.notNull(inventoryBuilder, "inventoryBuilder cannot be null");
@@ -177,6 +183,11 @@ public final class InventoryUpdater {
         this.contentPathBuilder = Enforce.notNull(contentPathBuilder, "contentPathBuilder cannot be null");
         this.fixityAlgorithms = fixityAlgorithms != null ? fixityAlgorithms : new HashSet<>();
         this.digestAlgorithm = inventoryBuilder.getDigestAlgorithm();
+
+        this.logicalPathConstraints = PathConstraintProcessor.builder()
+                .fileNameConstraint(new NonEmptyFileNameConstraint())
+                .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
+                .build();
     }
 
     /**
@@ -202,10 +213,11 @@ public final class InventoryUpdater {
      * @throws OverwriteException if there is already a file at logicalPath
      */
     public AddFileResult addFile(String digest, Path absolutePath, String logicalPath, OcflOption... ocflOptions) {
+        logicalPathConstraints.apply(logicalPath);
+        var contentPath = contentPath(digest, logicalPath);
+
         var options = new HashSet<>(Arrays.asList(ocflOptions));
         var isNew = false;
-        var contentPath = contentPath(digest, logicalPath);
-        // TODO enforce logicalPath constraints?
 
         if (versionBuilder.getFileId(logicalPath) != null) {
             if (options.contains(OcflOption.OVERWRITE)) {
@@ -273,6 +285,8 @@ public final class InventoryUpdater {
      * @throws OverwriteException if there is already a file at destinationPath
      */
     public void renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+        logicalPathConstraints.apply(destinationPath);
+
         var options = new HashSet<>(Arrays.asList(ocflOptions));
         var srcFileId = versionBuilder.getFileId(sourcePath);
 
@@ -308,6 +322,8 @@ public final class InventoryUpdater {
      *                            not specified
      */
     public void reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+        logicalPathConstraints.apply(destinationPath);
+
         var options = new HashSet<>(Arrays.asList(ocflOptions));
         var fileId = inventoryBuilder.getVersionFileId(sourceVersionId, sourcePath);
 

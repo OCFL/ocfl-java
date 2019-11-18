@@ -23,8 +23,8 @@ import java.util.*;
 
 /**
  * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
- * <p>
- * This class is NOT thread safe.
+ *
+ * <p>This class is NOT thread safe.
  */
 public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
@@ -37,7 +37,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
     private Set<String> newFiles;
 
-    public DefaultOcflObjectUpdater(InventoryUpdater inventoryUpdater, Path stagingDir, ParallelProcess parallelProcess, ParallelProcess copyParallelProcess) {
+    public DefaultOcflObjectUpdater(InventoryUpdater inventoryUpdater, Path stagingDir,
+                                    ParallelProcess parallelProcess, ParallelProcess copyParallelProcess) {
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
         this.parallelProcess = Enforce.notNull(parallelProcess, "parallelProcess cannot be null");

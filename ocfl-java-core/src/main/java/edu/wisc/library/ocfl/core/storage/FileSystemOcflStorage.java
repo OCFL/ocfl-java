@@ -20,6 +20,10 @@ import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.model.Version;
+import edu.wisc.library.ocfl.core.path.constraint.BackslashPathSeparatorConstraint;
+import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
@@ -37,11 +41,14 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FileSystemOcflStorage implements OcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemOcflStorage.class);
+
+    private PathConstraintProcessor logicalPathConstraints;
 
     private boolean closed = false;
 
@@ -89,6 +96,12 @@ public class FileSystemOcflStorage implements OcflStorage {
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
+
+        this.logicalPathConstraints = PathConstraintProcessor.builder()
+                .fileNameConstraint(new NonEmptyFileNameConstraint())
+                .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
+                .charConstraint(new BackslashPathSeparatorConstraint())
+                .build();
     }
 
     /**
@@ -174,11 +187,8 @@ public class FileSystemOcflStorage implements OcflStorage {
             var srcPath = objectRootPath.resolve(src);
 
             for (var dstPath : files) {
-                // TODO this is not safe. Instead: Paths.get(stagingDir.toString() + "/" + dstPath)
-                // TODO MUST ensure that the logical path does not contain "." or ".."
-                // TODO MUST ensure that the logical path does not start with "/" or "C:/"
-                // TODO Paths with empty filenames eg "//"
-                var path = stagingDir.resolve(dstPath);
+                logicalPathConstraints.apply(dstPath);
+                var path = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), dstPath));
 
                 if (Thread.interrupted()) {
                     break;
