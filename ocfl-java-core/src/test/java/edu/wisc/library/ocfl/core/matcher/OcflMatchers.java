@@ -26,4 +26,12 @@ public class OcflMatchers {
         return new VersionDetailsMatcher(objectId, versionId, commitInfoMatcher, fileDetailsMatchers);
     }
 
+    public static OcflObjectVersionFileMatcher versionFile(String filePath, String storagePath, String content, Map<String, String> fixity) {
+        return new OcflObjectVersionFileMatcher(filePath, storagePath, content, fixity);
+    }
+
+    public static OcflObjectVersionMatcher objectVersion(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
+        return new OcflObjectVersionMatcher(objectId, versionId, commitInfoMatcher, fileMatchers);
+    }
+
 }

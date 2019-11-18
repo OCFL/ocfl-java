@@ -215,48 +215,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public Map<String, OcflFileRetriever> getObjectStreams(ObjectVersionId objectVersionId) {
-        ensureOpen();
-
-        Enforce.notNull(objectVersionId, "objectId cannot be null");
-
-        var inventory = requireInventory(objectVersionId);
-        requireVersion(objectVersionId, inventory);
-        var versionId = resolveVersion(objectVersionId, inventory);
-
-        return storage.getObjectStreams(inventory, versionId);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void readObject(ObjectVersionId objectVersionId, Consumer<OcflObjectReader> objectReader) {
-        ensureOpen();
-
-        Enforce.notNull(objectVersionId, "objectId cannot be null");
-        Enforce.notNull(objectReader, "objectReader cannot be null");
-
-        var inventory = requireInventory(objectVersionId);
-
-        requireVersion(objectVersionId, inventory);
-
-        var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
-        var versionId = resolveVersion(objectVersionId, inventory);
-
-        try {
-            objectReader.accept(new DefaultOcflObjectReader(storage, inventory, versionId));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            FileUtil.safeDeletePath(stagingDir);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public ObjectDetails describeObject(String objectId) {
         ensureOpen();
 

@@ -8,7 +8,6 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -79,27 +78,6 @@ public interface OcflRepository {
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
     OcflObjectVersion getObject(ObjectVersionId objectVersionId);
-
-    /**
-     * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the
-     * logical file paths of all of the files in the specified version of the object.
-     *
-     * @param objectVersionId the id and version of an object to retrieve
-     * @return a map of {@code OcflFileRetriever} objects keyed off the logical file paths of all of the files in the object
-     * @throws NotFoundException when no object can be found for the specified objectVersionId
-     */
-    @Deprecated
-    Map<String, OcflFileRetriever> getObjectStreams(ObjectVersionId objectVersionId);
-
-    /**
-     * Opens an object to access individual files within the object without retrieving everything.
-     *
-     * @param objectVersionId the id and version of an object to retrieve
-     * @param objectReader coe block within which object files can be accessed
-     * @throws NotFoundException when no object can be found for the specified objectVersionId
-     */
-    @Deprecated
-    void readObject(ObjectVersionId objectVersionId, Consumer<OcflObjectReader> objectReader);
 
     /**
      * Returns all of the details about an object and all of its versions.

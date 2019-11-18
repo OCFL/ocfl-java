@@ -128,7 +128,7 @@ public final class ObjectPaths {
                 if (inventory.hasMutableHead()) {
                     headVersionPath = mutableHeadPath();
                 } else {
-                    headVersionPath = path.resolve(inventory.getHead().toString());;
+                    headVersionPath = path.resolve(inventory.getHead().toString());
                 }
             }
             return headVersionPath;

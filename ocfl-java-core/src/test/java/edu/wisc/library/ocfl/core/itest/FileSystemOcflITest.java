@@ -1,6 +1,6 @@
 package edu.wisc.library.ocfl.core.itest;
 
-import edu.wisc.library.ocfl.api.OcflFileRetriever;
+import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.*;
@@ -33,7 +33,6 @@ import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.commitInfo;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -177,22 +176,22 @@ public class FileSystemOcflITest {
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
 
-        var files = repo.getObjectStreams(ObjectVersionId.head(objectId));
-        assertEquals(2, files.size());
-        verifyStream(sourcePathV3.resolve("file2"), files.get("file2"));
-        verifyStream(sourcePathV3.resolve("file4"), files.get("file4"));
+        var files = repo.getObject(ObjectVersionId.head(objectId));
+        assertEquals(2, files.getFiles().size());
+        verifyStream(sourcePathV3.resolve("file2"), files.getFile("file2"));
+        verifyStream(sourcePathV3.resolve("file4"), files.getFile("file4"));
 
-        files = repo.getObjectStreams(ObjectVersionId.version(objectId, "v2"));
-        assertEquals(3, files.size());
-        verifyStream(sourcePathV2.resolve("file1"), files.get("file1"));
-        verifyStream(sourcePathV2.resolve("file2"), files.get("file2"));
-        verifyStream(sourcePathV2.resolve("dir1/file3"), files.get("dir1/file3"));
+        files = repo.getObject(ObjectVersionId.version(objectId, "v2"));
+        assertEquals(3, files.getFiles().size());
+        verifyStream(sourcePathV2.resolve("file1"), files.getFile("file1"));
+        verifyStream(sourcePathV2.resolve("file2"), files.getFile("file2"));
+        verifyStream(sourcePathV2.resolve("dir1/file3"), files.getFile("dir1/file3"));
 
 
-        files = repo.getObjectStreams(ObjectVersionId.version(objectId, "v1"));
-        assertEquals(2, files.size());
-        verifyStream(sourcePathV1.resolve("file1"), files.get("file1"));
-        verifyStream(sourcePathV1.resolve("file2"), files.get("file2"));
+        files = repo.getObject(ObjectVersionId.version(objectId, "v1"));
+        assertEquals(2, files.getFiles().size());
+        verifyStream(sourcePathV1.resolve("file1"), files.getFile("file1"));
+        verifyStream(sourcePathV1.resolve("file2"), files.getFile("file2"));
     }
 
     @Test
@@ -291,31 +290,29 @@ public class FileSystemOcflITest {
 
         var objectId = "o2";
 
-        repo.readObject(ObjectVersionId.head(objectId), reader -> {
-            assertThat(reader.describeVersion(), versionDetails(objectId, "v3",
-                    commitInfo(defaultCommitInfo.getUser(), "3"),
-                    fileDetails("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
-                            Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
-                    fileDetails("dir1/file3", "o2/v3/content/dir1/file3",
-                            Map.of("sha512", "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"))));
+        var ocflObject = repo.getObject(ObjectVersionId.head(objectId));
 
-            var files = reader.listFiles();
-            assertThat(files, containsInAnyOrder("dir1/dir2/file2", "dir1/file3"));
+        assertThat(ocflObject, objectVersion(objectId, "v3",
+                commitInfo(defaultCommitInfo.getUser(), "3"),
+                versionFile("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
+                        "Test file 2",
+                        Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                versionFile("dir1/file3", "o2/v3/content/dir1/file3",
+                        "This is a different file 3",
+                        Map.of("sha512", "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"))
+                ));
 
-            var in = reader.getFile("dir1/file3");
-            assertEquals("This is a different file 3", ITestHelper.inputToString(in));
-        });
+        ocflObject = repo.getObject(ObjectVersionId.version(objectId, "v1"));
 
-        repo.readObject(ObjectVersionId.version(objectId, "v1"), reader -> {
-            assertEquals(VersionId.fromString("v1"), reader.describeVersion().getVersionId());
-
-            var files = reader.listFiles();
-            assertThat(files, containsInAnyOrder("dir1/dir2/file2", "file1"));
-
-            var out = outputPath(repoName, "read").resolve("file1");
-            reader.getFile("file1", out);
-            assertEquals("Test file 1", ITestHelper.fileToString(out));
-        });
+        assertThat(ocflObject, objectVersion(objectId, "v1",
+                commitInfo(defaultCommitInfo.getUser(), "commit message"),
+                versionFile("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
+                        "Test file 2",
+                        Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                versionFile("file1", "o2/v1/content/file1",
+                        "Test file 1",
+                        Map.of("sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e"))
+                ));
     }
 
     @Test
@@ -407,9 +404,11 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo);
 
-        repo.readObject(ObjectVersionId.head(objectId), reader -> {
-            repo.updateObject(reader.describeVersion().getObjectVersionId(), defaultCommitInfo.setMessage("delete content"), updater -> {
-                reader.listFiles().forEach(updater::removeFile);
+        var ocflObject = repo.getObject(ObjectVersionId.head(objectId));
+
+        repo.updateObject(ocflObject.getObjectVersionId(), defaultCommitInfo.setMessage("delete content"), updater -> {
+            ocflObject.getFiles().forEach(file -> {
+                updater.removeFile(file.getPath());
             });
         });
 
@@ -986,8 +985,8 @@ public class FileSystemOcflITest {
         });
     }
 
-    private void verifyStream(Path expectedFile, OcflFileRetriever actual) throws IOException {
-        var stream = actual.retrieveFile();
+    private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
+        var stream = actual.getStream();
         var contents = ITestHelper.inputToString(stream);
         stream.checkFixity();
         assertEquals(ITestHelper.inputToString(Files.newInputStream(expectedFile)), contents);

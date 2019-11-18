@@ -26,7 +26,7 @@ public class BackslashPathSeparatorConstraint implements PathCharConstraint {
     public void apply(char c, String path) {
         if (isBackslash && c == '\\') {
             throw new PathConstraintException(
-                    String.format("The path contains a \\ character in a filename, which is illegal on the local filesystem.", path));
+                    String.format("The path contains a \\ character in a filename, which is illegal on the local filesystem: %s", path));
         }
     }
 
