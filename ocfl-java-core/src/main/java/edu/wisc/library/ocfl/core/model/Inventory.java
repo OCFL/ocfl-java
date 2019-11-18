@@ -42,12 +42,16 @@ public class Inventory {
     @JsonIgnore
     private final boolean mutableHead;
 
-    // TODO This map is rarely used. Perhaps it should be computed on demand
+    // TODO Should this be computed on demand?
     @JsonIgnore
     private final Map<String, String> reverseManifestMap;
 
     @JsonIgnore
     private final String objectRootPath;
+
+    public static InventoryBuilder builder() {
+        return new InventoryBuilder();
+    }
 
     /**
      * @see InventoryBuilder
@@ -261,15 +265,15 @@ public class Inventory {
     /**
      * Returns the set of paths that are identified by the given digest if they exist.
      */
-    public Set<String> getFilePaths(String id) {
+    public Set<String> getContentPaths(String id) {
         return manifest.get(id);
     }
 
     /**
      * Returns the first path to a file that maps to the given digest
      */
-    public String getFilePath(String id) {
-        // There will only ever be one entry in this set unless de-dupping is turned off
+    public String getContentPath(String id) {
+        // There will only ever be one entry in this set unless dedupping is turned off
         var paths = manifest.get(id);
         if (paths == null) {
             return null;

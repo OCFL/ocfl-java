@@ -15,6 +15,8 @@ import java.util.function.Consumer;
  */
 public interface OcflRepository {
 
+    // TODO add a way to import/export ocfl object roots
+
     /**
      * Adds the object rooted at the given path to the OCFL repository under the given objectVersionId. If their is an existing
      * object with the id, then a new version of the object is created.

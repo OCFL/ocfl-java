@@ -61,7 +61,7 @@ public class ResponseMapper {
                 var details = new FileDetails()
                         .setPath(path)
                         .setStorageRelativePath(
-                                FileUtil.pathJoinFailEmpty(objectRootPath, inventory.getFilePath(digest)))
+                                FileUtil.pathJoinFailEmpty(objectRootPath, inventory.getContentPath(digest)))
                         .addDigest(digestAlgorithm.getOcflName(), digest);
                 fileFixityMap.put(digest, details);
                 fileDetailsMap.put(path, details);

@@ -1,7 +1,9 @@
 package edu.wisc.library.ocfl.core.itest;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
@@ -15,6 +17,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class BadReposITests {
@@ -63,6 +67,43 @@ public class BadReposITests {
         assertThrows(PathConstraintException.class, () -> {
             repo.getObject(ObjectVersionId.version(objectId, "v7"), outputDir);
         });
+    }
+
+    @Test
+    public void failWhenSidecarHasInvalidDigest() {
+        var repoName = "invalid-sidecar-digest";
+        var repoDir = repoDir(repoName);
+
+        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoDir)).getMessage(),
+                containsString("specifies digest algorithm md5"));
+    }
+
+    @Test
+    public void failWhenMissingSidecar() {
+        var repoName = "missing-sidecar";
+        var repoDir = repoDir(repoName);
+
+        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoDir)).getMessage(),
+                containsString("Expected there to be one inventory sidecar file"));
+    }
+
+    @Test
+    public void failWhenMissingInventory() {
+        var repoName = "missing-inventory";
+        var repoDir = repoDir(repoName);
+
+        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoDir)).getMessage(),
+                containsString("Missing inventory"));
+    }
+
+    @Test
+    public void failWhenMissingVersion() {
+        var repoName = "missing-version";
+        var repoDir = repoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        assertThat(assertThrows(RuntimeIOException.class, () -> repo.getObject(ObjectVersionId.head("o2"), outputDir)).getMessage(),
+                containsString("NoSuchFile"));
     }
 
     private Path repoDir(String name) {

@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.core.storage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
@@ -61,8 +62,19 @@ public class FileSystemOcflStorage implements OcflStorage {
     private boolean checkNewVersionFixity;
 
     /**
+     * Create a new builder.
+     *
+     * @return builder
+     */
+    public static FileSystemOcflStorageBuilder builder() {
+        return new FileSystemOcflStorageBuilder();
+    }
+
+    /**
      * Creates a new FileSystemOcflStorage object. Its thread pool is size is set to the number of available processors,
      * and fixity checks are not performed when a version is moved into the object.
+     *
+     * {@see FileSystemOcflStorageBuilder}
      *
      * @param repositoryRoot OCFL repository root directory
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
@@ -74,7 +86,9 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     /**
-     * Creates a new FileSystemOcflStorage object. Consider using {@code FileSystemOcflStorageBuilder} instead.
+     * Creates a new FileSystemOcflStorage object.
+     *
+     * {@see FileSystemOcflStorageBuilder}
      *
      * @param repositoryRoot OCFL repository root directory
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
@@ -200,7 +214,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 } else {
                     // TODO it is more efficient if the file is streamed to the new location and the digest computed en route
                     var digest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), path);
-                    var paths = inventory.getFilePaths(digest);
+                    var paths = inventory.getContentPaths(digest);
                     if (paths == null || !paths.contains(src)) {
                         throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Was: %s",
                                 path, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), digest));
@@ -275,7 +289,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         var versionRoot = objectRoot.headVersion();
         var stagingRoot = ObjectPaths.version(newInventory, stagingDir);
 
-        versionContentFixityCheck(oldInventory, objectRoot, objectRoot.mutableHeadVersion().contentPath());
+        versionContentCheck(oldInventory, objectRoot, objectRoot.mutableHeadVersion().contentPath(), true);
 
         createVersionDirectory(newInventory, versionRoot);
 
@@ -400,7 +414,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     private Inventory parseInventory(String objectRootPath, Path inventoryPath) {
         if (Files.notExists(inventoryPath)) {
             // TODO if there's not root inventory should we look for the inventory in the latest version directory?
-            throw new IllegalStateException("Missing inventory at " + inventoryPath);
+            throw new CorruptObjectException("Missing inventory at " + inventoryPath);
         }
         verifyInventory(inventoryPath);
         return inventoryMapper.read(objectRootPath, inventoryPath);
@@ -452,7 +466,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                     .collect(Collectors.toList());
 
             if (sidecars.size() != 1) {
-                throw new IllegalStateException(String.format("Expected there to be one inventory sidecar file in %s, but found %s.",
+                throw new CorruptObjectException(String.format("Expected there to be one inventory sidecar file in %s, but found %s.",
                         path, sidecars.size()));
             }
 
@@ -466,7 +480,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         try {
             var parts = Files.readString(inventorySidecarPath).split("\\s");
             if (parts.length == 0) {
-                throw new IllegalStateException("Invalid inventory sidecar file: " + inventorySidecarPath);
+                throw new CorruptObjectException("Invalid inventory sidecar file: " + inventorySidecarPath);
             }
             return parts[0];
         } catch (IOException e) {
@@ -474,10 +488,16 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
-    // TODO enforce sha256/sha512?
     private DigestAlgorithm getDigestAlgorithmFromSidecar(Path inventorySidecarPath) {
-        return DigestAlgorithmRegistry.getAlgorithm(
-                inventorySidecarPath.getFileName().toString().substring(OcflConstants.INVENTORY_FILE.length() + 1));
+        var value = inventorySidecarPath.getFileName().toString().substring(OcflConstants.INVENTORY_FILE.length() + 1);
+        var algorithm = DigestAlgorithmRegistry.getAlgorithm(value);
+
+        if (!OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(algorithm)) {
+            throw new CorruptObjectException(String.format("Inventory sidecar at <%s> specifies digest algorithm %s. Allowed algorithms are: %s",
+                    inventorySidecarPath, value, OcflConstants.ALLOWED_DIGEST_ALGORITHMS));
+        }
+
+        return algorithm;
     }
 
     private void storeNewVersion(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir) {
@@ -496,7 +516,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
             try {
                 FileUtil.moveDirectory(stagingDir, versionRoot.path());
-                optionalVersionContentFixityCheck(inventory, objectRoot, versionRoot.contentPath());
+                versionContentCheck(inventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
                 copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
                 // TODO verify inventory integrity again?
             } catch (RuntimeException e) {
@@ -529,7 +549,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
             try {
                 FileUtil.moveDirectory(stagingVersionRoot.contentRoot().headRevisionPath(), revisionPath);
-                optionalVersionContentFixityCheck(inventory, objectRoot, revisionPath);
+                versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
                 copyInventory(stagingVersionRoot, versionRoot);
                 // TODO verify inventory integrity?
             } catch (RuntimeException e) {
@@ -618,14 +638,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         });
     }
 
-    private void optionalVersionContentFixityCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath) {
-        if (checkNewVersionFixity) {
-            versionContentFixityCheck(inventory, objectRoot, contentPath);
-        }
-    }
-
-    // TODO this is now optional, but, at the very least, I think I should still make sure all of the referenced files are there
-    private void versionContentFixityCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath) {
+    private void versionContentCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath, boolean checkFixity) {
         var version = inventory.getHeadVersion();
         var files = FileUtil.findFiles(contentPath);
         var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath));
@@ -636,26 +649,27 @@ public class FileSystemOcflStorage implements OcflStorage {
         parallelProcess.collection(files, file -> {
             var fileContentPath = FileUtil.pathToStringStandardSeparator(objectRoot.path().relativize(file));
             var expectedDigest = inventory.getFileId(fileContentPath);
+
             if (expectedDigest == null) {
-                throw new IllegalStateException(String.format("File not listed in object %s manifest: %s",
+                throw new CorruptObjectException(String.format("File not listed in object %s manifest: %s",
                         inventory.getId(), fileContentPath));
             } else if (version.getPaths(expectedDigest) == null) {
-                throw new IllegalStateException(String.format("File not found in object %s version %s state: %s",
+                throw new CorruptObjectException(String.format("File not found in object %s version %s state: %s",
                         inventory.getId(), inventory.getHead(), fileContentPath));
-            } else {
+            } else if (checkFixity) {
                 var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
                 if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                     throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
                             file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
                 }
-
-                expected.remove(expectedDigest);
             }
+
+            expected.remove(expectedDigest);
         });
 
         if (!expected.isEmpty()) {
-            var filePaths = expected.stream().map(inventory::getFilePath).collect(Collectors.toList());
-            throw new IllegalStateException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
+            var filePaths = expected.stream().map(inventory::getContentPath).collect(Collectors.toList());
+            throw new CorruptObjectException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
         }
     }
 
@@ -674,7 +688,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
                     id, inventory.getId()));
         }
-        return inventory.getFilePath(id);
+        return inventory.getContentPath(id);
     }
 
     private void ensureNoMutableHead(ObjectPaths.ObjectRoot objectRoot) {
@@ -762,15 +776,6 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         try {
             Files.walkFileTree(root, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    // TODO remove this
-                    if (dir.endsWith("deposit")) {
-                        return FileVisitResult.SKIP_SUBTREE;
-                    }
-                    return super.preVisitDirectory(dir, attrs);
-                }
-
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     if (file.getFileName().toString().startsWith(objectMarkerPrefix)) {

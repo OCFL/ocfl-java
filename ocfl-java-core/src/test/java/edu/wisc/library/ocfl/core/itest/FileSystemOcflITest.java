@@ -346,7 +346,6 @@ public class FileSystemOcflITest {
                 file.getFixity());
         assertEquals("This is a different file 3", ITestHelper.inputToString(file.getStream()));
 
-
         objectVersion = repo.getObject(ObjectVersionId.version(objectId, "v1"));
 
         assertEquals(objectId, objectVersion.getObjectId());

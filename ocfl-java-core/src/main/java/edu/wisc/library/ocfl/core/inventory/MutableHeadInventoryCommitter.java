@@ -46,7 +46,7 @@ public class MutableHeadInventoryCommitter {
         var reverseFixityMap = createReverseFixityMap(original.getFixity());
 
         mutableHeadFileIds.forEach(fileId -> {
-            var originalPath = original.getFilePath(fileId);
+            var originalPath = original.getContentPath(fileId);
             var newPath = rewritePath(originalPath, versionStr);
             var digests = reverseFixityMap.get(originalPath);
 

@@ -37,6 +37,10 @@ public class Version {
         this(created, message, user, state, null);
     }
 
+    public static VersionBuilder builder() {
+        return new VersionBuilder();
+    }
+
     /**
      * @see VersionBuilder
      */
