@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
@@ -183,8 +184,10 @@ public class OcflRepositoryBuilder {
      * @return builder
      */
     public OcflRepositoryBuilder digestAlgorithm(DigestAlgorithm digestAlgorithm) {
-        // TODO should enforce sha512 or sha256
-        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        this.digestAlgorithm = Enforce.expressionTrue(
+                OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm), digestAlgorithm,
+                "Digest algorithm must be one of: " + OcflConstants.ALLOWED_DIGEST_ALGORITHMS);
         return this;
     }
 
@@ -195,8 +198,9 @@ public class OcflRepositoryBuilder {
      * @return builder
      */
     public OcflRepositoryBuilder contentDirectory(String contentDirectory) {
-        // TODO need to enforce name restrictions "The contentDirectory value MUST NOT contain the forward slash (/) path separator."
-        this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
+        Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
+        this.contentDirectory = Enforce.expressionTrue(!Pattern.matches(".*[/\\\\].*", contentDirectory), contentDirectory,
+                "Content directory cannot contain / or \\");
         return this;
     }
 

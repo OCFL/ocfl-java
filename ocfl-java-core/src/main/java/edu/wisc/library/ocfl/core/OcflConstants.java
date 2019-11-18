@@ -3,8 +3,6 @@ package edu.wisc.library.ocfl.core;
 import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 
 public final class OcflConstants {

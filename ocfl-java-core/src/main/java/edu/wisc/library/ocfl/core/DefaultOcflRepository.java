@@ -36,6 +36,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -96,9 +97,16 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
-        this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
+        Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
+        this.contentDirectory = Enforce.expressionTrue(!Pattern.matches(".*[/\\\\].*", contentDirectory), contentDirectory,
+                "Content directory cannot contain / or \\");
+
         Enforce.expressionTrue(digestThreadPoolSize > 0, digestThreadPoolSize, "digestThreadPoolSize must be greater than 0");
         Enforce.expressionTrue(copyThreadPoolSize > 0, copyThreadPoolSize, "copyThreadPoolSize must be greater than 0");
+
+        Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        Enforce.expressionTrue(OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm), digestAlgorithm,
+                "Digest algorithm must be one of: " + OcflConstants.ALLOWED_DIGEST_ALGORITHMS);
 
         inventoryUpdaterBuilder = InventoryUpdater.builder()
                 .defaultInventoryType(inventoryType)
