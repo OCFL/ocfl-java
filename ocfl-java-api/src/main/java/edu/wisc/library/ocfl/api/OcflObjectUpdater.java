@@ -13,7 +13,9 @@ import java.nio.file.Path;
 public interface OcflObjectUpdater {
 
     /**
-     * Adds a file or directory to the object being operated on at the specified destinationPath.
+     * Adds a file or directory to the object being operated on at the specified destinationPath. The destinationPath is
+     * the logical path to the file within the object. Forward slashes MUST be used as filename separators in the path.
+     * It is important to keep this in mind on Windows systems, where backslashes MUST be converted to forward slashes.
      *
      * <p>By default, files are copied into the OCFL repository. If {@code OcflOption.MOVE_SOURCE} is specified, then
      * files will be moved instead. Warning: If an exception occurs and the new version is not created, the files that were
@@ -32,7 +34,9 @@ public interface OcflObjectUpdater {
     OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions);
 
     /**
-     * Writes the contents of the InputStream to the object being operated on at the specified destinationPath.
+     * Writes the contents of the InputStream to the object being operated on at the specified destinationPath. The
+     * destinationPath is the logical path to the file within the object. Forward slashes MUST be used as filename separators
+     * in the path. It is important to keep this in mind on Windows systems, where backslashes MUST be converted to forward slashes.
      *
      * <p>Pass a {@code FixityCheckInputStream} to ensure transmission fixity.
      *
@@ -57,7 +61,10 @@ public interface OcflObjectUpdater {
     OcflObjectUpdater removeFile(String path);
 
     /**
-     * Renames an existing file within the object. Use {@code OcflOption.OVERWRITE} to overwrite an existing file at the destinationPath.
+     * Renames an existing file within the object. Use {@code OcflOption.OVERWRITE} to overwrite an existing file at the
+     * destinationPath. The destinationPath is  the logical path to the file within the object. Forward slashes MUST be
+     * used as filename separators in the path. It is important to keep this in mind on Windows systems, where backslashes
+     * MUST be converted to forward slashes.
      *
      * @param sourcePath the logical path to the file to be renamed
      * @param destinationPath the local path to rename the file to
@@ -71,7 +78,9 @@ public interface OcflObjectUpdater {
     /**
      * Reinstates a file that existed in any version of the object into the current version. This is useful when recovering
      * a prior version of a file or adding back a file that was deleted. Use {@code OcflOption.OVERWRITE} to overwrite
-     * an existing file at the destinationPath.
+     * an existing file at the destinationPath. The destinationPath is the logical path to the file within the object.
+     * Forward slashes MUST be used as filename separators in the path. It is important to keep this in mind on Windows
+     * systems, where backslashes MUST be converted to forward slashes.
      *
      * @param sourceVersionId the version id of the version to reinstate the sourcePath from. Cannot be the current version
      * @param sourcePath the logical path to the file to be reinstated
