@@ -43,25 +43,46 @@ public final class FileUtil {
     }
 
     /**
-     * Attempts to rename the source directory to the destination directory, replacing the destination. If the rename fails,
-     * the contents of the source directory are recursively moved into the destination directory file by file. Rename
-     * should only fail if the move is happening across volumes.
+     * Performs an atomic directory move. The srcRoot must exist and the dstRoot must NOT exist.
+     *
+     * <p>First, an atomic move (rename) is attempted. If this fails, because the source and destination are on different
+     * volumes, then the destination directory is created and the source files are recursively moved to the destination.
+     *
+     * @param srcRoot source directory to move, most exist
+     * @param dstRoot destination directory, must NOT exist but its parent must exist
+     * @throws FileAlreadyExistsException when the move fails because the destination already exists
      */
-    public static void moveDirectory(Path srcRoot, Path dstRoot) {
-        try {
-            Files.move(srcRoot, dstRoot, StandardCopyOption.REPLACE_EXISTING);
-            return;
-        } catch (IOException e) {
-            // Was unable to do a rename. Must do a deep copy.
-            // Rename should only fail if a directory is being moved across volumes.
+    public static void moveDirectory(Path srcRoot, Path dstRoot) throws FileAlreadyExistsException {
+        if (Files.notExists(srcRoot) || Files.isRegularFile(srcRoot)) {
+            throw new IllegalArgumentException("Source must exist and be a directory: " + srcRoot);
+        }
+        if (Files.exists(dstRoot)) {
+            // Linux rename supports overwriting an empty destination that exists, but this does not work on Windows
+            throw new FileAlreadyExistsException("Destination must not exist: " + dstRoot);
+        }
+        if (Files.notExists(dstRoot.getParent()) || Files.isRegularFile(dstRoot.getParent())) {
+            throw new IllegalArgumentException("Parent directory of destination must exist and be a directory: " + dstRoot.getParent());
         }
 
-        // TODO this is merging content into an existing directory rather than replacing. acceptable?
-        // TODO if not, the dst directory should NOT be removed. instead, its children must be deleted
-        if (!Files.exists(dstRoot)) {
-            createDirectories(dstRoot);
-        } else if (Files.isRegularFile(dstRoot)) {
-            throw new IllegalArgumentException("Destination must be a directory: " + dstRoot);
+        try {
+            Files.move(srcRoot, dstRoot, StandardCopyOption.ATOMIC_MOVE);
+            return;
+        } catch (AtomicMoveNotSupportedException e) {
+            // This fails if the destination exists, the source and destination are on different volumes, or the provider
+            // does not support atomic moves.
+            LOG.debug("Atomic move of {} to {} failed.", srcRoot, dstRoot, e);
+        } catch (FileAlreadyExistsException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+
+        try {
+            Files.createDirectory(dstRoot);
+        } catch (FileAlreadyExistsException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
         }
 
         try {
@@ -124,6 +145,16 @@ public final class FileUtil {
     public static void delete(Path path) {
         try {
             Files.delete(path);
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+    }
+
+    public static void deleteChildren(Path root) {
+        try (var files = Files.walk(root)) {
+            files.sorted(Comparator.reverseOrder())
+                    .filter(f -> !f.equals(root))
+                    .forEach(FileUtil::delete);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

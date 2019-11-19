@@ -45,27 +45,27 @@ public class BadReposITests {
 
         // /leading-slash
         assertThrows(PathConstraintException.class, () -> {
-            repo.getObject(ObjectVersionId.version(objectId, "v3"), outputDir);
+            repo.getObject(ObjectVersionId.version(objectId, "v3"), outputDir.resolve("out"));
         });
 
         // ./dot-slash
         assertThrows(PathConstraintException.class, () -> {
-            repo.getObject(ObjectVersionId.version(objectId, "v4"), outputDir);
+            repo.getObject(ObjectVersionId.version(objectId, "v4"), outputDir.resolve("out"));
         });
 
         // ../dot-dot-slash
         assertThrows(PathConstraintException.class, () -> {
-            repo.getObject(ObjectVersionId.version(objectId, "v5"), outputDir);
+            repo.getObject(ObjectVersionId.version(objectId, "v5"), outputDir.resolve("out"));
         });
 
         // dir/../dot-dot
         assertThrows(PathConstraintException.class, () -> {
-            repo.getObject(ObjectVersionId.version(objectId, "v6"), outputDir);
+            repo.getObject(ObjectVersionId.version(objectId, "v6"), outputDir.resolve("out"));
         });
 
         // //empty
         assertThrows(PathConstraintException.class, () -> {
-            repo.getObject(ObjectVersionId.version(objectId, "v7"), outputDir);
+            repo.getObject(ObjectVersionId.version(objectId, "v7"), outputDir.resolve("out"));
         });
     }
 
@@ -102,7 +102,7 @@ public class BadReposITests {
         var repoDir = repoDir(repoName);
         var repo = defaultRepo(repoDir);
 
-        assertThat(assertThrows(RuntimeIOException.class, () -> repo.getObject(ObjectVersionId.head("o2"), outputDir)).getMessage(),
+        assertThat(assertThrows(RuntimeIOException.class, () -> repo.getObject(ObjectVersionId.head("o2"), outputDir.resolve("out"))).getMessage(),
                 containsString("NoSuchFile"));
     }
 

@@ -19,9 +19,6 @@ import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.path.ContentPathBuilder;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
-import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
 import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -31,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -142,6 +140,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
         var inventory = loadInventory(objectVersionId);
+        ensureNoMutableHead(inventory);
+
         var updater = createInventoryUpdater(objectVersionId, inventory, true);
         updater.addCommitInfo(commitInfo);
 
@@ -172,6 +172,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
         var inventory = loadInventory(objectVersionId);
+        ensureNoMutableHead(inventory);
+
         var updater = createInventoryUpdater(objectVersionId, inventory, false);
         updater.addCommitInfo(commitInfo);
 
@@ -199,8 +201,9 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(outputPath, "outputPath cannot be null");
-        Enforce.expressionTrue(Files.exists(outputPath), outputPath, "outputPath must exist");
-        Enforce.expressionTrue(Files.isDirectory(outputPath), outputPath, "outputPath must be a directory");
+        Enforce.expressionTrue(Files.notExists(outputPath), outputPath, "outputPath must not exist");
+        Enforce.expressionTrue(Files.exists(outputPath.getParent()), outputPath, "outputPath parent must exist");
+        Enforce.expressionTrue(Files.isDirectory(outputPath.getParent()), outputPath, "outputPath parent must be a directory");
 
         var inventory = requireInventory(objectVersionId);
         requireVersion(objectVersionId, inventory);
@@ -308,7 +311,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         var inventory = loadInventory(objectId);
 
         if (inventory == null) {
-            // TODO if the mutable HEAD creation fails, this should be purged.
+            // Note: If the mutable HEAD creation fails, the object with the empty version remains
             inventory = createAndPersistEmptyVersion(objectId);
         }
 
@@ -490,6 +493,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         try {
             storage.reconstructObjectVersion(inventory, versionId, stagingDir);
             FileUtil.moveDirectory(stagingDir, outputPath);
+        } catch (FileAlreadyExistsException e) {
+            throw new RuntimeIOException(e);
         } finally {
             FileUtil.safeDeletePath(stagingDir);
         }
@@ -545,6 +550,13 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         if (!objectId.isHead() && !objectId.getVersionId().equals(inventory.getHead())) {
             throw new ObjectOutOfSyncException(String.format("Cannot update object %s because the HEAD version is %s, but version %s was specified.",
                     objectId.getObjectId(), inventory.getHead(), objectId.getVersionId()));
+        }
+    }
+
+    private void ensureNoMutableHead(Inventory inventory) {
+        if (inventory != null && inventory.hasMutableHead()) {
+            throw new IllegalStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
+                    inventory.getId()));
         }
     }
 

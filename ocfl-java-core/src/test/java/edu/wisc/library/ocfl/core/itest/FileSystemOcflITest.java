@@ -993,7 +993,9 @@ public class FileSystemOcflITest {
 
     private Path outputPath(String repoName, String path) {
         try {
-            return Files.createDirectories(outputDir.resolve(Paths.get(repoName, path)));
+            var output = outputDir.resolve(Paths.get(repoName, path));
+            Files.createDirectories(output.getParent());
+            return output;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

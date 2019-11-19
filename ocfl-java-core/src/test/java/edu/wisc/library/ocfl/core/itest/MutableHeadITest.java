@@ -1,13 +1,13 @@
 package edu.wisc.library.ocfl.core.itest;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
-import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MutableHeadITest {
@@ -159,11 +160,11 @@ public class MutableHeadITest {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3");
         });
 
-        assertThrows(ObjectOutOfSyncException.class, () -> {
+        assertThat(assertThrows(IllegalStateException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("update"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("file4" .getBytes()), "file4");
             });
-        });
+        }).getMessage(), Matchers.containsString("it has an active mutable HEAD"));
     }
 
     private Path newRepoDir(String name) {

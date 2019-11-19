@@ -63,11 +63,11 @@ public interface OcflRepository {
     ObjectVersionId updateObject(ObjectVersionId objectVersionId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
     /**
-     * Returns the entire contents of the object at the specified version. The outputPath MUST exist, MUST be a directory,
-     * and SHOULD be empty. The contents of outputPath will be overwritten.
+     * Returns the entire contents of the object at the specified version. The outputPath MUST NOT exist, but its parent
+     * MUST exist.
      *
      * @param objectVersionId the id and version of an object to retrieve
-     * @param outputPath the directory to write the object files to
+     * @param outputPath the directory to write the object files to, must NOT exist
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
     void getObject(ObjectVersionId objectVersionId, Path outputPath);

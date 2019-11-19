@@ -289,11 +289,9 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         versionContentCheck(oldInventory, objectRoot, objectRoot.mutableHeadVersion().contentPath(), true);
 
-        createVersionDirectory(newInventory, versionRoot);
+        moveToVersionDirectory(newInventory, objectRoot.mutableHeadPath(), versionRoot);
 
         try {
-            FileUtil.moveDirectory(objectRoot.mutableHeadPath(), versionRoot.path());
-
             try {
                 copyInventoryToRootWithRollback(stagingRoot, objectRoot, newInventory);
                 // TODO this is still slightly dangerous if one file succeeds and the other fails...
@@ -301,7 +299,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             } catch (RuntimeException e) {
                 try {
                     FileUtil.moveDirectory(versionRoot.path(), objectRoot.mutableHeadPath());
-                } catch (RuntimeException e1) {
+                } catch (RuntimeException | FileAlreadyExistsException e1) {
                     LOG.error("Failed to move {} back to {}", versionRoot.path(), objectRoot.mutableHeadPath(), e1);
                 }
                 throw e;
@@ -510,10 +508,9 @@ public class FileSystemOcflStorage implements OcflStorage {
                 setupNewObjectDirs(objectRoot.path());
             }
 
-            createVersionDirectory(inventory, versionRoot);
+            moveToVersionDirectory(inventory, stagingDir, versionRoot);
 
             try {
-                FileUtil.moveDirectory(stagingDir, versionRoot.path());
                 versionContentCheck(inventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
                 copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
                 // TODO verify inventory integrity again?
@@ -539,14 +536,13 @@ public class FileSystemOcflStorage implements OcflStorage {
         var isNewMutableHead = Files.notExists(versionRoot.inventoryFile());
 
         try {
-            createRevisionDirectory(inventory, versionRoot);
+            moveToRevisionDirectory(inventory, stagingVersionRoot, versionRoot);
 
             if (isNewMutableHead) {
                 copyRootInventorySidecar(objectRoot, versionRoot);
             }
 
             try {
-                FileUtil.moveDirectory(stagingVersionRoot.contentRoot().headRevisionPath(), revisionPath);
                 versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
                 copyInventory(stagingVersionRoot, versionRoot);
                 // TODO verify inventory integrity?
@@ -572,9 +568,10 @@ public class FileSystemOcflStorage implements OcflStorage {
                 StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private void createVersionDirectory(Inventory inventory, ObjectPaths.VersionRoot versionRoot) {
+    private void moveToVersionDirectory(Inventory inventory, Path source, ObjectPaths.VersionRoot versionRoot) {
         try {
-            Files.createDirectory(versionRoot.path());
+            Files.createDirectories(versionRoot.path().getParent());
+            FileUtil.moveDirectory(source, versionRoot.path());
         } catch (FileAlreadyExistsException e) {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
@@ -583,10 +580,10 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
-    private void createRevisionDirectory(Inventory inventory, ObjectPaths.VersionRoot versionRoot) {
+    private void moveToRevisionDirectory(Inventory inventory, ObjectPaths.VersionRoot source, ObjectPaths.VersionRoot destination) {
         try {
-            Files.createDirectories(versionRoot.contentPath());
-            Files.createDirectory(versionRoot.contentRoot().headRevisionPath());
+            Files.createDirectories(destination.contentPath());
+            FileUtil.moveDirectory(source.contentRoot().headRevisionPath(), destination.contentRoot().headRevisionPath());
         } catch (FileAlreadyExistsException e) {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
