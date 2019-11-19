@@ -39,7 +39,7 @@ public class FileSystemOcflStorageBuilder {
     /**
      * Overrides the default ObjectMapper that's used to serialize ocfl_layout.json
      *
-     * @param objectMapper
+     * @param objectMapper object mapper
      */
     public FileSystemOcflStorageBuilder objectMapper(ObjectMapper objectMapper) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");

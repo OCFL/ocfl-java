@@ -74,7 +74,7 @@ public class FileSystemOcflStorage implements OcflStorage {
      * Creates a new FileSystemOcflStorage object. Its thread pool is size is set to the number of available processors,
      * and fixity checks are not performed when a version is moved into the object.
      *
-     * {@see FileSystemOcflStorageBuilder}
+     * @see FileSystemOcflStorageBuilder
      *
      * @param repositoryRoot OCFL repository root directory
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
@@ -88,7 +88,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     /**
      * Creates a new FileSystemOcflStorage object.
      *
-     * {@see FileSystemOcflStorageBuilder}
+     * @see FileSystemOcflStorageBuilder
      *
      * @param repositoryRoot OCFL repository root directory
      * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
