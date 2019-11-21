@@ -57,7 +57,7 @@ public class PathBiMap {
     }
 
     /**
-     * Adds a new fileId => path mapping
+     * Adds a new fileId =&gt; path mapping
      *
      * @param fileId fileId
      * @param path path
