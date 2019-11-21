@@ -16,7 +16,7 @@ public class PathBiMap {
     /**
      * Constructs a new PathBiMap from an existing map of fileIds to paths.
      *
-     * @param map fileId => paths map
+     * @param map fileId =&gt; paths map
      * @return PathBiMap
      */
     public static PathBiMap fromFileIdMap(Map<String, Set<String>> map) {
@@ -131,7 +131,7 @@ public class PathBiMap {
     /**
      * Returns an immutable view of the PathBiMap, mapping fileIds to paths.
      *
-     * @return immutable fileId => paths map
+     * @return immutable fileId =&gt; paths map
      */
     public Map<String, Set<String>> getFileIdToPaths() {
         return Collections.unmodifiableMap(fileIdToPaths);
@@ -140,7 +140,7 @@ public class PathBiMap {
     /**
      * Returns an immutable view of the PathBiMap, mapping paths to fileIds
      *
-     * @return immutable path => fileId map
+     * @return immutable path =&gt; fileId map
      */
     public Map<String, String> getPathToFileId() {
         return Collections.unmodifiableMap(pathToFileId);
