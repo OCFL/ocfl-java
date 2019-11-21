@@ -14,6 +14,7 @@ public class VersionDetails {
     private VersionId versionId;
     private OffsetDateTime created;
     private CommitInfo commitInfo;
+    private boolean mutable;
     private Map<String, FileDetails> fileMap;
 
     public VersionDetails() {
@@ -82,6 +83,20 @@ public class VersionDetails {
 
     public VersionDetails setCommitInfo(CommitInfo commitInfo) {
         this.commitInfo = commitInfo;
+        return this;
+    }
+
+    /**
+     * Returns true only if the version is a mutable HEAD version that is used to stage changes.
+     *
+     * @return true if mutable HEAD
+     */
+    public boolean isMutable() {
+        return mutable;
+    }
+
+    public VersionDetails setMutable(boolean mutable) {
+        this.mutable = mutable;
         return this;
     }
 

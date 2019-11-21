@@ -69,6 +69,15 @@ public class OcflObjectVersion {
     }
 
     /**
+     * Returns true only if the version is a mutable HEAD version that is used to stage changes.
+     *
+     * @return true if mutable HEAD
+     */
+    public boolean isMutable() {
+        return versionDetails.isMutable();
+    }
+
+    /**
      * Collection of all of the files in this version of the object
      *
      * @return all of the files in the version

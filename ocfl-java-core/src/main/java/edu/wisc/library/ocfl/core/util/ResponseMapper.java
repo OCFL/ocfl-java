@@ -33,6 +33,7 @@ public class ResponseMapper {
                 .setObjectId(inventory.getId())
                 .setVersionId(versionId)
                 .setCreated(version.getCreated())
+                .setMutable(inventory.hasMutableHead() && inventory.getHead().equals(versionId))
                 .setFileMap(mapFileDetails(inventory, version));
 
         var commitInfo = new CommitInfo().setMessage(version.getMessage());

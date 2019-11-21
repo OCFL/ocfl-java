@@ -4,6 +4,7 @@ import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
+import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
@@ -41,8 +42,6 @@ public class MutableHeadITest {
         workDir = Files.createDirectory(tempRoot.resolve("work"));
 
         defaultCommitInfo =  new CommitInfo().setMessage("commit message").setUser(new User().setName("Peter").setAddress("peter@example.com"));
-
-//        var repoDir = FileUtil.createDirectories(Paths.get("src/test/resources/tmp", repoName));
     }
 
     @Test
@@ -72,6 +71,11 @@ public class MutableHeadITest {
         assertTrue(repo.hasStagedChanges(objectId));
 
         verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+
+        var details = repo.describeObject(objectId);
+
+        assertTrue(details.getHeadVersion().isMutable(), "HEAD isMutable");
+        assertFalse(details.getVersion(VersionId.fromString("v1")).isMutable(), "v1 isMutable");
     }
 
     @Test
