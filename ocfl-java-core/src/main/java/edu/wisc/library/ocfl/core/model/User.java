@@ -3,10 +3,15 @@ package edu.wisc.library.ocfl.core.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 /**
  * OCFL user object.
  */
+@JsonPropertyOrder({
+        "name",
+        "address"
+})
 public class User {
 
     private final String name;

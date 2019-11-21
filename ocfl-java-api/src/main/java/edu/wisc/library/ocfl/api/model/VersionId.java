@@ -35,7 +35,8 @@ public class VersionId implements Comparable<VersionId> {
         var numPart = value.substring(1);
         var padding = 0;
 
-        if (numPart.startsWith("0")) {
+        // Special case to allow v0 through
+        if (!numPart.equals("0") && numPart.startsWith("0")) {
             padding = numPart.length();
         }
 
@@ -58,7 +59,7 @@ public class VersionId implements Comparable<VersionId> {
      * @param zeroPaddingWidth the width of zero-padding, or 0 if the version is not zero-padded
      */
     public VersionId(long versionNumber, int zeroPaddingWidth) {
-        this.versionNumber = Enforce.expressionTrue(versionNumber > 0, versionNumber, "versionNumber must be greater than 0");
+        this.versionNumber = Enforce.expressionTrue(versionNumber >= 0, versionNumber, "versionNumber must be greater than or equal to 0");
         this.zeroPaddingWidth = Enforce.expressionTrue(zeroPaddingWidth >= 0, zeroPaddingWidth, "zeroPaddingWidth must be greater than or equal to 0");
 
         if (zeroPaddingWidth == 0) {

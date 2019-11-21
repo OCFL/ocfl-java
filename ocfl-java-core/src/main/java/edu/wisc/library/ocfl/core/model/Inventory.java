@@ -3,16 +3,17 @@ package edu.wisc.library.ocfl.core.model;
 import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.OcflConfig;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Function;
 
 /**
  * OCFL inventory object. It is intended to be used to encode and decode inventories. Inventories are immutable. Creating
@@ -22,6 +23,16 @@ import java.util.function.Function;
  * @see <a href="https://ocfl.io/">https://ocfl.io/</a>
  */
 @JsonDeserialize(builder = Inventory.JacksonBuilder.class)
+@JsonPropertyOrder({
+        "id",
+        "type",
+        "digestAlgorithm",
+        "head",
+        "contentDirectory",
+        "fixity",
+        "manifest",
+        "versions"
+})
 public class Inventory {
 
     private final String id;
@@ -30,27 +41,55 @@ public class Inventory {
     private final VersionId head;
     private final String contentDirectory;
 
-    // The digest map should be a TreeMap with case insensitive ordering
-    private final Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
-    // This should be a TreeMap with case insensitive ordering
-    private final Map<String, Set<String>> manifest;
+    @JsonIgnore
+    private final Map<DigestAlgorithm, PathBiMap> fixityBiMap;
+
+    @JsonIgnore
+    private final PathBiMap manifestBiMap;
+
     private final Map<VersionId, Version> versions;
 
+    // This property is injected
     @JsonIgnore
     private final RevisionId revisionId;
 
+    // This property is injected
     @JsonIgnore
     private final boolean mutableHead;
 
-    // TODO Should this be computed on demand?
-    @JsonIgnore
-    private final Map<String, String> reverseManifestMap;
-
+    // This property is injected
     @JsonIgnore
     private final String objectRootPath;
 
+    /**
+     * Creates a stub inventory that is useful when creating new objects. It should NOT be persisted.
+     *
+     * @param id object id
+     * @param config ocfl defaults config
+     * @param objectRootPath path to object root
+     * @return stub inventory
+     */
+    public static Inventory stubInventory(
+            String id,
+            OcflConfig config,
+            String objectRootPath) {
+        return new Inventory(id, config.getDefaultInventoryType(),
+                config.getDefaultDigestAlgorithm(),
+                config.getDefaultContentDirectory(), objectRootPath);
+    }
+
+    /**
+     * @return new {@link InventoryBuilder} that is not based on an existing inventory
+     */
     public static InventoryBuilder builder() {
         return new InventoryBuilder();
+    }
+
+    /**
+     * @return new {@link InventoryBuilder} that copies values from an existing inventory
+     */
+    public static InventoryBuilder builder(Inventory original) {
+        return new InventoryBuilder(original);
     }
 
     /**
@@ -67,8 +106,7 @@ public class Inventory {
             Map<VersionId, Version> versions,
             boolean mutableHead,
             RevisionId revisionId,
-            String objectRootPath,
-            Map<String, String> reverseManifestMap) {
+            String objectRootPath) {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
@@ -76,53 +114,50 @@ public class Inventory {
                 "digestAlgorithm must be sha512 or sha256");
         this.head = Enforce.notNull(head, "head cannot be null");
         this.contentDirectory = contentDirectory;
-        this.fixity = copyFixity(fixity);
-        this.manifest = Collections.unmodifiableMap(copyManifest(manifest, Collections::unmodifiableSet));
-        this.versions = Collections.unmodifiableMap(copyVersions(versions));
+        this.fixityBiMap = createFixityBiMap(fixity);
+        this.manifestBiMap = PathBiMap.fromFileIdMap(manifest);
+        var tree = new TreeMap<VersionId, Version>(Comparator.naturalOrder());
+        tree.putAll(versions);
+        this.versions = Collections.unmodifiableMap(tree);
 
         this.mutableHead = mutableHead;
         this.revisionId = revisionId;
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be null");
-
-        if (reverseManifestMap == null) {
-            this.reverseManifestMap = createReverseManifestMap(this.manifest);
-        } else {
-            this.reverseManifestMap = Map.copyOf(reverseManifestMap);
-        }
     }
 
-    private Map<DigestAlgorithm, Map<String, Set<String>>> copyFixity(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
-        var newFixity = new HashMap<DigestAlgorithm, Map<String, Set<String>>>();
+    /**
+     * Creates a stub inventory that contains nothing. This is useful when building new objects.
+     */
+    private Inventory(
+            String id,
+            InventoryType type,
+            DigestAlgorithm digestAlgorithm,
+            String contentDirectory,
+            String objectRootPath) {
+        this.id = Enforce.notBlank(id, "id cannot be blank");
+        this.type = Enforce.notNull(type, "type cannot be null");
+        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        Enforce.expressionTrue(OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm), digestAlgorithm,
+                "digestAlgorithm must be sha512 or sha256");
+        this.head = VersionId.fromString("v0");
+        this.contentDirectory = contentDirectory;
+        this.fixityBiMap = Collections.emptyMap();
+        this.manifestBiMap = new PathBiMap();
+        this.versions = Collections.emptyMap();
 
-        if (fixity != null) {
-            fixity.forEach((k, v) -> {
-                var treeMap = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-                treeMap.putAll(v);
-                newFixity.put(k, Collections.unmodifiableMap(treeMap));
-            });
-        }
-
-        return Collections.unmodifiableMap(newFixity);
+        this.mutableHead = false;
+        this.revisionId = null;
+        this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be null");
     }
 
-    private Map<String, Set<String>> copyManifest(Map<String, Set<String>> manifest, Function<Set<String>, Set<String>> pathSetCreator) {
-        Enforce.notNull(manifest, "manifest cannot be null");
-        var newManifest = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-        manifest.forEach((digest, paths) -> newManifest.put(digest, pathSetCreator.apply(new TreeSet<>(paths))));
-        return newManifest;
-    }
+    private static Map<DigestAlgorithm, PathBiMap> createFixityBiMap(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
+        var map = new HashMap<DigestAlgorithm, PathBiMap>();
 
-    private Map<VersionId, Version> copyVersions(Map<VersionId, Version> versions) {
-        Enforce.notNull(versions, "versions cannot be null");
-        var newVersions = new TreeMap<VersionId, Version>(Comparator.comparing(VersionId::toString));
-        newVersions.putAll(versions);
-        return newVersions;
-    }
+        fixity.forEach((algorithm, values) -> {
+            map.put(algorithm, PathBiMap.fromFileIdMap(values));
+        });
 
-    private Map<String, String> createReverseManifestMap(Map<String, Set<String>> manifest) {
-        var reverseMap = new HashMap<String, String>();
-        manifest.forEach((digest, paths) -> paths.forEach(path -> reverseMap.put(path, digest)));
-        return Collections.unmodifiableMap(reverseMap);
+        return Collections.unmodifiableMap(map);
     }
 
     /**
@@ -162,22 +197,13 @@ public class Inventory {
      */
     @JsonGetter("fixity")
     public Map<DigestAlgorithm, Map<String, Set<String>>> getFixity() {
+        var fixity = new HashMap<DigestAlgorithm, Map<String, Set<String>>>();
+
+        fixityBiMap.forEach((algorithm, map) -> {
+            fixity.put(algorithm, map.getFileIdToPaths());
+        });
+
         return fixity;
-    }
-
-    @JsonIgnore
-    public Map<DigestAlgorithm, Map<String, Set<String>>> getMutableFixity() {
-        var newFixity = new HashMap<DigestAlgorithm, Map<String, Set<String>>>();
-
-        if (fixity != null) {
-            fixity.forEach((k, v) -> {
-                var treeMap = new TreeMap<String, Set<String>>(String.CASE_INSENSITIVE_ORDER);
-                treeMap.putAll(v);
-                newFixity.put(k, treeMap);
-            });
-        }
-
-        return newFixity;
     }
 
     /**
@@ -186,17 +212,7 @@ public class Inventory {
      */
     @JsonGetter("manifest")
     public Map<String, Set<String>> getManifest() {
-        return manifest;
-    }
-
-    @JsonIgnore
-    public Map<String, Set<String>> getMutableManifest() {
-        return copyManifest(manifest, Function.identity());
-    }
-
-    @JsonIgnore
-    public Map<String, String> getMutableReverseManifestMap() {
-        return new HashMap<>(reverseManifestMap);
+        return manifestBiMap.getFileIdToPaths();
     }
 
     /**
@@ -207,12 +223,6 @@ public class Inventory {
     public Map<VersionId, Version> getVersions() {
         return versions;
     }
-
-    @JsonIgnore
-    public Map<VersionId, Version> getMutableVersions() {
-        return new HashMap<>(versions);
-    }
-
 
     /**
      * Use {@code resolveContentDirectory()} instead
@@ -244,38 +254,37 @@ public class Inventory {
     /**
      * Helper method for checking if an object contains a file with the given digest id.
      */
-    public boolean manifestContainsId(String id) {
-        return manifest.containsKey(id);
+    public boolean manifestContainsFileId(String fileId) {
+        return manifestBiMap.containsFileId(fileId);
     }
 
     /**
      * Returns the digest that is used to identify the given path if it exists.
      */
     public String getFileId(String path) {
-        return reverseManifestMap.get(path);
+        return manifestBiMap.getFileId(path);
     }
 
     /**
      * Returns the digest that is used to identify the given path if it exists.
      */
     public String getFileId(Path path) {
-        return reverseManifestMap.get(FileUtil.pathToStringStandardSeparator(path));
+        return manifestBiMap.getFileId(FileUtil.pathToStringStandardSeparator(path));
     }
 
     /**
      * Returns the set of paths that are identified by the given digest if they exist.
      */
-    public Set<String> getContentPaths(String id) {
-        return manifest.get(id);
+    public Set<String> getContentPaths(String fileId) {
+        return manifestBiMap.getPaths(fileId);
     }
 
     /**
      * Returns the first path to a file that maps to the given digest
      */
-    public String getContentPath(String id) {
-        // There will only ever be one entry in this set unless dedupping is turned off
-        var paths = manifest.get(id);
-        if (paths == null) {
+    public String getContentPath(String fileId) {
+        var paths = manifestBiMap.getPaths(fileId);
+        if (paths.isEmpty()) {
             return null;
         }
         return paths.iterator().next();
@@ -287,7 +296,7 @@ public class Inventory {
     public Set<String> getFileIdsForMatchingFiles(Path path) {
         var pathStr = FileUtil.pathToStringStandardSeparator(path) + "/";
         var set = new HashSet<String>();
-        reverseManifestMap.forEach((contentPath, id) -> {
+        manifestBiMap.getPathToFileId().forEach((contentPath, id) -> {
             if (contentPath.startsWith(pathStr)) {
                 set.add(id);
             }
@@ -318,6 +327,49 @@ public class Inventory {
         return objectRootPath;
     }
 
+    /**
+     * Returns the next version id after the current HEAD version. If the object has a mutable HEAD, the current version
+     * is returned.
+     *
+     * @return the next version id
+     */
+    public VersionId nextVersionId() {
+        if (mutableHead) {
+            return head;
+        }
+        return head.nextVersionId();
+    }
+
+    /**
+     * Returns the next revision id. If the object doest not have a revision id, then a new revision is created.
+     *
+     * @return the next revision id
+     */
+    public RevisionId nextRevisionId() {
+        if (revisionId == null) {
+            return new RevisionId(1);
+        }
+        return revisionId.nextRevisionId();
+    }
+
+    /**
+     * Returns the fixity information for a contentPath.
+     *
+     * @param contentPath the content path
+     * @return fixity information or empty map
+     */
+    public Map<DigestAlgorithm, String> getFixityForContentPath(String contentPath) {
+        var fixity = new HashMap<DigestAlgorithm, String>();
+
+        fixityBiMap.forEach((algorithm, map) -> {
+            if (map.containsPath(contentPath)) {
+                fixity.put(algorithm, map.getFileId(contentPath));
+            }
+        });
+
+        return fixity;
+    }
+
     @Override
     public String toString() {
         return "Inventory{" +
@@ -326,8 +378,8 @@ public class Inventory {
                 ", digestAlgorithm='" + digestAlgorithm + '\'' +
                 ", head='" + head + '\'' +
                 ", contentDirectory='" + contentDirectory + '\'' +
-                ", fixity=" + fixity +
-                ", manifest=" + manifest +
+                ", fixity=" + fixityBiMap +
+                ", manifest=" + manifestBiMap +
                 ", versions=" + versions +
                 ", mutableHead=" + mutableHead +
                 ", revisionId=" + revisionId +
@@ -402,7 +454,7 @@ public class Inventory {
 
         public Inventory build() {
             return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity,
-                    manifest, versions, mutableHead, revisionId, objectRootPath, null);
+                    manifest, versions, mutableHead, revisionId, objectRootPath);
         }
 
     }

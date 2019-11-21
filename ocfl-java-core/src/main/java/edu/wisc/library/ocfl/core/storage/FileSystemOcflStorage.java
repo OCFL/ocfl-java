@@ -679,7 +679,7 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     private String ensureManifestPath(Inventory inventory, String id) {
-        if (!inventory.manifestContainsId(id)) {
+        if (!inventory.manifestContainsFileId(id)) {
             throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
                     id, inventory.getId()));
         }

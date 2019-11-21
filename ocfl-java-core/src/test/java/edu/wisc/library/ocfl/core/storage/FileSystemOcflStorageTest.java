@@ -2,7 +2,6 @@ package edu.wisc.library.ocfl.core.storage;
 
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
-import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
@@ -52,7 +51,7 @@ public class FileSystemOcflStorageTest {
         var inventory = inventoryBuilder()
                 .addFileToManifest("1", "v1/content/file1")
                 .addFileToManifest("2", "v1/content/file2")
-                .addNewHeadVersion(VersionId.fromString("v1"), versionBuilder()
+                .addHeadVersion(versionBuilder()
                         .addFile("1", "file1")
                         .addFile("2", "file2")
                         .build())
@@ -73,7 +72,7 @@ public class FileSystemOcflStorageTest {
         var inventory = inventoryBuilder()
                 .addFileToManifest("1", "v1/content/file1")
                 .addFileToManifest("2", "v1/content/file2")
-                .addNewHeadVersion(VersionId.fromString("v1"), versionBuilder()
+                .addHeadVersion(versionBuilder()
                         .addFile("1", "file1")
                         .addFile("2", "file2")
                         .build())
@@ -91,7 +90,7 @@ public class FileSystemOcflStorageTest {
 
         var inventory = inventoryBuilder()
                 .addFileToManifest("1", "v1/content/file1")
-                .addNewHeadVersion(VersionId.fromString("v1"), versionBuilder()
+                .addHeadVersion(versionBuilder()
                         .addFile("1", "file1")
                         .build())
                 .build();

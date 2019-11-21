@@ -4,12 +4,18 @@ import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Used to construct Inventory objects.
  */
 public class InventoryBuilder {
+
+    private static final VersionId INITIAL_VERSION = VersionId.fromString(OcflConstants.DEFAULT_INITIAL_VERSION_ID);
+    private static final RevisionId INITIAL_REVISION = new RevisionId(1);
 
     private String id;
     private InventoryType type;
@@ -21,23 +27,24 @@ public class InventoryBuilder {
     private RevisionId revisionId;
     private String objectRootPath;
 
-    private Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
-    private Map<String, Set<String>> manifest;
+    private Map<DigestAlgorithm, PathBiMap> fixity;
+    private PathBiMap manifest;
     private Map<VersionId, Version> versions;
-    private Map<String, String> reverseManifestMap;
+
+    private VersionId nextHeadVersion;
 
     public InventoryBuilder() {
         fixity = new HashMap<>();
-        manifest = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        manifest = new PathBiMap();
         versions = new HashMap<>();
-        reverseManifestMap = new HashMap<>();
+        nextHeadVersion = INITIAL_VERSION;
     }
 
     /**
-     * Used to construct a new Inventory that's based on an existing inventory. This should be used when creating a new
+     * Used to construct a new {@link Inventory} that's based on an existing inventory. This should be used when creating a new
      * version of an existing object.
      *
-     * @param original
+     * @param original the original inventory
      */
     public InventoryBuilder(Inventory original) {
         Enforce.notNull(original, "inventory cannot be null");
@@ -49,98 +56,161 @@ public class InventoryBuilder {
         this.mutableHead = original.hasMutableHead();
         this.revisionId = original.getRevisionId();
         this.objectRootPath = original.getObjectRootPath();
-        this.fixity = original.getMutableFixity();
-        this.manifest = original.getMutableManifest();
-        this.versions = original.getMutableVersions();
-        this.reverseManifestMap = original.getMutableReverseManifestMap();
+        this.fixity = fixityToBiMap(original.getFixity());
+        this.manifest = PathBiMap.fromFileIdMap(original.getManifest());
+        this.versions = new HashMap<>(original.getVersions());
+
+        this.nextHeadVersion = head.nextVersionId();
     }
 
-    public Set<String> getContentPaths(String fileId) {
-        return manifest.getOrDefault(fileId, new HashSet<>());
+    private static Map<DigestAlgorithm, PathBiMap> fixityToBiMap(Map<DigestAlgorithm, Map<String, Set<String>>> originalFixity) {
+        var fixity = new HashMap<DigestAlgorithm, PathBiMap>();
+
+        originalFixity.forEach(((digestAlgorithm, map) -> {
+            fixity.put(digestAlgorithm, PathBiMap.fromFileIdMap(map));
+        }));
+
+        return fixity;
     }
 
-    public InventoryBuilder addNewHeadVersion(VersionId versionId, Version version) {
+    /**
+     * Add the version as the new HEAD version. This assigns the version the next available versionId, unless it's mutable.
+     *
+     * @param version the new version
+     * @return builder
+     */
+    public InventoryBuilder addHeadVersion(Version version) {
+        Enforce.notNull(version, "version cannot be null");
+
+        if (mutableHead) {
+            if (revisionId == null) {
+                revisionId = INITIAL_REVISION;
+                head = nextHeadVersion;
+            } else {
+                revisionId = revisionId.nextRevisionId();
+            }
+            versions.put(head, version);
+        } else {
+            versions.put(nextHeadVersion, version);
+            head = nextHeadVersion;
+            nextHeadVersion = nextHeadVersion.nextVersionId();
+        }
+
+        return this;
+    }
+
+    /**
+     * Inserts a version at the specified versionId. This will OVERWRITE any version that is currently at that location.
+     *
+     * @param versionId the id of the version
+     * @param version the version
+     * @return builder
+     */
+    public InventoryBuilder putVersion(VersionId versionId, Version version) {
         Enforce.notNull(versionId, "versionId cannot be null");
         Enforce.notNull(version, "version cannot be null");
 
         versions.put(versionId, version);
-        head = versionId;
         return this;
     }
 
+    /**
+     * Adds a file to the manifest
+     *
+     * @param id the fileId of the file
+     * @param contentPath the content path of the file
+     * @return builder
+     */
     public InventoryBuilder addFileToManifest(String id, String contentPath) {
         Enforce.notBlank(id, "id cannot be blank");
         Enforce.notBlank(contentPath, "contentPath cannot be blank");
 
-        manifest.computeIfAbsent(id, k -> new HashSet<>()).add(contentPath);
-        reverseManifestMap.put(contentPath, id);
+        manifest.put(id, contentPath);
         return this;
     }
 
-    public InventoryBuilder removeFileFromManifest(String contentPath) {
-        var digest = reverseManifestMap.remove(contentPath);
-        if (digest != null) {
-            var paths = manifest.get(digest);
-            if (paths.size() == 1) {
-                manifest.remove(digest);
-            } else {
-                paths.remove(contentPath);
-            }
-
-            removeFileFromFixity(contentPath);
+    /**
+     * Removes a file from the manifest and fixity block
+     *
+     * @param fileId the fileId of the file
+     * @return builder
+     */
+    public InventoryBuilder removeFileId(String fileId) {
+        var paths = manifest.removeFileId(fileId);
+        if (paths != null) {
+            paths.forEach(this::removeContentPathFromFixity);
         }
-        return this;
-    }
-
-    public InventoryBuilder removeFileFromFixity(String contentPath) {
-        fixity.forEach((algorithm, values) -> {
-            for (var it = values.entrySet().iterator(); it.hasNext();) {
-                var set = it.next();
-                if (set.getValue().contains(contentPath)) {
-                    if (set.getValue().size() == 1) {
-                        it.remove();
-                    } else {
-                        set.getValue().remove(contentPath);
-                    }
-                    break;
-                }
-            }
-        });
 
         return this;
     }
 
+    /**
+     * Removes a file from the manifest and fixity bock by content path
+     *
+     * @param contentPath the content path of the file to remove
+     * @return builder
+     */
+    public InventoryBuilder removeContentPath(String contentPath) {
+        Enforce.notBlank(contentPath, "contentPath cannot be blank");
+
+        manifest.removePath(contentPath);
+        removeContentPathFromFixity(contentPath);
+        return this;
+    }
+
+    /**
+     * Removes a file from the fixity block by content path
+     *
+     * @param contentPath the content path of the file to remove
+     * @return builder
+     */
+    public InventoryBuilder removeContentPathFromFixity(String contentPath) {
+        Enforce.notBlank(contentPath, "contentPath cannot be blank");
+
+        fixity.values().forEach(map -> map.removePath(contentPath));
+        return this;
+    }
+
+    /**
+     * Adds a file to the fixity block
+     *
+     * @param contentPath the content path of the file
+     * @param algorithm digest algorithm
+     * @param value digest value
+     * @return builder
+     */
     public InventoryBuilder addFixityForFile(String contentPath, DigestAlgorithm algorithm, String value) {
         Enforce.notBlank(contentPath, "contentPath cannot be blank");
         Enforce.notNull(algorithm, "algorithm cannot be null");
         Enforce.notBlank(value, "value cannot be blank");
 
-        fixity.computeIfAbsent(algorithm, k -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
-                .computeIfAbsent(value, k -> new HashSet<>()).add(contentPath);
+        if (!manifest.containsPath(contentPath)) {
+            throw new IllegalStateException(
+                    String.format("Cannot add fixity information for content path %s because it is not present in the manifest.", contentPath));
+        }
+
+        fixity.computeIfAbsent(algorithm, k -> new PathBiMap()).put(value, contentPath);
         return this;
     }
 
-    public boolean manifestContainsId(String id) {
-        return manifest.containsKey(id);
-    }
-
     public InventoryBuilder id(String id) {
-        this.id = id;
+        this.id = Enforce.notBlank(id, "id cannot be blank");
         return this;
     }
 
     public InventoryBuilder type(InventoryType type) {
-        this.type = type;
+        this.type = Enforce.notNull(type, "type cannot be null");
         return this;
     }
 
     public InventoryBuilder digestAlgorithm(DigestAlgorithm digestAlgorithm) {
-        this.digestAlgorithm = digestAlgorithm;
+        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         return this;
     }
 
     public InventoryBuilder head(VersionId head) {
-        this.head = head;
+        this.head = Enforce.notNull(head, "head cannot be null");
+        this.nextHeadVersion = head.nextVersionId();
         return this;
     }
 
@@ -149,18 +219,28 @@ public class InventoryBuilder {
         return this;
     }
 
+    public InventoryBuilder fixityBiMap(Map<DigestAlgorithm, PathBiMap> fixity) {
+        this.fixity = Enforce.notNull(fixity, "fixity cannot be null");
+        return this;
+    }
+
     public InventoryBuilder fixity(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
-        this.fixity = fixity;
+        this.fixity = fixityToBiMap(fixity == null ? Collections.emptyMap() : fixity);
+        return this;
+    }
+
+    public InventoryBuilder manifest(PathBiMap manifest) {
+        this.manifest = Enforce.notNull(manifest, "manifest cannot be null");
         return this;
     }
 
     public InventoryBuilder manifest(Map<String, Set<String>> manifest) {
-        this.manifest = manifest;
+        this.manifest = PathBiMap.fromFileIdMap(Enforce.notNull(manifest, "manifest cannot be null"));
         return this;
     }
 
     public InventoryBuilder versions(Map<VersionId, Version> versions) {
-        this.versions = versions;
+        this.versions = Enforce.notNull(versions, "versions cannot be null");
         return this;
     }
 
@@ -175,46 +255,71 @@ public class InventoryBuilder {
     }
 
     public InventoryBuilder objectRootPath(String objectRootPath) {
-        this.objectRootPath = objectRootPath;
+        this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
         return this;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public VersionId getHead() {
-        return head;
-    }
-
-    public DigestAlgorithm getDigestAlgorithm() {
-        return digestAlgorithm;
-    }
-
-    public String getContentDirectory() {
-        if (contentDirectory == null) {
-            return OcflConstants.DEFAULT_CONTENT_DIRECTORY;
-        }
-        return contentDirectory;
-    }
-
-    public String getObjectRootPath() {
-        return objectRootPath;
-    }
-
-    public String getVersionFileId(VersionId versionId, String path) {
-        var version = versions.get(versionId);
-
-        if (version == null) {
-            throw new IllegalStateException(String.format("Version %s does not exist for object %s.", versionId, id));
-        }
-
-        return version.getFileId(path);
-    }
-
+    /**
+     * @return a new Inventory
+     */
     public Inventory build() {
         return new Inventory(id, type, digestAlgorithm, head, contentDirectory,
-                fixity, manifest, versions, mutableHead, revisionId, objectRootPath, reverseManifestMap);
+                fixityFromBiMap(), manifest.getFileIdToPaths(), versions, mutableHead, revisionId,
+                objectRootPath);
+    }
+
+    /**
+     * Indicates if the manifest contains a fileId
+     *
+     * @param fileId the fileId
+     * @return true if the manifest contains the fileId
+     */
+    public boolean containsFileId(String fileId) {
+        return manifest.containsFileId(fileId);
+    }
+
+    /**
+     * Indicates if the manifest contains a contentPath
+     *
+     * @param contentPath the contentPath
+     * @return true if the manifest contains the contentPath
+     */
+    public boolean containsContentPath(String contentPath) {
+        return manifest.containsPath(contentPath);
+    }
+
+    /**
+     * Retrieves the content paths associated to the fileId or an empty set
+     *
+     * @param fileId the fileId
+     * @return associated content paths or an empty set
+     */
+    public Set<String> getContentPaths(String fileId) {
+        return manifest.getPaths(fileId);
+    }
+
+    /**
+     * Retrieves the fileId associated to the content path
+     *
+     * @param contentPath the contentPath
+     * @return associated fileId or null
+     */
+    public String getFileId(String contentPath) {
+        return manifest.getFileId(contentPath);
+    }
+
+    public boolean hasMutableHead() {
+        return mutableHead;
+    }
+
+    private Map<DigestAlgorithm, Map<String, Set<String>>> fixityFromBiMap() {
+        var transformed = new HashMap<DigestAlgorithm, Map<String, Set<String>>>();
+
+        fixity.forEach((algorithm, map) -> {
+            transformed.put(algorithm, map.getFileIdToPaths());
+        });
+
+        return transformed;
     }
 
 }

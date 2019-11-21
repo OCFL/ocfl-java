@@ -195,8 +195,8 @@ public class FileSystemOcflITest {
     }
 
     @Test
-    public void failRenameAndRemoveFilesAddedInTheCurrentVersion() {
-        var repoName = "repo5";
+    public void renameAndRemoveFilesAddedInTheCurrentVersion() {
+        var repoName = "repo17";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
 
@@ -207,20 +207,23 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        assertThrows(UnsupportedOperationException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
-                updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
-                        .addPath(sourcePathV2.resolve("file3"), "file3")
-                        .renameFile("dir1/file2", "dir2/file3");
-            });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
+                    .addPath(sourcePathV2.resolve("file3"), "file3")
+                    .renameFile("dir1/file2", "dir2/file3");
         });
 
-        assertThrows(UnsupportedOperationException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
-                updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
-                        .removeFile("dir1/file2");
-            });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("test123".getBytes()), "file4")
+                    .removeFile("file4");
         });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("test123456".getBytes()), "file5")
+                    .writeFile(new ByteArrayInputStream("6543210".getBytes()), "file5", OcflOption.OVERWRITE);
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
 
     @Test
@@ -738,11 +741,11 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
 
-        assertThrows(IllegalStateException.class, () -> {
+        assertThat(assertThrows(IllegalArgumentException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
                 updater.reinstateFile(VersionId.fromString("v3"), "file2", "file1");
             });
-        });
+        }).getMessage(), containsString("does not contain a file at"));
     }
 
     @Test

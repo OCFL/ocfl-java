@@ -1,10 +1,15 @@
 package edu.wisc.library.ocfl.core.concurrent;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
 public class CancellableCompletionService<T> extends ExecutorCompletionService<T> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CancellableCompletionService.class);
 
     private List<Future<T>> futures;
 
@@ -38,6 +43,8 @@ public class CancellableCompletionService<T> extends ExecutorCompletionService<T
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
+                // TODO rethrowing the cause loses the stack trace
+                LOG.info("Exception in processing thread", e);
                 futures.forEach(future -> {
                     future.cancel(true);
                 });
@@ -55,6 +62,8 @@ public class CancellableCompletionService<T> extends ExecutorCompletionService<T
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
+                // TODO rethrowing the cause loses the stack trace
+                LOG.info("Exception in processing thread", e);
                 futures.forEach(future -> {
                     future.cancel(true);
                 });

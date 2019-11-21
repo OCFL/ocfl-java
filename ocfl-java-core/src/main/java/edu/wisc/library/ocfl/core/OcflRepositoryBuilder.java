@@ -21,10 +21,8 @@ import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 /**
  * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
@@ -34,12 +32,7 @@ import java.util.regex.Pattern;
  */
 public class OcflRepositoryBuilder {
 
-    // TODO consider whether or not it would be better to implement this with a configuration object
-
-    private InventoryType inventoryType = OcflConstants.DEFAULT_INVENTORY_TYPE;
-    private DigestAlgorithm digestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
-    private String contentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
-    private Set<DigestAlgorithm> fixityAlgorithms = new HashSet<>();
+    private OcflConfig config;
 
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
@@ -57,6 +50,7 @@ public class OcflRepositoryBuilder {
      * <p>Important: The same OcflRepositoryBuilder instance MUST NOT be used to initialize multiple repositories.
      */
     public OcflRepositoryBuilder() {
+        config = new OcflConfig();
         objectLock = new InMemoryObjectLock(10, TimeUnit.SECONDS);
         inventoryCache = new CaffeineCache<>(Caffeine.newBuilder()
                 .expireAfterWrite(Duration.ofMinutes(10))
@@ -166,41 +160,58 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Set OCFL configuration options.
+     *
+     * @param config ocfl config
+     * @return builder
+     */
+    public OcflRepositoryBuilder ocflConfig(OcflConfig config) {
+        this.config = Enforce.notNull(config, "config cannot be null");
+        return this;
+    }
+
+    /**
      * Used to specify the OCFL inventory type to apply to newly created inventories.
+     *
+     * @see #ocflConfig
      *
      * @param inventoryType inventory type
      * @return builder
      */
+    @Deprecated
     public OcflRepositoryBuilder inventoryType(InventoryType inventoryType) {
         // TODO This probably should not be configurable -- it is likely tied to the OCFL spec version
-        this.inventoryType = Enforce.notNull(inventoryType, "inventoryType cannot be null");
+        config.setDefaultInventoryType(inventoryType);
         return this;
     }
 
     /**
      * Used to specify the digest algorithm to use for newly created objects. Default: sha512.
      *
+     * @see #ocflConfig
+     *
      * @param digestAlgorithm digest algorithm
      * @return builder
      */
+    @Deprecated
     public OcflRepositoryBuilder digestAlgorithm(DigestAlgorithm digestAlgorithm) {
         Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        this.digestAlgorithm = Enforce.expressionTrue(
-                OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm), digestAlgorithm,
-                "Digest algorithm must be one of: " + OcflConstants.ALLOWED_DIGEST_ALGORITHMS);
+        config.setDefaultDigestAlgorithm(digestAlgorithm);
         return this;
     }
 
     /**
      * Used to specify the location of the content directory within newly created objects. Default: content.
      *
+     * @see #ocflConfig
+     *
      * @param contentDirectory content directory
      * @return builder
      */
+    @Deprecated
     public OcflRepositoryBuilder contentDirectory(String contentDirectory) {
         Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
-        this.contentDirectory = Enforce.expressionTrue(!Pattern.matches(".*[/\\\\].*", contentDirectory), contentDirectory,
-                "Content directory cannot contain / or \\");
+        config.setDefaultContentDirectory(contentDirectory);
         return this;
     }
 
@@ -209,11 +220,14 @@ public class OcflRepositoryBuilder {
      *
      * <p>Adding fixity algorithms increases the latency of repository operations without providing any additional security.
      *
+     * @see #ocflConfig
+     *
      * @param fixityAlgorithms fixity algorithms
      * @return builder
      */
+    @Deprecated
     public OcflRepositoryBuilder fixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
-        this.fixityAlgorithms = Enforce.notNull(fixityAlgorithms, "fixityAlgorithms cannot be null");
+        config.setFixityAlgorithms(fixityAlgorithms);
         return this;
     }
 
@@ -273,8 +287,7 @@ public class OcflRepositoryBuilder {
         return new DefaultOcflRepository(storage, workDir,
                 objectLock, inventoryCache, inventoryMapper,
                 pathSanitizer, contentPathConstraintProcessor,
-                fixityAlgorithms, inventoryType, digestAlgorithm,
-                contentDirectory, digestThreadPoolSize, copyThreadPoolSize);
+                config, digestThreadPoolSize, copyThreadPoolSize);
     }
 
 }

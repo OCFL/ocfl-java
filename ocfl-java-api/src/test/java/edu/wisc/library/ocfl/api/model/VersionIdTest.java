@@ -25,16 +25,6 @@ public class VersionIdTest {
     }
 
     @Test
-    public void shouldFailWhenZero() {
-        assertThrows(IllegalArgumentException.class, () -> VersionId.fromString("v0"));
-    }
-
-    @Test
-    public void shouldFailWhenMultipleZeros() {
-        assertThrows(IllegalArgumentException.class, () -> VersionId.fromString("v00"));
-    }
-
-    @Test
     public void shouldFailWhenHasExtraChars() {
         assertThrows(IllegalArgumentException.class, () -> VersionId.fromString("v1.2"));
     }

@@ -48,37 +48,29 @@ public class ResponseMapper {
         return details;
     }
 
-    // TODO this isn't very efficient
     private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
         var objectRootPath = inventory.getObjectRootPath();
         var fileDetailsMap = new HashMap<String, FileDetails>();
-        var fileFixityMap = new HashMap<String, FileDetails>();
 
         var digestAlgorithm = inventory.getDigestAlgorithm();
 
         version.getState().forEach((digest, paths) -> {
             paths.forEach(path -> {
+                var contentPath = inventory.getContentPath(digest);
                 var details = new FileDetails()
                         .setPath(path)
                         .setStorageRelativePath(
-                                FileUtil.pathJoinFailEmpty(objectRootPath, inventory.getContentPath(digest)))
+                                FileUtil.pathJoinFailEmpty(objectRootPath, contentPath))
                         .addDigest(digestAlgorithm.getOcflName(), digest);
-                fileFixityMap.put(digest, details);
+
+                var digests = inventory.getFixityForContentPath(contentPath);
+
+                digests.forEach((algorithm, value) -> {
+                    details.addDigest(algorithm.getOcflName(), value);
+                });
+
                 fileDetailsMap.put(path, details);
             });
-        });
-
-        inventory.getFixity().forEach((algorithm, digests) -> {
-            if (algorithm != digestAlgorithm) {
-                digests.forEach((digest, paths) -> {
-                    paths.forEach(path -> {
-                        var details = fileFixityMap.get(inventory.getFileId(path));
-                        if (details != null) {
-                            details.addDigest(algorithm.getOcflName(), digest);
-                        }
-                    });
-                });
-            }
         });
 
         return fileDetailsMap;
