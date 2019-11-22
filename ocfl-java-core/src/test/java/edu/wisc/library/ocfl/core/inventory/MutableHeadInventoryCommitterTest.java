@@ -1,10 +1,10 @@
 package edu.wisc.library.ocfl.core.inventory;
 
 import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflConfig;
 import edu.wisc.library.ocfl.core.OcflConstants;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.model.Version;

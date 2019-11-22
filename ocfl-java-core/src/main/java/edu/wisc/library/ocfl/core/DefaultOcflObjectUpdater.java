@@ -2,13 +2,14 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -40,7 +41,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     private ParallelProcess parallelProcess;
     private ParallelProcess copyParallelProcess;
 
-    private Set<DigestAlgorithm> fixityAlgorithms;
+    private Map<String, Path> stagedFileMap;
 
     public static Builder builder() {
         return new Builder();
@@ -50,7 +51,6 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
         private ParallelProcess parallelProcess;
         private ParallelProcess copyParallelProcess;
-        private Set<DigestAlgorithm> fixityAlgorithms;
 
         public Builder parallelProcess(ParallelProcess parallelProcess) {
             this.parallelProcess = Enforce.notNull(parallelProcess, "parallelProcess cannot be null");
@@ -62,13 +62,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             return this;
         }
 
-        public Builder fixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
-            this.fixityAlgorithms = fixityAlgorithms;
-            return this;
-        }
-
         public DefaultOcflObjectUpdater build(Inventory inventory, InventoryUpdater inventoryUpdater, Path stagingDir) {
-            return new DefaultOcflObjectUpdater(inventory, inventoryUpdater, stagingDir, parallelProcess, copyParallelProcess, fixityAlgorithms);
+            return new DefaultOcflObjectUpdater(inventory, inventoryUpdater, stagingDir, parallelProcess, copyParallelProcess);
         }
 
     }
@@ -77,17 +72,20 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      * @see Builder
      */
     public DefaultOcflObjectUpdater(Inventory inventory, InventoryUpdater inventoryUpdater, Path stagingDir,
-                                    ParallelProcess parallelProcess, ParallelProcess copyParallelProcess,
-                                    Set<DigestAlgorithm> fixityAlgorithms) {
+                                    ParallelProcess parallelProcess, ParallelProcess copyParallelProcess) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
         this.parallelProcess = Enforce.notNull(parallelProcess, "parallelProcess cannot be null");
         this.copyParallelProcess = Enforce.notNull(copyParallelProcess, "copyParallelProcess cannot be null");
-        this.fixityAlgorithms = fixityAlgorithms == null ? Collections.emptySet() : fixityAlgorithms;
+
+        this.stagedFileMap = new HashMap<>();
     }
 
-    // TODO add method for adding fixity
+    @Override
+    public OcflObjectUpdater addPath(Path sourcePath, OcflOption... ocflOptions) {
+        return addPath(sourcePath, "", ocflOptions);
+    }
 
     /**
      * {@inheritDoc}
@@ -99,10 +97,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
-        if (destinationPath.isBlank() && Files.isRegularFile(sourcePath)) {
-            throw new IllegalArgumentException("A non-blank destination path must be specified when adding a file.");
-        }
-
+        var destination = destinationPath(destinationPath, sourcePath);
         var files = FileUtil.findFiles(sourcePath);
 
         if (files.size() == 0) {
@@ -119,26 +114,16 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         });
 
         var copyFiles = new HashMap<Path, InventoryUpdater.AddFileResult>();
+        var newStagedFiles = new HashMap<String, Path>();
 
         filesWithDigests.forEach(entry -> {
             var file = entry.getKey();
             var digest = entry.getValue();
-            var logicalPath = logicalPath(sourcePath, file, destinationPath);
+            var logicalPath = logicalPath(sourcePath, file, destination);
             var result = inventoryUpdater.addFile(digest, logicalPath, ocflOptions);
             if (result.isNew()) {
                 copyFiles.put(file, result);
-            }
-        });
-
-        parallelProcess.map(copyFiles, (file, result) -> {
-            for (var fixityAlgorithm : fixityAlgorithms) {
-                if (!inventory.getDigestAlgorithm().equals(fixityAlgorithm)) {
-                    if (fixityAlgorithm.hasJavaStandardName()) {
-                        LOG.debug("Computing {} hash of {}", fixityAlgorithm.getJavaStandardName(), file);
-                        var digest = DigestUtil.computeDigest(fixityAlgorithm, file);
-                        inventoryUpdater.addFixity(result.getContentPath(), fixityAlgorithm, digest);
-                    }
-                }
+                newStagedFiles.put(logicalPath, stagingFullPath(result.getPathUnderContentDir()));
             }
         });
 
@@ -158,6 +143,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             // Cleanup empty dirs
             FileUtil.safeDeletePath(sourcePath);
         }
+
+        stagedFileMap.putAll(newStagedFiles);
 
         return this;
     }
@@ -189,6 +176,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
             LOG.debug("Moving file <{}> to <{}>", tempPath, stagingFullPath);
             FileUtil.moveFileMakeParents(tempPath, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
+            stagedFileMap.put(destinationPath, stagingFullPath);
         }
 
         return this;
@@ -236,6 +224,66 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public OcflObjectUpdater clearVersionState() {
+        inventoryUpdater.clearState();
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public OcflObjectUpdater addFileFixity(String logicalPath, DigestAlgorithm algorithm, String value) {
+        Enforce.notBlank(logicalPath, "logicalPath cannot be blank");
+        Enforce.notNull(algorithm, "algorithm cannot be null");
+        Enforce.notBlank(value, "value cannot be null");
+
+        var digest = inventoryUpdater.getFixityDigest(logicalPath, algorithm);
+        var alreadyExists = true;
+
+        if (digest == null) {
+            alreadyExists = false;
+
+            if (!stagedFileMap.containsKey(logicalPath)) {
+                throw new IllegalStateException(
+                        String.format("%s was not newly added in the current block. Fixity information can only be added on new files.", logicalPath));
+            }
+
+            if (!algorithm.hasJavaStandardName()) {
+                throw new IllegalArgumentException("The specified digest algorithm is not mapped to a Java name: " + algorithm);
+            }
+
+            var file = stagedFileMap.get(logicalPath);
+
+            LOG.debug("Computing {} hash of {}", algorithm.getJavaStandardName(), file);
+            digest = DigestUtil.computeDigest(algorithm, file);
+        }
+
+        if (!value.equalsIgnoreCase(digest)) {
+            throw new FixityCheckException(String.format("Expected %s digest of %s to be %s, but was %s.",
+                    algorithm.getJavaStandardName(), logicalPath, value, digest));
+        }
+
+        if (!alreadyExists) {
+            inventoryUpdater.addFixity(logicalPath, algorithm, digest);
+        }
+
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public OcflObjectUpdater clearFixityBlock() {
+        inventoryUpdater.clearFixity();
+        return this;
+    }
+
     private void removeUnneededStagedFiles(Set<InventoryUpdater.RemoveFileResult> removeFiles) {
         removeFiles.forEach(remove -> {
             var stagingPath = stagingFullPath(remove.getPathUnderContentDir());
@@ -253,6 +301,13 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
     private Path stagingFullPath(String pathUnderContentDir) {
         return Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), pathUnderContentDir));
+    }
+
+    private String destinationPath(String path, Path sourcePath) {
+        if (path.isBlank() && Files.isRegularFile(sourcePath)) {
+            return sourcePath.getFileName().toString();
+        }
+        return path;
     }
 
     private DigestInputStream wrapInDigestInputStream(InputStream input) {

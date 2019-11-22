@@ -62,14 +62,10 @@ public class ResponseMapper {
                         .setPath(path)
                         .setStorageRelativePath(
                                 FileUtil.pathJoinFailEmpty(objectRootPath, contentPath))
-                        .addDigest(digestAlgorithm.getOcflName(), digest);
+                        .addDigest(digestAlgorithm, digest);
 
                 var digests = inventory.getFixityForContentPath(contentPath);
-
-                digests.forEach((algorithm, value) -> {
-                    details.addDigest(algorithm.getOcflName(), value);
-                });
-
+                digests.forEach(details::addDigest);
                 fileDetailsMap.put(path, details);
             });
         });

@@ -12,7 +12,7 @@ public class FileDetails {
 
     private String path;
     private String storageRelativePath;
-    private Map<String, String> fixity;
+    private Map<DigestAlgorithm, String> fixity;
 
     public FileDetails() {
         this.fixity = new HashMap<>();
@@ -51,17 +51,17 @@ public class FileDetails {
      *
      * @return digest map
      */
-    public Map<String, String> getFixity() {
+    public Map<DigestAlgorithm, String> getFixity() {
         return fixity;
     }
 
-    public FileDetails setFixity(Map<String, String> fixity) {
+    public FileDetails setFixity(Map<DigestAlgorithm, String> fixity) {
         this.fixity = fixity;
         return this;
     }
 
-    public FileDetails addDigest(String algorithm, String value) {
-        Enforce.notBlank(algorithm, "algorithm cannot be null");
+    public FileDetails addDigest(DigestAlgorithm algorithm, String value) {
+        Enforce.notNull(algorithm, "algorithm cannot be null");
         Enforce.notBlank(value, "value cannot be null");
         this.fixity.put(algorithm, value);
         return this;

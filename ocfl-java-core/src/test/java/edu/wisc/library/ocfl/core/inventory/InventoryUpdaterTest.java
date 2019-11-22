@@ -3,21 +3,19 @@ package edu.wisc.library.ocfl.core.inventory;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflConfig;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.test.OcflAsserts;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class InventoryUpdaterTest {
@@ -237,8 +235,60 @@ public class InventoryUpdaterTest {
         });
     }
 
-    private <T extends Throwable> void assertThrowsWithMessage(Class<T> exception, String message, Executable executable) {
-        assertThat(assertThrows(exception, () -> executable.execute()).getMessage(), Matchers.containsString(message));
+    @Test
+    public void shouldAddFixityWhenFileInVersionAndNotDefaultAlgorithm() {
+        var updater = builder.buildCopyState(inventory);
+
+        updater.addFixity("file1p", DigestAlgorithm.md5, "md5_1");
+
+        assertEquals("md5_1", updater.getFixityDigest("file1p", DigestAlgorithm.md5));
+    }
+
+    @Test
+    public void shouldReturnNothingWhenWrongAlgorithm() {
+        var updater = builder.buildCopyState(inventory);
+
+        updater.addFixity("file1p", DigestAlgorithm.md5, "md5_1");
+
+        assertNull(updater.getFixityDigest("file1p", DigestAlgorithm.sha1));
+    }
+
+    @Test
+    public void shouldNotAddFixityWhenDefaultAlgorithm() {
+        var updater = builder.buildCopyState(inventory);
+
+        updater.addFixity("file1p", DigestAlgorithm.sha512, "sha512_1");
+
+        assertEquals("file1", updater.getFixityDigest("file1p", DigestAlgorithm.sha512));
+    }
+
+    @Test
+    public void shouldNotAddFixityWhenFileNotInState() {
+        var updater = builder.buildCopyState(inventory);
+
+        updater.addFixity("file2p", DigestAlgorithm.md5, "md5_1");
+
+        assertNull(updater.getFixityDigest("file2p", DigestAlgorithm.md5));
+    }
+
+    @Test
+    public void shouldClearFixity() {
+        var updater = builder.buildCopyState(inventory);
+
+        updater.addFixity("file1p", DigestAlgorithm.md5, "md5_1");
+        updater.clearFixity();
+
+        assertNull(updater.getFixityDigest("file1p", DigestAlgorithm.md5));
+    }
+
+    @Test
+    public void shouldClearState() {
+        var updater = builder.buildCopyState(inventory);
+
+        updater.clearState();
+
+        var inventory = updater.buildNewInventory(OffsetDateTime.now(), null);
+        assertEquals(0, inventory.getHeadVersion().getState().size());
     }
 
     private void assertAddResult(String expectedLogical, InventoryUpdater.AddFileResult result) {

@@ -1,11 +1,9 @@
 package edu.wisc.library.ocfl.core;
 
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -17,13 +15,11 @@ public class OcflConfig {
     private InventoryType defaultInventoryType;
     private DigestAlgorithm defaultDigestAlgorithm;
     private String defaultContentDirectory;
-    private Set<DigestAlgorithm> fixityAlgorithms;
 
     public OcflConfig() {
         defaultInventoryType = OcflConstants.DEFAULT_INVENTORY_TYPE;
         defaultDigestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
         defaultContentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
-        fixityAlgorithms = new HashSet<>();
     }
 
     /**
@@ -74,22 +70,6 @@ public class OcflConfig {
 
     public String getDefaultContentDirectory() {
         return defaultContentDirectory;
-    }
-
-    /**
-     * Set the digest algorithms to use to commute additional fixity values for the fixity block. This should NOT be used
-     * unless you need the fixity block, and the OCFL client does not use this block for fixity checking. Default: none
-     *
-     * @param fixityAlgorithms fixity algorithms
-     * @return config
-     */
-    public OcflConfig setFixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
-        this.fixityAlgorithms = Enforce.notNull(fixityAlgorithms, "fixityAlgorithms cannot be null");
-        return this;
-    }
-
-    public Set<DigestAlgorithm> getFixityAlgorithms() {
-        return fixityAlgorithms;
     }
 
 }

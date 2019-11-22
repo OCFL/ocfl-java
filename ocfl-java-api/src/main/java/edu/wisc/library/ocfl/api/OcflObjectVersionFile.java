@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileDetails;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
@@ -42,7 +43,7 @@ public class OcflObjectVersionFile {
      *
      * @return digest map
      */
-    public Map<String, String> getFixity() {
+    public Map<DigestAlgorithm, String> getFixity() {
         return fileDetails.getFixity();
     }
 

@@ -3,10 +3,14 @@ package edu.wisc.library.ocfl.core.inventory;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
-import edu.wisc.library.ocfl.core.model.*;
+import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.model.InventoryBuilder;
+import edu.wisc.library.ocfl.core.model.Version;
+import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
@@ -111,13 +115,7 @@ public class InventoryUpdater {
             Enforce.notNull(inventory, "inventory cannot be null");
 
             var inventoryBuilder = Inventory.builder(inventory).mutableHead(true);
-            VersionBuilder versionBuilder;
-
-            if (inventory.getHeadVersion() != null) {
-                versionBuilder = Version.builder(inventory.getHeadVersion());
-            } else {
-                versionBuilder = Version.builder();
-            }
+            var versionBuilder = Version.builder(inventory.getHeadVersion());
 
             return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
                     contentPathMapperBuilder.buildMutableVersion(inventory));
@@ -183,15 +181,53 @@ public class InventoryUpdater {
     }
 
     /**
-     * Adds an entry to the fixity block.
+     * Adds an entry to the fixity block. An entry is not added if the algorithm is the same as the inventory's algorithm.
      *
-     * @param contentPath the file's content path
+     * @param logicalPath the file's logical path
      * @param algorithm algorithm used to calculate the digest
      * @param digest the digest value
      */
-    //TODO remove synchronized after DefaultOcflObjectUpdater refactor
-    public synchronized void addFixity(String contentPath, DigestAlgorithm algorithm, String digest) {
-        inventoryBuilder.addFixityForFile(contentPath, algorithm, digest);
+    public void addFixity(String logicalPath, DigestAlgorithm algorithm, String digest) {
+        if (algorithm.equals(inventory.getDigestAlgorithm())) {
+            return;
+        }
+
+        var fileId = versionBuilder.getFileId(logicalPath);
+
+        if (fileId != null) {
+            inventoryBuilder.getContentPaths(fileId).forEach(contentPath -> {
+                inventoryBuilder.addFixityForFile(contentPath, algorithm, digest);
+            });
+        }
+    }
+
+    /**
+     * Gets the fixity digest for the specified file or null.
+     *
+     * @param logicalPath the logical path to the file
+     * @param algorithm the digest algorithm
+     * @return the digest or null
+     */
+    public String getFixityDigest(String logicalPath, DigestAlgorithm algorithm) {
+        if (inventory.getDigestAlgorithm().equals(algorithm)) {
+            return versionBuilder.getFileId(logicalPath);
+        }
+
+        String digest = null;
+        var fileId = versionBuilder.getFileId(logicalPath);
+
+        if (fileId != null) {
+            digest = inventoryBuilder.getFileFixity(fileId, algorithm);
+        }
+
+        return digest;
+    }
+
+    /**
+     * Removes all entries from the fixity block.
+     */
+    public void clearFixity() {
+        inventoryBuilder.clearFixity();
     }
 
     /**
@@ -266,6 +302,14 @@ public class InventoryUpdater {
         versionBuilder.addFile(srcDigest, dstLogicalPath);
 
         return removeFileFromManifestWithResults(dstFileId);
+    }
+
+    /**
+     * Removes all of the files from the version's state.
+     */
+    public void clearState() {
+        var state = new HashSet<>(versionBuilder.getInvertedState().keySet());
+        state.forEach(this::removeFile);
     }
 
     private String getDigestFromVersion(VersionId versionId, String logicalPath) {

@@ -48,6 +48,7 @@ public class InventoryMapper {
         return new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .disable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS)
                 .configure(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, false)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL);
     }

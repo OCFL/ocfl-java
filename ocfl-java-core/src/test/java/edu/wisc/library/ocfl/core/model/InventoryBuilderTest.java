@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.model;
 
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -173,6 +174,22 @@ public class InventoryBuilderTest {
         assertEquals(VersionId.fromString("v3"), inventory.getHead());
         assertEquals(RevisionId.fromString("r4"), inventory.getRevisionId());
         assertSame(version, inventory.getHeadVersion());
+    }
+
+    @Test
+    public void shouldClearFixity() {
+        builder.addFileToManifest("1", "path")
+                .addFileToManifest("2", "path2")
+                .addFixityForFile("path", DigestAlgorithm.md5, "md5_1")
+                .addFixityForFile("path2", DigestAlgorithm.md5, "md5_2");
+
+        assertEquals("md5_1", builder.getFileFixity("1", DigestAlgorithm.md5));
+        assertEquals("md5_2", builder.getFileFixity("2", DigestAlgorithm.md5));
+
+        builder.clearFixity();
+
+        assertNull(builder.getFileFixity("1", DigestAlgorithm.md5));
+        assertNull(builder.getFileFixity("2", DigestAlgorithm.md5));
     }
 
     private void assertFixity(Inventory inventory, String contentPath, Map<DigestAlgorithm, String> expected) {

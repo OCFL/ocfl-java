@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core.matcher;
 
 import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.itest.ITestHelper;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
@@ -14,9 +15,9 @@ public class OcflObjectVersionFileMatcher extends TypeSafeMatcher<OcflObjectVers
     private String filePath;
     private String storagePath;
     private String content;
-    private Map<String, String> fixity;
+    private Map<DigestAlgorithm, String> fixity;
 
-    OcflObjectVersionFileMatcher(String filePath, String storagePath, String content, Map<String, String> fixity) {
+    OcflObjectVersionFileMatcher(String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
         this.filePath = filePath;
         this.storagePath = storagePath;
         this.content = content;

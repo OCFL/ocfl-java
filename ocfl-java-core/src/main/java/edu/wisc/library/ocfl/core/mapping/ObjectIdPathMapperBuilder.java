@@ -4,7 +4,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 
 import java.time.Duration;
 

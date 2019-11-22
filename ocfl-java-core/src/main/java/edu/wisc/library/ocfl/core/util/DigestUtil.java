@@ -1,7 +1,7 @@
 package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 

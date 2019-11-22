@@ -4,7 +4,7 @@ import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 
 import java.io.IOException;
 import java.nio.file.Files;

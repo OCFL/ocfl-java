@@ -23,8 +23,8 @@ public class VersionId implements Comparable<VersionId> {
      * Creates a new VersionId from a version string in the format of "vN" where "N" is an integer greater than 0.
      * Zero-padded values are supported.
      *
-     * @param value
-     * @return
+     * @param value version string
+     * @return version id
      */
     @JsonCreator
     public static VersionId fromString(String value) {

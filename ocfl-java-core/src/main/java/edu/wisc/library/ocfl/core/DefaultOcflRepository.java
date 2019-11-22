@@ -13,7 +13,6 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.inventory.MutableHeadInventoryCommitter;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
@@ -111,8 +110,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         objectUpdaterBuilder = DefaultOcflObjectUpdater.builder()
                 .parallelProcess(parallelProcess)
-                .copyParallelProcess(copyParallelProcess)
-                .fixityAlgorithms(config.getFixityAlgorithms());
+                .copyParallelProcess(copyParallelProcess);
     }
 
     /**
@@ -446,18 +444,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
                 newFiles.put(file, result);
             }
         }
-
-        parallelProcess.map(newFiles, (file, result) -> {
-            for (var fixityAlgorithm : config.getFixityAlgorithms()) {
-                if (!digestAlgorithm.equals(fixityAlgorithm)) {
-                    if (fixityAlgorithm.hasJavaStandardName()) {
-                        LOG.debug("Computing {} hash of {}", fixityAlgorithm.getJavaStandardName(), file);
-                        var digest = DigestUtil.computeDigest(fixityAlgorithm, file);
-                        inventoryUpdater.addFixity(result.getContentPath(), fixityAlgorithm, digest);
-                    }
-                }
-            }
-        });
 
         copyParallelProcess.map(newFiles, (file, result) -> {
             if (options.contains(OcflOption.MOVE_SOURCE)) {

@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.matcher;
 
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.User;
 
 import java.util.Map;
@@ -18,7 +19,7 @@ public class OcflMatchers {
         return new CommitInfoMatcher(user.getName(), user.getAddress(), message);
     }
 
-    public static FileDetailsMatcher fileDetails(String filePath, String storagePath, Map<String, String> fixity) {
+    public static FileDetailsMatcher fileDetails(String filePath, String storagePath, Map<DigestAlgorithm, String> fixity) {
         return new FileDetailsMatcher(filePath, storagePath, fixity);
     }
 
@@ -26,7 +27,7 @@ public class OcflMatchers {
         return new VersionDetailsMatcher(objectId, versionId, commitInfoMatcher, fileDetailsMatchers);
     }
 
-    public static OcflObjectVersionFileMatcher versionFile(String filePath, String storagePath, String content, Map<String, String> fixity) {
+    public static OcflObjectVersionFileMatcher versionFile(String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
         return new OcflObjectVersionFileMatcher(filePath, storagePath, content, fixity);
     }
 

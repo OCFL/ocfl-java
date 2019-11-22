@@ -30,7 +30,7 @@ public interface OcflRepository {
      * <p>If the current HEAD version of the object does not match the version specified in the request, the update will
      * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
      *
-     * <p>By default, files are copied into the OCFL repository. If {@code OcflOption.MOVE_SOURCE} is specified, then
+     * <p>By default, files are copied into the OCFL repository. If {@link OcflOption#MOVE_SOURCE} is specified, then
      * files will be moved instead. Warning: If an exception occurs and the new version is not created, the files that were
      * will be lost. This operation is more efficient but less safe than the default copy.
      *
@@ -38,7 +38,7 @@ public interface OcflRepository {
      *                 if this version matches the head object version in the repository.
      * @param path the path to the object content
      * @param commitInfo information about the changes to the object. Can be null.
-     * @param ocflOptions optional config options. Use {@code OcflOption.MOVE_SOURCE} to move files into the repo instead of copying.
+     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      * @return The objectVersionId and version of the new object version
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */

@@ -2,10 +2,14 @@ package edu.wisc.library.ocfl.core.storage;
 
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
-import edu.wisc.library.ocfl.core.model.*;
+import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.model.InventoryBuilder;
+import edu.wisc.library.ocfl.core.model.Version;
+import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

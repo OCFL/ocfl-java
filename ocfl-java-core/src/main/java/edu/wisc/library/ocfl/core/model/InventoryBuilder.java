@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.model;
 
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
@@ -193,6 +194,16 @@ public class InventoryBuilder {
         return this;
     }
 
+    /**
+     * Removes all of the entries from the fixity block.
+     *
+     * @return builder
+     */
+    public InventoryBuilder clearFixity() {
+        fixity.clear();
+        return this;
+    }
+
     public InventoryBuilder id(String id) {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         return this;
@@ -310,6 +321,29 @@ public class InventoryBuilder {
 
     public boolean hasMutableHead() {
         return mutableHead;
+    }
+
+    /**
+     * Returns the fixity digest for a file or null
+     *
+     * @param fileId the fileId
+     * @param algorithm the digest algorithm
+     * @return digest or null
+     */
+    public String getFileFixity(String fileId, DigestAlgorithm algorithm) {
+        var contentPaths = manifest.getPaths(fileId);
+
+        for (var contentPath : contentPaths) {
+            var fixityMap = fixity.get(algorithm);
+            if (fixityMap != null) {
+                var digest = fixityMap.getFileId(contentPath);
+                if (digest != null) {
+                    return digest;
+                }
+            }
+        }
+
+        return null;
     }
 
     private Map<DigestAlgorithm, Map<String, Set<String>>> fixityFromBiMap() {

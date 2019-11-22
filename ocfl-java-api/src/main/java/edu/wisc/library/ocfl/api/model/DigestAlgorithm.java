@@ -1,9 +1,9 @@
-package edu.wisc.library.ocfl.core.model;
+package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.DigestAlgorithmRegistry;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -11,7 +11,8 @@ import java.util.Objects;
 
 /**
  * Maps OCFL defined digest algorithms to their Java names. Java does not include built-in implementations for all of the
- * algorithms, using a 3rd party provider, such as BouncyCastle, is necessary for some, such as blake2b.
+ * algorithms, using a 3rd party provider, such as BouncyCastle, is necessary for some, such as blake2b. New algorithms
+ * should be registered in the {@link DigestAlgorithmRegistry}.
  */
 public class DigestAlgorithm {
 
@@ -35,22 +36,42 @@ public class DigestAlgorithm {
     private final String ocflName;
     private final String javaStandardName;
 
-    public DigestAlgorithm(String ocflName) {
-        this(ocflName, null);
-    }
-
-    public DigestAlgorithm(String ocflName, String javaStandardName) {
-        this.ocflName = Enforce.notBlank(ocflName, "ocflName cannot be blank").toLowerCase();
-        this.javaStandardName = javaStandardName;
-    }
-
+    /**
+     * Creates a DigestAlgorithm for the given OCFL name. If the name is not mapped in the {@link DigestAlgorithmRegistry}
+     * then a new object is created, but not automatically added to the registry. Newly created DigestAlgorithms are not
+     * automatically mapped to Java names.
+     *
+     * @param ocflName ocfl name of algorithm
+     * @return digest algorithm
+     */
     @JsonCreator
     public static DigestAlgorithm fromOcflName(String ocflName) {
         var algorithm = DigestAlgorithmRegistry.getAlgorithm(ocflName);
         if (algorithm == null) {
-            algorithm = new DigestAlgorithm(ocflName);
+            algorithm = new DigestAlgorithm(ocflName, null);
         }
         return algorithm;
+    }
+
+    /**
+     * Creates a DigestAlgorithm for the given OCFL name. If the name is not mapped in the {@link DigestAlgorithmRegistry}
+     * then a new object is created, but not automatically added to the registry.
+     *
+     * @param ocflName ocfl name of algorithm
+     * @param javaStandardName the name of the algorithm in Java
+     * @return digest algorithm
+     */
+    public static DigestAlgorithm fromOcflName(String ocflName, String javaStandardName) {
+        var algorithm = DigestAlgorithmRegistry.getAlgorithm(ocflName);
+        if (algorithm == null) {
+            algorithm = new DigestAlgorithm(ocflName, javaStandardName);
+        }
+        return algorithm;
+    }
+
+    private DigestAlgorithm(String ocflName, String javaStandardName) {
+        this.ocflName = Enforce.notBlank(ocflName, "ocflName cannot be blank").toLowerCase();
+        this.javaStandardName = javaStandardName;
     }
 
     /**

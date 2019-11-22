@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.matcher;
 
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileDetails;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
@@ -11,9 +12,9 @@ public class FileDetailsMatcher extends TypeSafeMatcher<FileDetails> {
 
     private String filePath;
     private String storagePath;
-    private Map<String, String> fixity;
+    private Map<DigestAlgorithm, String> fixity;
 
-    FileDetailsMatcher(String filePath, String storagePath, Map<String, String> fixity) {
+    FileDetailsMatcher(String filePath, String storagePath, Map<DigestAlgorithm, String> fixity) {
         this.filePath = filePath;
         this.storagePath = storagePath;
         this.fixity = fixity;

@@ -1,7 +1,7 @@
-package edu.wisc.library.ocfl.core;
+package edu.wisc.library.ocfl.api;
 
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -6,13 +6,14 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.*;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
+import edu.wisc.library.ocfl.core.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -27,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
-import java.util.Set;
 
 import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.commitInfo;
@@ -230,18 +230,26 @@ public class FileSystemOcflITest {
     public void describeObject() {
         var repoName = "repo5";
         var repoDir = newRepoDir(repoName);
-        var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper())
-                .fixityAlgorithms(Set.of(DigestAlgorithm.md5, new DigestAlgorithm("bogus")))
-                .build(new FileSystemOcflStorageBuilder()
-                        .objectMapper(ITestHelper.prettyPrintMapper())
-                        .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()), workDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+        var repo = defaultRepo(repoDir);
 
         var objectId = "o1";
 
-        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo.setMessage("1"));
-        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v2"), defaultCommitInfo.setMessage("2"));
-        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v3"), defaultCommitInfo.setMessage("3"));
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            updater.addPath(sourceObjectPath(objectId, "v1"))
+                    .addFileFixity("file1", DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456")
+                    .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.clearVersionState().addPath(sourceObjectPath(objectId, "v2"))
+                    .addFileFixity("file1", DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669")
+                    .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad")
+                    .addFileFixity("dir1/file3", DigestAlgorithm.md5, "72b6193fe19ec99c692eba5c798e6bdf");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.clearVersionState().addPath(sourceObjectPath(objectId, "v3"))
+                    .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad")
+                    .addFileFixity("file4", DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669");
+        });
 
         var objectDetails = repo.describeObject(objectId);
 
@@ -252,37 +260,149 @@ public class FileSystemOcflITest {
         assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
                 commitInfo(defaultCommitInfo.getUser(), "1"),
                 fileDetails("file1", "o1/v1/content/file1", Map.of(
-                        "sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
-                        "md5", "95efdf0764d92207b4698025f2518456")),
+                        DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
+                        DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456")),
                 fileDetails("file2", "o1/v1/content/file2", Map.of(
-                        "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
-                        "md5", "55c1824fcae2b1b51cef5037405fc1ad"))
+                        DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
+                        DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad"))
         ));
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v2")), versionDetails(objectId, "v2",
                 commitInfo(defaultCommitInfo.getUser(), "2"),
                 fileDetails("file1", "o1/v2/content/file1", Map.of(
-                        "sha512", "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
-                        "md5", "a0a8bfbf51b81caf7aa5be00f5e26669")),
+                        DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
+                        DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669")),
                 fileDetails("file2", "o1/v1/content/file2", Map.of(
-                        "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
-                        "md5", "55c1824fcae2b1b51cef5037405fc1ad")),
+                        DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
+                        DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad")),
                 fileDetails("dir1/file3", "o1/v2/content/dir1/file3", Map.of(
-                        "sha512", "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2",
-                        "md5", "72b6193fe19ec99c692eba5c798e6bdf"))
+                        DigestAlgorithm.sha512, "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2",
+                        DigestAlgorithm.md5, "72b6193fe19ec99c692eba5c798e6bdf"))
         ));
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v3")), versionDetails(objectId, "v3",
                 commitInfo(defaultCommitInfo.getUser(), "3"),
                 fileDetails("file2", "o1/v1/content/file2", Map.of(
-                        "sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
-                        "md5", "55c1824fcae2b1b51cef5037405fc1ad")),
+                        DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
+                        DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad")),
                 fileDetails("file4", "o1/v2/content/file1", Map.of(
-                        "sha512", "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
-                        "md5", "a0a8bfbf51b81caf7aa5be00f5e26669"))
+                        DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
+                        DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669"))
         ));
 
         assertSame(objectDetails.getHeadVersion(), objectDetails.getVersion(VersionId.fromString("v3")));
+    }
+
+    @Test
+    public void shouldNotAddAdditionalFixityWhenDefaultAlgorithmSpecified() {
+        var repoName = "repo5";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            updater.addPath(sourceObjectPath(objectId, "v1"))
+                    .addFileFixity("file1", DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e")
+                    .addFileFixity("file2", DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.clearVersionState().addPath(sourceObjectPath(objectId, "v2"))
+                    .addFileFixity("file1", DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc")
+                    .addFileFixity("file2", DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")
+                    .addFileFixity("dir1/file3", DigestAlgorithm.sha512, "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.clearVersionState().addPath(sourceObjectPath(objectId, "v3"))
+                    .addFileFixity("file2", DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")
+                    .addFileFixity("file4", DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc");
+        });
+
+        var objectDetails = repo.describeObject(objectId);
+
+        assertEquals(objectId, objectDetails.getId());
+        assertEquals(VersionId.fromString("v3"), objectDetails.getHeadVersionId());
+        assertEquals(3, objectDetails.getVersionMap().size());
+
+        assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
+                commitInfo(defaultCommitInfo.getUser(), "1"),
+                fileDetails("file1", "o1/v1/content/file1", Map.of(
+                        DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e")),
+                fileDetails("file2", "o1/v1/content/file2", Map.of(
+                        DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6"))
+        ));
+
+        assertThat(objectDetails.getVersion(VersionId.fromString("v2")), versionDetails(objectId, "v2",
+                commitInfo(defaultCommitInfo.getUser(), "2"),
+                fileDetails("file1", "o1/v2/content/file1", Map.of(
+                        DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc")),
+                fileDetails("file2", "o1/v1/content/file2", Map.of(
+                        DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                fileDetails("dir1/file3", "o1/v2/content/dir1/file3", Map.of(
+                        DigestAlgorithm.sha512, "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2"))
+        ));
+
+        assertThat(objectDetails.getVersion(VersionId.fromString("v3")), versionDetails(objectId, "v3",
+                commitInfo(defaultCommitInfo.getUser(), "3"),
+                fileDetails("file2", "o1/v1/content/file2", Map.of(
+                        DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                fileDetails("file4", "o1/v2/content/file1", Map.of(
+                        DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc"))
+        ));
+
+        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersion(VersionId.fromString("v3")));
+    }
+
+    @Test
+    public void shouldFailWhenFixityDoesNotMatch() {
+        var repoName = "repo5";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        OcflAsserts.assertThrowsWithMessage(FixityCheckException.class, "Expected md5 digest of", () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+                updater.addPath(sourceObjectPath(objectId, "v1"))
+                        .addFileFixity("file1", DigestAlgorithm.md5, "bogus");
+            });
+        });
+    }
+
+    @Test
+    public void shouldFailFixityWhenUnknownAlgorithm() {
+        var repoName = "repo5";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "specified digest algorithm is not mapped to a Java name", () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+                updater.addPath(sourceObjectPath(objectId, "v1"))
+                        .addFileFixity("file1", DigestAlgorithm.fromOcflName("bogus"), "bogus");
+            });
+        });
+    }
+
+    @Test
+    public void shouldFailFixityWhenFileNotAddedInBlockAndDoesNotHaveExistingFixity() {
+        var repoName = "repo5";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            updater.addPath(sourceObjectPath(objectId, "v1"));
+        });
+
+        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "not newly added in the current block", () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+                updater.clearVersionState().addPath(sourceObjectPath(objectId, "v2"))
+                        .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad");
+            });
+        });
     }
 
     @Test
@@ -299,10 +419,10 @@ public class FileSystemOcflITest {
                 commitInfo(defaultCommitInfo.getUser(), "3"),
                 versionFile("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
                         "Test file 2",
-                        Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                        Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
                 versionFile("dir1/file3", "o2/v3/content/dir1/file3",
                         "This is a different file 3",
-                        Map.of("sha512", "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"))
+                        Map.of(DigestAlgorithm.sha512, "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"))
                 ));
 
         ocflObject = repo.getObject(ObjectVersionId.version(objectId, "v1"));
@@ -311,10 +431,10 @@ public class FileSystemOcflITest {
                 commitInfo(defaultCommitInfo.getUser(), "commit message"),
                 versionFile("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
                         "Test file 2",
-                        Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                        Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
                 versionFile("file1", "o2/v1/content/file1",
                         "Test file 1",
-                        Map.of("sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e"))
+                        Map.of(DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e"))
                 ));
     }
 
@@ -328,48 +448,27 @@ public class FileSystemOcflITest {
 
         var objectVersion = repo.getObject(ObjectVersionId.head(objectId));
 
-        // TODO refactor if we decide to go with this API
-        assertEquals(objectId, objectVersion.getObjectId());
-        assertEquals(VersionId.fromString("v3"), objectVersion.getVersionId());
-        assertEquals(ObjectVersionId.version(objectId, "v3"), objectVersion.getObjectVersionId());
-        assertThat(objectVersion.getCommitInfo(), commitInfo(defaultCommitInfo.getUser(), "3"));
-        assertEquals(2, objectVersion.getFiles().size());
-
-        var file = objectVersion.getFile("dir1/dir2/file2");
-        assertEquals("dir1/dir2/file2", file.getPath());
-        assertEquals("o2/v1/content/dir1/dir2/file2", file.getStorageRelativePath());
-        assertEquals(Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6"),
-                file.getFixity());
-        assertEquals("Test file 2", ITestHelper.inputToString(file.getStream()));
-
-        file = objectVersion.getFile("dir1/file3");
-        assertEquals("dir1/file3", file.getPath());
-        assertEquals("o2/v3/content/dir1/file3", file.getStorageRelativePath());
-        assertEquals(Map.of("sha512", "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"),
-                file.getFixity());
-        assertEquals("This is a different file 3", ITestHelper.inputToString(file.getStream()));
+        assertThat(objectVersion, objectVersion(objectId, "v3",
+                commitInfo(defaultCommitInfo.getUser(), "3"),
+                versionFile("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
+                        "Test file 2",
+                        Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                versionFile("dir1/file3", "o2/v3/content/dir1/file3",
+                        "This is a different file 3",
+                        Map.of(DigestAlgorithm.sha512, "6e027f3dc89e0bfd97e4c2ec6919a8fb793bdc7b5c513bea618f174beec32a66d2fc0ce19439751e2f01ae49f78c56dcfc7b49c167a751c823d09da8419a4331"))
+        ));
 
         objectVersion = repo.getObject(ObjectVersionId.version(objectId, "v1"));
 
-        assertEquals(objectId, objectVersion.getObjectId());
-        assertEquals(VersionId.fromString("v1"), objectVersion.getVersionId());
-        assertEquals(ObjectVersionId.version(objectId, "v1"), objectVersion.getObjectVersionId());
-        assertThat(objectVersion.getCommitInfo(), commitInfo(defaultCommitInfo.getUser(), defaultCommitInfo.getMessage()));
-        assertEquals(2, objectVersion.getFiles().size());
-
-        file = objectVersion.getFile("dir1/dir2/file2");
-        assertEquals("dir1/dir2/file2", file.getPath());
-        assertEquals("o2/v1/content/dir1/dir2/file2", file.getStorageRelativePath());
-        assertEquals(Map.of("sha512", "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6"),
-                file.getFixity());
-        assertEquals("Test file 2", ITestHelper.inputToString(file.getStream()));
-
-        file = objectVersion.getFile("file1");
-        assertEquals("file1", file.getPath());
-        assertEquals("o2/v1/content/file1", file.getStorageRelativePath());
-        assertEquals(Map.of("sha512", "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e"),
-                file.getFixity());
-        assertEquals("Test file 1", ITestHelper.inputToString(file.getStream()));
+        assertThat(objectVersion, objectVersion(objectId, "v1",
+                commitInfo(defaultCommitInfo.getUser(), defaultCommitInfo.getMessage()),
+                versionFile("dir1/dir2/file2", "o2/v1/content/dir1/dir2/file2",
+                        "Test file 2",
+                        Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
+                versionFile("file1", "o2/v1/content/file1",
+                        "Test file 1",
+                        Map.of(DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e"))
+        ));
     }
 
     @Test
@@ -916,7 +1015,7 @@ public class FileSystemOcflITest {
     }
 
     @Test
-    public void failWhenAddingAFilePathWithNoDestination() {
+    public void shouldAddFileWithFileNameWhenNoDestinationGiven() {
         var repoName = "repo13";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
@@ -925,11 +1024,14 @@ public class FileSystemOcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
-                updater.addPath(sourcePathV1.resolve("file1"), "");
-            });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+            updater.addPath(sourcePathV1.resolve("file1"));
         });
+
+        var files = repo.describeVersion(ObjectVersionId.head(objectId)).getFiles();
+
+        assertEquals(1, files.size());
+        assertEquals("file1", files.iterator().next().getPath());
     }
 
     @Test

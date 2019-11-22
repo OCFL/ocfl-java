@@ -19,7 +19,7 @@ public interface MutableOcflRepository extends OcflRepository {
      * Stages changes to the mutable HEAD of the specified object. If the object does not already have a mutable HEAD,
      * a new one is created. Otherwise, the changes are applied on top of the existing mutable HEAD, without creating a new version.
      *
-     * <p>The changes contained in the mutable HEAD are NOT part of the core OCFL object. Use {@code commitStagedChanges()}
+     * <p>The changes contained in the mutable HEAD are NOT part of the core OCFL object. Use {@link #commitStagedChanges}
      * to convert the mutable version into an immutable version that's part of the core OCFL object. This should be done
      * whenever possible.
      *
@@ -40,7 +40,7 @@ public interface MutableOcflRepository extends OcflRepository {
      * Converts the staged changes in the mutable HEAD into an immutable core OCFL version that can be read by any OCFL client.
      *
      * <p>This operation will fail if any object versions were created between the time changes were staged and
-     * when they were committed. To resolve this problem, the staged changes must either be purged using {@code purgeStagedChanges()},
+     * when they were committed. To resolve this problem, the staged changes must either be purged using {@link #purgeStagedChanges},
      * or the object must be manually edited to resolve the version conflict.
      *
      * <p>If the object does not have staged changes, then nothing happens.

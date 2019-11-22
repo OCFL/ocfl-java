@@ -149,4 +149,13 @@ public class VersionBuilder {
         return state.removeFileId(fileId);
     }
 
+    /**
+     * Returns a map of logical paths to file ids of all of the files in the version's state
+     *
+     * @return map of logical paths to file ids
+     */
+    public Map<String, String> getInvertedState() {
+        return state.getPathToFileId();
+    }
+
 }

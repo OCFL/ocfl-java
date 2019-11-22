@@ -3,13 +3,13 @@ package edu.wisc.library.ocfl.core;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
@@ -21,7 +21,6 @@ import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -212,22 +211,6 @@ public class OcflRepositoryBuilder {
     public OcflRepositoryBuilder contentDirectory(String contentDirectory) {
         Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
         config.setDefaultContentDirectory(contentDirectory);
-        return this;
-    }
-
-    /**
-     * Used to specify the digest algorithms to use to compute additional fixity information. Default: none.
-     *
-     * <p>Adding fixity algorithms increases the latency of repository operations without providing any additional security.
-     *
-     * @see #ocflConfig
-     *
-     * @param fixityAlgorithms fixity algorithms
-     * @return builder
-     */
-    @Deprecated
-    public OcflRepositoryBuilder fixityAlgorithms(Set<DigestAlgorithm> fixityAlgorithms) {
-        config.setFixityAlgorithms(fixityAlgorithms);
         return this;
     }
 

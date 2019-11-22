@@ -1,6 +1,6 @@
 package edu.wisc.library.ocfl.core;
 
-import edu.wisc.library.ocfl.core.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.model.InventoryType;
 
 import java.util.Set;
