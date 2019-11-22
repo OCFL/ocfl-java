@@ -14,7 +14,11 @@ import java.time.OffsetDateTime;
  * Converts a mutable HEAD version into a regular OCFL version. This involves rewriting the manifest and fixity fields
  * so that they no longer reference files within the extensions directory.
  */
-public class MutableHeadInventoryCommitter {
+public final class MutableHeadInventoryCommitter {
+
+    private MutableHeadInventoryCommitter() {
+
+    }
 
     /**
      * Converts a mutable HEAD version into a regular OCFL version. This involves rewriting the manifest and fixity fields
@@ -25,7 +29,7 @@ public class MutableHeadInventoryCommitter {
      * @param commitInfo information about the version. Can be null.
      * @return A new inventory with the mutable HEAD version rewritten.
      */
-    public Inventory commit(Inventory original, OffsetDateTime createdTimestamp, CommitInfo commitInfo) {
+    public static Inventory commit(Inventory original, OffsetDateTime createdTimestamp, CommitInfo commitInfo) {
         Enforce.notNull(original, "inventory cannot be null");
         Enforce.notNull(createdTimestamp, "createdTimestamp cannot be null");
 
@@ -55,12 +59,12 @@ public class MutableHeadInventoryCommitter {
             }
         });
 
-        return inventoryBuilder
+        return InventoryValidator.validate(inventoryBuilder
                 .putVersion(original.getHead(), versionBuilder.build())
-                .build();
+                .build());
     }
 
-    private String rewritePath(String path, String version) {
+    private static String rewritePath(String path, String version) {
         return path.replace(OcflConstants.MUTABLE_HEAD_VERSION_PATH, version);
     }
 

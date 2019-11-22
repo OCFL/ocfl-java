@@ -138,9 +138,7 @@ public class Inventory {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        Enforce.expressionTrue(OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm), digestAlgorithm,
-                "digestAlgorithm must be sha512 or sha256");
-        this.head = VersionId.fromString("v0");
+        this.head = new VersionId(0);
         this.contentDirectory = contentDirectory;
         this.fixityBiMap = Collections.emptyMap();
         this.manifestBiMap = new PathBiMap();

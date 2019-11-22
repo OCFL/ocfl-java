@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -101,12 +100,12 @@ public class VersionId implements Comparable<VersionId> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         VersionId versionId = (VersionId) o;
-        return Objects.equals(stringValue, versionId.stringValue);
+        return versionNumber == versionId.versionNumber;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(stringValue);
+        return Long.hashCode(versionNumber);
     }
 
     @JsonValue

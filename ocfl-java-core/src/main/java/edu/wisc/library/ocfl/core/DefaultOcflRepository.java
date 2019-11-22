@@ -11,6 +11,7 @@ import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
+import edu.wisc.library.ocfl.core.inventory.InventoryValidator;
 import edu.wisc.library.ocfl.core.inventory.MutableHeadInventoryCommitter;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -327,7 +328,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         var inventory = requireInventory(ObjectVersionId.head(objectId));
 
         if (inventory.hasMutableHead()) {
-            var newInventory = new MutableHeadInventoryCommitter().commit(inventory, now(), commitInfo);
+            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(), commitInfo);
             var stagingDir = FileUtil.createTempDir(workDir, objectId);
             writeInventory(newInventory, stagingDir);
 
@@ -460,9 +461,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     }
 
     private Inventory buildNewInventory(InventoryUpdater inventoryUpdater, CommitInfo commitInfo) {
-        // TODO validate
-        // TODO must validate version greater than v0!
-        return inventoryUpdater.buildNewInventory(now(), commitInfo);
+        return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(), commitInfo));
     }
 
     private Path createLogicalPath(Path sourcePath, Path file) {

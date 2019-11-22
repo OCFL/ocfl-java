@@ -8,7 +8,6 @@ import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.model.Version;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
@@ -16,13 +15,6 @@ import java.time.OffsetDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MutableHeadInventoryCommitterTest {
-
-    private MutableHeadInventoryCommitter committer;
-
-    @BeforeEach
-    public void setup() {
-        committer = new MutableHeadInventoryCommitter();
-    }
 
     @Test
     public void shouldRewriteInventoryWhenHasMutableContents() {
@@ -63,7 +55,7 @@ public class MutableHeadInventoryCommitterTest {
                 .build();
 
 
-        var newInventory = committer.commit(original, now, new CommitInfo().setMessage("commit"));
+        var newInventory = MutableHeadInventoryCommitter.commit(original, now, new CommitInfo().setMessage("commit"));
 
         assertEquals(VersionId.fromString("v3"), newInventory.getHead());
         assertNull(newInventory.getRevisionId(), "revisionId");
