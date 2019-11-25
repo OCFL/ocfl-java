@@ -472,7 +472,7 @@ public class FileSystemOcflITest {
     }
 
     @Test
-    public void putObjectWithNoFiles() throws IOException {
+    public void rejectObjectWithNoFiles() throws IOException {
         var repoName = "repo6";
         var repoDir = newRepoDir(repoName);
         var repo = defaultRepo(repoDir);
@@ -481,18 +481,9 @@ public class FileSystemOcflITest {
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
 
-        repo.putObject(ObjectVersionId.head(objectId), empty, defaultCommitInfo);
-
-        var details = repo.describeObject(objectId);
-
-        assertEquals(1, details.getVersionMap().size());
-        assertEquals(0, details.getHeadVersion().getFiles().size());
-
-        var outputPath = outputPath(repoName, objectId);
-
-        repo.getObject(ObjectVersionId.head(objectId), outputPath);
-
-        assertEquals(0, outputPath.toFile().list().length);
+        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "No files were found", () -> {
+            repo.putObject(ObjectVersionId.head(objectId), empty, defaultCommitInfo);
+        });
     }
 
     @Test

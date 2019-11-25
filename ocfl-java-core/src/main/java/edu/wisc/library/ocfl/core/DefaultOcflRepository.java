@@ -9,10 +9,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
-import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
-import edu.wisc.library.ocfl.core.inventory.InventoryValidator;
-import edu.wisc.library.ocfl.core.inventory.MutableHeadInventoryCommitter;
+import edu.wisc.library.ocfl.core.inventory.*;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
@@ -33,7 +30,6 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -55,7 +51,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     private Cache<String, Inventory> inventoryCache;
     private ResponseMapper responseMapper;
     private InventoryUpdater.Builder inventoryUpdaterBuilder;
-    private DefaultOcflObjectUpdater.Builder objectUpdaterBuilder;
+    private AddFileProcessor.Builder addFileProcessorBuilder;
 
     private OcflConfig config;
 
@@ -109,7 +105,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(digestThreadPoolSize)));
         copyParallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(copyThreadPoolSize)));
 
-        objectUpdaterBuilder = DefaultOcflObjectUpdater.builder()
+        addFileProcessorBuilder = AddFileProcessor.builder()
                 .parallelProcess(parallelProcess)
                 .copyParallelProcess(copyParallelProcess);
     }
@@ -126,8 +122,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
-
         var inventory = loadInventoryWithDefault(objectVersionId);
         ensureNoMutableHead(inventory);
         enforceObjectVersionForUpdate(objectVersionId, inventory);
@@ -137,7 +131,9 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         var stagingDir = createStagingDir(objectVersionId);
         var contentDir = createStagingContentDir(inventory, stagingDir);
 
-        stageNewVersion(inventoryUpdater, path, contentDir, inventory.getDigestAlgorithm(), options);
+        var fileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
+        fileProcessor.processPath(path, ocflOptions);
+
         var newInventory = buildNewInventory(inventoryUpdater, commitInfo);
 
         try {
@@ -162,13 +158,15 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         ensureNoMutableHead(inventory);
         enforceObjectVersionForUpdate(objectVersionId, inventory);
 
-        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory);
-
         var stagingDir = createStagingDir(objectVersionId);
         var contentDir = createStagingContentDir(inventory, stagingDir);
 
+        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory);
+        var addFileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
+        var updater = new DefaultOcflObjectUpdater(inventory, inventoryUpdater, contentDir, addFileProcessor);
+
         try {
-            objectUpdater.accept(objectUpdaterBuilder.build(inventory, inventoryUpdater, contentDir));
+            objectUpdater.accept(updater);
             var newInventory = buildNewInventory(inventoryUpdater, commitInfo);
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
@@ -301,13 +299,16 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         }
 
         enforceObjectVersionForUpdate(objectVersionId, inventory);
-        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
 
         var stagingDir = createStagingDir(objectVersionId);
         var contentDir = FileUtil.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
 
+        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
+        var addFileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
+        var updater = new DefaultOcflObjectUpdater(inventory, inventoryUpdater, contentDir, addFileProcessor);
+
         try {
-            objectUpdater.accept(objectUpdaterBuilder.build(inventory, inventoryUpdater, contentDir));
+            objectUpdater.accept(updater);
             var newInventory = buildNewInventory(inventoryUpdater, commitInfo);
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
@@ -421,54 +422,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         return inventory;
     }
 
-    private void stageNewVersion(InventoryUpdater inventoryUpdater, Path sourcePath, Path contentDir,
-                                 DigestAlgorithm digestAlgorithm, Set<OcflOption> options) {
-        var files = FileUtil.findFiles(sourcePath);
-        var newFiles = new HashMap<Path, InventoryUpdater.AddFileResult>();
-
-        // TODO very similar logic in ObjectUpdater. extractable?
-
-        var filesWithDigests = parallelProcess.collection(files, file -> {
-            var digest = DigestUtil.computeDigest(digestAlgorithm, file);
-            return Map.entry(file, digest);
-        });
-
-        // Because the InventoryUpdater is not thread safe, this MUST happen synchronously
-        for (var fileWithDigest : filesWithDigests) {
-            var file = fileWithDigest.getKey();
-            var digest = fileWithDigest.getValue();
-            var logicalPath = createLogicalPath(sourcePath, file);
-
-            var result = inventoryUpdater.addFile(digest, FileUtil.pathToStringStandardSeparator(logicalPath));
-
-            if (result.isNew()) {
-                newFiles.put(file, result);
-            }
-        }
-
-        copyParallelProcess.map(newFiles, (file, result) -> {
-            if (options.contains(OcflOption.MOVE_SOURCE)) {
-                FileUtil.moveFileMakeParents(file, contentDir.resolve(result.getPathUnderContentDir()));
-            } else {
-                FileUtil.copyFileMakeParents(file, contentDir.resolve(result.getPathUnderContentDir()));
-            }
-        });
-
-        if (options.contains(OcflOption.MOVE_SOURCE)) {
-            // Cleanup empty dirs
-            FileUtil.safeDeletePath(sourcePath);
-        }
-    }
-
     private Inventory buildNewInventory(InventoryUpdater inventoryUpdater, CommitInfo commitInfo) {
         return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(), commitInfo));
-    }
-
-    private Path createLogicalPath(Path sourcePath, Path file) {
-        if (Files.isRegularFile(sourcePath) && sourcePath.equals(file)) {
-            return file.getFileName();
-        }
-        return sourcePath.relativize(file);
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {

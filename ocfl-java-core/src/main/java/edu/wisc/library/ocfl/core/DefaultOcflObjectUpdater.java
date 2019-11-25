@@ -8,7 +8,7 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
+import edu.wisc.library.ocfl.core.inventory.AddFileProcessor;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -24,7 +24,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
@@ -38,46 +41,16 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     private Inventory inventory;
     private InventoryUpdater inventoryUpdater;
     private Path stagingDir;
-    private ParallelProcess parallelProcess;
-    private ParallelProcess copyParallelProcess;
+    private AddFileProcessor addFileProcessor;
 
     private Map<String, Path> stagedFileMap;
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static class Builder {
-
-        private ParallelProcess parallelProcess;
-        private ParallelProcess copyParallelProcess;
-
-        public Builder parallelProcess(ParallelProcess parallelProcess) {
-            this.parallelProcess = Enforce.notNull(parallelProcess, "parallelProcess cannot be null");
-            return this;
-        }
-
-        public Builder copyParallelProcess(ParallelProcess copyParallelProcess) {
-            this.copyParallelProcess = Enforce.notNull(copyParallelProcess, "copyParallelProcess cannot be null");
-            return this;
-        }
-
-        public DefaultOcflObjectUpdater build(Inventory inventory, InventoryUpdater inventoryUpdater, Path stagingDir) {
-            return new DefaultOcflObjectUpdater(inventory, inventoryUpdater, stagingDir, parallelProcess, copyParallelProcess);
-        }
-
-    }
-
-    /**
-     * @see Builder
-     */
     public DefaultOcflObjectUpdater(Inventory inventory, InventoryUpdater inventoryUpdater, Path stagingDir,
-                                    ParallelProcess parallelProcess, ParallelProcess copyParallelProcess) {
+                                    AddFileProcessor addFileProcessor) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
-        this.parallelProcess = Enforce.notNull(parallelProcess, "parallelProcess cannot be null");
-        this.copyParallelProcess = Enforce.notNull(copyParallelProcess, "copyParallelProcess cannot be null");
+        this.addFileProcessor = Enforce.notNull(addFileProcessor, "addFileProcessor cannot be null");
 
         this.stagedFileMap = new HashMap<>();
     }
@@ -95,54 +68,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
-
-        var destination = destinationPath(destinationPath, sourcePath);
-        var files = FileUtil.findFiles(sourcePath);
-
-        if (files.size() == 0) {
-            throw new IllegalArgumentException(String.format("No files were found under %s to add", sourcePath));
-        }
-
-        // TODO extract
-        // TODO refactor
-
-        var filesWithDigests = parallelProcess.collection(files, file -> {
-            var digest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
-            return Map.entry(file, digest);
-        });
-
-        var copyFiles = new HashMap<Path, InventoryUpdater.AddFileResult>();
-        var newStagedFiles = new HashMap<String, Path>();
-
-        filesWithDigests.forEach(entry -> {
-            var file = entry.getKey();
-            var digest = entry.getValue();
-            var logicalPath = logicalPath(sourcePath, file, destination);
-            var result = inventoryUpdater.addFile(digest, logicalPath, ocflOptions);
-            if (result.isNew()) {
-                copyFiles.put(file, result);
-                newStagedFiles.put(logicalPath, stagingFullPath(result.getPathUnderContentDir()));
-            }
-        });
-
-        copyParallelProcess.map(copyFiles, (file, result) -> {
-            var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
-
-            if (options.contains(OcflOption.MOVE_SOURCE)) {
-                LOG.debug("Moving file <{}> to <{}>", file, stagingFullPath);
-                FileUtil.moveFileMakeParents(file, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
-                FileUtil.copyFileMakeParents(file, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
-            }
-        });
-
-        if (options.contains(OcflOption.MOVE_SOURCE)) {
-            // Cleanup empty dirs
-            FileUtil.safeDeletePath(sourcePath);
-        }
-
+        var newStagedFiles = addFileProcessor.processPath(sourcePath, destinationPath, ocflOptions);
         stagedFileMap.putAll(newStagedFiles);
 
         return this;
@@ -293,20 +219,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         });
     }
 
-    private String logicalPath(Path sourcePath, Path sourceFile, String destinationPath) {
-        var sourceRelative = FileUtil.pathToStringStandardSeparator(sourcePath.relativize(sourceFile));
-        return FileUtil.pathJoinIgnoreEmpty(destinationPath, sourceRelative);
-    }
-
     private Path stagingFullPath(String pathUnderContentDir) {
         return Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), pathUnderContentDir));
-    }
-
-    private String destinationPath(String path, Path sourcePath) {
-        if (path.isBlank() && Files.isRegularFile(sourcePath)) {
-            return sourcePath.getFileName().toString();
-        }
-        return path;
     }
 
     private DigestInputStream wrapInDigestInputStream(InputStream input) {
