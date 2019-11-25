@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflConstants;
+import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -159,7 +160,7 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void initializeStorage(String ocflVersion) {
+    public void initializeStorage(OcflVersion ocflVersion) {
 
     }
 
@@ -251,7 +252,8 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void writeObjectNamasteFile(Path objectRootPath) {
-        var namasteFile = new NamasteTypeFile(OcflConstants.OCFL_OBJECT_VERSION);
+        // TODO
+        var namasteFile = new NamasteTypeFile(OcflConstants.DEFAULT_OCFL_VERSION.getOcflObjectVersion());
         s3Client.putObject(PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectRootPath.resolve(namasteFile.fileName()).toString())

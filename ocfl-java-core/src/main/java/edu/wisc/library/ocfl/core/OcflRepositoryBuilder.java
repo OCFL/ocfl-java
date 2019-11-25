@@ -11,7 +11,6 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.InventoryType;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.sanitize.NoOpPathSanitizer;
@@ -170,17 +169,16 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Used to specify the OCFL inventory type to apply to newly created inventories.
+     * Used to specify the OCFL spec version. Default: 1.0
      *
      * @see #ocflConfig
      *
-     * @param inventoryType inventory type
+     * @param ocflVersion the OCFL version
      * @return builder
      */
     @Deprecated
-    public OcflRepositoryBuilder inventoryType(InventoryType inventoryType) {
-        // TODO This probably should not be configurable -- it is likely tied to the OCFL spec version
-        config.setDefaultInventoryType(inventoryType);
+    public OcflRepositoryBuilder ocflVersion(OcflVersion ocflVersion) {
+        config.setOcflVersion(ocflVersion);
         return this;
     }
 
@@ -262,7 +260,7 @@ public class OcflRepositoryBuilder {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 
-        storage.initializeStorage(OcflConstants.OCFL_VERSION);
+        storage.initializeStorage(config.getOcflVersion());
 
         Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");

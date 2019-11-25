@@ -2,7 +2,6 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.model.InventoryType;
 
 import java.util.regex.Pattern;
 
@@ -11,30 +10,29 @@ import java.util.regex.Pattern;
  */
 public class OcflConfig {
 
-    // TODO this should be changed in the version refactor
-    private InventoryType defaultInventoryType;
+    private OcflVersion ocflVersion;
     private DigestAlgorithm defaultDigestAlgorithm;
     private String defaultContentDirectory;
 
     public OcflConfig() {
-        defaultInventoryType = OcflConstants.DEFAULT_INVENTORY_TYPE;
+        ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
         defaultDigestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
         defaultContentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
     }
 
     /**
-     * Set the default inventory type to use when creating new inventories.
+     * Set the default OCFL version to use when creating new inventories.
      *
-     * @param defaultInventoryType inventory type
+     * @param ocflVersion ocfl version
      * @return config
      */
-    public OcflConfig setDefaultInventoryType(InventoryType defaultInventoryType) {
-        this.defaultInventoryType = Enforce.notNull(defaultInventoryType, "defaultInventoryType cannot be null");
+    public OcflConfig setOcflVersion(OcflVersion ocflVersion) {
+        this.ocflVersion = Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
         return this;
     }
 
-    public InventoryType getDefaultInventoryType() {
-        return defaultInventoryType;
+    public OcflVersion getOcflVersion() {
+        return ocflVersion;
     }
 
     /**

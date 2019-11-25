@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
@@ -11,9 +12,9 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
+import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
@@ -60,6 +61,8 @@ public class FileSystemOcflStorage implements OcflStorage {
     private ParallelProcess parallelProcess;
 
     private boolean checkNewVersionFixity;
+
+    private OcflVersion ocflVersion;
 
     /**
      * Create a new builder.
@@ -115,6 +118,8 @@ public class FileSystemOcflStorage implements OcflStorage {
                 .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
                 .charConstraint(new BackslashPathSeparatorConstraint())
                 .build();
+
+        this.ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
     }
 
     /**
@@ -373,8 +378,10 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void initializeStorage(String ocflVersion) {
+    public void initializeStorage(OcflVersion ocflVersion) {
         ensureOpen();
+
+        Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
 
         if (!Files.exists(repositoryRoot)) {
             FileUtil.createDirectories(repositoryRoot);
@@ -386,12 +393,14 @@ public class FileSystemOcflStorage implements OcflStorage {
         if (!FileUtil.hasChildren(repositoryRoot)) {
             // setup new repo
             // TODO perhaps this should be moved somewhere else so it can be used by other storage implementations
-            new NamasteTypeFile(ocflVersion).writeFile(repositoryRoot);
+            new NamasteTypeFile(ocflVersion.getOcflVersion()).writeFile(repositoryRoot);
             writeOcflSpec(ocflVersion);
             writeOcflLayout();
         } else {
             validateExistingRepo(ocflVersion);
         }
+
+        this.ocflVersion = ocflVersion;
     }
 
     /**
@@ -598,7 +607,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private void setupNewObjectDirs(Path objectRootPath) {
         FileUtil.createDirectories(objectRootPath);
-        new NamasteTypeFile(OcflConstants.OCFL_OBJECT_VERSION).writeFile(objectRootPath);
+        new NamasteTypeFile(ocflVersion.getOcflObjectVersion()).writeFile(objectRootPath);
     }
 
     private void copyInventory(ObjectPaths.HasInventory source, ObjectPaths.HasInventory destination) {
@@ -721,19 +730,19 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
-    private void validateExistingRepo(String ocflVersion) {
-        String existingOcflVersion = null;
+    private void validateExistingRepo(OcflVersion ocflVersion) {
+        OcflVersion existingOcflVersion = null;
 
         for (var file : repositoryRoot.toFile().listFiles()) {
             if (file.isFile() && file.getName().startsWith("0=")) {
-                existingOcflVersion = file.getName().substring(2);
+                existingOcflVersion = OcflVersion.fromOcflVersionString(file.getName().substring(2));
                 break;
             }
         }
 
         if (existingOcflVersion == null) {
             throw new IllegalStateException("OCFL root is missing its root conformance declaration.");
-        } else if (!existingOcflVersion.equals(ocflVersion)) {
+        } else if (existingOcflVersion != ocflVersion) {
             throw new IllegalStateException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
                     ocflVersion, existingOcflVersion));
         }
@@ -756,8 +765,8 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
-    private void writeOcflSpec(String ocflVersion) {
-        var ocflSpecFile = ocflVersion + ".txt";
+    private void writeOcflSpec(OcflVersion ocflVersion) {
+        var ocflSpecFile = ocflVersion.getOcflVersion() + ".txt";
         try (var ocflSpecStream = FileSystemOcflStorage.class.getClassLoader().getResourceAsStream(ocflSpecFile)) {
             Files.copy(ocflSpecStream, repositoryRoot.resolve(ocflSpecFile));
         } catch (IOException e) {

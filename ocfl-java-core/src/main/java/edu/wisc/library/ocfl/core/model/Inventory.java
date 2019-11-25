@@ -74,7 +74,7 @@ public class Inventory {
             String id,
             OcflConfig config,
             String objectRootPath) {
-        return new Inventory(id, config.getDefaultInventoryType(),
+        return new Inventory(id, config.getOcflVersion().getInventoryType(),
                 config.getDefaultDigestAlgorithm(),
                 config.getDefaultContentDirectory(), objectRootPath);
     }

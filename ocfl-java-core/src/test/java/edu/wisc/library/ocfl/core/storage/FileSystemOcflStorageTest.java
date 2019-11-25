@@ -106,7 +106,7 @@ public class FileSystemOcflStorageTest {
     private InventoryBuilder inventoryBuilder() {
         return Inventory.builder()
                 .id("o1")
-                .type(OcflConstants.DEFAULT_INVENTORY_TYPE)
+                .type(OcflConstants.DEFAULT_OCFL_VERSION.getInventoryType())
                 .digestAlgorithm(DigestAlgorithm.sha512)
                 .objectRootPath(FileUtil.pathToStringStandardSeparator(repoDir.resolve("o1")));
     }
@@ -119,7 +119,7 @@ public class FileSystemOcflStorageTest {
         var storage = FileSystemOcflStorage.builder()
                 .checkNewVersionFixity(enableFixityCheck)
                 .build(repoDir, objectIdPathMapper);
-        storage.initializeStorage(OcflConstants.OCFL_VERSION);
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION);
         return storage;
     }
 

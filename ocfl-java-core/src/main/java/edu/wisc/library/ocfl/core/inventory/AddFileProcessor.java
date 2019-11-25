@@ -122,7 +122,7 @@ public class AddFileProcessor {
 
             var logicalPath = logicalPath(sourcePath, file, destination);
             var result = inventoryUpdater.addFile(digest, logicalPath, ocflOptions);
-            
+
             if (result.isNew()) {
                 newFiles.put(file, result);
                 results.put(logicalPath, stagingFullPath(result.getPathUnderContentDir()));

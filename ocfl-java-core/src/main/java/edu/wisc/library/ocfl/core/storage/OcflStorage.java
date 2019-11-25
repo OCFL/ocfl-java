@@ -5,9 +5,9 @@ import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -129,9 +129,9 @@ public interface OcflStorage {
      * Initializes the OCFL root. If it is an existing OCFL repository and the root has already been initialized, then
      * this method should do nothing.
      *
-     * @param ocflVersion the OCFL version string, such as "ocfl_1.0"
+     * @param ocflVersion the OCFL version
      */
-    void initializeStorage(String ocflVersion);
+    void initializeStorage(OcflVersion ocflVersion);
 
     /**
      * Shutsdown any resources the OclfStorage may have open, such as ExecutorServices. Once closed, additional requests
