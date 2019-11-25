@@ -106,7 +106,6 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
         // TODO extract
         // TODO refactor
-        // TODO don't fork if there's only one
 
         var filesWithDigests = parallelProcess.collection(files, file -> {
             var digest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
