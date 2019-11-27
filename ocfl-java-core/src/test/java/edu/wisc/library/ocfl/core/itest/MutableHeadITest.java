@@ -194,12 +194,4 @@ public class MutableHeadITest {
         return repo;
     }
 
-    private void asdf() {
-        var repoDir = Paths.get("");
-        var workDir = Paths.get("");
-        var repo = new OcflRepositoryBuilder()
-                .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
-                .build(FileSystemOcflStorage.builder().build(repoDir), workDir);
-    }
-
 }
