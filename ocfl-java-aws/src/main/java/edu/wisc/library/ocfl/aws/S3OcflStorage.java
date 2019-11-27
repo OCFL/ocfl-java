@@ -7,6 +7,7 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.OcflVersion;
+import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -160,7 +161,7 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void initializeStorage(OcflVersion ocflVersion) {
+    public void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
 
     }
 

@@ -6,7 +6,8 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
+import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
+import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -180,14 +182,24 @@ public class MutableHeadITest {
     }
 
     private MutableOcflRepository defaultRepo(Path repoDir) {
-        var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).buildMutable(
-                new FileSystemOcflStorageBuilder()
+        var repo = new OcflRepositoryBuilder()
+                .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
+                .inventoryMapper(ITestHelper.testInventoryMapper())
+                .buildMutable(new FileSystemOcflStorageBuilder()
                         .checkNewVersionFixity(true)
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
+                        .build(repoDir),
                 workDir);
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;
+    }
+
+    private void asdf() {
+        var repoDir = Paths.get("");
+        var workDir = Paths.get("");
+        var repo = new OcflRepositoryBuilder()
+                .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
+                .build(FileSystemOcflStorage.builder().build(repoDir), workDir);
     }
 
 }

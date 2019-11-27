@@ -6,7 +6,7 @@ import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
+import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,8 +73,9 @@ public class BadReposITests {
     public void failWhenSidecarHasInvalidDigest() {
         var repoName = "invalid-sidecar-digest";
         var repoDir = repoDir(repoName);
+        var repo = defaultRepo(repoDir);
 
-        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoDir)).getMessage(),
+        assertThat(assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2")).getMessage(),
                 containsString("specifies digest algorithm md5"));
     }
 
@@ -82,8 +83,8 @@ public class BadReposITests {
     public void failWhenMissingSidecar() {
         var repoName = "missing-sidecar";
         var repoDir = repoDir(repoName);
-
-        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoDir)).getMessage(),
+        var repo = defaultRepo(repoDir);
+        assertThat(assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2")).getMessage(),
                 containsString("Expected there to be one inventory sidecar file"));
     }
 
@@ -111,11 +112,13 @@ public class BadReposITests {
     }
 
     private MutableOcflRepository defaultRepo(Path repoDir) {
-        var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).buildMutable(
-                new FileSystemOcflStorageBuilder()
+        var repo = new OcflRepositoryBuilder()
+                .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
+                .inventoryMapper(ITestHelper.testInventoryMapper())
+                .buildMutable(new FileSystemOcflStorageBuilder()
                         .checkNewVersionFixity(true)
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
+                        .build(repoDir),
                 workDir);
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;

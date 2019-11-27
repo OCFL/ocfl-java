@@ -10,7 +10,7 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
+import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
 import edu.wisc.library.ocfl.core.test.OcflAsserts;
@@ -517,7 +517,7 @@ public class FileSystemOcflITest {
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
 
-        assertThrows(IllegalArgumentException.class, () -> repo.putObject(ObjectVersionId.head(".."), empty, defaultCommitInfo));
+        assertThrows(PathConstraintException.class, () -> repo.putObject(ObjectVersionId.head(".."), empty, defaultCommitInfo));
     }
 
     @Test
@@ -612,7 +612,9 @@ public class FileSystemOcflITest {
     public void failGetObjectWhenInventoryFixityCheckFails() {
         var repoName = "invalid-inventory-fixity";
         var repoDir = sourceRepoPath(repoName);
-        assertThrows(FixityCheckException.class, () -> defaultRepo(repoDir));
+        var repo = defaultRepo(repoDir);
+
+        assertThrows(FixityCheckException.class, () -> repo.describeObject("z1"));
     }
 
     @Test
@@ -620,9 +622,10 @@ public class FileSystemOcflITest {
         var repoName = "repo3";
         var repoDir = expectedRepoPath(repoName);
         assertThrows(IllegalStateException.class, () -> {
-            new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).build(
-                    new FileSystemOcflStorage(repoDir, new ObjectIdPathMapperBuilder().buildDefaultPairTreeMapper()),
-                    repoDir.resolve("deposit"));
+            new OcflRepositoryBuilder()
+                    .layoutConfig(DefaultLayoutConfig.pairTreeConfig())
+                    .inventoryMapper(ITestHelper.testInventoryMapper())
+                    .build(FileSystemOcflStorage.builder().build(repoDir), repoDir.resolve("deposit"));
         });
     }
 
@@ -639,8 +642,10 @@ public class FileSystemOcflITest {
     public void failGetObjectWhenInvalidDigestAlgorithmUsed() {
         var repoName = "invalid-digest-algorithm";
         var repoDir = sourceRepoPath(repoName);
+        var repo = defaultRepo(repoDir);
+
         assertThat(assertThrows(RuntimeIOException.class, () -> {
-            defaultRepo(repoDir);
+            repo.getObject(ObjectVersionId.head("o1"));
         }).getMessage(), containsString("digestAlgorithm must be sha512 or sha256"));
     }
 
@@ -875,7 +880,7 @@ public class FileSystemOcflITest {
             repo.describeObject(objectId);
         });
 
-        assertEquals(4, ITestHelper.listAllPaths(repoDir).size());
+        assertEquals(3, ITestHelper.listAllPaths(repoDir).size());
     }
 
     @Test
@@ -896,7 +901,7 @@ public class FileSystemOcflITest {
             repo.describeObject("o4");
         });
 
-        assertEquals(14, ITestHelper.listAllPaths(repoDir).size());
+        assertEquals(13, ITestHelper.listAllPaths(repoDir).size());
     }
 
     @Test
@@ -1114,11 +1119,13 @@ public class FileSystemOcflITest {
     }
 
     private OcflRepository defaultRepo(Path repoDir) {
-        var repo = new OcflRepositoryBuilder().inventoryMapper(ITestHelper.testInventoryMapper()).build(
-                new FileSystemOcflStorageBuilder()
+        var repo = new OcflRepositoryBuilder()
+                .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
+                .inventoryMapper(ITestHelper.testInventoryMapper())
+                .build(new FileSystemOcflStorageBuilder()
                         .checkNewVersionFixity(true)
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .build(repoDir, new ObjectIdPathMapperBuilder().buildFlatMapper()),
+                        .build(repoDir),
                 workDir);
         fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;

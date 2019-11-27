@@ -80,9 +80,10 @@ public class PathConstraintProcessor {
      * is thrown.
      *
      * @param path the path to apply constraints to
+     * @return the input path
      * @throws edu.wisc.library.ocfl.api.exception.PathConstraintException when a constraint fails
      */
-    public void apply(String path) {
+    public String apply(String path) {
         pathConstraints.forEach(constraint -> constraint.apply(path));
 
         if (!fileNameConstraints.isEmpty() || !charConstraints.isEmpty()) {
@@ -97,6 +98,8 @@ public class PathConstraintProcessor {
                 }
             }
         }
+
+        return path;
     }
 
     public PathConstraintProcessor prependPathConstraint(PathConstraint pathConstraint) {

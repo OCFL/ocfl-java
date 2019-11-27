@@ -13,7 +13,7 @@ public class NonEmptyFileNameConstraint implements FileNameConstraint {
     @Override
     public void apply(String fileName, String path) {
         if (fileName.isEmpty()) {
-            throw new PathConstraintException(String.format("The path contains an illegal empty filename: %s", path));
+            throw new PathConstraintException(String.format("The path contains an illegal empty filename. Path: %s", path));
         }
     }
 

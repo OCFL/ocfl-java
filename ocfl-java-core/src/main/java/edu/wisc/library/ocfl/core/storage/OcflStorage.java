@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflVersion;
+import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.nio.file.Path;
@@ -15,9 +16,23 @@ import java.util.Map;
  * Extension point that allows the OCFL repository to use any number of storage implementations so long as they
  * conform to this interface.
  *
+ * <p>{@link #initializeStorage} MUST be called before the object may be used.
+ *
  * @see FileSystemOcflStorage
  */
 public interface OcflStorage {
+
+    /**
+     * Initializes the OCFL root. If it is an existing OCFL repository and the root has already been initialized, then
+     * this method should do nothing. This method must be called before the object may be used.
+     *
+     * <p>layoutConfig may be null if the OCFL repository already exists, in which case the existing configuration is used.
+     * If layoutConfig is specified for an existing repository, initialization will fail if the configurations do not match.
+     *
+     * @param ocflVersion the OCFL version
+     * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
+     */
+    void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig);
 
     /**
      * Returns a verified copy of the most recent object inventory. Null is returned if the object is not found.
@@ -124,14 +139,6 @@ public interface OcflStorage {
      * @return the relative path from the storage root to the object root
      */
     String objectRootPath(String objectId);
-
-    /**
-     * Initializes the OCFL root. If it is an existing OCFL repository and the root has already been initialized, then
-     * this method should do nothing.
-     *
-     * @param ocflVersion the OCFL version
-     */
-    void initializeStorage(OcflVersion ocflVersion);
 
     /**
      * Shutsdown any resources the OclfStorage may have open, such as ExecutorServices. Once closed, additional requests

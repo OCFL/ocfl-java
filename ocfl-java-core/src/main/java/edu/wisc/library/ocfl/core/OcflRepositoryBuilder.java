@@ -3,10 +3,10 @@ package edu.wisc.library.ocfl.core;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflRepository;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
+import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class OcflRepositoryBuilder {
 
     private OcflConfig config;
+    private LayoutConfig layoutConfig;
 
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
@@ -158,7 +159,7 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Set OCFL configuration options.
+     * Sets OCFL configuration options.
      *
      * @param config ocfl config
      * @return builder
@@ -169,46 +170,16 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Used to specify the OCFL spec version. Default: 1.0
+     * Sets OCFL storage layout configuration. If no layout config is specified, the client will attempt to auto-detect
+     * the configuration from an existing repository. If it is a new repository, then layout configuration MUST be supplied.
      *
-     * @see #ocflConfig
+     * @see edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig
      *
-     * @param ocflVersion the OCFL version
+     * @param layoutConfig storage layout configuration
      * @return builder
      */
-    @Deprecated
-    public OcflRepositoryBuilder ocflVersion(OcflVersion ocflVersion) {
-        config.setOcflVersion(ocflVersion);
-        return this;
-    }
-
-    /**
-     * Used to specify the digest algorithm to use for newly created objects. Default: sha512.
-     *
-     * @see #ocflConfig
-     *
-     * @param digestAlgorithm digest algorithm
-     * @return builder
-     */
-    @Deprecated
-    public OcflRepositoryBuilder digestAlgorithm(DigestAlgorithm digestAlgorithm) {
-        Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        config.setDefaultDigestAlgorithm(digestAlgorithm);
-        return this;
-    }
-
-    /**
-     * Used to specify the location of the content directory within newly created objects. Default: content.
-     *
-     * @see #ocflConfig
-     *
-     * @param contentDirectory content directory
-     * @return builder
-     */
-    @Deprecated
-    public OcflRepositoryBuilder contentDirectory(String contentDirectory) {
-        Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
-        config.setDefaultContentDirectory(contentDirectory);
+    public OcflRepositoryBuilder layoutConfig(LayoutConfig layoutConfig) {
+        this.layoutConfig = Enforce.notNull(layoutConfig, "layoutConfig cannot be null");
         return this;
     }
 
@@ -260,7 +231,7 @@ public class OcflRepositoryBuilder {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 
-        storage.initializeStorage(config.getOcflVersion());
+        storage.initializeStorage(config.getOcflVersion(), layoutConfig);
 
         Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");

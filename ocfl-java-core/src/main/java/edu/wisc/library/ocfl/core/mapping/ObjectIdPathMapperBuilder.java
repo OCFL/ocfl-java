@@ -1,129 +1,100 @@
 package edu.wisc.library.ocfl.core.mapping;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.cache.Cache;
-import edu.wisc.library.ocfl.core.cache.CaffeineCache;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-
-import java.time.Duration;
+import edu.wisc.library.ocfl.core.encode.*;
+import edu.wisc.library.ocfl.core.extension.layout.config.*;
 
 /**
- * Helper class for building ObjectIdPathMappers.
+ * Constructs an {@link ObjectIdPathMapper} based on {@link LayoutConfig}.
  */
 public class ObjectIdPathMapperBuilder {
 
-    private static final String DEFAULT_ENCAPSULATION_NAME = "obj";
-    private static final int DEFAULT_ENCAPSULATION_LENGTH = 4;
-    private static final int DEFAULT_HASH_DEPTH = 3;
-    private static final int DEFAULT_HASH_SEGMENT_LENGTH = 3;
-
-    private static final Duration DEFAULT_CACHE_DURATION = Duration.ofMinutes(10);
-    private static final String DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha256.getJavaStandardName();
-
-    private boolean useUppercase = false;
-    private Cache<String, String> cache;
-
     /**
-     * Indicates whether or not characters in hex strings should be upper or lower case.
+     * Returns a {@link ObjectIdPathMapper} for the {@link LayoutConfig}.
      *
-     * <p>Default: false
+     * @see DefaultLayoutConfig
      *
-     * @param useUppercase whether or not hex characters should be in uppercase
-     * @return builder
-     */
-    public ObjectIdPathMapperBuilder useUppercase(boolean useUppercase) {
-        this.useUppercase = useUppercase;
-        return this;
-    }
-
-    /**
-     * Configures the ObjectIdPathMapper to use a Caffeine cache with a duration of 10 minutes.
-     */
-    public ObjectIdPathMapperBuilder withDefaultCaffeineCache() {
-        return withCaffeineCache(DEFAULT_CACHE_DURATION);
-    }
-
-    /**
-     * Configures the ObjectIdPathMapper to use a Caffeine cache with a custom duration
-     *
-     * @param expireAfterAccess how long to keep inventories in the cache after last access
-     * @return builder
-     */
-    public ObjectIdPathMapperBuilder withCaffeineCache(Duration expireAfterAccess) {
-        Enforce.notNull(expireAfterAccess, "expireAfterAccess cannot be null");
-        cache = new CaffeineCache<>(Caffeine.newBuilder().expireAfterAccess(expireAfterAccess).build());
-        return this;
-    }
-
-    /**
-     * Configures the ObjectIdPathMapper to use a custom cache implementation
-     *
-     * @param cache cache
-     * @return builder
-     */
-    public ObjectIdPathMapperBuilder withCustomCache(Cache<String, String> cache) {
-        this.cache = cache;
-        return this;
-    }
-
-    /**
-     * Builds a FlatObjectIdPathMapper using a UrlEncoder.
-     *
+     * @param layoutConfig configuration
      * @return mapper
      */
-    public ObjectIdPathMapper buildFlatMapper() {
-        return applyCache(new FlatObjectIdPathMapper(new UrlEncoder(useUppercase)));
-    }
+    public ObjectIdPathMapper build(LayoutConfig layoutConfig) {
+        Enforce.notNull(layoutConfig, "layoutConfig cannot be null");
 
-    /**
-     * Builds a PairTreeObjectIdPathMapper using a PairTreeEncoder, "obj" as the encapsulation string, and an encapsulation
-     * length of 4.
-     *
-     * @return mapper
-     */
-    public ObjectIdPathMapper buildDefaultPairTreeMapper() {
-        return buildPairTreeMapper(DEFAULT_ENCAPSULATION_NAME, DEFAULT_ENCAPSULATION_LENGTH);
-    }
+        ObjectIdPathMapper mapper;
 
-    /**
-     * Builds a PairTreeObjectIdPathMapper using a PairTreeEncoder and custom encapsulation configuration.
-     *
-     * @param encapsulationName The directory name to use to encapsulate an object when the encoded identifier is less than 3 characters long
-     * @param encapsulationSubstringLength The number of characters from the end of an encoded identifier to use to encapsulate an object
-     * @return mapper
-     */
-    public ObjectIdPathMapper buildPairTreeMapper(String encapsulationName, int encapsulationSubstringLength) {
-        return applyCache(new PairTreeObjectIdPathMapper(
-                new PairTreeEncoder(useUppercase), encapsulationName, encapsulationSubstringLength));
-    }
-
-    /**
-     * Builds a HashingObjectIdPathMapper using sha256, 3 character segment length, and depth of 3.
-     *
-     * @return mapper
-     */
-    public ObjectIdPathMapper buildDefaultTruncatedHashMapper() {
-        return buildTruncatedHashMapper(DEFAULT_DIGEST_ALGORITHM, DEFAULT_HASH_DEPTH, DEFAULT_HASH_SEGMENT_LENGTH);
-    }
-
-    /**
-     * Builds a HashingObjectIdPathMapper with a custom configuration.
-     *
-     * @param digestAlgorithm the digest algorithm to use on the object id
-     * @param depth the number of directories deep that should be created
-     * @param segmentLength the number of characters that should be in each directory name
-     * @return mapper
-     */
-    public ObjectIdPathMapper buildTruncatedHashMapper(String digestAlgorithm, int depth, int segmentLength) {
-        return applyCache(new HashingObjectIdPathMapper(digestAlgorithm, depth, segmentLength, useUppercase));
-    }
-
-    private ObjectIdPathMapper applyCache(ObjectIdPathMapper mapper) {
-        if (cache != null) {
-            return new CachingObjectIdPathMapper(mapper, cache);
+        if (layoutConfig instanceof NTupleLayoutConfig) {
+            mapper = buildNTupleMapper((NTupleLayoutConfig) layoutConfig);
+        } else if (layoutConfig instanceof FlatLayoutConfig) {
+            mapper = buildFlatMapper((FlatLayoutConfig) layoutConfig);
+        } else {
+            throw new IllegalStateException("Unknown layout config: " + layoutConfig);
         }
+
         return mapper;
+    }
+
+    private ObjectIdPathMapper buildFlatMapper(FlatLayoutConfig config) {
+        var encoder = buildEncoder(config.getEncoding(), config);
+        return new FlatObjectIdPathMapper(encoder);
+    }
+
+    private ObjectIdPathMapper buildNTupleMapper(NTupleLayoutConfig config) {
+        var encoder = buildEncoder(config.getEncoding(), config);
+        var encapsulator = buildEncapsulator(config, encoder);
+
+        return new NTupleObjectIdPathMapper(encoder, encapsulator,
+                config.getSize(), config.getDepth(),
+                config.getEncapsulation().getDefaultString());
+    }
+
+    private Encoder buildEncoder(EncodingType encodingType, LayoutConfig config) {
+        Enforce.notNull(encodingType, "encoding cannot be null");
+
+        var useUpper = false;
+
+        if (encodingType != EncodingType.NONE) {
+            Enforce.notNull(config.getCasing(), "casing cannot be null");
+            useUpper = config.getCasing() == Casing.UPPER;
+        }
+
+        switch (encodingType) {
+            case NONE:
+                return new NoOpEncoder();
+            case URL:
+                return new UrlEncoder(useUpper);
+            case PAIRTREE:
+                return new PairTreeEncoder(useUpper);
+            case HASH:
+                return new DigestEncoder(config.getDigestAlgorithm(), useUpper);
+            default:
+                throw new IllegalArgumentException("Unmapped encoding: " + encodingType);
+        }
+    }
+
+    private Encapsulator buildEncapsulator(NTupleLayoutConfig config, Encoder idEncoder) {
+        var encapConfig = Enforce.notNull(config.getEncapsulation(), "encapsulation config cannot be null");
+
+        Enforce.notNull(encapConfig.getType(), "encapsulation type cannot be null");
+
+        switch (encapConfig.getType()) {
+            case ID:
+                var useEncoded = config.getEncoding() == encapConfig.getEncoding();
+                if (useEncoded) {
+                    return IdEncapsulator.useEncodedId();
+                }
+                return IdEncapsulator.useOriginalId(buildEncoder(encapConfig.getEncoding(), config));
+            case SUBSTRING:
+                if (config.getDepth() != 0) {
+                    throw new IllegalArgumentException("Encapsulation substrings may only be used when depth is unbound (set to 0)");
+                }
+                Enforce.notNull(encapConfig.getSubstringSize(), "substring size cannot be null");
+                Enforce.expressionTrue(config.getSize() < encapConfig.getSubstringSize(), config.getSize(),
+                        "n-tuple segment size must be less than the encapsulation substring size");
+
+                return new SubstringEncapsulator(encapConfig.getSubstringSize());
+            default:
+                throw new IllegalArgumentException("Unmapped encapsulation type: " + encapConfig.getType());
+        }
     }
 
 }

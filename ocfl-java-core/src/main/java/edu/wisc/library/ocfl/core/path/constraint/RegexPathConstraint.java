@@ -42,10 +42,10 @@ public class RegexPathConstraint implements PathConstraint, FileNameConstraint {
     public void apply(String path) {
         if (pattern.matcher(path).matches()) {
             if (!mustMatch) {
-                throw new PathConstraintException(String.format("The path contains an invalid sequence %s: %s", pattern, path));
+                throw new PathConstraintException(String.format("The path contains an invalid sequence %s. Path: %s", pattern, path));
             }
         } else if (mustMatch) {
-            throw new PathConstraintException(String.format("The path must contain a sequence %s but does not: %s", pattern, path));
+            throw new PathConstraintException(String.format("The path must contain a sequence %s but does not. Path: %s", pattern, path));
         }
     }
 
@@ -56,10 +56,10 @@ public class RegexPathConstraint implements PathConstraint, FileNameConstraint {
     public void apply(String fileName, String path) {
         if (pattern.matcher(fileName).matches()) {
             if (!mustMatch) {
-                throw new PathConstraintException(String.format("The filename '%s' contains an invalid sequence %s: %s", fileName, pattern, path));
+                throw new PathConstraintException(String.format("The filename '%s' contains an invalid sequence %s. Path: %s", fileName, pattern, path));
             }
         } else if (mustMatch) {
-            throw new PathConstraintException(String.format("The filename '%s' must contain a sequence %s but does not: %s", fileName, pattern, path));
+            throw new PathConstraintException(String.format("The filename '%s' must contain a sequence %s but does not. Path: %s", fileName, pattern, path));
         }
     }
 

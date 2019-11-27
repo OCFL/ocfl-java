@@ -1,10 +1,10 @@
 package edu.wisc.library.ocfl.core.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
+import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
+import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
 
@@ -18,18 +18,20 @@ public class FileSystemOcflStorageBuilder {
     private int threadPoolSize;
     private boolean checkNewVersionFixity;
     private ObjectMapper objectMapper;
+    private FileSystemOcflStorageInitializer initializer;
 
     public FileSystemOcflStorageBuilder() {
         this.inventoryMapper = InventoryMapper.defaultMapper();
         this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.checkNewVersionFixity = false;
-        this.objectMapper = new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
+        this.objectMapper = ObjectMappers.prettyPrintMapper();
     }
 
     /**
      * Overrides the default InventoryMapper that's used for parsing inventory files.
      *
      * @param inventoryMapper the mapper that's used to parse inventory files
+     * @return builder
      */
     public FileSystemOcflStorageBuilder inventoryMapper(InventoryMapper inventoryMapper) {
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
@@ -40,6 +42,7 @@ public class FileSystemOcflStorageBuilder {
      * Overrides the default ObjectMapper that's used to serialize ocfl_layout.json
      *
      * @param objectMapper object mapper
+     * @return builder
      */
     public FileSystemOcflStorageBuilder objectMapper(ObjectMapper objectMapper) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
@@ -50,6 +53,7 @@ public class FileSystemOcflStorageBuilder {
      * Overrides the default thread pool size. Default: the number of available processors
      *
      * @param threadPoolSize thread pool size. Default: number of processors
+     * @return builder
      */
     public FileSystemOcflStorageBuilder threadPoolSize(int threadPoolSize) {
         this.threadPoolSize = Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
@@ -62,6 +66,7 @@ public class FileSystemOcflStorageBuilder {
      * is needed. Default: false
      *
      * @param checkNewVersionFixity whether to check fixity on version creation. Default: false
+     * @return builder
      */
     public FileSystemOcflStorageBuilder checkNewVersionFixity(boolean checkNewVersionFixity) {
         this.checkNewVersionFixity = checkNewVersionFixity;
@@ -69,14 +74,28 @@ public class FileSystemOcflStorageBuilder {
     }
 
     /**
+     * Overrides the default {@link FileSystemOcflStorageInitializer}. Normally, this does not need to be set.
+     *
+     * @param initializer the initializer
+     * @return builder
+     */
+    public FileSystemOcflStorageBuilder initializer(FileSystemOcflStorageInitializer initializer) {
+        this.initializer = initializer;
+        return this;
+    }
+
+    /**
      * Builds a new FileSystemOcflStorage object
      *
      * @param repositoryRoot the path to the OCFL storage root
-     * @param objectIdPathMapper the ObjectIdPathMapper used to map object ids to storage paths
      */
-    public FileSystemOcflStorage build(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
-        return new FileSystemOcflStorage(repositoryRoot, objectIdPathMapper, threadPoolSize,
-                checkNewVersionFixity, inventoryMapper, objectMapper);
+    public FileSystemOcflStorage build(Path repositoryRoot) {
+        var init = initializer;
+        if (init == null) {
+            init = new FileSystemOcflStorageInitializer(objectMapper, new ObjectIdPathMapperBuilder());
+        }
+
+        return new FileSystemOcflStorage(repositoryRoot, threadPoolSize, checkNewVersionFixity, inventoryMapper, init);
     }
 
 }

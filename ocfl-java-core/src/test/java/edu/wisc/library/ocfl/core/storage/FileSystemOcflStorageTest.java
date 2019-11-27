@@ -4,12 +4,13 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.OcflConstants;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
+import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
+import edu.wisc.library.ocfl.core.test.OcflAsserts;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ public class FileSystemOcflStorageTest {
     private Path stagingDir;
     private Path stagingContentDir;
 
-    private ObjectIdPathMapper objectIdPathMapper;
+    private LayoutConfig layoutConfig;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -43,7 +44,18 @@ public class FileSystemOcflStorageTest {
         stagingDir = Files.createDirectories(workDir.resolve("staging"));
         stagingContentDir = Files.createDirectories(stagingDir.resolve("content"));
 
-        objectIdPathMapper = new ObjectIdPathMapperBuilder().buildFlatMapper();
+        layoutConfig = DefaultLayoutConfig.flatUrlConfig();
+    }
+
+    @Test
+    public void shouldRejectCallsWhenNotInitialized() {
+        var storage = FileSystemOcflStorage.builder()
+                .checkNewVersionFixity(true)
+                .build(repoDir);
+
+        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "must be initialized", () -> {
+            storage.loadInventory("o1");
+        });
     }
 
     @Test
@@ -118,8 +130,8 @@ public class FileSystemOcflStorageTest {
     private FileSystemOcflStorage newStorage(boolean enableFixityCheck) {
         var storage = FileSystemOcflStorage.builder()
                 .checkNewVersionFixity(enableFixityCheck)
-                .build(repoDir, objectIdPathMapper);
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION);
+                .build(repoDir);
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig);
         return storage;
     }
 

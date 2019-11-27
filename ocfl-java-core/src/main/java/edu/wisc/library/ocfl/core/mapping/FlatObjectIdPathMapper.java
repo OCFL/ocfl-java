@@ -1,9 +1,9 @@
 package edu.wisc.library.ocfl.core.mapping;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
-import java.util.Map;
-import java.util.Set;
+import edu.wisc.library.ocfl.core.encode.Encoder;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraints;
 
 /**
  * Converts an object id into a path by simply encoding the id. This results in a large number of objects rooted in the
@@ -11,12 +11,12 @@ import java.util.Set;
  */
 public class FlatObjectIdPathMapper implements ObjectIdPathMapper {
 
-    private static final Set<String> INVALID_PATHS = Set.of(".", "..");
-
     private Encoder encoder;
+    private PathConstraintProcessor pathConstraints;
 
     public FlatObjectIdPathMapper(Encoder encoder) {
         this.encoder = Enforce.notNull(encoder, "encoder cannot be null");
+        this.pathConstraints = PathConstraints.noEmptyOrDotFilenames();
     }
 
     /**
@@ -24,27 +24,7 @@ public class FlatObjectIdPathMapper implements ObjectIdPathMapper {
      */
     @Override
     public String map(String objectId) {
-        return encodeObjectId(objectId);
-    }
-
-    @Override
-    public Map<String, Object> describeLayout() {
-        // TODO https://github.com/OCFL/spec/issues/351
-        return Map.of(
-                // TODO update to 'key' once the key is known
-                "uri", "https://flat-layout",
-                "description", "Flat Layout"
-        );
-    }
-
-    private String encodeObjectId(String objectId) {
-        var objectDir = encoder.encode(objectId);
-
-        if (INVALID_PATHS.contains(objectDir)) {
-            throw new IllegalArgumentException(String.format("Object id %s cannot be converted into a valid path.", objectId));
-        }
-
-        return objectDir;
+        return pathConstraints.apply(encoder.encode(objectId));
     }
 
 }

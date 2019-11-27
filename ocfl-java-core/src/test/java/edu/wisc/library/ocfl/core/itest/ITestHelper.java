@@ -1,18 +1,15 @@
 package edu.wisc.library.ocfl.core.itest;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.core.DefaultOcflRepository;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
+import edu.wisc.library.ocfl.core.util.ObjectMappers;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -75,7 +72,11 @@ public class ITestHelper {
         try (var walk = Files.walk(root)) {
             walk.filter(p -> {
                 var pStr = p.toString();
-                return !(pStr.contains(".gitkeep") || pStr.contains("deposit"));
+                return !(pStr.contains(".gitkeep")
+                        || pStr.contains("deposit")
+                        // TODO remove this once layout an extensions are finalized
+                        || pStr.contains("ocfl_layout")
+                        || pStr.contains("extension-layout"));
             }).forEach(allPaths::add);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -143,18 +144,11 @@ public class ITestHelper {
     }
 
     public static InventoryMapper testInventoryMapper() {
-        return new InventoryMapper(prettyPrintMapper()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .disable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS)
-                .configure(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, false)
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        );
+        return new InventoryMapper(prettyPrintMapper());
     }
 
     public static ObjectMapper prettyPrintMapper() {
-        return new ObjectMapper().setDefaultPrettyPrinter(prettyPrinter())
-                .configure(SerializationFeature.INDENT_OUTPUT, true);
+        return ObjectMappers.prettyPrintMapper().setDefaultPrettyPrinter(prettyPrinter());
     }
 
     public static PrettyPrinter prettyPrinter() {

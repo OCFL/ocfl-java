@@ -1,15 +1,12 @@
 package edu.wisc.library.ocfl.core.inventory;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.InjectableValues;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,7 +28,7 @@ public class InventoryMapper {
      * @return mapper
      */
     public static InventoryMapper prettyPrintMapper() {
-        return new InventoryMapper(standardObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true));
+        return new InventoryMapper(ObjectMappers.prettyPrintMapper());
     }
 
     /**
@@ -41,18 +38,9 @@ public class InventoryMapper {
      * @return mapper
      */
     public static InventoryMapper defaultMapper() {
-        return new InventoryMapper(standardObjectMapper());
+        return new InventoryMapper(ObjectMappers.defaultMapper());
     }
     
-    private static ObjectMapper standardObjectMapper() {
-        return new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .disable(MapperFeature.CAN_OVERRIDE_ACCESS_MODIFIERS)
-                .configure(MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, false)
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    }
-
     /**
      * Should use InventoryMapper.defaultMapper() or InventoryMapper.prettyPrintMapper() unless you know what you're doing.
      *

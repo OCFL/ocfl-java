@@ -1,7 +1,5 @@
 package edu.wisc.library.ocfl.core.storage;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
@@ -17,6 +15,7 @@ import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
+import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -34,14 +33,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -52,16 +48,16 @@ public class FileSystemOcflStorage implements OcflStorage {
     private PathConstraintProcessor logicalPathConstraints;
 
     private boolean closed = false;
+    private boolean initialized = false;
 
     private Path repositoryRoot;
-    private ObjectIdPathMapper objectIdPathMapper;
     private InventoryMapper inventoryMapper;
-    private ObjectMapper objectMapper;
-
+    private FileSystemOcflStorageInitializer initializer;
     private ParallelProcess parallelProcess;
 
     private boolean checkNewVersionFixity;
 
+    private ObjectIdPathMapper objectIdPathMapper;
     private OcflVersion ocflVersion;
 
     /**
@@ -74,52 +70,35 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     /**
-     * Creates a new FileSystemOcflStorage object. Its thread pool is size is set to the number of available processors,
-     * and fixity checks are not performed when a version is moved into the object.
-     *
-     * @see FileSystemOcflStorageBuilder
-     *
-     * @param repositoryRoot OCFL repository root directory
-     * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
-     */
-    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper) {
-        this(repositoryRoot, objectIdPathMapper, Runtime.getRuntime().availableProcessors(),
-                false, InventoryMapper.defaultMapper(),
-                new ObjectMapper().configure(SerializationFeature.INDENT_OUTPUT, true));
-    }
-
-    /**
      * Creates a new FileSystemOcflStorage object.
      *
+     * <p>{@link #initializeStorage} must be called before using this object.
+     *
      * @see FileSystemOcflStorageBuilder
      *
      * @param repositoryRoot OCFL repository root directory
-     * @param objectIdPathMapper Mapper for mapping object ids to paths within the repository root
      * @param threadPoolSize The size of the object's thread pool, used when calculating digests
      * @param checkNewVersionFixity If a fixity check should be performed on the contents of a new version's
      *                              content directory after moving it into the object. In most cases, this should not be
      *                              required, especially if the OCFL client's work directory is on the same volume as the
      *                              storage root.
      * @param inventoryMapper mapper used to parse inventory files
-     * @param objectMapper mapper used to write ocfl_layout.json
+     * @param initializer initializes a new OCFL repo
      */
-    public FileSystemOcflStorage(Path repositoryRoot, ObjectIdPathMapper objectIdPathMapper, int threadPoolSize,
-                                 boolean checkNewVersionFixity, InventoryMapper inventoryMapper, ObjectMapper objectMapper) {
+    public FileSystemOcflStorage(Path repositoryRoot, int threadPoolSize, boolean checkNewVersionFixity,
+                                 InventoryMapper inventoryMapper, FileSystemOcflStorageInitializer initializer) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
-        this.objectIdPathMapper = Enforce.notNull(objectIdPathMapper, "objectIdPathMapper cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
-        this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
+        this.initializer = Enforce.notNull(initializer, "objectMapper cannot be null");
 
         this.logicalPathConstraints = PathConstraintProcessor.builder()
                 .fileNameConstraint(new NonEmptyFileNameConstraint())
                 .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
                 .charConstraint(new BackslashPathSeparatorConstraint())
                 .build();
-
-        this.ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
     }
 
     /**
@@ -378,29 +357,14 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void initializeStorage(OcflVersion ocflVersion) {
-        ensureOpen();
-
-        Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
-
-        if (!Files.exists(repositoryRoot)) {
-            FileUtil.createDirectories(repositoryRoot);
-        } else {
-            Enforce.expressionTrue(Files.isDirectory(repositoryRoot), repositoryRoot,
-                    "repositoryRoot must be a directory");
+    public synchronized void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
+        if (initialized) {
+            return;
         }
 
-        if (!FileUtil.hasChildren(repositoryRoot)) {
-            // setup new repo
-            // TODO perhaps this should be moved somewhere else so it can be used by other storage implementations
-            new NamasteTypeFile(ocflVersion.getOcflVersion()).writeFile(repositoryRoot);
-            writeOcflSpec(ocflVersion);
-            writeOcflLayout();
-        } else {
-            validateExistingRepo(ocflVersion);
-        }
-
+        this.objectIdPathMapper = this.initializer.initializeStorage(repositoryRoot, ocflVersion, layoutConfig);
         this.ocflVersion = ocflVersion;
+        this.initialized = true;
     }
 
     /**
@@ -730,85 +694,13 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
-    private void validateExistingRepo(OcflVersion ocflVersion) {
-        OcflVersion existingOcflVersion = null;
-
-        for (var file : repositoryRoot.toFile().listFiles()) {
-            if (file.isFile() && file.getName().startsWith("0=")) {
-                existingOcflVersion = OcflVersion.fromOcflVersionString(file.getName().substring(2));
-                break;
-            }
-        }
-
-        if (existingOcflVersion == null) {
-            throw new IllegalStateException("OCFL root is missing its root conformance declaration.");
-        } else if (existingOcflVersion != ocflVersion) {
-            throw new IllegalStateException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
-                    ocflVersion, existingOcflVersion));
-        }
-
-        var objectRoot = identifyRandomObjectRoot(repositoryRoot);
-
-        if (objectRoot != null) {
-            var inventory = parseInventory(FileUtil.pathToStringStandardSeparator(repositoryRoot.relativize(objectRoot)),
-                    ObjectPaths.inventoryPath(objectRoot));
-            var expectedPath = Paths.get(objectIdPathMapper.map(inventory.getId()));
-            var actualPath = repositoryRoot.relativize(objectRoot);
-            if (!expectedPath.equals(actualPath)) {
-                throw new IllegalStateException(String.format(
-                        "The OCFL client was configured to use the following layout: %s." +
-                                " This layout does not match the layout of existing objects in the repository." +
-                        " Found object %s stored at %s, but was expecting it to be stored at %s.",
-                        objectIdPathMapper.describeLayout(), inventory.getId(), actualPath, expectedPath
-                ));
-            }
-        }
-    }
-
-    private void writeOcflSpec(OcflVersion ocflVersion) {
-        var ocflSpecFile = ocflVersion.getOcflVersion() + ".txt";
-        try (var ocflSpecStream = FileSystemOcflStorage.class.getClassLoader().getResourceAsStream(ocflSpecFile)) {
-            Files.copy(ocflSpecStream, repositoryRoot.resolve(ocflSpecFile));
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
-    private Path identifyRandomObjectRoot(Path root) {
-        var ref = new AtomicReference<Path>();
-        var objectMarkerPrefix = "0=ocfl_object";
-
-        try {
-            Files.walkFileTree(root, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    if (file.getFileName().toString().startsWith(objectMarkerPrefix)) {
-                        ref.set(file.getParent());
-                        return FileVisitResult.TERMINATE;
-                    }
-                    return super.visitFile(file, attrs);
-                }
-            });
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-
-        return ref.get();
-    }
-
-    private void writeOcflLayout() {
-        try {
-            var map = new TreeMap<String, Object>(Comparator.naturalOrder());
-            map.putAll(objectIdPathMapper.describeLayout());
-            objectMapper.writeValue(repositoryRoot.resolve("ocfl_layout.json").toFile(), map);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
     private void ensureOpen() {
         if (closed) {
             throw new IllegalStateException(FileSystemOcflStorage.class.getName() + " is closed.");
+        }
+
+        if (!initialized) {
+            throw new IllegalStateException(FileSystemOcflStorage.class.getName() + " must be initialized before it can be used.");
         }
     }
 

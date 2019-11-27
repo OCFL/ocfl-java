@@ -33,10 +33,9 @@ After building the libraries locally, add the following to you're project's POM:
 var repoDir = Paths.get("ocfl-repo"); // This directory contains the OCFL storage root.
 var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL versions. It cannot be within the OCFL storage root.
 
-var repo = new OcflRepositoryBuilder().build(
-        new FileSystemOcflStorageBuilder().build(repoDir, new ObjectIdPathMapperBuilder()
-                .withDefaultCaffeineCache().buildDefaultPairTreeMapper()),
-        workDir);
+var repo = new OcflRepositoryBuilder()
+                .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
+                .build(FileSystemOcflStorage.builder().build(repoDir), workDir);
 
 repo.putObject(ObjectVersionId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
 repo.getObject(ObjectVersionId.head("o1"), Paths.get("object-in-dir"));
@@ -72,13 +71,9 @@ defined by implementing `edu.wisc.library.oclf.core.mapping.ObjectIdPathMapper`.
 * `FlatObjectIdPathMapper`: Encodes object IDs using `UrlEncoder` or `PairTreeEncoder`. The encoded ID is used to create
 an object root as a direct child of the OCFL root. This is the simplest mapper, but has serious performance problems and
 should generally be avoided.
-* `PairTreeObjectIdPathMapper`: This is an implementation the [pairtree](https://tools.ietf.org/html/draft-kunze-pairtree-01)
-spec. It sports much better performance than `FlatObjectIdPathMapper`. It's draw back is that it produces deep, unbalanced
-trees.
-* `HashingObjectIdPathMapper`: Similar to `PairTreeObjectIdPathMapper` except that object IDs are hashed and the depth
-is truncated. This is the most performant option because the file tree is shallow and balanced. It's disadvantage, compared
-to `PairTreeObjectIdPathMapper`, is that directory names are not reversible to object IDs.
-* `CachingObjectIdPathMapper`: This mapper can be used to wrap any `ObjectIdPathMapper` and cache its results.
+* `NTupleObjectIdPathMapper`: Supports [pairtree](https://tools.ietf.org/html/draft-kunze-pairtree-01) mapping as well as
+truncated n-tuple. It performs much better than `FlatObjectIdPathMapper`. Using an encoder that hashes the object ID is
+recommended, so that the storage directory tree is balanced.
 
 ### Locking
 

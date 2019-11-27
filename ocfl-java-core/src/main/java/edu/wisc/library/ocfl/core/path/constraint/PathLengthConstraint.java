@@ -85,11 +85,11 @@ public class PathLengthConstraint implements PathConstraint, FileNameConstraint 
     }
 
     private String message(String path) {
-        return String.format("The path is longer than %s %s: %s", maxLength, type, path);
+        return String.format("The path is longer than %s %s. Path: %s", maxLength, type, path);
     }
 
     private String message(String fileName, String path) {
-        return String.format("The filename '%s' is longer than %s %s: %s", fileName, maxLength, type, path);
+        return String.format("The filename '%s' is longer than %s %s. Path: %s", fileName, maxLength, type, path);
     }
 
 }

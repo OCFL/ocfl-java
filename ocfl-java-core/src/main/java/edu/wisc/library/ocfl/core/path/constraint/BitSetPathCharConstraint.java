@@ -91,7 +91,7 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
     }
 
     private void throwException(char c, String path) {
-        throw new PathConstraintException(String.format("The path contains the illegal character '%s': %s", c, path));
+        throw new PathConstraintException(String.format("The path contains the illegal character '%s'. Path: %s", c, path));
     }
 
 }

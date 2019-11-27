@@ -12,32 +12,18 @@ import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
-import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraints;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * This class is used to record changes to OCFL objects and construct an updated inventory.
  */
 public class InventoryUpdater {
-
-    /**
-     * Constraints to apply to logical paths:
-     * <ul>
-     *     <li>Cannot have empty filenames</li>
-     *     <li>Cannot have the filenames . or ..</li>
-     * </ul>
-     */
-    private static final PathConstraintProcessor LOGICAL_PATH_CONSTRAINTS = PathConstraintProcessor.builder()
-            .fileNameConstraint(new NonEmptyFileNameConstraint())
-            .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
-            .build();
 
     private Inventory inventory;
 
@@ -48,6 +34,7 @@ public class InventoryUpdater {
     private VersionBuilder versionBuilder;
 
     private ContentPathMapper contentPathMapper;
+    private PathConstraintProcessor logicalPathConstraints;
 
     public static Builder builder() {
         return new Builder();
@@ -131,6 +118,7 @@ public class InventoryUpdater {
         this.contentPathMapper = Enforce.notNull(contentPathMapper, "contentPathMapper cannot be null");
         this.objectId = inventory.getId();
         this.mutableHead = inventoryBuilder.hasMutableHead();
+        this.logicalPathConstraints = PathConstraints.noEmptyOrDotFilenames();
     }
 
     /**
@@ -159,7 +147,7 @@ public class InventoryUpdater {
      * @return details about the file if it was added to the manifest
      */
     public AddFileResult addFile(String fileId, String logicalPath, OcflOption... ocflOptions) {
-        LOGICAL_PATH_CONSTRAINTS.apply(logicalPath);
+        logicalPathConstraints.apply(logicalPath);
 
         overwriteProtection(logicalPath, ocflOptions);
 
@@ -253,7 +241,7 @@ public class InventoryUpdater {
      * @return files that were removed from the manifest
      */
     public Set<RemoveFileResult> renameFile(String srcLogicalPath, String dstLogicalPath, OcflOption... ocflOptions) {
-        LOGICAL_PATH_CONSTRAINTS.apply(dstLogicalPath);
+        logicalPathConstraints.apply(dstLogicalPath);
 
         var srcDigest = versionBuilder.getFileId(srcLogicalPath);
 
@@ -285,7 +273,7 @@ public class InventoryUpdater {
      * @return files that were removed from the manifest
      */
     public Set<RemoveFileResult> reinstateFile(VersionId sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... ocflOptions) {
-        LOGICAL_PATH_CONSTRAINTS.apply(dstLogicalPath);
+        logicalPathConstraints.apply(dstLogicalPath);
 
         var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);
 
