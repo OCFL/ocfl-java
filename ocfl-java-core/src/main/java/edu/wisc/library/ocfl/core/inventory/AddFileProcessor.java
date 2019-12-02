@@ -98,11 +98,15 @@ public class AddFileProcessor {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
+        var results = new HashMap<String, Path>();
         var options = new HashSet<>(Arrays.asList(ocflOptions));
 
         var files = FileUtil.findFiles(sourcePath);
 
-        if (files.size() == 0) {
+        if (files.size() == 0 && "".equals(destinationPath)) {
+            // An empty putObject call -- do nothing
+            return results;
+        } else if (files.size() == 0) {
             throw new IllegalArgumentException(String.format("No files were found under %s to add", sourcePath));
         }
 
@@ -114,7 +118,6 @@ public class AddFileProcessor {
         });
 
         var newFiles = new HashMap<Path, InventoryUpdater.AddFileResult>();
-        var results = new HashMap<String, Path>();
 
         filesWithDigests.forEach(entry -> {
             var file = entry.getKey();
