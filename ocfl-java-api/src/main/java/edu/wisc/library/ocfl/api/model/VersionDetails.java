@@ -10,8 +10,7 @@ import java.util.Map;
  */
 public class VersionDetails {
 
-    private String objectId;
-    private VersionId versionId;
+    private ObjectVersionId objectVersionId;
     private OffsetDateTime created;
     private CommitInfo commitInfo;
     private boolean mutable;
@@ -22,12 +21,17 @@ public class VersionDetails {
     }
 
     /**
-     * The ObjectId of the version
+     * The ObjectVersionId of the version
      *
      * @return the ObjectVersionId of the version
      */
     public ObjectVersionId getObjectVersionId() {
-        return ObjectVersionId.version(objectId, versionId);
+        return objectVersionId;
+    }
+
+    public VersionDetails setObjectVersionId(ObjectVersionId objectVersionId) {
+        this.objectVersionId = objectVersionId;
+        return this;
     }
 
     /**
@@ -36,12 +40,7 @@ public class VersionDetails {
      * @return the object's id
      */
     public String getObjectId() {
-        return objectId;
-    }
-
-    public VersionDetails setObjectId(String objectId) {
-        this.objectId = objectId;
-        return this;
+        return objectVersionId.getObjectId();
     }
 
     /**
@@ -50,12 +49,7 @@ public class VersionDetails {
      * @return the VersionId
      */
     public VersionId getVersionId() {
-        return versionId;
-    }
-
-    public VersionDetails setVersionId(VersionId versionId) {
-        this.versionId = versionId;
-        return this;
+        return objectVersionId.getVersionId();
     }
 
     /**
@@ -73,9 +67,9 @@ public class VersionDetails {
     }
 
     /**
-     * Optional description of the version
+     * Description of the version
      *
-     * @return CommitInfo or null
+     * @return CommitInfo
      */
     public CommitInfo getCommitInfo() {
         return commitInfo;
@@ -137,10 +131,10 @@ public class VersionDetails {
     @Override
     public String toString() {
         return "VersionDetails{" +
-                "objectId='" + objectId + '\'' +
-                ", versionId='" + versionId + '\'' +
+                "objectVersionId='" + objectVersionId + '\'' +
                 ", created=" + created +
                 ", commitInfo=" + commitInfo +
+                ", mutable=" + mutable +
                 ", fileMap=" + fileMap +
                 '}';
     }

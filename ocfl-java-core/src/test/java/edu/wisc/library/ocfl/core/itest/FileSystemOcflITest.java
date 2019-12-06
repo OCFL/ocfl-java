@@ -5,10 +5,7 @@ import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.*;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
@@ -33,6 +30,7 @@ import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.commitInfo;
 import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -436,6 +434,96 @@ public class FileSystemOcflITest {
                         "Test file 1",
                         Map.of(DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e"))
                 ));
+    }
+
+    @Test
+    public void changeHistory() {
+        var repoDir = newRepoDir("change-history");
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("3".getBytes()), "f3")
+                    .removeFile("f1");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+                    .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
+        });
+
+        var f1History = repo.fileChangeHistory(objectId, "f1");
+        var f2History = repo.fileChangeHistory(objectId, "f2");
+        var f3History = repo.fileChangeHistory(objectId, "f3");
+
+        assertThat(f1History.getFileChanges(), contains(
+                fileChange(FileChangeType.UPDATE,
+                        ObjectVersionId.version(objectId, "v1"),
+                        "f1", "o1/v1/content/f1",
+                        commitInfo(defaultCommitInfo.getUser(), "1"),
+                        Map.of(DigestAlgorithm.sha512, "4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89903a740e1ee172da793a6e79d560e5f7f9bd058a12a280433ed6fa46510a")),
+                fileChange(FileChangeType.REMOVE,
+                        ObjectVersionId.version(objectId, "v2"),
+                        "f1", null,
+                        commitInfo(defaultCommitInfo.getUser(), "2"),
+                        Map.of()),
+                fileChange(FileChangeType.UPDATE,
+                        ObjectVersionId.version(objectId, "v3"),
+                        "f1", "o1/v1/content/f1",
+                        commitInfo(defaultCommitInfo.getUser(), "3"),
+                        Map.of(DigestAlgorithm.sha512, "4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89903a740e1ee172da793a6e79d560e5f7f9bd058a12a280433ed6fa46510a"))));
+
+        assertThat(f2History.getFileChanges(), contains(
+                fileChange(FileChangeType.UPDATE,
+                        ObjectVersionId.version(objectId, "v1"),
+                        "f2", "o1/v1/content/f2",
+                        commitInfo(defaultCommitInfo.getUser(), "1"),
+                        Map.of(DigestAlgorithm.sha512, "40b244112641dd78dd4f93b6c9190dd46e0099194d5a44257b7efad6ef9ff4683da1eda0244448cb343aa688f5d3efd7314dafe580ac0bcbf115aeca9e8dc114")),
+                fileChange(FileChangeType.UPDATE,
+                        ObjectVersionId.version(objectId, "v3"),
+                        "f2", "o1/v3/content/f2",
+                        commitInfo(defaultCommitInfo.getUser(), "3"),
+                        Map.of(DigestAlgorithm.sha512, "7db70149dac5561e411a202629d06832b06b7e8dfef61086ff9e0922459fbe14a69d565cf838fd43681fdb29a698bfe377861b966d12416298997843820bfdb7"))));
+
+        assertThat(f3History.getFileChanges(), contains(
+                fileChange(FileChangeType.UPDATE,
+                        ObjectVersionId.version(objectId, "v2"),
+                        "f3", "o1/v2/content/f3",
+                        commitInfo(defaultCommitInfo.getUser(), "2"),
+                        Map.of(DigestAlgorithm.sha512, "3bafbf08882a2d10133093a1b8433f50563b93c14acd05b79028eb1d12799027241450980651994501423a66c276ae26c43b739bc65c4e16b10c3af6c202aebb"))));
+    }
+
+    @Test
+    public void failWhenLogicalPathNotFoundInChangeHistory() {
+        var repoDir = newRepoDir("change-history");
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("3".getBytes()), "f3")
+                    .removeFile("f1");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+                    .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
+        });
+
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "The logical path f5 was not found in object o1", () -> {
+            repo.fileChangeHistory(objectId, "f5");
+        });
     }
 
     @Test

@@ -4,8 +4,7 @@ import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,24 +28,12 @@ public class ResponseMapper {
     }
 
     public VersionDetails mapVersion(Inventory inventory, VersionId versionId, Version version) {
-        var details = new VersionDetails()
-                .setObjectId(inventory.getId())
-                .setVersionId(versionId)
+        return new VersionDetails()
+                .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
                 .setCreated(version.getCreated())
                 .setMutable(inventory.hasMutableHead() && inventory.getHead().equals(versionId))
-                .setFileMap(mapFileDetails(inventory, version));
-
-        var commitInfo = new CommitInfo().setMessage(version.getMessage());
-
-        if (version.getUser() != null) {
-            commitInfo.setUser(new User()
-                    .setName(version.getUser().getName())
-                    .setAddress(version.getUser().getAddress()));
-        }
-
-        details.setCommitInfo(commitInfo);
-
-        return details;
+                .setFileMap(mapFileDetails(inventory, version))
+                .setCommitInfo(commitInfo(version));
     }
 
     private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
@@ -71,6 +58,58 @@ public class ResponseMapper {
         });
 
         return fileDetailsMap;
+    }
+
+    public FileChangeHistory fileChangeHistory(Inventory inventory, String logicalPath) {
+        var changes = new ArrayList<FileChange>();
+        var objectRootPath = inventory.getObjectRootPath();
+
+        String lastFileId = null;
+
+        for (var entry : inventory.getVersions().entrySet()) {
+            var versionId = entry.getKey();
+            var version = entry.getValue();
+            var fileId = version.getFileId(logicalPath);
+
+            if (fileId != null && !Objects.equals(lastFileId, fileId)) {
+                lastFileId = fileId;
+                var contentPath = inventory.getContentPath(fileId);
+                var fixity = inventory.getFixityForContentPath(contentPath);
+                fixity.put(inventory.getDigestAlgorithm(), fileId);
+
+                changes.add(new FileChange()
+                        .setChangeType(FileChangeType.UPDATE)
+                        .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
+                        .setPath(logicalPath)
+                        .setTimestamp(version.getCreated())
+                        .setCommitInfo(commitInfo(version))
+                        .setStorageRelativePath(FileUtil.pathJoinFailEmpty(objectRootPath, contentPath))
+                        .setFixity(fixity));
+            } else if (fileId == null && lastFileId != null) {
+                lastFileId = null;
+                changes.add(new FileChange()
+                        .setChangeType(FileChangeType.REMOVE)
+                        .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
+                        .setPath(logicalPath)
+                        .setTimestamp(version.getCreated())
+                        .setCommitInfo(commitInfo(version))
+                        .setFixity(Collections.emptyMap()));
+            }
+        }
+
+        return new FileChangeHistory().setPath(logicalPath).setFileChanges(changes);
+    }
+
+    private CommitInfo commitInfo(Version version) {
+        var commitInfo = new CommitInfo().setMessage(version.getMessage());
+
+        if (version.getUser() != null) {
+            commitInfo.setUser(new User()
+                    .setName(version.getUser().getName())
+                    .setAddress(version.getUser().getAddress()));
+        }
+
+        return commitInfo;
     }
 
 }

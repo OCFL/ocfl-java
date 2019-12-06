@@ -2,10 +2,7 @@ package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
-import edu.wisc.library.ocfl.api.model.ObjectDetails;
-import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionDetails;
+import edu.wisc.library.ocfl.api.model.*;
 
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -98,6 +95,18 @@ public interface OcflRepository {
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
     VersionDetails describeVersion(ObjectVersionId objectVersionId);
+
+    /**
+     * Retrieves the complete change history for a logical path within an object. Each entry in the change history marks
+     * an object version where the contents at the logical path were changed or the logical path was removed. Object versions
+     * where there were no changes to the logical path are not included.
+     *
+     * @param objectId the id of the object
+     * @param logicalPath the logical path
+     * @return the change history for the logical path
+     * @throws NotFoundException when object or logical path cannot be found
+     */
+    FileChangeHistory fileChangeHistory(String objectId, String logicalPath);
 
     /**
      * Returns true if an object with the specified id exists in the repository.

@@ -1,6 +1,8 @@
 package edu.wisc.library.ocfl.core.matcher;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.FileChangeType;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
 
 import java.util.Map;
@@ -33,6 +35,11 @@ public class OcflMatchers {
 
     public static OcflObjectVersionMatcher objectVersion(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
         return new OcflObjectVersionMatcher(objectId, versionId, commitInfoMatcher, fileMatchers);
+    }
+
+    public static FileChangeMatcher fileChange(FileChangeType changeType, ObjectVersionId objectVersionId, String filePath,
+                                               String storagePath, CommitInfoMatcher commitInfoMatcher, Map<DigestAlgorithm, String> fixity) {
+        return new FileChangeMatcher(changeType, objectVersionId, filePath, storagePath, commitInfoMatcher, fixity);
     }
 
 }

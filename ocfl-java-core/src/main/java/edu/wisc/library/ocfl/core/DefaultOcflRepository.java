@@ -256,6 +256,26 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
+    public FileChangeHistory fileChangeHistory(String objectId, String logicalPath) {
+        ensureOpen();
+
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+        Enforce.notBlank(logicalPath, "logicalPath cannot be blank");
+
+        var inventory = requireInventory(ObjectVersionId.head(objectId));
+        var changeHistory = responseMapper.fileChangeHistory(inventory, logicalPath);
+
+        if (changeHistory.getFileChanges().isEmpty()) {
+            throw new NotFoundException(String.format("The logical path %s was not found in object %s.", logicalPath, objectId));
+        }
+
+        return changeHistory;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean containsObject(String objectId) {
         ensureOpen();
 
