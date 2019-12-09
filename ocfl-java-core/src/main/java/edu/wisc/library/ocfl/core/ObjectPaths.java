@@ -4,6 +4,7 @@ import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,6 +29,16 @@ public final class ObjectPaths {
     }
 
     /**
+     * Path to an inventory file within the given directory
+     *
+     * @param directory parent directory of an inventory file
+     * @return path to inventory file
+     */
+    public static String inventoryPath(String directory) {
+        return FileUtil.pathJoinFailEmpty(directory, OcflConstants.INVENTORY_FILE);
+    }
+
+    /**
      * Path to an inventory sidecar file within the given directory
      *
      * @param directory parent directory of an inventory file
@@ -39,13 +50,85 @@ public final class ObjectPaths {
     }
 
     /**
+     * Path to an inventory sidecar file within the given directory
+     *
+     * @param directory parent directory of an inventory file
+     * @param inventory deserialized inventory
+     * @return path to inventory sidecar
+     */
+    public static String inventorySidecarPath(String directory, Inventory inventory) {
+        return FileUtil.pathJoinFailEmpty(directory, OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName());
+    }
+
+    /**
      * Path to an inventory file within the mutable HEAD
      *
      * @param objectRootPath path to the root of an ocfl object
      * @return path to the mutable HEAD inventory file
      */
     public static Path mutableHeadInventoryPath(Path objectRootPath) {
-        return inventoryPath(objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_VERSION_PATH));
+        return inventoryPath(mutableHeadVersionPath(objectRootPath));
+    }
+
+    /**
+     * Path to an inventory file within the mutable HEAD
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return path to the mutable HEAD inventory file
+     */
+    public static String mutableHeadInventoryPath(String objectRootPath) {
+        return inventoryPath(mutableHeadVersionPath(objectRootPath));
+    }
+
+    /**
+     * Path to an inventory sidecar file within the given directory
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @param inventory deserialized inventory
+     * @return path to inventory sidecar
+     */
+    public static String mutableHeadInventorySidecarPath(String objectRootPath, Inventory inventory) {
+        return inventorySidecarPath(mutableHeadVersionPath(objectRootPath), inventory);
+    }
+
+    /**
+     * Path to the mutable HEAD extension version directory
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return path to the mutable HEAD extension version directory
+     */
+    public static String mutableHeadVersionPath(String objectRootPath) {
+        return FileUtil.pathJoinFailEmpty(objectRootPath, OcflConstants.MUTABLE_HEAD_VERSION_PATH);
+    }
+
+    /**
+     * Path to the mutable HEAD extension version directory
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return path to the mutable HEAD extension version directory
+     */
+    public static Path mutableHeadVersionPath(Path objectRootPath) {
+        return objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_VERSION_PATH);
+    }
+
+    /**
+     * Path to the mutable HEAD extension root directory
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return path to the mutable HEAD extension root directory
+     */
+    public static String mutableHeadExtensionRoot(String objectRootPath) {
+        return FileUtil.pathJoinFailEmpty(objectRootPath, OcflConstants.MUTABLE_HEAD_EXT_PATH);
+    }
+
+    /**
+     * Path to the mutable HEAD extension root directory
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return path to the mutable HEAD extension root directory
+     */
+    public static Path mutableHeadExtensionRoot(Path objectRootPath) {
+        return objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH);
     }
 
     /**

@@ -20,7 +20,6 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
-import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.path.constraint.BackslashPathSeparatorConstraint;
 import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
@@ -138,7 +137,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         if (inventory.hasMutableHead()) {
             storeNewMutableHeadVersion(inventory, objectRoot, stagingDir);
         } else {
-            storeNewVersion(inventory, objectRoot, stagingDir);
+            storeNewImmutableVersion(inventory, objectRoot, stagingDir);
         }
     }
 
@@ -150,13 +149,13 @@ public class FileSystemOcflStorage implements OcflStorage {
         ensureOpen();
 
         var objectRootPath = objectRootPathFull(inventory.getId());
-        var version = ensureVersion(inventory, versionId);
+        var version = inventory.ensureVersion(versionId);
         var algorithm = inventory.getDigestAlgorithm();
 
         var map = new HashMap<String, OcflFileRetriever>(version.getState().size());
 
         version.getState().forEach((digest, paths) -> {
-            var srcPath = objectRootPath.resolve(ensureManifestPath(inventory, digest));
+            var srcPath = objectRootPath.resolve(inventory.ensureContentPath(digest));
 
             paths.forEach(path -> {
                 map.put(path, new FileSystemOcflFileRetriever(srcPath, algorithm, digest));
@@ -174,14 +173,14 @@ public class FileSystemOcflStorage implements OcflStorage {
         ensureOpen();
 
         var objectRootPath = objectRootPathFull(inventory.getId());
-        var version = ensureVersion(inventory, versionId);
+        var version = inventory.ensureVersion(versionId);
         var digestAlgorithm = inventory.getDigestAlgorithm().getJavaStandardName();
 
         parallelProcess.collection(version.getState().entrySet(), entry -> {
             var id = entry.getKey();
             var files = entry.getValue();
 
-            var srcPath = objectRootPath.resolve(ensureManifestPath(inventory, id));
+            var srcPath = objectRootPath.resolve(inventory.ensureContentPath(id));
 
             for (var logicalPath : files) {
                 logicalPathConstraints.apply(logicalPath);
@@ -204,24 +203,6 @@ public class FileSystemOcflStorage implements OcflStorage {
                 }
             }
         });
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public FixityCheckInputStream retrieveFile(Inventory inventory, String fileId) {
-        ensureOpen();
-
-        var objectRootPath = objectRootPathFull(inventory.getId());
-        var srcPath = objectRootPath.resolve(ensureManifestPath(inventory, fileId));
-
-        try {
-            return new FixityCheckInputStream(Files.newInputStream(objectRootPath.resolve(srcPath)),
-                    inventory.getDigestAlgorithm().getJavaStandardName(), fileId);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
     }
 
     /**
@@ -277,6 +258,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
         try {
             try {
+                // The inventory is written to the root first so that the mutable version can be recovered if the write fails
                 copyInventoryToRootWithRollback(stagingRoot, objectRoot, newInventory);
                 // TODO this is still slightly dangerous if one file succeeds and the other fails...
                 copyInventory(stagingRoot, versionRoot);
@@ -313,7 +295,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         ensureOpen();
 
         var objectRootPath = objectRootPathFull(objectId);
-        var extensionRoot = objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH);
+        var extensionRoot = ObjectPaths.mutableHeadExtensionRoot(objectRootPath);
 
         if (Files.exists(extensionRoot)) {
             try (var paths = Files.walk(extensionRoot)) {
@@ -469,7 +451,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         return algorithm;
     }
 
-    private void storeNewVersion(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir) {
+    private void storeNewImmutableVersion(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir) {
         ensureNoMutableHead(objectRoot);
 
         var versionRoot = objectRoot.headVersion();
@@ -492,7 +474,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 throw e;
             }
         } catch (RuntimeException e) {
-            if (isFirstVersion) {
+            if (isFirstVersion && Files.notExists(objectRoot.inventoryFile())) {
                 FileUtil.safeDeletePath(objectRoot.path());
             }
             throw e;
@@ -584,6 +566,7 @@ public class FileSystemOcflStorage implements OcflStorage {
             copyInventory(source, objectRoot);
         } catch (RuntimeException e) {
             try {
+                // TODO bug here when first version
                 var previousVersionRoot = objectRoot.version(inventory.getHead().previousVersionId());
                 copyInventory(previousVersionRoot, objectRoot);
             } catch (RuntimeException e1) {
@@ -641,24 +624,6 @@ public class FileSystemOcflStorage implements OcflStorage {
         }
     }
 
-    private Version ensureVersion(Inventory inventory, VersionId versionId) {
-        var version = inventory.getVersion(versionId);
-
-        if (version == null) {
-            throw new IllegalStateException(String.format("Object %s does not contain version %s", inventory.getId(), versionId));
-        }
-
-        return version;
-    }
-
-    private String ensureManifestPath(Inventory inventory, String id) {
-        if (!inventory.manifestContainsFileId(id)) {
-            throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
-                    id, inventory.getId()));
-        }
-        return inventory.getContentPath(id);
-    }
-
     private void ensureNoMutableHead(ObjectPaths.ObjectRoot objectRoot) {
         if (Files.exists(objectRoot.mutableHeadVersion().inventoryFile())) {
             // TODO modeled exception?
@@ -696,11 +661,11 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private void ensureOpen() {
         if (closed) {
-            throw new IllegalStateException(FileSystemOcflStorage.class.getName() + " is closed.");
+            throw new IllegalStateException(this.getClass().getName() + " is closed.");
         }
 
         if (!initialized) {
-            throw new IllegalStateException(FileSystemOcflStorage.class.getName() + " must be initialized before it can be used.");
+            throw new IllegalStateException(this.getClass().getName() + " must be initialized before it can be used.");
         }
     }
 

@@ -37,7 +37,6 @@ public class ResponseMapper {
     }
 
     private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
-        var objectRootPath = inventory.getObjectRootPath();
         var fileDetailsMap = new HashMap<String, FileDetails>();
 
         var digestAlgorithm = inventory.getDigestAlgorithm();
@@ -47,8 +46,7 @@ public class ResponseMapper {
                 var contentPath = inventory.getContentPath(digest);
                 var details = new FileDetails()
                         .setPath(path)
-                        .setStorageRelativePath(
-                                FileUtil.pathJoinFailEmpty(objectRootPath, contentPath))
+                        .setStorageRelativePath(inventory.storagePath(digest))
                         .addDigest(digestAlgorithm, digest);
 
                 var digests = inventory.getFixityForContentPath(contentPath);
@@ -62,7 +60,6 @@ public class ResponseMapper {
 
     public FileChangeHistory fileChangeHistory(Inventory inventory, String logicalPath) {
         var changes = new ArrayList<FileChange>();
-        var objectRootPath = inventory.getObjectRootPath();
 
         String lastFileId = null;
 
@@ -73,7 +70,7 @@ public class ResponseMapper {
 
             if (fileId != null && !Objects.equals(lastFileId, fileId)) {
                 lastFileId = fileId;
-                var contentPath = inventory.getContentPath(fileId);
+                var contentPath = inventory.ensureContentPath(fileId);
                 var fixity = inventory.getFixityForContentPath(contentPath);
                 fixity.put(inventory.getDigestAlgorithm(), fileId);
 
@@ -83,7 +80,7 @@ public class ResponseMapper {
                         .setPath(logicalPath)
                         .setTimestamp(version.getCreated())
                         .setCommitInfo(commitInfo(version))
-                        .setStorageRelativePath(FileUtil.pathJoinFailEmpty(objectRootPath, contentPath))
+                        .setStorageRelativePath(inventory.storagePath(fileId))
                         .setFixity(fixity));
             } else if (fileId == null && lastFileId != null) {
                 lastFileId = null;

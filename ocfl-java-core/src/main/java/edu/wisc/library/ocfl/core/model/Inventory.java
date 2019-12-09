@@ -251,6 +251,23 @@ public class Inventory {
     }
 
     /**
+     * Returns the Version that corresponds to the versionId. Throws an exception if the version does not exist.
+     *
+     * @param versionId version id of the version to retrieve
+     * @return the version
+     * @throws IllegalStateException if the version does not exist
+     */
+    public Version ensureVersion(VersionId versionId) {
+        var version = getVersion(versionId);
+
+        if (version == null) {
+            throw new IllegalStateException(String.format("Object %s does not contain version %s", id, versionId));
+        }
+
+        return version;
+    }
+
+    /**
      * Helper method for checking if an object contains a file with the given digest id.
      */
     public boolean manifestContainsFileId(String fileId) {
@@ -290,10 +307,42 @@ public class Inventory {
     }
 
     /**
+     * Returns the first contentPath associated to a fileId. Throws an exception if there is no mapping.
+     *
+     * @param fileId the fileId to lookup
+     * @return the mapped content path
+     * @throws IllegalStateException if there is no mapping
+     */
+    public String ensureContentPath(String fileId) {
+        if (!manifestContainsFileId(fileId)) {
+            throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
+                    fileId, id));
+        }
+        return getContentPath(fileId);
+    }
+
+    /**
+     * Returns the path from the storage root to a file within an object.
+     *
+     * @param fileId the fileId of the file to lookup
+     * @return the path from the storage root to the file
+     */
+    public String storagePath(String fileId) {
+        return FileUtil.pathJoinFailEmpty(objectRootPath, ensureContentPath(fileId));
+    }
+
+    /**
      * Returns the set of file ids of files that have content paths that begin with the given prefix.
      */
     public Set<String> getFileIdsForMatchingFiles(Path path) {
-        var pathStr = FileUtil.pathToStringStandardSeparator(path) + "/";
+        return getFileIdsForMatchingFiles(FileUtil.pathToStringStandardSeparator(path));
+    }
+
+    /**
+     * Returns the set of file ids of files that have content paths that begin with the given prefix.
+     */
+    public Set<String> getFileIdsForMatchingFiles(String path) {
+        var pathStr = path + "/";
         var set = new HashSet<String>();
         manifestBiMap.getPathToFileId().forEach((contentPath, id) -> {
             if (contentPath.startsWith(pathStr)) {

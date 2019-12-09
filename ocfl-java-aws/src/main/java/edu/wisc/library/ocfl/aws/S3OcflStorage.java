@@ -1,16 +1,23 @@
 package edu.wisc.library.ocfl.aws;
 
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.OcflVersion;
+import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -20,23 +27,37 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.utils.http.SdkHttpUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class S3OcflStorage implements OcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3OcflStorage.class);
 
+    private boolean closed = false;
+    private boolean initialized = false;
+
+    private PathConstraintProcessor logicalPathConstraints;
+
     private S3Client s3Client;
     private String bucketName;
-    private Path cache;
     private Path workDir;
 
+    private S3OcflStorageInitializer initializer;
     private ObjectIdPathMapper objectIdPathMapper;
     private InventoryMapper inventoryMapper;
+    private ParallelProcess parallelProcess; // TODO async s3client?
+    private S3OcflFileRetriever.Builder fileRetrieverBuilder;
+
+    private OcflVersion ocflVersion;
 
     // TODO object keys: https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html#object-key-guidelines
     // TODO retries are built into client. sufficient?
@@ -46,21 +67,22 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public Inventory loadInventory(String objectId) {
-        var objectRootPath = objectRootPathFull(objectId);
-        // TODO change
-        var inventoryPath = inventoryPath(Paths.get(objectRootPath));
+        ensureOpen();
+
+        var objectRootPath = objectRootPath(objectId);
         var tempDir = FileUtil.createTempDir(workDir, objectId);
-        var localInventoryPath = tempDir.resolve(inventoryPath);
+        var localInventoryPath = tempDir.resolve(OcflConstants.INVENTORY_FILE);
 
         try {
-            downloadFile(inventoryPath, localInventoryPath);
-            var inventory = inventoryMapper.read(objectRootPath, localInventoryPath);
-            var expectedDigest = getDigestFromSidecar(Paths.get(objectRootPath), inventory);
-            verifyInventory(expectedDigest, localInventoryPath, inventory.getDigestAlgorithm());
+            var inventory = downloadAndParseMutableInventory(objectRootPath, localInventoryPath);
+
+            if (inventory != null) {
+                ensureRootObjectHasNotChanged(inventory);
+            } else {
+                inventory = downloadAndParseInventory(objectRootPath, localInventoryPath);
+            }
+
             return inventory;
-        } catch (NoSuchKeyException e) {
-            // Return null when the inventory file isn't found
-            return null;
         } finally {
             FileUtil.safeDeletePath(tempDir);
         }
@@ -71,25 +93,12 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
-        // TODO this is wrong
-        var objectRootPath = Paths.get(objectRootPathFull(inventory.getId()));
-        var versionPath = objectRootPath.resolve(inventory.getHead().toString());
+        ensureOpen();
 
-        try {
-            if (isFirstVersion(inventory)) {
-                writeObjectNamasteFile(objectRootPath);
-            }
-
-            // TODO cleanup previous failures?
-
-            // TODO write a copy to the cache?
-
-            // TODO this is incorrect because you can't rely on contentDirectory being set
-            storeContentInS3(inventory, stagingDir, versionPath.resolve(inventory.resolveContentDirectory()));
-            storeInventoryInS3(inventory, stagingDir, versionPath);
-        } catch (RuntimeException e) {
-            rollback(objectRootPath, versionPath, inventory);
-            throw e;
+        if (inventory.hasMutableHead()) {
+            storeNewMutableHeadVersion(inventory, stagingDir);
+        } else {
+            storeNewImmutableVersion(inventory, stagingDir);
         }
     }
 
@@ -98,7 +107,21 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
-        return null;
+        ensureOpen();
+
+        var version = inventory.ensureVersion(versionId);
+        var algorithm = inventory.getDigestAlgorithm();
+
+        var map = new HashMap<String, OcflFileRetriever>(version.getState().size());
+
+        version.getState().forEach((digest, paths) -> {
+            var srcPath = inventory.storagePath(digest);
+            paths.forEach(path -> {
+                map.put(path, fileRetrieverBuilder.build(srcPath, algorithm, digest));
+            });
+        });
+
+        return map;
     }
 
     /**
@@ -106,15 +129,37 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
+        ensureOpen();
 
-    }
+        var version = inventory.ensureVersion(versionId);
+        var digestAlgorithm = inventory.getDigestAlgorithm().getJavaStandardName();
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public FixityCheckInputStream retrieveFile(Inventory inventory, String fileId) {
-        return null;
+        parallelProcess.collection(version.getState().entrySet(), entry -> {
+            var id = entry.getKey();
+            var files = entry.getValue();
+            var srcPath = inventory.storagePath(id);
+
+            for (var logicalPath : files) {
+                logicalPathConstraints.apply(logicalPath);
+                var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
+
+                FileUtil.createDirectories(destination.getParent());
+
+                if (Thread.interrupted()) {
+                    break;
+                }
+
+                try (var stream = new FixityCheckInputStream(streamFile(srcPath), digestAlgorithm, id)) {
+                    Files.copy(stream, destination);
+                    stream.checkFixity();
+                } catch (IOException e) {
+                    throw new RuntimeIOException(e);
+                } catch (FixityCheckException e) {
+                    throw new FixityCheckException(
+                            String.format("File %s in object %s failed its fixity check.", logicalPath, inventory.getId()), e);
+                }
+            }
+        });
     }
 
     /**
@@ -122,7 +167,9 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void purgeObject(String objectId) {
+        ensureOpen();
 
+        deletePath(objectRootPath(objectId));
     }
 
     /**
@@ -130,7 +177,33 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
+        ensureOpen();
 
+        ensureRootObjectHasNotChanged(newInventory);
+
+        if (listObjectsUnderPrefix(ObjectPaths.mutableHeadVersionPath(newInventory.getObjectRootPath())).isEmpty()) {
+            throw new ObjectOutOfSyncException(
+                    String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", newInventory.getId()));
+        }
+
+        var versionPath = objectVersionPath(newInventory, newInventory.getHead());
+        ensureVersionDoesNotExist(newInventory, versionPath);
+
+        var objectKeys = copyMutableVersionToImmutableVersion(oldInventory, newInventory);
+
+        try {
+            storeInventoryInS3WithRollback(newInventory, stagingDir, versionPath);
+
+            try {
+                purgeMutableHead(newInventory.getId());
+            } catch (RuntimeException e) {
+                LOG.error("Failed to cleanup mutable HEAD at {}. Must be deleted manually.",
+                        ObjectPaths.mutableHeadExtensionRoot(newInventory.getObjectRootPath()), e);
+            }
+        } catch (RuntimeException e) {
+            safeDeleteObjects(objectKeys);
+            throw e;
+        }
     }
 
     /**
@@ -138,7 +211,9 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void purgeMutableHead(String objectId) {
+        ensureOpen();
 
+        deletePath(ObjectPaths.mutableHeadExtensionRoot(objectRootPath(objectId)));
     }
 
     /**
@@ -146,7 +221,9 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public boolean containsObject(String objectId) {
-        return false;
+        ensureOpen();
+
+        return !listObjectsUnderPrefix(objectRootPath(objectId)).isEmpty();
     }
 
     /**
@@ -154,6 +231,8 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public String objectRootPath(String objectId) {
+        ensureOpen();
+
         return objectIdPathMapper.map(objectId);
     }
 
@@ -161,8 +240,14 @@ public class S3OcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
+    public synchronized void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
+        if (initialized) {
+            return;
+        }
 
+        this.objectIdPathMapper = this.initializer.initializeStorage(bucketName, ocflVersion, layoutConfig);
+        this.ocflVersion = ocflVersion;
+        this.initialized = true;
     }
 
     /**
@@ -170,167 +255,459 @@ public class S3OcflStorage implements OcflStorage {
      */
     @Override
     public void close() {
-
+        closed = true;
+        parallelProcess.shutdown();
     }
 
-    private void storeContentInS3(Inventory inventory, Path sourcePath, Path versionContentPath) {
-        // TODO parallelize
-        var stagedContent = sourcePath.resolve(inventory.resolveContentDirectory());
-        var files = FileUtil.findFiles(sourcePath);
+    private void storeNewImmutableVersion(Inventory inventory, Path stagingDir) {
+        ensureNoMutableHead(inventory);
 
-        for (var file : files) {
-            var contentRelativePath = stagedContent.relativize(file);
-            // TODO verify fixity of all files before uploading to s3?
-            var digest = verifyFileFixity(inventory, file, contentRelativePath);
-            if (DigestAlgorithm.md5.equals(inventory.getDigestAlgorithm())) {
-                digest = DigestUtil.computeDigest(DigestAlgorithm.md5, file);
+        var versionPath = objectVersionPath(inventory, inventory.getHead());
+        ensureVersionDoesNotExist(inventory, versionPath);
+
+        String namasteFile = null;
+
+        try {
+            if (isFirstVersion(inventory)) {
+                namasteFile = writeObjectNamasteFile(inventory.getObjectRootPath());
             }
-            var destinationPath = versionContentPath.resolve(contentRelativePath);
-            uploadFile(file, destinationPath, digest);
+
+            var objectKeys = storeContentInS3(inventory, stagingDir);
+            // TODO write a copy to the cache?
+
+            try {
+                storeInventoryInS3WithRollback(inventory, stagingDir, versionPath);
+            } catch (RuntimeException e) {
+                safeDeleteObjects(objectKeys);
+                throw e;
+            }
+        } catch (RuntimeException e) {
+            // TODO this could be corrupt the object if another process is concurrently creating the same object
+            if (namasteFile != null) {
+                safeDeleteObjects(namasteFile);
+            }
+            throw e;
         }
     }
 
-    private void storeInventoryInS3(Inventory inventory, Path sourcePath, Path versionPath) {
-        var inventoryPath = inventoryPath(sourcePath);
-        var sidecarPath = inventorySidecarPath(sourcePath, inventory.getDigestAlgorithm());
+    private void storeNewMutableHeadVersion(Inventory inventory, Path stagingDir) {
+        ensureRevisionDoesNotExist(inventory);
 
-        uploadFile(inventoryPath, inventoryPath(versionPath));
-        uploadFile(sidecarPath, inventorySidecarPath(versionPath, inventory.getDigestAlgorithm()));
-        // TODO uploaded twice because I'm not sure if it's possible to copy an object before it replicates -- try it
-        uploadFile(inventoryPath, inventoryPath(versionPath.getParent()));
-        uploadFile(sidecarPath, inventorySidecarPath(versionPath.getParent(), inventory.getDigestAlgorithm()));
+        var cleanupKeys = new ArrayList<String>(2);
+
+        if (!listObjectsUnderPrefix(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath())).isEmpty()) {
+            ensureRootObjectHasNotChanged(inventory);
+        } else {
+            cleanupKeys.add(copyRootInventorySidecarToMutableHead(inventory));
+        }
+
+        try {
+            cleanupKeys.add(createRevisionMarker(inventory));
+
+            var objectKeys = storeContentInS3(inventory, stagingDir);
+
+            // TODO write a copy to the cache?
+
+            try {
+                // TODO if this fails the inventory may be left in a bad state
+                storeMutableHeadInventoryInS3(inventory, stagingDir);
+            } catch (RuntimeException e) {
+                safeDeleteObjects(objectKeys);
+                throw e;
+            }
+        } catch (RuntimeException e) {
+            safeDeleteObjects(cleanupKeys);
+            throw e;
+        }
+
+        deleteMutableHeadFilesNotInManifest(inventory);
     }
 
-    private String objectRootPathFull(String objectId) {
-        return objectIdPathMapper.map(objectId);
+    private List<String> storeContentInS3(Inventory inventory, Path sourcePath) {
+        var contentPrefix = contentPrefix(inventory);
+        var fileIds = inventory.getFileIdsForMatchingFiles(contentPrefix);
+        var objectKeys = Collections.synchronizedList(new ArrayList<String>());
+
+        try {
+            parallelProcess.collection(fileIds, fileId -> {
+                var contentPath = inventory.ensureContentPath(fileId);
+                var contentPathNoVersion = contentPath.substring(contentPath.indexOf('/') + 1);
+                var file = sourcePath.resolve(contentPathNoVersion);
+
+                if (Files.notExists(file)) {
+                    throw new IllegalStateException(String.format("Staged file %s does not exist", file));
+                }
+
+                var md5sum = inventory.getFixityForContentPath(contentPath)
+                        .getOrDefault(DigestAlgorithm.md5, null);
+                if (md5sum == null) {
+                    md5sum = DigestUtil.computeDigest(DigestAlgorithm.md5, file);
+                }
+
+                // TODO I don't think there's any reason to perform an additional fixity check on the source file
+
+                var key = inventory.storagePath(fileId);
+                objectKeys.add(key);
+                uploadFile(file, key, md5sum);
+            });
+        } catch (RuntimeException e) {
+            // TODO I think there's a problem here with not waiting for cancelled tasks to complete
+            safeDeleteObjects(objectKeys);
+            throw e;
+        }
+
+        return objectKeys;
     }
 
-    private Path inventoryPath(Path rootPath) {
-        return rootPath.resolve(OcflConstants.INVENTORY_FILE);
+    private List<String> copyMutableVersionToImmutableVersion(Inventory oldInventory, Inventory newInventory) {
+        var contentPrefix = contentPrefix(newInventory);
+        var fileIds = newInventory.getFileIdsForMatchingFiles(contentPrefix);
+        var objectKeys = Collections.synchronizedList(new ArrayList<String>());
+
+        try {
+            parallelProcess.collection(fileIds, fileId -> {
+                var srcPath = oldInventory.storagePath(fileId);
+                var dstPath = newInventory.storagePath(fileId);
+                objectKeys.add(dstPath);
+                copyObject(srcPath, dstPath);
+            });
+        } catch (RuntimeException e) {
+            // TODO I think there's a problem here with not waiting for cancelled tasks to complete
+            safeDeleteObjects(objectKeys);
+            throw e;
+        }
+
+        return objectKeys;
     }
 
-    private Path inventorySidecarPath(Path rootPath, DigestAlgorithm digestAlgorithm) {
-        return rootPath.resolve(OcflConstants.INVENTORY_FILE + "." + digestAlgorithm.getOcflName());
+    private void storeMutableHeadInventoryInS3(Inventory inventory, Path sourcePath) {
+        uploadFile(ObjectPaths.inventoryPath(sourcePath),
+                ObjectPaths.mutableHeadInventoryPath(inventory.getObjectRootPath()));
+        uploadFile(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
+                ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory));
     }
 
-    private String getDigestFromSidecar(Path objectRootPath, Inventory inventory) {
-        var inventorySidecarPath = inventorySidecarPath(objectRootPath, inventory.getDigestAlgorithm());
+    private void storeInventoryInS3WithRollback(Inventory inventory, Path sourcePath, String versionPath) {
+        var srcInventoryPath = ObjectPaths.inventoryPath(sourcePath);
+        var srcSidecarPath = ObjectPaths.inventorySidecarPath(sourcePath, inventory);
+        var versionedInventoryPath = ObjectPaths.inventoryPath(versionPath);
+        var versionedSidecarPath = ObjectPaths.inventorySidecarPath(versionPath, inventory);
+
+        uploadFile(srcInventoryPath, versionedInventoryPath);
+        uploadFile(srcSidecarPath, versionedSidecarPath);
+
+        try {
+            copyInventoryToRoot(versionPath, inventory);
+        } catch (RuntimeException e) {
+            rollbackInventory(inventory);
+            safeDeleteObjects(versionedInventoryPath, versionedSidecarPath);
+            throw e;
+        }
+    }
+
+    private void rollbackInventory(Inventory inventory) {
+        if (!isFirstVersion(inventory)) {
+            try {
+                var previousVersionPath = objectVersionPath(inventory, inventory.getHead().previousVersionId());
+                copyInventoryToRoot(previousVersionPath, inventory);
+            } catch (RuntimeException e) {
+                LOG.error("Failed to rollback inventory at {}. Object must be fixed manually.",
+                        ObjectPaths.inventoryPath(inventory.getObjectRootPath()), e);
+            }
+        }
+    }
+
+    private void copyInventoryToRoot(String versionPath, Inventory inventory) {
+        copyObject(ObjectPaths.inventoryPath(versionPath),
+                ObjectPaths.inventoryPath(inventory.getObjectRootPath()));
+        copyObject(ObjectPaths.inventorySidecarPath(versionPath, inventory),
+                ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory));
+    }
+
+    private String copyRootInventorySidecarToMutableHead(Inventory inventory) {
+        var rootSidecarPath = ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory);
+        var sidecarName = rootSidecarPath.substring(rootSidecarPath.lastIndexOf('/') + 1);
+        return copyObject(rootSidecarPath,
+                FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()), "root-" + sidecarName));
+    }
+
+    private Inventory downloadAndParseInventory(String objectRootPath, Path localPath) {
+        try {
+            var remotePath = ObjectPaths.inventoryPath(objectRootPath);
+            downloadFile(remotePath, localPath);
+            var inventory = inventoryMapper.read(objectRootPath, localPath);
+            var expectedDigest = getDigestFromSidecar(ObjectPaths.inventorySidecarPath(objectRootPath, inventory));
+            return verifyInventory(expectedDigest, localPath, inventory);
+        } catch (NoSuchKeyException e) {
+            // Doesn't exist; return null
+            return null;
+        }
+    }
+
+    private Inventory downloadAndParseMutableInventory(String objectRootPath, Path localPath) {
+        try {
+            var remotePath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
+            downloadFile(remotePath, localPath);
+            var revisionId = identifyLatestRevision(objectRootPath);
+            var inventory = inventoryMapper.readMutableHead(objectRootPath, revisionId, localPath);
+            var expectedDigest = getDigestFromSidecar(ObjectPaths.mutableHeadInventorySidecarPath(objectRootPath, inventory));
+            return verifyInventory(expectedDigest, localPath, inventory);
+        } catch (NoSuchKeyException e) {
+            // Doesn't exist; return null
+            return null;
+        }
+    }
+
+    private String createRevisionMarker(Inventory inventory) {
+        var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()),
+                "revisions", inventory.getRevisionId().toString());
+
+        s3Client.putObject(PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(revisionPath)
+                .build(), RequestBody.fromString(inventory.getRevisionId().toString(), StandardCharsets.UTF_8));
+
+        return revisionPath;
+    }
+
+    private RevisionId identifyLatestRevision(String objectRootPath) {
+        // TODO this is not implemented yet
+        var revisionsPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(objectRootPath), "revisions");
+        var revisions = listObjectsUnderPrefix(revisionsPath);
+
+        RevisionId revisionId = null;
+
+        for (var revisionStr : revisions) {
+            var id = RevisionId.fromString(revisionStr);
+            if (revisionId == null) {
+                revisionId = id;
+            } else if (revisionId.compareTo(id) < 1) {
+                revisionId = id;
+            }
+        }
+
+        return revisionId;
+    }
+
+    private void deleteMutableHeadFilesNotInManifest(Inventory inventory) {
+        var keys = list(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath()));
+        var deleteKeys = new ArrayList<String>();
+
+        keys.contents().forEach(o -> {
+            var key = o.key();
+            // TODO verify math
+            var contentPath = key.substring(inventory.getObjectRootPath().length() + 2);
+            if (inventory.getFileId(contentPath) == null) {
+                deleteKeys.add(key);
+            }
+        });
+
+        safeDeleteObjects(deleteKeys);
+    }
+
+    private String contentPrefix(Inventory inventory) {
+        if (inventory.hasMutableHead()) {
+            return String.format("%s/%s/%s",
+                    inventory.getHead().toString(),
+                    inventory.resolveContentDirectory(),
+                    inventory.getRevisionId().toString());
+        }
+
+        return inventory.getHead().toString();
+    }
+
+    private void ensureNoMutableHead(Inventory inventory) {
+        // TODO this could be incorrect due to eventual consistency issues
+        if (!listObjectsUnderPrefix(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath())).isEmpty()) {
+            // TODO modeled exception?
+            throw new IllegalStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
+                    inventory.getId()));
+        }
+    }
+
+    private void ensureVersionDoesNotExist(Inventory inventory, String versionPath) {
+        if (!listObjectsUnderPrefix(versionPath).isEmpty()) {
+            throw new ObjectOutOfSyncException(
+                    String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
+        }
+    }
+
+    private void ensureRevisionDoesNotExist(Inventory inventory) {
+        var latestRevision = identifyLatestRevision(inventory.getObjectRootPath());
+        if (latestRevision != null && latestRevision.compareTo(inventory.getRevisionId()) >= 0) {
+            throw new ObjectOutOfSyncException(
+                    String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
+        }
+    }
+
+    private void ensureRootObjectHasNotChanged(Inventory inventory) {
+        var savedDigest = getDigestFromSidecar(FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()),
+                "root-" + OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName()));
+        var rootDigest = getDigestFromSidecar(ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory));
+
+        if (!savedDigest.equalsIgnoreCase(rootDigest)) {
+            throw new ObjectOutOfSyncException(
+                    String.format("The mutable HEAD of object %s is out of sync with the root object state.", inventory.getId()));
+        }
+    }
+
+    private String getDigestFromSidecar(String sidecarPath) {
         try {
             return s3Client.getObjectAsBytes(GetObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(inventorySidecarPath.toString())
+                    .key(sidecarPath)
                     .build()).asUtf8String();
         } catch (NoSuchKeyException e) {
-            throw new IllegalStateException("Missing inventory sidecar: " + inventorySidecarPath, e);
+            throw new CorruptObjectException("Missing inventory sidecar: " + sidecarPath, e);
         }
     }
 
-    private void verifyInventory(String expectedDigest, Path inventoryPath, DigestAlgorithm algorithm) {
+    private Inventory verifyInventory(String expectedDigest, Path inventoryPath, Inventory inventory) {
+        var algorithm = inventory.getDigestAlgorithm();
         var actualDigest = DigestUtil.computeDigest(algorithm, inventoryPath);
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
                     inventoryPath, algorithm.getOcflName(), expectedDigest, actualDigest));
         }
+
+        return inventory;
     }
 
-    private String verifyFileFixity(Inventory inventory, Path file, Path contentRelativePath) {
-        var expectedDigest = inventory.getHeadVersion().getFileId(contentRelativePath.toString());
-        if (expectedDigest == null) {
-            throw new IllegalStateException(String.format("File not found in object %s version %s: %s",
-                    inventory.getId(), inventory.getHead(), contentRelativePath));
-        }
-        var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
-        if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-            throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                    file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
-        }
-        return actualDigest;
+    private String objectVersionPath(Inventory inventory, VersionId versionId) {
+        return FileUtil.pathJoinFailEmpty(inventory.getObjectRootPath(), versionId.toString());
     }
 
     private boolean isFirstVersion(Inventory inventory) {
         return inventory.getVersions().size() == 1;
     }
 
-    private void writeObjectNamasteFile(Path objectRootPath) {
-        // TODO
-        var namasteFile = new NamasteTypeFile(OcflConstants.DEFAULT_OCFL_VERSION.getOcflObjectVersion());
+    private String writeObjectNamasteFile(String objectRootPath) {
+        var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
+        var key = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
         s3Client.putObject(PutObjectRequest.builder()
                 .bucket(bucketName)
-                .key(objectRootPath.resolve(namasteFile.fileName()).toString())
+                .key(key)
                 .build(), RequestBody.fromString(namasteFile.fileContent()));
+        return key;
     }
 
-    private void rollback(Path objectRootPath, Path versionPath, Inventory inventory) {
+    private String uploadFile(Path localPath, String remotePath) {
+        var md5sum = DigestUtil.computeDigest(DigestAlgorithm.md5, localPath);
+        return uploadFile(localPath, remotePath, md5sum);
+    }
+
+    private String uploadFile(Path localPath, String remotePath, String md5digest) {
+        LOG.debug("Uploading {} to {}", remotePath, localPath);
+        // TODO multipart upload for large files
+        s3Client.putObject(PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(remotePath)
+                .contentMD5(md5digest)
+                .build(), localPath);
+        return remotePath;
+    }
+
+    private String copyObject(String srcPath, String dstPath) {
+        LOG.debug("Copying {} to {}", srcPath, dstPath);
+        // TODO this doesn't work for objects >= 5 gb
+        s3Client.copyObject(CopyObjectRequest.builder()
+                .bucket(bucketName)
+                .copySource(keyWithBucketName(srcPath))
+                .key(dstPath)
+                .build());
+
+        return dstPath;
+    }
+
+    private void downloadFile(String remotePath, Path localPath) {
+        LOG.debug("Downloading {} to {}", remotePath, localPath);
+        s3Client.getObject(GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(remotePath)
+                .build(), localPath);
+    }
+
+    private InputStream streamFile(String remotePath) {
+        LOG.debug("Streaming {}", remotePath);
+        return s3Client.getObject(GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(remotePath)
+                .build());
+    }
+
+    private List<String> listObjectsUnderPrefix(String path) {
+        return listDirectory(path).contents().stream()
+                .map(S3Object::key)
+                .map(k -> k.substring(path.length()))
+                .collect(Collectors.toList());
+    }
+
+    private ListObjectsV2Response listDirectory(String path) {
+        return s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .delimiter("/")
+                .prefix(path)
+                .build());
+    }
+
+    private ListObjectsV2Response list(String path) {
+        return s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(path)
+                .build());
+    }
+
+    private void deletePath(String path) {
+        LOG.debug("Deleting path {}", path);
+
+        var keys = list(path).contents().stream()
+                .map(S3Object::key)
+                .collect(Collectors.toList());
+
+        deleteObjects(keys);
+    }
+
+    private void deleteObjects(Collection<String> objectKeys) {
+        LOG.debug("Deleting objects: {}", objectKeys);
+
+        var objectIds = objectKeys.stream()
+                .map(key -> ObjectIdentifier.builder().key(key).build())
+                .collect(Collectors.toList());
+
+        s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                .bucket(bucketName)
+                .delete(Delete.builder()
+                        .objects(objectIds)
+                        .build())
+                .build());
+    }
+
+    private void safeDeleteObjects(String... objectKeys) {
+        safeDeleteObjects(Arrays.asList(objectKeys));
+    }
+
+    private void safeDeleteObjects(Collection<String> objectKeys) {
         try {
-            if (isFirstVersion(inventory)) {
-                deletePath(objectRootPath.toString());
-            } else {
-                deletePath(versionPath.toString());
-                var previousVersionRoot = objectRootPath.resolve(inventory.getHead().previousVersionId().toString());
-                copyInventory(previousVersionRoot, objectRootPath, inventory);
-            }
+            deleteObjects(objectKeys);
         } catch (RuntimeException e) {
-            LOG.error("Failed to rollback changes to object {} cleanly.", inventory.getId(), e);
+            LOG.error("Failed to cleanup objects: {}", objectKeys, e);
         }
     }
 
-    private void copyInventory(Path sourcePath, Path destinationPath, Inventory inventory) {
-        var digestAlgorithm = inventory.getDigestAlgorithm();
-
-        copyFile(inventoryPath(sourcePath).toString(), inventoryPath(destinationPath).toString());
-        copyFile(inventorySidecarPath(sourcePath, digestAlgorithm).toString(),
-                inventorySidecarPath(destinationPath, digestAlgorithm).toString());
+    private String keyWithBucketName(String key) {
+        // TODO not sure if the bucket name needs to be rooted
+        return SdkHttpUtils.urlEncode(String.format("%s/%s", bucketName, key));
     }
 
-    private void uploadFile(Path localPath, Path remotePath, String md5digest) {
-        // TODO multipart upload for large files
-        s3Client.putObject(PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(remotePath.toString())
-                .contentMD5(md5digest)
-                .build(), localPath);
-    }
+    private void ensureOpen() {
+        if (closed) {
+            throw new IllegalStateException(this.getClass().getName() + " is closed.");
+        }
 
-    private void uploadFile(Path localPath, Path remotePath) {
-        // TODO multipart upload for large files
-        s3Client.putObject(PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(remotePath.toString())
-                .build(), localPath);
-    }
-
-    private void downloadFile(Path remotePath, Path localPath) {
-        s3Client.getObject(GetObjectRequest.builder()
-                .bucket(bucketName)
-                .key(remotePath.toString())
-                .build(), localPath);
-    }
-
-    private void deletePath(String objectPrefix) {
-        var responses = s3Client.listObjectsV2Paginator(ListObjectsV2Request.builder()
-                .bucket(bucketName).prefix(objectPrefix)
-                .build());
-        responses.stream().forEach(response -> {
-            var objectIds = response.contents().stream().map(object -> {
-                return ObjectIdentifier.builder().key(object.key()).build();
-            }).collect(Collectors.toList());
-
-            LOG.debug("Deleting objects: " + objectIds);
-
-            s3Client.deleteObjects(DeleteObjectsRequest.builder()
-                    .bucket(bucketName)
-                    .delete(Delete.builder().objects(objectIds).build()).build());
-        });
-    }
-
-    private void copyFile(String sourceKey, String destinationKey) {
-        // TODO works for files over 5GB?
-        s3Client.copyObject(CopyObjectRequest.builder()
-                .copySource(bucketName + "/" + sourceKey)
-                .bucket(bucketName)
-                .key(destinationKey)
-                .build());
+        if (!initialized) {
+            throw new IllegalStateException(this.getClass().getName() + " must be initialized before it can be used.");
+        }
     }
 
 }
