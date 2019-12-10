@@ -67,15 +67,10 @@ public class NTupleObjectIdPathMapper implements ObjectIdPathMapper {
                 }
 
                 var end = Math.min(start + size, encodedId.length());
-
-                if (end == encodedId.length()) {
-                    pathBuilder.append(encodedId.substring(start)).append("/");
-                    break;
-                } else {
-                    pathBuilder.append(encodedId, start, end).append("/");
-                }
+                pathBuilder.append(encodedId, start, end).append("/");
             }
 
+            // TODO there's weirdness if the object id is <= the segment size...
             pathBuilder.append(encapsulator.encapsulate(objectId, encodedId));
 
             path = pathBuilder.toString();
