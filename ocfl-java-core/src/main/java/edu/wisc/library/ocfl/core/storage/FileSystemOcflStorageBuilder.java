@@ -10,7 +10,7 @@ import java.nio.file.Path;
 
 /**
  * Builder for constructing FileSystemOcflStorage objects. It is configured with sensible defaults and can minimally be
- * used as {@code new FileSystemOcflStorageBuilder().build(repoPath, idMapper).}
+ * used as {@code new FileSystemOcflStorageBuilder().build(repoPath).}
  */
 public class FileSystemOcflStorageBuilder {
 

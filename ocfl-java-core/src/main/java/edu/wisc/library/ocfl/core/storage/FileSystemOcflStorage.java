@@ -91,7 +91,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
-        this.initializer = Enforce.notNull(initializer, "objectMapper cannot be null");
+        this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
         this.logicalPathConstraints = PathConstraintProcessor.builder()
                 .fileNameConstraint(new NonEmptyFileNameConstraint())

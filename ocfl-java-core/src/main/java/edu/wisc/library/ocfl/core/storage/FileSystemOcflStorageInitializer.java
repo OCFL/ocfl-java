@@ -192,7 +192,7 @@ public class FileSystemOcflStorageInitializer {
 
     private void writeOcflSpec(Path repositoryRoot, OcflVersion ocflVersion) {
         var ocflSpecFile = ocflVersion.getOcflVersion() + ".txt";
-        try (var ocflSpecStream = FileSystemOcflStorageInitializer.class.getClassLoader().getResourceAsStream(ocflSpecFile)) {
+        try (var ocflSpecStream = this.getClass().getClassLoader().getResourceAsStream(ocflSpecFile)) {
             Files.copy(ocflSpecStream, repositoryRoot.resolve(ocflSpecFile));
         } catch (IOException e) {
             throw new RuntimeIOException(e);

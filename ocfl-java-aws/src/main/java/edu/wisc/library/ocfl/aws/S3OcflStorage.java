@@ -8,20 +8,28 @@ import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.OcflVersion;
+import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.path.constraint.BackslashPathSeparatorConstraint;
+import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -36,6 +44,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class S3OcflStorage implements OcflStorage {
@@ -59,8 +69,47 @@ public class S3OcflStorage implements OcflStorage {
 
     private OcflVersion ocflVersion;
 
-    // TODO object keys: https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html#object-key-guidelines
-    // TODO retries are built into client. sufficient?
+    /**
+     * Create a new builder.
+     *
+     * @return builder
+     */
+    public static S3OcflStorageBuilder builder() {
+        return new S3OcflStorageBuilder();
+    }
+
+    /**
+     * Creates a new S3OcflStorage object.
+     *
+     * <p>{@link #initializeStorage} must be called before using this object.
+     *
+     * @see S3OcflStorageBuilder
+     *
+     * @param s3Client the client to use to interface with S3
+     * @param bucketName the bucket the OCFL repository is located in
+     * @param threadPoolSize The size of the object's thread pool, used when calculating digests
+     * @param inventoryMapper mapper used to parse inventory files
+     * @param initializer initializes a new OCFL repo
+     */
+    public S3OcflStorage(S3Client s3Client, String bucketName, int threadPoolSize, Path workDir,
+                                 InventoryMapper inventoryMapper, S3OcflStorageInitializer initializer) {
+        this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+        this.bucketName = Enforce.notBlank(bucketName, "bucketName cannot be blank");
+        this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
+        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
+        Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
+        this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
+        this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
+
+        // TODO move somewhere else
+        this.logicalPathConstraints = PathConstraintProcessor.builder()
+                .fileNameConstraint(new NonEmptyFileNameConstraint())
+                .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
+                .charConstraint(new BackslashPathSeparatorConstraint())
+                .build();
+
+        this.fileRetrieverBuilder = S3OcflFileRetriever.builder().bucket(bucketName).s3Client(s3Client);
+    }
 
     /**
      * {@inheritDoc}
@@ -331,7 +380,7 @@ public class S3OcflStorage implements OcflStorage {
         try {
             parallelProcess.collection(fileIds, fileId -> {
                 var contentPath = inventory.ensureContentPath(fileId);
-                var contentPathNoVersion = contentPath.substring(contentPath.indexOf('/') + 1);
+                var contentPathNoVersion = contentPath.substring(contentPath.indexOf(inventory.resolveContentDirectory()));
                 var file = sourcePath.resolve(contentPathNoVersion);
 
                 if (Files.notExists(file)) {
@@ -490,13 +539,13 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void deleteMutableHeadFilesNotInManifest(Inventory inventory) {
-        var keys = list(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath()));
+        var keys = list(FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath()),
+                inventory.resolveContentDirectory()));
         var deleteKeys = new ArrayList<String>();
 
         keys.contents().forEach(o -> {
             var key = o.key();
-            // TODO verify math
-            var contentPath = key.substring(inventory.getObjectRootPath().length() + 2);
+            var contentPath = key.substring(inventory.getObjectRootPath().length() + 1);
             if (inventory.getFileId(contentPath) == null) {
                 deleteKeys.add(key);
             }
@@ -507,8 +556,8 @@ public class S3OcflStorage implements OcflStorage {
 
     private String contentPrefix(Inventory inventory) {
         if (inventory.hasMutableHead()) {
-            return String.format("%s/%s/%s",
-                    inventory.getHead().toString(),
+            return FileUtil.pathJoinFailEmpty(
+                    OcflConstants.MUTABLE_HEAD_VERSION_PATH,
                     inventory.resolveContentDirectory(),
                     inventory.getRevisionId().toString());
         }
@@ -553,10 +602,15 @@ public class S3OcflStorage implements OcflStorage {
 
     private String getDigestFromSidecar(String sidecarPath) {
         try {
-            return s3Client.getObjectAsBytes(GetObjectRequest.builder()
+            var sidecarContents = s3Client.getObjectAsBytes(GetObjectRequest.builder()
                     .bucket(bucketName)
                     .key(sidecarPath)
                     .build()).asUtf8String();
+            var parts = sidecarContents.split("\\s");
+            if (parts.length == 0) {
+                throw new CorruptObjectException("Invalid inventory sidecar file: " + sidecarPath);
+            }
+            return parts[0];
         } catch (NoSuchKeyException e) {
             throw new CorruptObjectException("Missing inventory sidecar: " + sidecarPath, e);
         }
@@ -598,18 +652,23 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private String uploadFile(Path localPath, String remotePath, String md5digest) {
-        LOG.debug("Uploading {} to {}", remotePath, localPath);
+        LOG.debug("Uploading {} to bucket {} key {}", localPath, bucketName, remotePath);
         // TODO multipart upload for large files
-        s3Client.putObject(PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(remotePath)
-                .contentMD5(md5digest)
-                .build(), localPath);
-        return remotePath;
+        try {
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(remotePath)
+                    // TODO inefficient...
+                    .contentMD5(Base64.encodeBase64String(Hex.decodeHex(md5digest)))
+                    .build(), localPath);
+            return remotePath;
+        } catch (DecoderException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private String copyObject(String srcPath, String dstPath) {
-        LOG.debug("Copying {} to {}", srcPath, dstPath);
+        LOG.debug("Copying {} to {} in bucket {}", srcPath, dstPath, bucketName);
         // TODO this doesn't work for objects >= 5 gb
         s3Client.copyObject(CopyObjectRequest.builder()
                 .bucket(bucketName)
@@ -621,7 +680,7 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void downloadFile(String remotePath, Path localPath) {
-        LOG.debug("Downloading {} to {}", remotePath, localPath);
+        LOG.debug("Downloading bucket {} key {} to {}", bucketName, remotePath, localPath);
         s3Client.getObject(GetObjectRequest.builder()
                 .bucket(bucketName)
                 .key(remotePath)
@@ -629,7 +688,7 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private InputStream streamFile(String remotePath) {
-        LOG.debug("Streaming {}", remotePath);
+        LOG.debug("Streaming from bucket {} key {}", bucketName, remotePath);
         return s3Client.getObject(GetObjectRequest.builder()
                 .bucket(bucketName)
                 .key(remotePath)
@@ -639,15 +698,23 @@ public class S3OcflStorage implements OcflStorage {
     private List<String> listObjectsUnderPrefix(String path) {
         return listDirectory(path).contents().stream()
                 .map(S3Object::key)
-                .map(k -> k.substring(path.length()))
+                .map(k -> path.isEmpty() ? k : k.substring(path.length()))
                 .collect(Collectors.toList());
     }
 
     private ListObjectsV2Response listDirectory(String path) {
+        var prefix = path;
+
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) {
+            prefix = prefix + "/";
+        }
+
+        LOG.debug("Listing directory {} in bucket {}", prefix, bucketName);
+
         return s3Client.listObjectsV2(ListObjectsV2Request.builder()
                 .bucket(bucketName)
                 .delimiter("/")
-                .prefix(path)
+                .prefix(prefix)
                 .build());
     }
 
@@ -659,7 +726,7 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void deletePath(String path) {
-        LOG.debug("Deleting path {}", path);
+        LOG.debug("Deleting path {} in bucket {}", path, bucketName);
 
         var keys = list(path).contents().stream()
                 .map(S3Object::key)
@@ -669,18 +736,20 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void deleteObjects(Collection<String> objectKeys) {
-        LOG.debug("Deleting objects: {}", objectKeys);
+        LOG.debug("Deleting objects in bucket {}: {}", bucketName, objectKeys);
 
-        var objectIds = objectKeys.stream()
-                .map(key -> ObjectIdentifier.builder().key(key).build())
-                .collect(Collectors.toList());
+        if (!objectKeys.isEmpty()) {
+            var objectIds = objectKeys.stream()
+                    .map(key -> ObjectIdentifier.builder().key(key).build())
+                    .collect(Collectors.toList());
 
-        s3Client.deleteObjects(DeleteObjectsRequest.builder()
-                .bucket(bucketName)
-                .delete(Delete.builder()
-                        .objects(objectIds)
-                        .build())
-                .build());
+            s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                    .bucket(bucketName)
+                    .delete(Delete.builder()
+                            .objects(objectIds)
+                            .build())
+                    .build());
+        }
     }
 
     private void safeDeleteObjects(String... objectKeys) {
@@ -691,7 +760,7 @@ public class S3OcflStorage implements OcflStorage {
         try {
             deleteObjects(objectKeys);
         } catch (RuntimeException e) {
-            LOG.error("Failed to cleanup objects: {}", objectKeys, e);
+            LOG.error("Failed to cleanup objects in bucket {}: {}", bucketName, objectKeys, e);
         }
     }
 
