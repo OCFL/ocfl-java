@@ -3,8 +3,8 @@ package edu.wisc.library.ocfl.core.storage;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
-import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,13 +16,12 @@ import java.nio.file.Path;
 public class FileSystemOcflFileRetriever implements OcflFileRetriever {
 
     private final Path filePath;
-    private final String digestAlgorithm;
+    private final DigestAlgorithm digestAlgorithm;
     private final String digestValue;
 
     public FileSystemOcflFileRetriever(Path filePath, DigestAlgorithm digestAlgorithm, String digestValue) {
         this.filePath = Enforce.notNull(filePath, "filePath cannot be null");
-        Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        this.digestAlgorithm = digestAlgorithm.getJavaStandardName();
+        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         this.digestValue = Enforce.notBlank(digestValue, "digestValue cannot be null");
     }
 

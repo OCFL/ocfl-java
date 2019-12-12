@@ -14,14 +14,13 @@ import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,46 +32,44 @@ public class S3OcflStorageInitializer {
     private static final String OBJECT_MARKER_PREFIX = "0=ocfl_object";
     private static final String LAYOUT_SPEC = "ocfl_layout.json";
 
-    private S3Client s3Client;
     private ObjectMapper objectMapper;
     private ObjectIdPathMapperBuilder objectIdPathMapperBuilder;
 
-    public S3OcflStorageInitializer(S3Client s3Client, ObjectMapper objectMapper, ObjectIdPathMapperBuilder objectIdPathMapperBuilder) {
-        this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+    public S3OcflStorageInitializer(ObjectMapper objectMapper, ObjectIdPathMapperBuilder objectIdPathMapperBuilder) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
         this.objectIdPathMapperBuilder = Enforce.notNull(objectIdPathMapperBuilder, "objectIdPathMapperBuilder cannot be null");
     }
 
     // TODO do we need to support creating a repository within a bucket. ie allow for other repos in the same bucket or non-repo content?
-    public ObjectIdPathMapper initializeStorage(String bucketName, OcflVersion ocflVersion, LayoutConfig layoutConfig) {
-        Enforce.notBlank(bucketName, "bucketName cannot be blank");
+    public ObjectIdPathMapper initializeStorage(S3ClientWrapper s3Client, OcflVersion ocflVersion, LayoutConfig layoutConfig) {
+        Enforce.notNull(s3Client, "s3Client cannot be null");
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
 
-        ensureBucketExists(bucketName);
+        ensureBucketExists(s3Client);
 
-        if (listRootObjects(bucketName).isEmpty()) {
-            return initNewRepo(bucketName, ocflVersion, layoutConfig);
+        if (listRootObjects(s3Client).isEmpty()) {
+            return initNewRepo(s3Client, ocflVersion, layoutConfig);
         } else {
-            return validateExistingRepo(bucketName, ocflVersion, layoutConfig);
+            return validateExistingRepo(s3Client, ocflVersion, layoutConfig);
         }
     }
 
-    private ObjectIdPathMapper validateExistingRepo(String bucketName, OcflVersion ocflVersion, LayoutConfig layoutConfig) {
-        validateOcflVersion(bucketName, ocflVersion);
+    private ObjectIdPathMapper validateExistingRepo(S3ClientWrapper s3Client, OcflVersion ocflVersion, LayoutConfig layoutConfig) {
+        validateOcflVersion(s3Client, ocflVersion);
 
-        var layoutSpec = readOcflLayout(bucketName);
+        var layoutSpec = readOcflLayout(s3Client);
 
         if (layoutSpec == null) {
-            return validateLayoutByInspection(bucketName, layoutConfig);
+            return validateLayoutByInspection(s3Client, layoutConfig);
         }
 
-        return validateLayoutByConfig(bucketName, layoutSpec, layoutConfig);
+        return validateLayoutByConfig(s3Client, layoutSpec, layoutConfig);
     }
 
-    private void validateOcflVersion(String bucketName, OcflVersion ocflVersion) {
+    private void validateOcflVersion(S3ClientWrapper s3Client, OcflVersion ocflVersion) {
         OcflVersion existingOcflVersion = null;
 
-        for (var file : listRootObjects(bucketName)) {
+        for (var file : listRootObjects(s3Client)) {
             if (file.startsWith("0=")) {
                 existingOcflVersion = OcflVersion.fromOcflVersionString(file.substring(2));
                 break;
@@ -87,8 +84,8 @@ public class S3OcflStorageInitializer {
         }
     }
 
-    private ObjectIdPathMapper validateLayoutByConfig(String bucketName, LayoutSpec layoutSpec, LayoutConfig layoutConfig) {
-        var expectedConfig = readLayoutConfig(bucketName, layoutSpec);
+    private ObjectIdPathMapper validateLayoutByConfig(S3ClientWrapper s3Client, LayoutSpec layoutSpec, LayoutConfig layoutConfig) {
+        var expectedConfig = readLayoutConfig(s3Client, layoutSpec);
 
         if (layoutConfig != null && !layoutConfig.equals(expectedConfig)) {
             throw new IllegalStateException(String.format("Storage layout configuration does not match. On disk: %s; Configured: %s",
@@ -98,18 +95,18 @@ public class S3OcflStorageInitializer {
         return createObjectIdPathMapper(expectedConfig);
     }
 
-    private ObjectIdPathMapper validateLayoutByInspection(String bucketName, LayoutConfig layoutConfig) {
+    private ObjectIdPathMapper validateLayoutByInspection(S3ClientWrapper s3Client, LayoutConfig layoutConfig) {
         if (layoutConfig == null) {
             throw new IllegalStateException(String.format(
                     "No storage layout configuration is defined in the OCFL repository in bucket %s. Layout must be configured programmatically.",
-                    bucketName));
+                    s3Client.bucket()));
         }
 
         var mapper = createObjectIdPathMapper(layoutConfig);
-        var objectRoot = identifyRandomObjectRoot(bucketName, "");
+        var objectRoot = identifyRandomObjectRoot(s3Client, "");
 
         if (objectRoot != null) {
-            var objectId = extractObjectId(bucketName, ObjectPaths.inventoryPath(objectRoot));
+            var objectId = extractObjectId(s3Client, ObjectPaths.inventoryPath(objectRoot));
             var expectedPath = mapper.map(objectId);
 
             if (!expectedPath.equals(objectRoot)) {
@@ -127,8 +124,8 @@ public class S3OcflStorageInitializer {
         return mapper;
     }
 
-    private String identifyRandomObjectRoot(String bucketName, String prefix) {
-        var response = list(bucketName, prefix);
+    private String identifyRandomObjectRoot(S3ClientWrapper s3Client, String prefix) {
+        var response = s3Client.listDirectory(prefix);
 
         for (var object : response.contents()) {
             var fileName = object.key().substring(object.key().lastIndexOf('/') + 1);
@@ -138,7 +135,7 @@ public class S3OcflStorageInitializer {
         }
 
         for (var commonPrefix : response.commonPrefixes()) {
-            var root = identifyRandomObjectRoot(bucketName, commonPrefix.prefix());
+            var root = identifyRandomObjectRoot(s3Client, commonPrefix.prefix());
             if (root != null) {
                 return root;
             }
@@ -147,8 +144,8 @@ public class S3OcflStorageInitializer {
         return null;
     }
 
-    private String extractObjectId(String bucketName, String inventoryPath) {
-        try (var stream = downloadStream(bucketName, inventoryPath)) {
+    private String extractObjectId(S3ClientWrapper s3Client, String inventoryPath) {
+        try (var stream = s3Client.downloadStream(inventoryPath)) {
             var map = read(stream, Map.class);
             var id = map.get("id");
 
@@ -161,52 +158,50 @@ public class S3OcflStorageInitializer {
             throw new RuntimeIOException(e);
         } catch (NoSuchKeyException e) {
             // TODO if there's not root inventory should we look for the inventory in the latest version directory?
-            throw new CorruptObjectException(String.format("Missing inventory at %s in bucket %s", inventoryPath, bucketName));
+            throw new CorruptObjectException(String.format("Missing inventory at %s in bucket %s", inventoryPath, s3Client.bucket()));
         }
     }
 
-    private ObjectIdPathMapper initNewRepo(String bucketName, OcflVersion ocflVersion, LayoutConfig layoutConfig) {
+    private ObjectIdPathMapper initNewRepo(S3ClientWrapper s3Client, OcflVersion ocflVersion, LayoutConfig layoutConfig) {
         Enforce.notNull(layoutConfig, "layoutConfig cannot be null when initializing a new repo");
 
-        LOG.info("Initializing new OCFL repository in the bucket {}", bucketName);
+        LOG.info("Initializing new OCFL repository in the bucket {}", s3Client.bucket());
 
         var keys = new ArrayList<String>();
 
         try {
-            keys.add(writeNamasteFile(bucketName, ocflVersion));
-            keys.add(writeOcflSpec(bucketName, ocflVersion));
-            keys.addAll(writeOcflLayout(bucketName, layoutConfig));
+            keys.add(writeNamasteFile(s3Client, ocflVersion));
+            keys.add(writeOcflSpec(s3Client, ocflVersion));
+            keys.addAll(writeOcflLayout(s3Client, layoutConfig));
             return createObjectIdPathMapper(layoutConfig);
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository", e);
-            safeDeleteObjects(bucketName, keys);
+            s3Client.safeDeleteObjects(keys);
             throw e;
         }
     }
 
-    private String writeOcflSpec(String bucketName, OcflVersion ocflVersion) {
+    private String writeOcflSpec(S3ClientWrapper s3Client, OcflVersion ocflVersion) {
         var ocflSpecFile = ocflVersion.getOcflVersion() + ".txt";
         try (var ocflSpecStream = this.getClass().getClassLoader().getResourceAsStream(ocflSpecFile)) {
-            return uploadStream(ocflSpecStream, bucketName, ocflSpecFile);
+            return uploadStream(s3Client, ocflSpecFile, ocflSpecStream);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
     }
 
-    private String writeNamasteFile(String bucketName, OcflVersion ocflVersion) {
+    private String writeNamasteFile(S3ClientWrapper s3Client, OcflVersion ocflVersion) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
-        return uploadBytes(namasteFile.fileContent().getBytes(), bucketName, namasteFile.fileName());
+        return s3Client.uploadBytes(namasteFile.fileName(), namasteFile.fileContent().getBytes(StandardCharsets.UTF_8));
     }
 
-    private List<String> writeOcflLayout(String bucketName, LayoutConfig layoutConfig) {
+    private List<String> writeOcflLayout(S3ClientWrapper s3Client, LayoutConfig layoutConfig) {
         var keys = new ArrayList<String>();
         var spec = LayoutSpec.layoutSpecForConfig(layoutConfig);
         try {
-            keys.add(uploadBytes(objectMapper.writeValueAsBytes(spec), bucketName,
-                    LAYOUT_SPEC));
+            keys.add(s3Client.uploadBytes(LAYOUT_SPEC, objectMapper.writeValueAsBytes(spec)));
             // TODO versioning...
-            keys.add(uploadBytes(objectMapper.writeValueAsBytes(layoutConfig), bucketName,
-                    extensionLayoutSpecFile(spec)));
+            keys.add(s3Client.uploadBytes(extensionLayoutSpecFile(spec), objectMapper.writeValueAsBytes(layoutConfig)));
             return keys;
         } catch (IOException e) {
             throw new RuntimeIOException(e);
@@ -217,16 +212,18 @@ public class S3OcflStorageInitializer {
         return objectIdPathMapperBuilder.build(layoutConfig);
     }
 
-    private LayoutSpec readOcflLayout(String bucketName) {
-        try (var stream = downloadStream(bucketName, LAYOUT_SPEC)) {
+    private LayoutSpec readOcflLayout(S3ClientWrapper s3Client) {
+        try (var stream = s3Client.downloadStream(LAYOUT_SPEC)) {
             return read(stream, LayoutSpec.class);
-        } catch (NoSuchKeyException | IOException e) {
+        } catch (NoSuchKeyException e) {
             return null;
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
         }
     }
 
-    private LayoutConfig readLayoutConfig(String bucketName, LayoutSpec spec) {
-        try (var stream = downloadStream(bucketName, extensionLayoutSpecFile(spec))) {
+    private LayoutConfig readLayoutConfig(S3ClientWrapper s3Client, LayoutSpec spec) {
+        try (var stream = s3Client.downloadStream(extensionLayoutSpecFile(spec))) {
             return read(stream, spec.getKey().getConfigClass());
         } catch (NoSuchKeyException e) {
             throw new IllegalStateException(String.format("Missing layout extension configuration at %s", extensionLayoutSpecFile(spec)));
@@ -247,84 +244,26 @@ public class S3OcflStorageInitializer {
         }
     }
 
-    private void ensureBucketExists(String bucketName) {
+    private void ensureBucketExists(S3ClientWrapper s3Client) {
         try {
-            s3Client.headBucket(HeadBucketRequest.builder()
-                    .bucket(bucketName)
-                    .build());
+            s3Client.headBucket();
         } catch (RuntimeException e) {
-            throw new IllegalStateException(String.format("Bucket %s does not exist or is not accessible.", bucketName), e);
+            throw new IllegalStateException(String.format("Bucket %s does not exist or is not accessible.", s3Client.bucket()), e);
         }
     }
 
-    private String uploadStream(InputStream stream, String bucketName, String remotePath) {
+    private String uploadStream(S3ClientWrapper s3Client, String remotePath, InputStream stream) {
         try {
-            return uploadBytes(stream.readAllBytes(), bucketName, remotePath);
+            return s3Client.uploadBytes(remotePath, stream.readAllBytes());
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
     }
 
-    private String uploadBytes(byte[] bytes, String bucketName, String remotePath) {
-        LOG.debug("Uploading bytes to bucket {} key {}", bucketName, remotePath);
-        s3Client.putObject(PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(remotePath)
-                .build(), RequestBody.fromBytes(bytes));
-        return remotePath;
-    }
-
-    private InputStream downloadStream(String bucketName, String remotePath) {
-        LOG.debug("Downloading bucket {} key {} to stream", bucketName, remotePath);
-        return s3Client.getObject(GetObjectRequest.builder()
-                .bucket(bucketName)
-                .key(remotePath)
-                .build());
-    }
-
-    private List<String> listRootObjects(String bucketName) {
-        return list(bucketName, "").contents().stream()
+    private List<String> listRootObjects(S3ClientWrapper s3Client) {
+        return s3Client.listDirectory("").contents().stream()
                 .map(S3Object::key)
                 .collect(Collectors.toList());
-    }
-
-    private ListObjectsV2Response list(String bucketName, String path) {
-        var prefix = path;
-
-        if (!prefix.isEmpty() && !prefix.endsWith("/")) {
-            prefix = prefix + "/";
-        }
-
-        return s3Client.listObjectsV2(ListObjectsV2Request.builder()
-                .bucket(bucketName)
-                .delimiter("/")
-                .prefix(prefix)
-                .build());
-    }
-
-    private void deleteObjects(String bucketName, Collection<String> objectKeys) {
-        LOG.debug("Deleting objects in bucket {}: {}", bucketName, objectKeys);
-
-        if (!objectKeys.isEmpty()) {
-            var objectIds = objectKeys.stream()
-                    .map(key -> ObjectIdentifier.builder().key(key).build())
-                    .collect(Collectors.toList());
-
-            s3Client.deleteObjects(DeleteObjectsRequest.builder()
-                    .bucket(bucketName)
-                    .delete(Delete.builder()
-                            .objects(objectIds)
-                            .build())
-                    .build());
-        }
-    }
-
-    private void safeDeleteObjects(String bucketName, Collection<String> objectKeys) {
-        try {
-            deleteObjects(bucketName, objectKeys);
-        } catch (RuntimeException e) {
-            LOG.error("Failed to cleanup objects in bucket {}: {}", bucketName, objectKeys, e);
-        }
     }
 
 }

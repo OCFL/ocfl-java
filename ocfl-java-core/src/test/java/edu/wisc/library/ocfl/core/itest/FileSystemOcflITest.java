@@ -1147,7 +1147,7 @@ public class FileSystemOcflITest {
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
             updater.writeFile(
-                    new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5.getJavaStandardName(), "95efdf0764d92207b4698025f2518456"),
+                    new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456"),
                     "file1");
         });
 
@@ -1167,7 +1167,7 @@ public class FileSystemOcflITest {
         assertThrows(FixityCheckException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
                 updater.writeFile(
-                        new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5.getJavaStandardName(), "bogus"),
+                        new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5, "bogus"),
                         "file1");
             });
         });

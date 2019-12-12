@@ -13,6 +13,7 @@ import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
+import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +52,7 @@ public class FileSystemOcflStorageInitializer {
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
 
         if (!Files.exists(repositoryRoot)) {
-            FileUtil.createDirectories(repositoryRoot);
+            SafeFiles.createDirectories(repositoryRoot);
         } else {
             Enforce.expressionTrue(Files.isDirectory(repositoryRoot), repositoryRoot,
                     "repositoryRoot must be a directory");

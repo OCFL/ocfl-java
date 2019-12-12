@@ -51,8 +51,8 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
+            <groupId>at.favre.lib</groupId>
+            <artifactId>bytes</artifactId>
         </dependency>
 
         <!-- Test -->

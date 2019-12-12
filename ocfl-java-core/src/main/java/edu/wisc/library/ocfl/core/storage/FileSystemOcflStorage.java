@@ -27,6 +27,7 @@ import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
+import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,7 +187,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 logicalPathConstraints.apply(logicalPath);
                 var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
 
-                FileUtil.createDirectories(destination.getParent());
+                SafeFiles.createDirectories(destination.getParent());
 
                 if (Thread.interrupted()) {
                     break;
@@ -382,7 +383,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         var expectedDigest = readInventoryDigest(sidecarPath);
         var algorithm = getDigestAlgorithmFromSidecar(sidecarPath);
 
-        var actualDigest = DigestUtil.computeDigest(algorithm, inventoryPath);
+        var actualDigest = DigestUtil.computeDigestHex(algorithm, inventoryPath);
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
             throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
@@ -518,7 +519,7 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private void copyRootInventorySidecar(ObjectPaths.ObjectRoot objectRoot, ObjectPaths.VersionRoot versionRoot) {
         var rootSidecar = objectRoot.inventorySidecar();
-        FileUtil.copy(rootSidecar,
+        SafeFiles.copy(rootSidecar,
                 versionRoot.path().getParent().resolve("root-" + rootSidecar.getFileName().toString()),
                 StandardCopyOption.REPLACE_EXISTING);
     }
@@ -552,13 +553,13 @@ public class FileSystemOcflStorage implements OcflStorage {
     }
 
     private void setupNewObjectDirs(Path objectRootPath) {
-        FileUtil.createDirectories(objectRootPath);
+        SafeFiles.createDirectories(objectRootPath);
         new NamasteTypeFile(ocflVersion.getOcflObjectVersion()).writeFile(objectRootPath);
     }
 
     private void copyInventory(ObjectPaths.HasInventory source, ObjectPaths.HasInventory destination) {
-        FileUtil.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
-        FileUtil.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
+        SafeFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
+        SafeFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void copyInventoryToRootWithRollback(ObjectPaths.HasInventory source, ObjectPaths.ObjectRoot objectRoot, Inventory inventory) {
@@ -608,7 +609,7 @@ public class FileSystemOcflStorage implements OcflStorage {
                 throw new CorruptObjectException(String.format("File not found in object %s version %s state: %s",
                         inventory.getId(), inventory.getHead(), fileContentPath));
             } else if (checkFixity) {
-                var actualDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), file);
+                var actualDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), file);
                 if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                     throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
                             file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));

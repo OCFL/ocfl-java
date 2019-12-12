@@ -20,6 +20,7 @@ import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
+import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -321,7 +322,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         enforceObjectVersionForUpdate(objectVersionId, inventory);
 
         var stagingDir = createStagingDir(objectVersionId);
-        var contentDir = FileUtil.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
+        var contentDir = SafeFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
         var addFileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
@@ -476,7 +477,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         try {
             var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
             inventoryMapper.write(inventoryPath, inventory);
-            String inventoryDigest = DigestUtil.computeDigest(inventory.getDigestAlgorithm(), inventoryPath);
+            String inventoryDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), inventoryPath);
             Files.writeString(ObjectPaths.inventorySidecarPath(stagingDir, inventory),
                     inventoryDigest + "\t" + OcflConstants.INVENTORY_FILE);
         } catch (IOException e) {
@@ -489,7 +490,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         var stubInventory = createStubInventory(objectId);
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        FileUtil.createDirectories(resolveContentDir(stubInventory, stagingDir));
+        SafeFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
 
         try {
             var inventoryBuilder = Inventory.builder(stubInventory);
@@ -549,7 +550,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     }
 
     private Path createStagingContentDir(Inventory inventory, Path stagingDir) {
-        return FileUtil.createDirectories(resolveContentDir(inventory, stagingDir));
+        return SafeFiles.createDirectories(resolveContentDir(inventory, stagingDir));
     }
 
     private Path resolveContentDir(Inventory inventory, Path parent) {

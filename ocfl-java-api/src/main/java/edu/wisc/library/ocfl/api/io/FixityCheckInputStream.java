@@ -1,8 +1,9 @@
 package edu.wisc.library.ocfl.api.io;
 
+import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import org.apache.commons.codec.binary.Hex;
 
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -17,6 +18,16 @@ public class FixityCheckInputStream extends DigestInputStream {
 
     private boolean enabled = true;
     private final String expectedDigestValue;
+
+    /**
+     * @param inputStream the underlying stream
+     * @param digestAlgorithm the algorithm to use to calculate the digest (eg. sha512)
+     * @param expectedDigestValue the expected digest value
+     */
+    public FixityCheckInputStream(InputStream inputStream, DigestAlgorithm digestAlgorithm, String expectedDigestValue) {
+        super(inputStream, digestAlgorithm.getMessageDigest());
+        this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
+    }
 
     /**
      * @param inputStream the underlying stream
@@ -38,7 +49,7 @@ public class FixityCheckInputStream extends DigestInputStream {
      */
     public void checkFixity() {
         if (enabled) {
-            var actualDigest = Hex.encodeHexString(digest.digest());
+            var actualDigest = Bytes.from(digest.digest()).encodeHex();
             if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
                 throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
                         digest.getAlgorithm(), expectedDigestValue, actualDigest));
@@ -68,6 +79,11 @@ public class FixityCheckInputStream extends DigestInputStream {
         super.on(on);
     }
 
+    @Override
+    public String toString() {
+        return "[Fixity Check Input Stream] expected: " + expectedDigestValue + "; actual: " + digest.toString();
+    }
+
     private static MessageDigest messageDigest(String digestAlgorithm) {
         try {
             return MessageDigest.getInstance(digestAlgorithm);
@@ -76,8 +92,4 @@ public class FixityCheckInputStream extends DigestInputStream {
         }
     }
 
-    @Override
-    public String toString() {
-        return "[Fixity Check Input Stream] expected: " + expectedDigestValue + "; actual: " + digest.toString();
-    }
 }

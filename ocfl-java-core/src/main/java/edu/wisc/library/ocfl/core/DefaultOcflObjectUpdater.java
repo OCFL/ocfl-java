@@ -1,9 +1,9 @@
 package edu.wisc.library.ocfl.core;
 
+import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
@@ -13,11 +13,10 @@ import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import org.apache.commons.codec.binary.Hex;
+import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -85,18 +84,18 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var tempPath = stagingDir.resolve(UUID.randomUUID().toString());
         var digestInput = wrapInDigestInputStream(input);
         LOG.debug("Writing input stream to temp file: {}", tempPath);
-        copyInputStream(digestInput, tempPath);
+        SafeFiles.copy(digestInput, tempPath);
 
         if (input instanceof FixityCheckInputStream) {
             ((FixityCheckInputStream) input).checkFixity();
         }
 
-        var digest = Hex.encodeHexString(digestInput.getMessageDigest().digest());
+        var digest = Bytes.from(digestInput.getMessageDigest().digest()).encodeHex();
         var result = inventoryUpdater.addFile(digest, destinationPath, ocflOptions);
 
         if (!result.isNew()) {
             LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", tempPath, digest);
-            FileUtil.delete(tempPath);
+            SafeFiles.delete(tempPath);
         } else {
             var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
             LOG.debug("Moving file <{}> to <{}>", tempPath, stagingFullPath);
@@ -185,7 +184,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             var file = stagedFileMap.get(logicalPath);
 
             LOG.debug("Computing {} hash of {}", algorithm.getJavaStandardName(), file);
-            digest = DigestUtil.computeDigest(algorithm, file);
+            digest = DigestUtil.computeDigestHex(algorithm, file);
         }
 
         if (!value.equalsIgnoreCase(digest)) {
@@ -214,7 +213,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             var stagingPath = stagingFullPath(remove.getPathUnderContentDir());
             if (Files.exists(stagingPath)) {
                 LOG.debug("Deleting {} because it was added and then removed in the same version.", stagingPath);
-                FileUtil.delete(stagingPath);
+                SafeFiles.delete(stagingPath);
             }
         });
     }
@@ -232,14 +231,6 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         }
 
         return new DigestInputStream(input, inventory.getDigestAlgorithm().getMessageDigest());
-    }
-
-    private void copyInputStream(InputStream input, Path dst) {
-        try {
-            Files.copy(input, dst);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
     }
 
 }

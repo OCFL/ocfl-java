@@ -102,7 +102,7 @@ public class S3OcflStorageBuilder {
     public S3OcflStorage build(String bucketName) {
         var init = initializer;
         if (init == null) {
-            init = new S3OcflStorageInitializer(s3Client, objectMapper, new ObjectIdPathMapperBuilder());
+            init = new S3OcflStorageInitializer(objectMapper, new ObjectIdPathMapperBuilder());
         }
 
         return new S3OcflStorage(s3Client, bucketName, threadPoolSize, workDir, inventoryMapper, init);

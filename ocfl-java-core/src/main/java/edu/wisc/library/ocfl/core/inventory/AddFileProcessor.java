@@ -113,7 +113,7 @@ public class AddFileProcessor {
         var destination = destinationPath(destinationPath, sourcePath);
 
         var filesWithDigests = parallelProcess.collection(files, file -> {
-            var digest = DigestUtil.computeDigest(digestAlgorithm, file);
+            var digest = DigestUtil.computeDigestHex(digestAlgorithm, file);
             return Map.entry(file, digest);
         });
 

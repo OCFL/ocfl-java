@@ -6,7 +6,7 @@ module edu.wisc.library.ocfl.api {
     exports edu.wisc.library.ocfl.api.model;
     exports edu.wisc.library.ocfl.api.util;
 
+    requires bytes;
     requires com.fasterxml.jackson.annotation;
-    requires org.apache.commons.codec;
 
 }

@@ -25,14 +25,6 @@ public final class FileUtil {
     private static final SecureRandom RANDOM = new SecureRandom();
 
 
-    public static Path createDirectories(Path path) {
-        try {
-            return Files.createDirectories(path);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
     public static Path createTempDir(Path rootPath, String prefix) {
         try {
             var name = URLEncoder.encode(prefix, StandardCharsets.UTF_8) + "-" + Long.toUnsignedString(RANDOM.nextLong());
@@ -116,14 +108,6 @@ public final class FileUtil {
         }
     }
 
-    public static void copy(Path src, Path dst, StandardCopyOption... copyOptions) {
-        try {
-            Files.copy(src, dst, copyOptions);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
     public static void copyFileMakeParents(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
             Files.createDirectories(dst.getParent());
@@ -142,19 +126,11 @@ public final class FileUtil {
         }
     }
 
-    public static void delete(Path path) {
-        try {
-            Files.delete(path);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
     public static void deleteChildren(Path root) {
         try (var files = Files.walk(root)) {
             files.sorted(Comparator.reverseOrder())
                     .filter(f -> !f.equals(root))
-                    .forEach(FileUtil::delete);
+                    .forEach(SafeFiles::delete);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
@@ -165,7 +141,7 @@ public final class FileUtil {
             files.filter(Files::isDirectory)
                     .filter(f -> !f.equals(root))
                     .filter(f -> f.toFile().list().length == 0)
-                    .forEach(FileUtil::delete);
+                    .forEach(SafeFiles::delete);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

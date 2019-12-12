@@ -2,10 +2,7 @@ package edu.wisc.library.ocfl.core.encode;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
-
-import java.nio.charset.StandardCharsets;
+import edu.wisc.library.ocfl.core.util.DigestUtil;
 
 /**
  * Returns the hex encoded digest of the input string
@@ -29,9 +26,7 @@ public class DigestEncoder implements Encoder {
      */
     @Override
     public String encode(String input) {
-        return Hex.encodeHexString(
-                DigestUtils.digest(digestAlgorithm.getMessageDigest(), input.getBytes(StandardCharsets.UTF_8)),
-                !useUppercase);
+        return DigestUtil.computeDigestHex(digestAlgorithm, input, useUppercase);
     }
 
 }
