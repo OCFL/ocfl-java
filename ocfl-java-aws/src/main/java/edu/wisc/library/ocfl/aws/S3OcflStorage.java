@@ -31,6 +31,7 @@ import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.internal.util.Mimetype;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
@@ -513,7 +514,7 @@ public class S3OcflStorage implements OcflStorage {
     private String createRevisionMarker(Inventory inventory) {
         var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()),
                 "revisions", inventory.getRevisionId().toString());
-        return s3Client.uploadBytes(revisionPath, inventory.getRevisionId().toString().getBytes(StandardCharsets.UTF_8));
+        return s3Client.uploadBytes(revisionPath, inventory.getRevisionId().toString().getBytes(StandardCharsets.UTF_8), Mimetype.MIMETYPE_TEXT_PLAIN);
     }
 
     private RevisionId identifyLatestRevision(String objectRootPath) {
@@ -633,7 +634,7 @@ public class S3OcflStorage implements OcflStorage {
     private String writeObjectNamasteFile(String objectRootPath) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
         var key = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
-        return s3Client.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8));
+        return s3Client.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), Mimetype.MIMETYPE_TEXT_PLAIN);
     }
 
     private void ensureOpen() {

@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -15,7 +16,11 @@ import software.amazon.awssdk.utils.http.SdkHttpUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -25,9 +30,17 @@ public class S3ClientWrapper {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3ClientWrapper.class);
 
-    private static final long KB = 1024;
-    private static final long MB = 1024 * KB;
-    private static final long MAX_FILE_BYTES = 100 * MB;
+    private static final int KB = 1024;
+    private static final int MB = 1024 * KB;
+    private static final long GB = 1024 * MB;
+    private static final long TB = 1024 * GB;
+
+    private static final long MAX_FILE_BYTES = 5 * TB;
+    private static final int MAX_PART_BYTES = 100 * MB;
+    private static final int PART_SIZE_BYTES = 10 * MB;
+    private static final int MAX_PARTS = 100;
+    private static final int PART_SIZE_INCREMENT = 10;
+    private static final int PARTS_INCREMENT = 100;
 
     // TODO experiment with performance with async client
     private S3Client s3Client;
@@ -64,25 +77,80 @@ public class S3ClientWrapper {
      * @return object key
      */
     public String uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
-        LOG.debug("Uploading {} to bucket {} key {}", srcPath, bucket, dstPath);
-
-        if (md5digest == null) {
-            md5digest = DigestUtil.computeDigest(DigestAlgorithm.md5, srcPath);
-        }
-
-        var md5Base64 = Bytes.from(md5digest).encodeBase64();
-
-        // TODO multipart upload for files > 100 MB
         var fileSize = SafeFiles.size(srcPath);
 
-        s3Client.putObject(PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(dstPath)
-                .contentMD5(md5Base64)
-                .contentLength(fileSize)
-                .build(), srcPath);
+        if (fileSize >= MAX_FILE_BYTES) {
+            throw new IllegalArgumentException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
+        }
+
+        if (fileSize > MAX_PART_BYTES) {
+            multipartUpload(srcPath, dstPath, fileSize);
+        } else {
+            LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstPath, fileSize);
+
+            if (md5digest == null) {
+                md5digest = DigestUtil.computeDigest(DigestAlgorithm.md5, srcPath);
+            }
+
+            var md5Base64 = Bytes.from(md5digest).encodeBase64();
+
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(dstPath)
+                    .contentMD5(md5Base64)
+                    .contentLength(fileSize)
+                    .build(), srcPath);
+        }
 
         return dstPath;
+    }
+
+    private void multipartUpload(Path srcPath, String dstPath, long fileSize) {
+        var partSize = determinePartSize(fileSize);
+
+        LOG.debug("Multipart upload of {} to bucket {} key {}. File size: {}; part size: {}", srcPath, bucket, dstPath,
+                fileSize, partSize);
+
+        var uploadId = beginMultipartUpload(dstPath);
+
+        var completedParts = new ArrayList<CompletedPart>();
+
+        try {
+            try (var channel = FileChannel.open(srcPath, StandardOpenOption.READ)) {
+                var buffer = ByteBuffer.allocate(partSize);
+                var i = 1;
+
+                while (channel.read(buffer) > 0) {
+                    buffer.flip();
+
+                    var digest = DigestUtil.computeDigest(DigestAlgorithm.md5, buffer);
+
+                    var partResponse = s3Client.uploadPart(UploadPartRequest.builder()
+                            .bucket(bucket)
+                            .key(dstPath)
+                            .uploadId(uploadId)
+                            .partNumber(i)
+                            .contentMD5(Bytes.from(digest).encodeBase64())
+                            // TODO entire part is in memory. stream part to file first?
+                            .build(), RequestBody.fromByteBuffer(buffer));
+
+                    completedParts.add(CompletedPart.builder()
+                            .partNumber(i)
+                            .eTag(partResponse.eTag())
+                            .build());
+
+                    buffer.clear();
+                    i++;
+                }
+            } catch (IOException e) {
+                throw new RuntimeIOException(e);
+            }
+
+            completeMultipartUpload(uploadId, dstPath, completedParts);
+        } catch (RuntimeException e) {
+            abortMultipartUpload(uploadId, dstPath);
+            throw e;
+        }
     }
 
     /**
@@ -92,12 +160,13 @@ public class S3ClientWrapper {
      * @param bytes the object content
      * @return object key
      */
-    public String uploadBytes(String dstPath, byte[] bytes) {
+    public String uploadBytes(String dstPath, byte[] bytes, String contentType) {
         LOG.debug("Writing string to bucket {} key {}", bucket, dstPath);
 
         s3Client.putObject(PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(dstPath)
+                .contentType(contentType)
                 .build(), RequestBody.fromBytes(bytes));
 
         return dstPath;
@@ -113,14 +182,64 @@ public class S3ClientWrapper {
     public String copyObject(String srcPath, String dstPath) {
         LOG.debug("Copying {} to {} in bucket {}", srcPath, dstPath, bucket);
 
-        // TODO this doesn't work for objects >= 5 gb
-        s3Client.copyObject(CopyObjectRequest.builder()
-                .bucket(bucket)
-                .copySource(keyWithBucketName(srcPath))
-                .key(dstPath)
-                .build());
+        try {
+            s3Client.copyObject(CopyObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(dstPath)
+                    .copySource(keyWithBucketName(srcPath))
+                    .build());
+        } catch (SdkException e) {
+            // TODO verify class and message
+            if (e.getMessage().contains("copy source is larger than the maximum allowable size")) {
+                multipartCopy(srcPath, dstPath);
+            } else {
+                throw e;
+            }
+        }
 
         return dstPath;
+    }
+
+    private void multipartCopy(String srcPath, String dstPath) {
+        var head = headObject(srcPath);
+        var fileSize = head.contentLength();
+        var partSize = determinePartSize(fileSize);
+
+        LOG.debug("Multipart copy of {} to {} in bucket {}: File size {}; part size: {}", srcPath, dstPath, bucket,
+                fileSize, partSize);
+
+        var uploadId = beginMultipartUpload(dstPath);
+
+        try {
+            var completedParts = new ArrayList<CompletedPart>();
+            var part = 1;
+            var position = 0L;
+
+            while (position < fileSize) {
+                var end = Math.min(fileSize - 1, part * partSize - 1);
+                var partResponse = s3Client.uploadPartCopy(UploadPartCopyRequest.builder()
+                        .bucket(bucket)
+                        .key(dstPath)
+                        .copySource(keyWithBucketName(srcPath))
+                        .partNumber(part)
+                        .uploadId(uploadId)
+                        .copySourceRange(String.format("bytes=%s-%s", position, end))
+                        .build());
+
+                completedParts.add(CompletedPart.builder()
+                        .partNumber(part)
+                        .eTag(partResponse.copyPartResult().eTag())
+                        .build());
+
+                part++;
+                position = end + 1;
+            }
+
+            completeMultipartUpload(uploadId, dstPath, completedParts);
+        } catch (RuntimeException e) {
+            abortMultipartUpload(uploadId, dstPath);
+            throw e;
+        }
     }
 
     /**
@@ -280,8 +399,61 @@ public class S3ClientWrapper {
                 .build());
     }
 
+    public HeadObjectResponse headObject(String key) {
+        return s3Client.headObject(HeadObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build());
+    }
+
+    private String beginMultipartUpload(String key) {
+        return s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build()).uploadId();
+    }
+
+    private void completeMultipartUpload(String uploadId, String key, List<CompletedPart> parts) {
+        s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .uploadId(uploadId)
+                .multipartUpload(CompletedMultipartUpload.builder()
+                        .parts(parts)
+                        .build())
+                .build());
+    }
+
+    private void abortMultipartUpload(String uploadId, String key) {
+        try {
+            s3Client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .uploadId(uploadId)
+                    .build());
+        } catch (RuntimeException e) {
+            LOG.error("Failed to abort multipart upload. Bucket: {}; Key: {}; Upload Id: {}", bucket, key, uploadId, e);
+        }
+    }
+
     private String keyWithBucketName(String key) {
         return SdkHttpUtils.urlEncode(String.format("%s/%s", bucket, key));
+    }
+
+    private int determinePartSize(long fileSize) {
+        var partSize = PART_SIZE_BYTES;
+        var maxParts = MAX_PARTS;
+
+        while (fileSize / partSize > maxParts) {
+            partSize += PART_SIZE_INCREMENT;
+
+            if (partSize > MAX_PART_BYTES) {
+                maxParts += PARTS_INCREMENT;
+                partSize /= 2;
+            }
+        }
+
+        return partSize;
     }
 
 }

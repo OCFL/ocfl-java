@@ -43,6 +43,13 @@ public final class DigestUtil {
         }
     }
 
+    public static byte[] computeDigest(DigestAlgorithm algorithm, ByteBuffer buffer) {
+        var digest = algorithm.getMessageDigest();
+        digest.update(buffer);
+        buffer.flip();
+        return digest.digest();
+    }
+
     public static String computeDigestHex(DigestAlgorithm algorithm, String value) {
         return computeDigestHex(algorithm, value, false);
     }

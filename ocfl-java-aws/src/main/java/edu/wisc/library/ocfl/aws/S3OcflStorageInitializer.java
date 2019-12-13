@@ -14,6 +14,7 @@ import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.internal.util.Mimetype;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
@@ -29,6 +30,7 @@ public class S3OcflStorageInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3OcflStorageInitializer.class);
 
+    private static final String MIME_JSON = "application/json";
     private static final String OBJECT_MARKER_PREFIX = "0=ocfl_object";
     private static final String LAYOUT_SPEC = "ocfl_layout.json";
 
@@ -192,16 +194,18 @@ public class S3OcflStorageInitializer {
 
     private String writeNamasteFile(S3ClientWrapper s3Client, OcflVersion ocflVersion) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
-        return s3Client.uploadBytes(namasteFile.fileName(), namasteFile.fileContent().getBytes(StandardCharsets.UTF_8));
+        return s3Client.uploadBytes(namasteFile.fileName(), namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
+                Mimetype.MIMETYPE_TEXT_PLAIN);
     }
 
     private List<String> writeOcflLayout(S3ClientWrapper s3Client, LayoutConfig layoutConfig) {
         var keys = new ArrayList<String>();
         var spec = LayoutSpec.layoutSpecForConfig(layoutConfig);
         try {
-            keys.add(s3Client.uploadBytes(LAYOUT_SPEC, objectMapper.writeValueAsBytes(spec)));
+            keys.add(s3Client.uploadBytes(LAYOUT_SPEC, objectMapper.writeValueAsBytes(spec), MIME_JSON));
             // TODO versioning...
-            keys.add(s3Client.uploadBytes(extensionLayoutSpecFile(spec), objectMapper.writeValueAsBytes(layoutConfig)));
+            keys.add(s3Client.uploadBytes(extensionLayoutSpecFile(spec),
+                    objectMapper.writeValueAsBytes(layoutConfig), MIME_JSON));
             return keys;
         } catch (IOException e) {
             throw new RuntimeIOException(e);
@@ -254,7 +258,7 @@ public class S3OcflStorageInitializer {
 
     private String uploadStream(S3ClientWrapper s3Client, String remotePath, InputStream stream) {
         try {
-            return s3Client.uploadBytes(remotePath, stream.readAllBytes());
+            return s3Client.uploadBytes(remotePath, stream.readAllBytes(), Mimetype.MIMETYPE_TEXT_PLAIN);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
