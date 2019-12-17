@@ -7,8 +7,7 @@ import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
-import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorage;
-import edu.wisc.library.ocfl.core.storage.FileSystemOcflStorageBuilder;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
 import static org.hamcrest.MatcherAssert.assertThat;

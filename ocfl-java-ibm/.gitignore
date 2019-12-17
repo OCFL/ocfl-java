@@ -1,0 +1,5 @@
+/target
+*.swp
+.attach*
+*.iml
+*S3OcflITest.java

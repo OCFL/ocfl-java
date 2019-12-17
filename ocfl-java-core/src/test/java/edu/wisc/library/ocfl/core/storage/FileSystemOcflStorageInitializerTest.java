@@ -8,6 +8,8 @@ import edu.wisc.library.ocfl.core.itest.ITestHelper;
 import edu.wisc.library.ocfl.core.mapping.FlatObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.mapping.NTupleObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageInitializer;
 import edu.wisc.library.ocfl.core.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

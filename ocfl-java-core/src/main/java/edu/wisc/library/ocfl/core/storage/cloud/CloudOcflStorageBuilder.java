@@ -1,11 +1,10 @@
-package edu.wisc.library.ocfl.aws;
+package edu.wisc.library.ocfl.core.storage.cloud;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.nio.file.Path;
 
@@ -13,29 +12,29 @@ import java.nio.file.Path;
  * Builder for constructing S3OcflStorage objects. It is configured with sensible defaults and can minimally be
  * used as {@code new S3OcflStorageBuilder().s3Client(s3Client).workDir(workDir).build(bucketName).}
  */
-public class S3OcflStorageBuilder {
+public class CloudOcflStorageBuilder {
 
     private InventoryMapper inventoryMapper;
     private int threadPoolSize;
     private ObjectMapper objectMapper;
-    private S3Client s3Client;
-    private S3OcflStorageInitializer initializer;
+    private CloudClient cloudClient;
+    private CloudOcflStorageInitializer initializer;
     private Path workDir;
 
-    public S3OcflStorageBuilder() {
+    public CloudOcflStorageBuilder() {
         this.inventoryMapper = InventoryMapper.defaultMapper();
         this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.objectMapper = ObjectMappers.prettyPrintMapper();
     }
 
     /**
-     * Sets the S3 client. This must be set prior to calling build().
+     * Sets the cloud client. This must be set prior to calling build().
      *
-     * @param s3Client the client to use to interface with S3
+     * @param cloudClient the client to use to interface with cloud storage such as S3
      * @return builder
      */
-    public S3OcflStorageBuilder s3Client(S3Client s3Client) {
-        this.s3Client = s3Client;
+    public CloudOcflStorageBuilder cloudClient(CloudClient cloudClient) {
+        this.cloudClient = cloudClient;
         return this;
     }
 
@@ -45,7 +44,7 @@ public class S3OcflStorageBuilder {
      * @param workDir the directory to write temporary files to.
      * @return builder
      */
-    public S3OcflStorageBuilder workDir(Path workDir) {
+    public CloudOcflStorageBuilder workDir(Path workDir) {
         this.workDir = workDir;
         return this;
     }
@@ -56,7 +55,7 @@ public class S3OcflStorageBuilder {
      * @param inventoryMapper the mapper that's used to parse inventory files
      * @return builder
      */
-    public S3OcflStorageBuilder inventoryMapper(InventoryMapper inventoryMapper) {
+    public CloudOcflStorageBuilder inventoryMapper(InventoryMapper inventoryMapper) {
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         return this;
     }
@@ -67,7 +66,7 @@ public class S3OcflStorageBuilder {
      * @param objectMapper object mapper
      * @return builder
      */
-    public S3OcflStorageBuilder objectMapper(ObjectMapper objectMapper) {
+    public CloudOcflStorageBuilder objectMapper(ObjectMapper objectMapper) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
         return this;
     }
@@ -78,34 +77,32 @@ public class S3OcflStorageBuilder {
      * @param threadPoolSize thread pool size. Default: number of processors
      * @return builder
      */
-    public S3OcflStorageBuilder threadPoolSize(int threadPoolSize) {
+    public CloudOcflStorageBuilder threadPoolSize(int threadPoolSize) {
         this.threadPoolSize = Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         return this;
     }
 
     /**
-     * Overrides the default {@link S3OcflStorageInitializer}. Normally, this does not need to be set.
+     * Overrides the default {@link CloudOcflStorageInitializer}. Normally, this does not need to be set.
      *
      * @param initializer the initializer
      * @return builder
      */
-    public S3OcflStorageBuilder initializer(S3OcflStorageInitializer initializer) {
+    public CloudOcflStorageBuilder initializer(CloudOcflStorageInitializer initializer) {
         this.initializer = initializer;
         return this;
     }
 
     /**
-     * Builds a new S3OcflStorage object
-     *
-     * @param bucketName the bucket the OCFL repository is in
+     * Builds a new {@link CloudOcflStorage} object
      */
-    public S3OcflStorage build(String bucketName) {
+    public CloudOcflStorage build() {
         var init = initializer;
         if (init == null) {
-            init = new S3OcflStorageInitializer(objectMapper, new ObjectIdPathMapperBuilder());
+            init = new CloudOcflStorageInitializer(cloudClient, objectMapper, new ObjectIdPathMapperBuilder());
         }
 
-        return new S3OcflStorage(s3Client, bucketName, threadPoolSize, workDir, inventoryMapper, init);
+        return new CloudOcflStorage(cloudClient, threadPoolSize, workDir, inventoryMapper, init);
     }
 
 }

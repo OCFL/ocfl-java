@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.aws;
+package edu.wisc.library.ocfl.core.storage.cloud;
 
 import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
@@ -31,9 +31,6 @@ import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.core.internal.util.Mimetype;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +41,11 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 
-public class S3OcflStorage implements OcflStorage {
+/**
+ * {@link OcflStorage} implementation for integrating with cloud storage providers. {@link CloudClient} implementation
+ * to integrate with different providers.
+ */
+public class CloudOcflStorage implements OcflStorage {
 
     /*
     TODO Test resource contention with lots of files
@@ -53,21 +54,23 @@ public class S3OcflStorage implements OcflStorage {
     TODO Test huge files
      */
 
-    private static final Logger LOG = LoggerFactory.getLogger(S3OcflStorage.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CloudOcflStorage.class);
+
+    private static final String MIMETYPE_TEXT_PLAIN = "text/plain; charset=UTF-8";
 
     private boolean closed = false;
     private boolean initialized = false;
 
     private PathConstraintProcessor logicalPathConstraints;
 
-    private S3ClientWrapper s3Client;
+    private CloudClient cloudClient;
     private Path workDir;
 
-    private S3OcflStorageInitializer initializer;
+    private CloudOcflStorageInitializer initializer;
     private ObjectIdPathMapper objectIdPathMapper;
     private InventoryMapper inventoryMapper;
     private ParallelProcess parallelProcess; // TODO performance test this vs async client
-    private S3OcflFileRetriever.Builder fileRetrieverBuilder;
+    private CloudOcflFileRetriever.Builder fileRetrieverBuilder;
 
     private OcflVersion ocflVersion;
 
@@ -76,26 +79,25 @@ public class S3OcflStorage implements OcflStorage {
      *
      * @return builder
      */
-    public static S3OcflStorageBuilder builder() {
-        return new S3OcflStorageBuilder();
+    public static CloudOcflStorageBuilder builder() {
+        return new CloudOcflStorageBuilder();
     }
 
     /**
-     * Creates a new S3OcflStorage object.
+     * Creates a new CloudOcflStorage object.
      *
      * <p>{@link #initializeStorage} must be called before using this object.
      *
-     * @see S3OcflStorageBuilder
+     * @see CloudOcflStorageBuilder
      *
-     * @param s3Client the client to use to interface with S3
-     * @param bucketName the bucket the OCFL repository is located in
+     * @param cloudClient the client to use to interface with cloud storage such as S3
      * @param threadPoolSize The size of the object's thread pool, used when calculating digests
      * @param inventoryMapper mapper used to parse inventory files
      * @param initializer initializes a new OCFL repo
      */
-    public S3OcflStorage(S3Client s3Client, String bucketName, int threadPoolSize, Path workDir,
-                         InventoryMapper inventoryMapper, S3OcflStorageInitializer initializer) {
-        this.s3Client = new S3ClientWrapper(s3Client, bucketName);
+    public CloudOcflStorage(CloudClient cloudClient, int threadPoolSize, Path workDir,
+                            InventoryMapper inventoryMapper, CloudOcflStorageInitializer initializer) {
+        this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
@@ -109,7 +111,7 @@ public class S3OcflStorage implements OcflStorage {
                 .charConstraint(new BackslashPathSeparatorConstraint())
                 .build();
 
-        this.fileRetrieverBuilder = S3OcflFileRetriever.builder().s3Client(this.s3Client);
+        this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(this.cloudClient);
     }
 
     /**
@@ -199,7 +201,7 @@ public class S3OcflStorage implements OcflStorage {
                     break;
                 }
 
-                try (var stream = new FixityCheckInputStream(s3Client.downloadStream(srcPath), digestAlgorithm, id)){
+                try (var stream = new FixityCheckInputStream(cloudClient.downloadStream(srcPath), digestAlgorithm, id)){
                     Files.copy(stream, destination);
                     stream.checkFixity();
                 } catch (FixityCheckException e) {
@@ -219,7 +221,7 @@ public class S3OcflStorage implements OcflStorage {
     public void purgeObject(String objectId) {
         ensureOpen();
 
-        s3Client.deletePath(objectRootPath(objectId));
+        cloudClient.deletePath(objectRootPath(objectId));
     }
 
     /**
@@ -231,7 +233,7 @@ public class S3OcflStorage implements OcflStorage {
 
         ensureRootObjectHasNotChanged(newInventory);
 
-        if (s3Client.listObjectsUnderPrefix(ObjectPaths.mutableHeadVersionPath(newInventory.getObjectRootPath())).isEmpty()) {
+        if (cloudClient.listDirectory(ObjectPaths.mutableHeadVersionPath(newInventory.getObjectRootPath())).getObjects().isEmpty()) {
             throw new ObjectOutOfSyncException(
                     String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", newInventory.getId()));
         }
@@ -242,7 +244,7 @@ public class S3OcflStorage implements OcflStorage {
         var objectKeys = copyMutableVersionToImmutableVersion(oldInventory, newInventory);
 
         try {
-            storeInventoryInS3WithRollback(newInventory, stagingDir, versionPath);
+            storeInventoryInCloudWithRollback(newInventory, stagingDir, versionPath);
 
             try {
                 purgeMutableHead(newInventory.getId());
@@ -251,7 +253,7 @@ public class S3OcflStorage implements OcflStorage {
                         ObjectPaths.mutableHeadExtensionRoot(newInventory.getObjectRootPath()), e);
             }
         } catch (RuntimeException e) {
-            s3Client.safeDeleteObjects(objectKeys);
+            cloudClient.safeDeleteObjects(objectKeys);
             throw e;
         }
     }
@@ -263,7 +265,7 @@ public class S3OcflStorage implements OcflStorage {
     public void purgeMutableHead(String objectId) {
         ensureOpen();
 
-        s3Client.deletePath(ObjectPaths.mutableHeadExtensionRoot(objectRootPath(objectId)));
+        cloudClient.deletePath(ObjectPaths.mutableHeadExtensionRoot(objectRootPath(objectId)));
     }
 
     /**
@@ -273,7 +275,7 @@ public class S3OcflStorage implements OcflStorage {
     public boolean containsObject(String objectId) {
         ensureOpen();
 
-        return !s3Client.listObjectsUnderPrefix(objectRootPath(objectId)).isEmpty();
+        return !cloudClient.listDirectory(objectRootPath(objectId)).getObjects().isEmpty();
     }
 
     /**
@@ -295,7 +297,7 @@ public class S3OcflStorage implements OcflStorage {
             return;
         }
 
-        this.objectIdPathMapper = this.initializer.initializeStorage(s3Client, ocflVersion, layoutConfig);
+        this.objectIdPathMapper = this.initializer.initializeStorage(ocflVersion, layoutConfig);
         this.ocflVersion = ocflVersion;
         this.initialized = true;
     }
@@ -322,19 +324,19 @@ public class S3OcflStorage implements OcflStorage {
                 namasteFile = writeObjectNamasteFile(inventory.getObjectRootPath());
             }
 
-            var objectKeys = storeContentInS3(inventory, stagingDir);
+            var objectKeys = storeContentInCloud(inventory, stagingDir);
             // TODO write a copy to the cache?
 
             try {
-                storeInventoryInS3WithRollback(inventory, stagingDir, versionPath);
+                storeInventoryInCloudWithRollback(inventory, stagingDir, versionPath);
             } catch (RuntimeException e) {
-                s3Client.safeDeleteObjects(objectKeys);
+                cloudClient.safeDeleteObjects(objectKeys);
                 throw e;
             }
         } catch (RuntimeException e) {
             // TODO this could be corrupt the object if another process is concurrently creating the same object
             if (namasteFile != null) {
-                s3Client.safeDeleteObjects(namasteFile);
+                cloudClient.safeDeleteObjects(namasteFile);
             }
             throw e;
         }
@@ -345,7 +347,7 @@ public class S3OcflStorage implements OcflStorage {
 
         var cleanupKeys = new ArrayList<String>(2);
 
-        if (!s3Client.listObjectsUnderPrefix(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath())).isEmpty()) {
+        if (!cloudClient.listDirectory(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath())).getObjects().isEmpty()) {
             ensureRootObjectHasNotChanged(inventory);
         } else {
             cleanupKeys.add(copyRootInventorySidecarToMutableHead(inventory));
@@ -354,19 +356,19 @@ public class S3OcflStorage implements OcflStorage {
         try {
             cleanupKeys.add(createRevisionMarker(inventory));
 
-            var objectKeys = storeContentInS3(inventory, stagingDir);
+            var objectKeys = storeContentInCloud(inventory, stagingDir);
 
             // TODO write a copy to the cache?
 
             try {
                 // TODO if this fails the inventory may be left in a bad state
-                storeMutableHeadInventoryInS3(inventory, stagingDir);
+                storeMutableHeadInventoryInCloud(inventory, stagingDir);
             } catch (RuntimeException e) {
-                s3Client.safeDeleteObjects(objectKeys);
+                cloudClient.safeDeleteObjects(objectKeys);
                 throw e;
             }
         } catch (RuntimeException e) {
-            s3Client.safeDeleteObjects(cleanupKeys);
+            cloudClient.safeDeleteObjects(cleanupKeys);
             throw e;
         }
 
@@ -374,7 +376,7 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     // TODO performance test this vs async
-    private List<String> storeContentInS3(Inventory inventory, Path sourcePath) {
+    private List<String> storeContentInCloud(Inventory inventory, Path sourcePath) {
         var contentPrefix = contentPrefix(inventory);
         var fileIds = inventory.getFileIdsForMatchingFiles(contentPrefix);
         var objectKeys = Collections.synchronizedList(new ArrayList<String>());
@@ -392,11 +394,11 @@ public class S3OcflStorage implements OcflStorage {
                 byte[] md5bytes = md5bytes(inventory, contentPath);
                 var key = inventory.storagePath(fileId);
                 objectKeys.add(key);
-                s3Client.uploadFile(file, key, md5bytes);
+                cloudClient.uploadFile(file, key, md5bytes);
             });
         } catch (RuntimeException e) {
             // TODO I think there's a problem here with not waiting for cancelled tasks to complete
-            s3Client.safeDeleteObjects(objectKeys);
+            cloudClient.safeDeleteObjects(objectKeys);
             throw e;
         }
 
@@ -422,38 +424,38 @@ public class S3OcflStorage implements OcflStorage {
                 var srcPath = oldInventory.storagePath(fileId);
                 var dstPath = newInventory.storagePath(fileId);
                 objectKeys.add(dstPath);
-                s3Client.copyObject(srcPath, dstPath);
+                cloudClient.copyObject(srcPath, dstPath);
             });
         } catch (RuntimeException e) {
             // TODO I think there's a problem here with not waiting for cancelled tasks to complete
-            s3Client.safeDeleteObjects(objectKeys);
+            cloudClient.safeDeleteObjects(objectKeys);
             throw e;
         }
 
         return objectKeys;
     }
 
-    private void storeMutableHeadInventoryInS3(Inventory inventory, Path sourcePath) {
-        s3Client.uploadFile(ObjectPaths.inventoryPath(sourcePath),
+    private void storeMutableHeadInventoryInCloud(Inventory inventory, Path sourcePath) {
+        cloudClient.uploadFile(ObjectPaths.inventoryPath(sourcePath),
                 ObjectPaths.mutableHeadInventoryPath(inventory.getObjectRootPath()));
-        s3Client.uploadFile(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
+        cloudClient.uploadFile(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
                 ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory));
     }
 
-    private void storeInventoryInS3WithRollback(Inventory inventory, Path sourcePath, String versionPath) {
+    private void storeInventoryInCloudWithRollback(Inventory inventory, Path sourcePath, String versionPath) {
         var srcInventoryPath = ObjectPaths.inventoryPath(sourcePath);
         var srcSidecarPath = ObjectPaths.inventorySidecarPath(sourcePath, inventory);
         var versionedInventoryPath = ObjectPaths.inventoryPath(versionPath);
         var versionedSidecarPath = ObjectPaths.inventorySidecarPath(versionPath, inventory);
 
-        s3Client.uploadFile(srcInventoryPath, versionedInventoryPath);
-        s3Client.uploadFile(srcSidecarPath, versionedSidecarPath);
+        cloudClient.uploadFile(srcInventoryPath, versionedInventoryPath);
+        cloudClient.uploadFile(srcSidecarPath, versionedSidecarPath);
 
         try {
             copyInventoryToRoot(versionPath, inventory);
         } catch (RuntimeException e) {
             rollbackInventory(inventory);
-            s3Client.safeDeleteObjects(versionedInventoryPath, versionedSidecarPath);
+            cloudClient.safeDeleteObjects(versionedInventoryPath, versionedSidecarPath);
             throw e;
         }
     }
@@ -471,27 +473,27 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void copyInventoryToRoot(String versionPath, Inventory inventory) {
-        s3Client.copyObject(ObjectPaths.inventoryPath(versionPath),
+        cloudClient.copyObject(ObjectPaths.inventoryPath(versionPath),
                 ObjectPaths.inventoryPath(inventory.getObjectRootPath()));
-        s3Client.copyObject(ObjectPaths.inventorySidecarPath(versionPath, inventory),
+        cloudClient.copyObject(ObjectPaths.inventorySidecarPath(versionPath, inventory),
                 ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory));
     }
 
     private String copyRootInventorySidecarToMutableHead(Inventory inventory) {
         var rootSidecarPath = ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory);
         var sidecarName = rootSidecarPath.substring(rootSidecarPath.lastIndexOf('/') + 1);
-        return s3Client.copyObject(rootSidecarPath,
+        return cloudClient.copyObject(rootSidecarPath,
                 FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()), "root-" + sidecarName));
     }
 
     private Inventory downloadAndParseInventory(String objectRootPath, Path localPath) {
         try {
             var remotePath = ObjectPaths.inventoryPath(objectRootPath);
-            s3Client.downloadFile(remotePath, localPath);
+            cloudClient.downloadFile(remotePath, localPath);
             var inventory = inventoryMapper.read(objectRootPath, localPath);
             var expectedDigest = getDigestFromSidecar(ObjectPaths.inventorySidecarPath(objectRootPath, inventory));
             return verifyInventory(expectedDigest, localPath, inventory);
-        } catch (NoSuchKeyException e) {
+        } catch (KeyNotFoundException e) {
             // Doesn't exist; return null
             return null;
         }
@@ -500,12 +502,12 @@ public class S3OcflStorage implements OcflStorage {
     private Inventory downloadAndParseMutableInventory(String objectRootPath, Path localPath) {
         try {
             var remotePath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
-            s3Client.downloadFile(remotePath, localPath);
+            cloudClient.downloadFile(remotePath, localPath);
             var revisionId = identifyLatestRevision(objectRootPath);
             var inventory = inventoryMapper.readMutableHead(objectRootPath, revisionId, localPath);
             var expectedDigest = getDigestFromSidecar(ObjectPaths.mutableHeadInventorySidecarPath(objectRootPath, inventory));
             return verifyInventory(expectedDigest, localPath, inventory);
-        } catch (NoSuchKeyException e) {
+        } catch (KeyNotFoundException e) {
             // Doesn't exist; return null
             return null;
         }
@@ -514,18 +516,18 @@ public class S3OcflStorage implements OcflStorage {
     private String createRevisionMarker(Inventory inventory) {
         var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()),
                 "revisions", inventory.getRevisionId().toString());
-        return s3Client.uploadBytes(revisionPath, inventory.getRevisionId().toString().getBytes(StandardCharsets.UTF_8), Mimetype.MIMETYPE_TEXT_PLAIN);
+        return cloudClient.uploadBytes(revisionPath, inventory.getRevisionId().toString().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN);
     }
 
     private RevisionId identifyLatestRevision(String objectRootPath) {
         // TODO this is not implemented yet
         var revisionsPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(objectRootPath), "revisions");
-        var revisions = s3Client.listObjectsUnderPrefix(revisionsPath);
+        var revisions = cloudClient.listDirectory(revisionsPath);
 
         RevisionId revisionId = null;
 
-        for (var revisionStr : revisions) {
-            var id = RevisionId.fromString(revisionStr);
+        for (var revisionStr : revisions.getObjects()) {
+            var id = RevisionId.fromString(revisionStr.getFileName());
             if (revisionId == null) {
                 revisionId = id;
             } else if (revisionId.compareTo(id) < 1) {
@@ -537,19 +539,19 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void deleteMutableHeadFilesNotInManifest(Inventory inventory) {
-        var keys = s3Client.list(FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath()),
+        var keys = cloudClient.list(FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath()),
                 inventory.resolveContentDirectory()));
         var deleteKeys = new ArrayList<String>();
 
-        keys.contents().forEach(o -> {
-            var key = o.key();
+        keys.getObjects().forEach(o -> {
+            var key = o.getKey();
             var contentPath = key.substring(inventory.getObjectRootPath().length() + 1);
             if (inventory.getFileId(contentPath) == null) {
                 deleteKeys.add(key);
             }
         });
 
-        s3Client.safeDeleteObjects(deleteKeys);
+        cloudClient.safeDeleteObjects(deleteKeys);
     }
 
     private String contentPrefix(Inventory inventory) {
@@ -565,7 +567,7 @@ public class S3OcflStorage implements OcflStorage {
 
     private void ensureNoMutableHead(Inventory inventory) {
         // TODO this could be incorrect due to eventual consistency issues
-        if (!s3Client.listObjectsUnderPrefix(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath())).isEmpty()) {
+        if (!cloudClient.listDirectory(ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath())).getObjects().isEmpty()) {
             // TODO modeled exception?
             throw new IllegalStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
                     inventory.getId()));
@@ -573,7 +575,7 @@ public class S3OcflStorage implements OcflStorage {
     }
 
     private void ensureVersionDoesNotExist(Inventory inventory, String versionPath) {
-        if (!s3Client.listObjectsUnderPrefix(versionPath).isEmpty()) {
+        if (!cloudClient.listDirectory(versionPath).getObjects().isEmpty()) {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         }
@@ -600,13 +602,13 @@ public class S3OcflStorage implements OcflStorage {
 
     private String getDigestFromSidecar(String sidecarPath) {
         try {
-            var sidecarContents = s3Client.downloadString(sidecarPath);
+            var sidecarContents = cloudClient.downloadString(sidecarPath);
             var parts = sidecarContents.split("\\s");
             if (parts.length == 0) {
                 throw new CorruptObjectException("Invalid inventory sidecar file: " + sidecarPath);
             }
             return parts[0];
-        } catch (NoSuchKeyException e) {
+        } catch (KeyNotFoundException e) {
             throw new CorruptObjectException("Missing inventory sidecar: " + sidecarPath, e);
         }
     }
@@ -634,7 +636,7 @@ public class S3OcflStorage implements OcflStorage {
     private String writeObjectNamasteFile(String objectRootPath) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
         var key = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
-        return s3Client.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), Mimetype.MIMETYPE_TEXT_PLAIN);
+        return cloudClient.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN);
     }
 
     private void ensureOpen() {

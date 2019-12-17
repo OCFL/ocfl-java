@@ -14,6 +14,8 @@ module edu.wisc.library.ocfl.core {
     exports edu.wisc.library.ocfl.core.path.constraint;
     exports edu.wisc.library.ocfl.core.path.sanitize;
     exports edu.wisc.library.ocfl.core.storage;
+    exports edu.wisc.library.ocfl.core.storage.cloud;
+    exports edu.wisc.library.ocfl.core.storage.filesystem;
     exports edu.wisc.library.ocfl.core.util;
 
     requires bytes;

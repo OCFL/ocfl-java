@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.storage;
+package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;

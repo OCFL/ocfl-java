@@ -7,6 +7,7 @@ import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 
 import java.nio.file.Path;
 import java.util.Map;

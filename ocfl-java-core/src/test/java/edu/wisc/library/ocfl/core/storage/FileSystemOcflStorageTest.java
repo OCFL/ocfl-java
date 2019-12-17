@@ -10,6 +10,7 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.test.OcflAsserts;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.BeforeEach;

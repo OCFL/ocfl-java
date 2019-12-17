@@ -40,6 +40,7 @@
         <module>ocfl-java-api</module>
         <module>ocfl-java-core</module>
         <module>ocfl-java-aws</module>
+        <module>ocfl-java-ibm</module>
     </modules>
 
     <properties>
@@ -239,6 +240,16 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jul-to-slf4j</artifactId>
+                <version>1.8.0-beta4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jcl-over-slf4j</artifactId>
+                <version>1.8.0-beta4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
                 <version>1.8.0-beta4</version>
             </dependency>
             <dependency>
