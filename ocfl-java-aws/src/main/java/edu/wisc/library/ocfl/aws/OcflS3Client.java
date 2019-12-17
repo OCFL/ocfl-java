@@ -453,6 +453,7 @@ public class OcflS3Client implements CloudClient {
         }).collect(Collectors.toList());
 
         var dirs = s3Result.commonPrefixes().stream()
+                .filter(p -> p.prefix() != null)
                 .map(p -> {
                     var path = p.prefix();
                     return new ListResult.DirectoryListing()

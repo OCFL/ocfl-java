@@ -20,10 +20,7 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
-import edu.wisc.library.ocfl.core.path.constraint.BackslashPathSeparatorConstraint;
-import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
-import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
+import edu.wisc.library.ocfl.core.path.constraint.*;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -95,11 +92,7 @@ public class FileSystemOcflStorage implements OcflStorage {
         this.checkNewVersionFixity = checkNewVersionFixity;
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
-        this.logicalPathConstraints = PathConstraintProcessor.builder()
-                .fileNameConstraint(new NonEmptyFileNameConstraint())
-                .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
-                .charConstraint(new BackslashPathSeparatorConstraint())
-                .build();
+        this.logicalPathConstraints = PathConstraints.logicalPathConstraints();
     }
 
     /**

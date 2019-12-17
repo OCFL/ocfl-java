@@ -20,10 +20,8 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
-import edu.wisc.library.ocfl.core.path.constraint.BackslashPathSeparatorConstraint;
-import edu.wisc.library.ocfl.core.path.constraint.NonEmptyFileNameConstraint;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.RegexPathConstraint;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraints;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -39,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
 
 /**
  * {@link OcflStorage} implementation for integrating with cloud storage providers. {@link CloudClient} implementation
@@ -104,13 +101,7 @@ public class CloudOcflStorage implements OcflStorage {
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
-        // TODO move somewhere else
-        this.logicalPathConstraints = PathConstraintProcessor.builder()
-                .fileNameConstraint(new NonEmptyFileNameConstraint())
-                .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
-                .charConstraint(new BackslashPathSeparatorConstraint())
-                .build();
-
+        this.logicalPathConstraints = PathConstraints.logicalPathConstraints();
         this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(this.cloudClient);
     }
 

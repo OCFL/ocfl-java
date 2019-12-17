@@ -57,7 +57,7 @@ its behavior and storage layer. The core implementation class is `edu.wisc.libra
 
 ### Storage
 
-Storage layer implementations must implement `edu.wisc.library.ocfl.core.OcflStorage`. There are the following existing
+Storage layer implementations must implement `edu.wisc.library.ocfl.core.storage.OcflStorage`. There are the following existing
 implementations:
 
 * `FileSystemOcflStorage`: Basic implementation that stores all objects within a single root on the local filesystem.

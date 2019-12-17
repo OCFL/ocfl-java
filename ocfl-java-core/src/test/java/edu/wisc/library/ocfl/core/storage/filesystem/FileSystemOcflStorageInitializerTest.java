@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.storage;
+package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;

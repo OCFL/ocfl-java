@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.storage;
+package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;

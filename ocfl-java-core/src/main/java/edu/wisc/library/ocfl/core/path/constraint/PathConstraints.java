@@ -13,6 +13,12 @@ public final class PathConstraints {
             .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
             .build();
 
+    private static final PathConstraintProcessor LOGICAL_PATH_CONSTRAINTS = PathConstraintProcessor.builder()
+            .fileNameConstraint(new NonEmptyFileNameConstraint())
+            .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$")))
+            .charConstraint(new BackslashPathSeparatorConstraint())
+            .build();
+
     /**
      * Applies the following constraints:
      *
@@ -25,6 +31,15 @@ public final class PathConstraints {
      */
     public static PathConstraintProcessor noEmptyOrDotFilenames() {
         return NON_EMPTY_DOT_CONSTRAINTS;
+    }
+
+    /**
+     * Logical paths may not contain empty filenames, '.' or '..' segments, or use backslashes as separators.
+     *
+     * @return logical path constraints
+     */
+    public static PathConstraintProcessor logicalPathConstraints() {
+        return LOGICAL_PATH_CONSTRAINTS;
     }
 
 }
