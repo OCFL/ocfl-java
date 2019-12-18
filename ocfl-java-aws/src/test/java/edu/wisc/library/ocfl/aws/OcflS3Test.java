@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.aws;
 
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
+import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @ExtendWith(S3MockExtension.class)
 public class OcflS3Test {
@@ -41,11 +43,11 @@ public class OcflS3Test {
 
     @Test
     public void basicMutableHeadTest(S3Client s3Client) {
-        var bucket = "test";
+        var bucket = "test-1";
         var repo = createRepo(s3Client, bucket);
         var objectId = "o1";
 
-        repo.stageChanges(ObjectVersionId.head(objectId), commitInfo("Peter", "pwinckles@pm.me", "initial commit"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
             updater.writeFile(stream("file1"), "dir/file1.txt");
             updater.writeFile(stream("file2"), "dir/sub/file2.txt");
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
@@ -82,6 +84,64 @@ public class OcflS3Test {
         ));
 
         assertEquals("file2", streamToString(repo.getObject(ObjectVersionId.head(objectId)).getFile("dir/sub/file2.txt").getStream()));
+    }
+
+    @Test
+    public void basicPutTest(S3Client s3Client) {
+        var bucket = "test-2";
+        var repo = createRepo(s3Client, bucket);
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
+            updater.writeFile(stream("file1"), "dir/file1.txt");
+            updater.writeFile(stream("file2"), "dir/sub/file2.txt");
+            updater.writeFile(stream("file1"), "dir/sub/file3.txt");
+        });
+
+        assertObjectsExist(s3Client, bucket, "o1/", List.of(
+                "o1/0=ocfl_object_1.0",
+                "o1/inventory.json",
+                "o1/inventory.json.sha512",
+                "o1/v1/inventory.json",
+                "o1/v1/inventory.json.sha512",
+                "o1/v1/content/dir/file1.txt",
+                "o1/v1/content/dir/sub/file2.txt"
+        ));
+
+        repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
+            updater.writeFile(stream("file3"), "dir/sub/file3.txt", OcflOption.OVERWRITE);
+        });
+
+        assertObjectsExist(s3Client, bucket, "o1/", List.of(
+                "o1/0=ocfl_object_1.0",
+                "o1/inventory.json",
+                "o1/inventory.json.sha512",
+                "o1/v1/inventory.json",
+                "o1/v1/inventory.json.sha512",
+                "o1/v1/content/dir/file1.txt",
+                "o1/v1/content/dir/sub/file2.txt",
+                "o1/v2/inventory.json",
+                "o1/v2/inventory.json.sha512",
+                "o1/v2/content/dir/sub/file3.txt"
+        ));
+    }
+
+    @Test
+    public void basicPurgeTest(S3Client s3Client) {
+        var bucket = "test-3";
+        var repo = createRepo(s3Client, bucket);
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
+            updater.writeFile(stream("file1"), "dir/file1.txt");
+            updater.writeFile(stream("file2"), "dir/sub/file2.txt");
+            updater.writeFile(stream("file1"), "dir/sub/file3.txt");
+        });
+
+        repo.purgeObject(objectId);
+
+        assertFalse(repo.containsObject(objectId));
+        assertObjectsExist(s3Client, bucket, "o1/", List.of());
     }
 
     private void assertObjectsExist(S3Client s3Client, String bucket, String prefix, Collection<String> expectedKeys) {
