@@ -41,7 +41,7 @@
     </scm>
 
     <properties>
-        <ibm.cos.version>2.5.5</ibm.cos.version>
+        <ibm.cos.version>2.6.0</ibm.cos.version>
     </properties>
 
     <build>
