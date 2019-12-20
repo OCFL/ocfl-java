@@ -444,6 +444,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     }
 
     private Inventory buildNewInventory(InventoryUpdater inventoryUpdater, CommitInfo commitInfo) {
+        // TODO this is very slow...
         return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(), commitInfo));
     }
 

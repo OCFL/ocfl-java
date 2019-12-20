@@ -3,7 +3,6 @@ package edu.wisc.library.ocfl.core.model;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.OcflConstants;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,8 +14,8 @@ import java.util.Set;
  */
 public class InventoryBuilder {
 
-    private static final VersionId INITIAL_VERSION = VersionId.fromString(OcflConstants.DEFAULT_INITIAL_VERSION_ID);
-    private static final RevisionId INITIAL_REVISION = new RevisionId(1);
+    private static final VersionId INITIAL_VERSION = VersionId.V1;
+    private static final RevisionId INITIAL_REVISION = RevisionId.R1;
 
     private String id;
     private InventoryType type;

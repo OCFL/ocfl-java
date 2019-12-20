@@ -82,7 +82,7 @@ public class InventoryMapper {
         return readInternal(true, revisionId, objectRootPath, inputStream);
     }
 
-    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, Path path) {
+    private Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, Path path) {
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()
@@ -96,7 +96,7 @@ public class InventoryMapper {
         }
     }
 
-    public Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, InputStream inputStream) {
+    private Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, InputStream inputStream) {
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()

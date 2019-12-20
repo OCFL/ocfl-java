@@ -10,6 +10,8 @@ import java.util.regex.Pattern;
  */
 public class RevisionId implements Comparable<RevisionId> {
 
+    public static final RevisionId R1 = new RevisionId(1);
+
     private static final Pattern VALID_REVISION = Pattern.compile("^r\\d+$");
 
     private final long revisionNumber;

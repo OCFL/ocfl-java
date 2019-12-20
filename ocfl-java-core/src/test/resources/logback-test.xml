@@ -9,6 +9,7 @@
     </appender>
 
     <logger name="edu.wisc.library" level="debug"/>
+    <logger name="edu.wisc.library.ocfl.core.util.Timer" level="debug"/>
 
     <root level="info">
         <appender-ref ref="STDOUT" />

@@ -94,6 +94,18 @@ public class Inventory {
     }
 
     /**
+     * Creates an inventory builder with values populated from a stub inventory
+     *
+     * @param id object id
+     * @param config ocfl defaults config
+     * @param objectRootPath path to object root
+     * @return inventory builder
+     */
+    public static InventoryBuilder builderFromStub(String id, OcflConfig config, String objectRootPath) {
+        return new InventoryBuilder(Inventory.stubInventory(id, config, objectRootPath));
+    }
+
+    /**
      * @see InventoryBuilder
      */
     public Inventory(

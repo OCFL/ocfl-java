@@ -58,4 +58,12 @@ public final class DigestUtil {
         return Bytes.from(value).hash(algorithm.getJavaStandardName()).encodeHex(upperCase);
     }
 
+    public static String computeDigestHex(DigestAlgorithm algorithm, byte[] value) {
+        return computeDigestHex(algorithm, value, false);
+    }
+
+    public static String computeDigestHex(DigestAlgorithm algorithm, byte[] value, boolean upperCase) {
+        return Bytes.wrap(value).hash(algorithm.getJavaStandardName()).encodeHex(upperCase);
+    }
+
 }

@@ -36,8 +36,10 @@ public class InMemoryObjectLock implements ObjectLock {
      */
     @Override
     public void doInReadLock(String objectId, Runnable doInLock) {
-        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).readLock();
-        doInLock(objectId, lock, doInLock);
+        doInReadLock(objectId, () -> {
+            doInLock.run();
+            return null;
+        });
     }
 
     /**
@@ -54,8 +56,10 @@ public class InMemoryObjectLock implements ObjectLock {
      */
     @Override
     public void doInWriteLock(String objectId, Runnable doInLock) {
-        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).writeLock();
-        doInLock(objectId, lock, doInLock);
+        doInWriteLock(objectId, () -> {
+            doInLock.run();
+            return null;
+        });
     }
 
     /**
@@ -65,22 +69,6 @@ public class InMemoryObjectLock implements ObjectLock {
     public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
         var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).writeLock();
         return doInLock(objectId, lock, doInLock);
-    }
-
-    private void doInLock(String objectId, Lock lock, Runnable doInLock) {
-        try {
-            if (lock.tryLock(waitTime, timeUnit)) {
-                try {
-                    doInLock.run();
-                } finally {
-                    lock.unlock();
-                }
-            } else {
-                throw new LockException("Failed to acquire lock for object " + objectId);
-            }
-        } catch (InterruptedException e) {
-            throw new LockException(e);
-        }
     }
 
     private <T> T doInLock(String objectId, Lock lock, Callable<T> doInLock) {

@@ -11,6 +11,8 @@ import java.util.regex.Pattern;
  */
 public class VersionId implements Comparable<VersionId> {
 
+    public static final VersionId V1 = new VersionId(1);
+
     private static final Pattern VALID_VERSION = Pattern.compile("^v\\d+$");
 
     private final long versionNumber;

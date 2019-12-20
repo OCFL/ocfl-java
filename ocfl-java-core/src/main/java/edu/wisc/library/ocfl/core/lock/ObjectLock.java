@@ -10,6 +10,8 @@ import java.util.concurrent.Callable;
  */
 public interface ObjectLock {
 
+    // TODO remove read lock -- this introduces the possibility that a read could happen between moving inventory.json and its sidecar
+
     /**
      * Executes the code block after securing a read lock on the objectId. The lock is released after the block completes.
      *
