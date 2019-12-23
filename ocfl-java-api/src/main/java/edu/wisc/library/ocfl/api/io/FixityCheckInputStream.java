@@ -49,7 +49,7 @@ public class FixityCheckInputStream extends DigestInputStream {
      */
     public void checkFixity() {
         if (enabled) {
-            var actualDigest = Bytes.from(digest.digest()).encodeHex();
+            var actualDigest = Bytes.wrap(digest.digest()).encodeHex();
             if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
                 throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
                         digest.getAlgorithm(), expectedDigestValue, actualDigest));

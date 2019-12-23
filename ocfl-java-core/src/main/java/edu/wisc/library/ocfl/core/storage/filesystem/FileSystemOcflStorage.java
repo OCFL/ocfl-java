@@ -1,27 +1,25 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
-import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
-import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
+import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
-import edu.wisc.library.ocfl.core.path.constraint.*;
-import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraints;
+import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
@@ -36,27 +34,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class FileSystemOcflStorage implements OcflStorage {
+public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemOcflStorage.class);
 
     private PathConstraintProcessor logicalPathConstraints;
 
-    private boolean closed = false;
-    private boolean initialized = false;
-
     private Path repositoryRoot;
-    private InventoryMapper inventoryMapper;
+    private SidecarMapper sidecarMapper;
     private FileSystemOcflStorageInitializer initializer;
     private ParallelProcess parallelProcess;
 
     private boolean checkNewVersionFixity;
 
     private ObjectIdPathMapper objectIdPathMapper;
-    private OcflVersion ocflVersion;
 
     /**
      * Create a new builder.
@@ -80,19 +73,18 @@ public class FileSystemOcflStorage implements OcflStorage {
      *                              content directory after moving it into the object. In most cases, this should not be
      *                              required, especially if the OCFL client's work directory is on the same volume as the
      *                              storage root.
-     * @param inventoryMapper mapper used to parse inventory files
      * @param initializer initializes a new OCFL repo
      */
     public FileSystemOcflStorage(Path repositoryRoot, int threadPoolSize, boolean checkNewVersionFixity,
-                                 InventoryMapper inventoryMapper, FileSystemOcflStorageInitializer initializer) {
+                                 FileSystemOcflStorageInitializer initializer) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
-        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
         this.logicalPathConstraints = PathConstraints.logicalPathConstraints();
+        this.sidecarMapper = new SidecarMapper();
     }
 
     /**
@@ -334,14 +326,8 @@ public class FileSystemOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
-        if (initialized) {
-            return;
-        }
-
+    protected void doInitialize(LayoutConfig layoutConfig) {
         this.objectIdPathMapper = this.initializer.initializeStorage(repositoryRoot, ocflVersion, layoutConfig);
-        this.ocflVersion = ocflVersion;
-        this.initialized = true;
     }
 
     /**
@@ -349,7 +335,6 @@ public class FileSystemOcflStorage implements OcflStorage {
      */
     @Override
     public void close() {
-        closed = true;
         parallelProcess.shutdown();
     }
 
@@ -374,8 +359,8 @@ public class FileSystemOcflStorage implements OcflStorage {
 
     private void verifyInventory(Path inventoryPath) {
         var sidecarPath = findInventorySidecar(inventoryPath.getParent());
-        var expectedDigest = readInventoryDigest(sidecarPath);
-        var algorithm = getDigestAlgorithmFromSidecar(sidecarPath);
+        var expectedDigest = sidecarMapper.readSidecar(sidecarPath);
+        var algorithm = sidecarMapper.getDigestAlgorithmFromSidecar(FileUtil.pathToStringStandardSeparator(sidecarPath));
 
         var actualDigest = DigestUtil.computeDigestHex(algorithm, inventoryPath);
 
@@ -420,30 +405,6 @@ public class FileSystemOcflStorage implements OcflStorage {
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
-    }
-
-    private String readInventoryDigest(Path inventorySidecarPath) {
-        try {
-            var parts = Files.readString(inventorySidecarPath).split("\\s");
-            if (parts.length == 0) {
-                throw new CorruptObjectException("Invalid inventory sidecar file: " + inventorySidecarPath);
-            }
-            return parts[0];
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
-    }
-
-    private DigestAlgorithm getDigestAlgorithmFromSidecar(Path inventorySidecarPath) {
-        var value = inventorySidecarPath.getFileName().toString().substring(OcflConstants.INVENTORY_FILE.length() + 1);
-        var algorithm = DigestAlgorithmRegistry.getAlgorithm(value);
-
-        if (!OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(algorithm)) {
-            throw new CorruptObjectException(String.format("Inventory sidecar at <%s> specifies digest algorithm %s. Allowed algorithms are: %s",
-                    inventorySidecarPath, value, OcflConstants.ALLOWED_DIGEST_ALGORITHMS));
-        }
-
-        return algorithm;
     }
 
     private void storeNewImmutableVersion(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir) {
@@ -630,8 +591,8 @@ public class FileSystemOcflStorage implements OcflStorage {
     private void ensureRootObjectHasNotChanged(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
         var savedSidecarPath = ObjectPaths.inventorySidecarPath(objectRoot.mutableHeadExtensionPath(), inventory);
         if (Files.exists(savedSidecarPath)) {
-            var expectedDigest = readInventoryDigest(savedSidecarPath);
-            var actualDigest = readInventoryDigest(objectRoot.inventorySidecar());
+            var expectedDigest = sidecarMapper.readSidecar(savedSidecarPath);
+            var actualDigest = sidecarMapper.readSidecar(objectRoot.inventorySidecar());
 
             if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                 throw new ObjectOutOfSyncException(
@@ -644,23 +605,13 @@ public class FileSystemOcflStorage implements OcflStorage {
         var savedSidecarPath = findGenericInventorySidecar(objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH), "root-" + OcflConstants.INVENTORY_FILE + ".");
         if (Files.exists(savedSidecarPath)) {
             var rootSidecarPath = findInventorySidecar(objectRootPath);
-            var expectedDigest = readInventoryDigest(savedSidecarPath);
-            var actualDigest = readInventoryDigest(rootSidecarPath);
+            var expectedDigest = sidecarMapper.readSidecar(savedSidecarPath);
+            var actualDigest = sidecarMapper.readSidecar(rootSidecarPath);
 
             if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                 throw new ObjectOutOfSyncException(
                         String.format("The mutable HEAD of object %s is out of sync with the root object state.", objectId));
             }
-        }
-    }
-
-    private void ensureOpen() {
-        if (closed) {
-            throw new IllegalStateException(this.getClass().getName() + " is closed.");
-        }
-
-        if (!initialized) {
-            throw new IllegalStateException(this.getClass().getName() + " must be initialized before it can be used.");
         }
     }
 

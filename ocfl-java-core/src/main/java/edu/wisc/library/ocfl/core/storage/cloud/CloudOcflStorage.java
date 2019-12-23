@@ -12,16 +12,15 @@ import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
-import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraints;
+import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -42,7 +41,7 @@ import java.util.concurrent.Executors;
  * {@link OcflStorage} implementation for integrating with cloud storage providers. {@link CloudClient} implementation
  * to integrate with different providers.
  */
-public class CloudOcflStorage implements OcflStorage {
+public class CloudOcflStorage extends AbstractOcflStorage {
 
     /*
     TODO Test resource contention with lots of files
@@ -55,9 +54,6 @@ public class CloudOcflStorage implements OcflStorage {
 
     private static final String MIMETYPE_TEXT_PLAIN = "text/plain; charset=UTF-8";
 
-    private boolean closed = false;
-    private boolean initialized = false;
-
     private PathConstraintProcessor logicalPathConstraints;
 
     private CloudClient cloudClient;
@@ -65,11 +61,8 @@ public class CloudOcflStorage implements OcflStorage {
 
     private CloudOcflStorageInitializer initializer;
     private ObjectIdPathMapper objectIdPathMapper;
-    private InventoryMapper inventoryMapper;
     private ParallelProcess parallelProcess; // TODO performance test this vs async client
     private CloudOcflFileRetriever.Builder fileRetrieverBuilder;
-
-    private OcflVersion ocflVersion;
 
     /**
      * Create a new builder.
@@ -89,14 +82,11 @@ public class CloudOcflStorage implements OcflStorage {
      *
      * @param cloudClient the client to use to interface with cloud storage such as S3
      * @param threadPoolSize The size of the object's thread pool, used when calculating digests
-     * @param inventoryMapper mapper used to parse inventory files
      * @param initializer initializes a new OCFL repo
      */
-    public CloudOcflStorage(CloudClient cloudClient, int threadPoolSize, Path workDir,
-                            InventoryMapper inventoryMapper, CloudOcflStorageInitializer initializer) {
+    public CloudOcflStorage(CloudClient cloudClient, int threadPoolSize, Path workDir, CloudOcflStorageInitializer initializer) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
-        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
@@ -283,14 +273,8 @@ public class CloudOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
-        if (initialized) {
-            return;
-        }
-
+    protected void doInitialize(LayoutConfig layoutConfig) {
         this.objectIdPathMapper = this.initializer.initializeStorage(ocflVersion, layoutConfig);
-        this.ocflVersion = ocflVersion;
-        this.initialized = true;
     }
 
     /**
@@ -298,7 +282,6 @@ public class CloudOcflStorage implements OcflStorage {
      */
     @Override
     public void close() {
-        closed = true;
         parallelProcess.shutdown();
     }
 
@@ -628,16 +611,6 @@ public class CloudOcflStorage implements OcflStorage {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
         var key = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
         return cloudClient.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN);
-    }
-
-    private void ensureOpen() {
-        if (closed) {
-            throw new IllegalStateException(this.getClass().getName() + " is closed.");
-        }
-
-        if (!initialized) {
-            throw new IllegalStateException(this.getClass().getName() + " must be initialized before it can be used.");
-        }
     }
 
 }

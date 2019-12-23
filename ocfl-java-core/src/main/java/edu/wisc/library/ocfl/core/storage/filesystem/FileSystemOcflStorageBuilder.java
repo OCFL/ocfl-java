@@ -2,7 +2,6 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
@@ -14,28 +13,15 @@ import java.nio.file.Path;
  */
 public class FileSystemOcflStorageBuilder {
 
-    private InventoryMapper inventoryMapper;
     private int threadPoolSize;
     private boolean checkNewVersionFixity;
     private ObjectMapper objectMapper;
     private FileSystemOcflStorageInitializer initializer;
 
     public FileSystemOcflStorageBuilder() {
-        this.inventoryMapper = InventoryMapper.defaultMapper();
         this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.checkNewVersionFixity = false;
         this.objectMapper = ObjectMappers.prettyPrintMapper();
-    }
-
-    /**
-     * Overrides the default InventoryMapper that's used for parsing inventory files.
-     *
-     * @param inventoryMapper the mapper that's used to parse inventory files
-     * @return builder
-     */
-    public FileSystemOcflStorageBuilder inventoryMapper(InventoryMapper inventoryMapper) {
-        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
-        return this;
     }
 
     /**
@@ -95,7 +81,7 @@ public class FileSystemOcflStorageBuilder {
             init = new FileSystemOcflStorageInitializer(objectMapper, new ObjectIdPathMapperBuilder());
         }
 
-        return new FileSystemOcflStorage(repositoryRoot, threadPoolSize, checkNewVersionFixity, inventoryMapper, init);
+        return new FileSystemOcflStorage(repositoryRoot, threadPoolSize, checkNewVersionFixity, init);
     }
 
 }

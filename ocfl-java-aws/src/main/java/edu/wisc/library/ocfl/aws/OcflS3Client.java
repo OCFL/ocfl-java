@@ -90,7 +90,7 @@ public class OcflS3Client implements CloudClient {
                 md5digest = DigestUtil.computeDigest(DigestAlgorithm.md5, srcPath);
             }
 
-            var md5Base64 = Bytes.from(md5digest).encodeBase64();
+            var md5Base64 = Bytes.wrap(md5digest).encodeBase64();
 
             s3Client.putObject(PutObjectRequest.builder()
                     .bucket(bucket)
@@ -128,7 +128,7 @@ public class OcflS3Client implements CloudClient {
                             .key(dstPath)
                             .uploadId(uploadId)
                             .partNumber(i)
-                            .contentMD5(Bytes.from(digest).encodeBase64())
+                            .contentMD5(Bytes.wrap(digest).encodeBase64())
                             // TODO entire part is in memory. stream part to file first?
                             .build(), RequestBody.fromByteBuffer(buffer));
 

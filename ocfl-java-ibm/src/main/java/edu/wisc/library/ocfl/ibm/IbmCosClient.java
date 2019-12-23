@@ -87,7 +87,7 @@ public class IbmCosClient implements CloudClient {
             md5digest = DigestUtil.computeDigest(DigestAlgorithm.md5, srcPath);
         }
 
-        var md5Base64 = Bytes.from(md5digest).encodeBase64();
+        var md5Base64 = Bytes.wrap(md5digest).encodeBase64();
 
         var metadata = new ObjectMetadata();
         metadata.setContentMD5(md5Base64);

@@ -8,14 +8,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * In-memory implementation of ObjectLock that uses Java's ReentrantReadWriteLock.
  */
 public class InMemoryObjectLock implements ObjectLock {
 
-    private Map<String, ReentrantReadWriteLock> locks;
+    private Map<String, ReentrantLock> locks;
     private long waitTime;
     private TimeUnit timeUnit;
 
@@ -35,26 +35,6 @@ public class InMemoryObjectLock implements ObjectLock {
      * {@inheritDoc}
      */
     @Override
-    public void doInReadLock(String objectId, Runnable doInLock) {
-        doInReadLock(objectId, () -> {
-            doInLock.run();
-            return null;
-        });
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public <T> T doInReadLock(String objectId, Callable<T> doInLock) {
-        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).readLock();
-        return doInLock(objectId, lock, doInLock);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void doInWriteLock(String objectId, Runnable doInLock) {
         doInWriteLock(objectId, () -> {
             doInLock.run();
@@ -67,7 +47,7 @@ public class InMemoryObjectLock implements ObjectLock {
      */
     @Override
     public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
-        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantReadWriteLock()).writeLock();
+        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantLock());
         return doInLock(objectId, lock, doInLock);
     }
 

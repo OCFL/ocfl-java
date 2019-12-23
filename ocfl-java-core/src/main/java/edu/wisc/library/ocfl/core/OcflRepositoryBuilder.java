@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
+import edu.wisc.library.ocfl.core.db.OcflObjectDatabase;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
@@ -15,6 +16,8 @@ import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor
 import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.sanitize.NoOpPathSanitizer;
 import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
+import edu.wisc.library.ocfl.core.storage.CachingOcflStorage;
+import edu.wisc.library.ocfl.core.storage.ObjectDetailsDbOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 
 import java.nio.file.Files;
@@ -38,6 +41,7 @@ public class OcflRepositoryBuilder {
     private InventoryMapper inventoryMapper;
     private PathSanitizer pathSanitizer;
     private ContentPathConstraintProcessor contentPathConstraintProcessor;
+    private OcflObjectDatabase objectDetailsDb;
 
     private int digestThreadPoolSize;
     private int copyThreadPoolSize;
@@ -85,7 +89,12 @@ public class OcflRepositoryBuilder {
      * @return builder
      */
     public OcflRepositoryBuilder inventoryCache(Cache<String, Inventory> inventoryCache) {
-        this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
+        this.inventoryCache = inventoryCache;
+        return this;
+    }
+
+    public OcflRepositoryBuilder objectDetailsDb(OcflObjectDatabase objectDetailsDb) {
+        this.objectDetailsDb = objectDetailsDb;
         return this;
     }
 
@@ -231,15 +240,30 @@ public class OcflRepositoryBuilder {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 
-        storage.initializeStorage(config.getOcflVersion(), layoutConfig);
+        var wrappedStorage = cache(db(storage));
+        wrappedStorage.initializeStorage(config.getOcflVersion(), layoutConfig, inventoryMapper);
 
         Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");
 
-        return new DefaultOcflRepository(storage, workDir,
-                objectLock, inventoryCache, inventoryMapper,
+        return new DefaultOcflRepository(wrappedStorage, workDir,
+                objectLock, inventoryMapper,
                 pathSanitizer, contentPathConstraintProcessor,
                 config, digestThreadPoolSize, copyThreadPoolSize);
+    }
+
+    private OcflStorage cache(OcflStorage storage) {
+        if (inventoryCache != null) {
+            return new CachingOcflStorage(inventoryCache, storage);
+        }
+        return storage;
+    }
+
+    private OcflStorage db(OcflStorage storage) {
+        if (objectDetailsDb != null) {
+            return new ObjectDetailsDbOcflStorage(objectDetailsDb, storage);
+        }
+        return storage;
     }
 
 }

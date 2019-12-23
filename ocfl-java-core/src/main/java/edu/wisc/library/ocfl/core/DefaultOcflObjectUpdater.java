@@ -90,7 +90,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             ((FixityCheckInputStream) input).checkFixity();
         }
 
-        var digest = Bytes.from(digestInput.getMessageDigest().digest()).encodeHex();
+        var digest = Bytes.wrap(digestInput.getMessageDigest().digest()).encodeHex();
         var result = inventoryUpdater.addFile(digest, destinationPath, ocflOptions);
 
         if (!result.isNew()) {

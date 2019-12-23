@@ -2,7 +2,6 @@ package edu.wisc.library.ocfl.core.storage.cloud;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
@@ -14,7 +13,6 @@ import java.nio.file.Path;
  */
 public class CloudOcflStorageBuilder {
 
-    private InventoryMapper inventoryMapper;
     private int threadPoolSize;
     private ObjectMapper objectMapper;
     private CloudClient cloudClient;
@@ -22,7 +20,6 @@ public class CloudOcflStorageBuilder {
     private Path workDir;
 
     public CloudOcflStorageBuilder() {
-        this.inventoryMapper = InventoryMapper.defaultMapper();
         this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.objectMapper = ObjectMappers.prettyPrintMapper();
     }
@@ -46,17 +43,6 @@ public class CloudOcflStorageBuilder {
      */
     public CloudOcflStorageBuilder workDir(Path workDir) {
         this.workDir = workDir;
-        return this;
-    }
-
-    /**
-     * Overrides the default InventoryMapper that's used for parsing inventory files.
-     *
-     * @param inventoryMapper the mapper that's used to parse inventory files
-     * @return builder
-     */
-    public CloudOcflStorageBuilder inventoryMapper(InventoryMapper inventoryMapper) {
-        this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         return this;
     }
 
@@ -102,7 +88,7 @@ public class CloudOcflStorageBuilder {
             init = new CloudOcflStorageInitializer(cloudClient, objectMapper, new ObjectIdPathMapperBuilder());
         }
 
-        return new CloudOcflStorage(cloudClient, threadPoolSize, workDir, inventoryMapper, init);
+        return new CloudOcflStorage(cloudClient, threadPoolSize, workDir, init);
     }
 
 }

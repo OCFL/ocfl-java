@@ -58,7 +58,7 @@ public class FixityCheckChannelTest {
                 buffer.clear();
             }
 
-            return Bytes.from(digest.digest()).encodeHex();
+            return Bytes.wrap(digest.digest()).encodeHex();
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }

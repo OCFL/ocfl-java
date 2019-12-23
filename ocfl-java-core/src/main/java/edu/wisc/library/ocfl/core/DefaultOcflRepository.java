@@ -6,7 +6,6 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.*;
@@ -24,7 +23,6 @@ import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,9 +45,9 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     private OcflStorage storage;
     private InventoryMapper inventoryMapper;
+    private SidecarMapper sidecarMapper;
     private Path workDir;
     private ObjectLock objectLock;
-    private Cache<String, Inventory> inventoryCache;
     private ResponseMapper responseMapper;
     private InventoryUpdater.Builder inventoryUpdaterBuilder;
     private AddFileProcessor.Builder addFileProcessorBuilder;
@@ -69,7 +67,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * @param storage storage layer
      * @param workDir path to the directory to use for assembling ocfl versions
      * @param objectLock locking client
-     * @param inventoryCache inventory cache
      * @param inventoryMapper object mapper for serializing inventories
      * @param pathSanitizer content path sanitizer
      * @param contentPathConstraintProcessor content path constraint processor
@@ -79,7 +76,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      */
     public DefaultOcflRepository(OcflStorage storage, Path workDir,
                                  ObjectLock objectLock,
-                                 Cache<String, Inventory> inventoryCache,
                                  InventoryMapper inventoryMapper,
                                  PathSanitizer pathSanitizer,
                                  ContentPathConstraintProcessor contentPathConstraintProcessor,
@@ -88,7 +84,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
-        this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         this.config = Enforce.notNull(config, "config cannot be null");
 
@@ -100,6 +95,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
                         .pathSanitizer(pathSanitizer)
                         .contentPathConstraintProcessor(contentPathConstraintProcessor));
 
+        sidecarMapper = new SidecarMapper();
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
 
@@ -293,13 +289,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
-        objectLock.doInWriteLock(objectId, () -> {
-            try {
-                storage.purgeObject(objectId);
-            } finally {
-                inventoryCache.invalidate(objectId);
-            }
-        });
+        objectLock.doInWriteLock(objectId, () -> storage.purgeObject(objectId));
     }
 
     /**
@@ -355,15 +345,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
             writeInventory(newInventory, stagingDir);
 
             try {
-                objectLock.doInWriteLock(inventory.getId(), () -> {
-                    try {
-                        storage.commitMutableHead(inventory, newInventory, stagingDir);
-                        cacheInventory(newInventory);
-                    } catch (ObjectOutOfSyncException e) {
-                        inventoryCache.invalidate(inventory.getId());
-                        throw e;
-                    }
-                });
+                objectLock.doInWriteLock(inventory.getId(), () -> storage.commitMutableHead(inventory, newInventory, stagingDir));
             } finally {
                 FileUtil.safeDeletePath(stagingDir);
             }
@@ -381,13 +363,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
-        objectLock.doInWriteLock(objectId, () -> {
-            try {
-                storage.purgeMutableHead(objectId);
-            } finally {
-                inventoryCache.invalidate(objectId);
-            }
-        });
+        objectLock.doInWriteLock(objectId, () -> storage.purgeMutableHead(objectId));
     }
 
     /**
@@ -414,12 +390,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     }
 
     private Inventory loadInventory(ObjectVersionId objectId) {
-        return objectLock.doInReadLock(objectId.getObjectId(), () ->
-                inventoryCache.get(objectId.getObjectId(), storage::loadInventory));
-    }
-
-    private void cacheInventory(Inventory inventory) {
-        inventoryCache.put(inventory.getId(), inventory);
+        return storage.loadInventory(objectId.getObjectId());
     }
 
     private Inventory loadInventoryWithDefault(ObjectVersionId objectId) {
@@ -463,27 +434,14 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
     private void writeNewVersion(Inventory inventory, Path stagingDir) {
         writeInventory(inventory, stagingDir);
-        objectLock.doInWriteLock(inventory.getId(), () -> {
-            try {
-                storage.storeNewVersion(inventory, stagingDir);
-                cacheInventory(inventory);
-            } catch (ObjectOutOfSyncException e) {
-                inventoryCache.invalidate(inventory.getId());
-                throw e;
-            }
-        });
+        objectLock.doInWriteLock(inventory.getId(), () -> storage.storeNewVersion(inventory, stagingDir));
     }
 
     private void writeInventory(Inventory inventory, Path stagingDir) {
-        try {
-            var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
-            inventoryMapper.write(inventoryPath, inventory);
-            String inventoryDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), inventoryPath);
-            Files.writeString(ObjectPaths.inventorySidecarPath(stagingDir, inventory),
-                    inventoryDigest + "\t" + OcflConstants.INVENTORY_FILE);
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
+        var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
+        inventoryMapper.write(inventoryPath, inventory);
+        String inventoryDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), inventoryPath);
+        sidecarMapper.writeSidecar(inventory, inventoryDigest, stagingDir);
     }
 
     private Inventory createAndPersistEmptyVersion(ObjectVersionId objectId) {

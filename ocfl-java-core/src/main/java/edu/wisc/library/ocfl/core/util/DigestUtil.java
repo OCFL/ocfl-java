@@ -23,7 +23,7 @@ public final class DigestUtil {
     }
 
     public static String computeDigestHex(DigestAlgorithm algorithm, Path path, boolean upperCase) {
-        return Bytes.from(computeDigest(algorithm, path)).encodeHex(upperCase);
+        return Bytes.wrap(computeDigest(algorithm, path)).encodeHex(upperCase);
     }
 
     public static byte[] computeDigest(DigestAlgorithm algorithm, Path path) {

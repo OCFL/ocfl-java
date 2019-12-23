@@ -31,18 +31,6 @@ public class PostgresObjectLock implements ObjectLock {
     }
 
     @Override
-    public void doInReadLock(String objectId, Runnable doInLock) {
-        // TODO remove
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public <T> T doInReadLock(String objectId, Callable<T> doInLock) {
-        // TODO remove
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void doInWriteLock(String objectId, Runnable doInLock) {
         doInWriteLock(objectId, () -> {
             doInLock.run();
@@ -100,8 +88,8 @@ public class PostgresObjectLock implements ObjectLock {
     }
 
     private void setLockWaitTimeout(Connection connection) throws SQLException {
-        try (var statement = connection.prepareStatement("SET LOCAL lock_timeout = ?")) {
-            statement.setString(1, waitSeconds + "s");
+        var statementString = String.format("SET LOCAL lock_timeout = '%ss'", waitSeconds);
+        try (var statement = connection.prepareStatement(statementString)) {
             statement.executeUpdate();
         }
     }

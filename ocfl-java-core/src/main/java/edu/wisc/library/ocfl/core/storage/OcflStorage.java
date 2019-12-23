@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 
@@ -31,8 +32,9 @@ public interface OcflStorage {
      *
      * @param ocflVersion the OCFL version
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
+     * @param inventoryMapper the mapper to use for inventory serialization
      */
-    void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig);
+    void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig, InventoryMapper inventoryMapper);
 
     /**
      * Returns a verified copy of the most recent object inventory. Null is returned if the object is not found.

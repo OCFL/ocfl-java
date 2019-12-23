@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS ocfl_object (
+CREATE TABLE IF NOT EXISTS ocfl_object_details (
   object_id varchar(255) PRIMARY KEY,
   version_id varchar(255) NOT NULL,
   object_root_path varchar(1024) NOT NULL,

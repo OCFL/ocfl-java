@@ -21,7 +21,7 @@ public class TableCreator {
     private static final String POSTGRES_ID = "PostgreSQL JDBC Driver";
 
     private static final String LOCK_TABLE_FILE = "ocfl_object_lock.sql";
-    private static final String OBJECT_TABLE_FILE = "ocfl_object.sql";
+    private static final String OBJECT_DETAILS_TABLE_FILE = "ocfl_object_details.sql";
 
     private Map<String, String> dbScriptDir = Map.of(
             POSTGRES_ID, "db/postgresql"
@@ -37,8 +37,8 @@ public class TableCreator {
         createTable(LOCK_TABLE_FILE);
     }
 
-    public void createObjectTable() {
-        createTable(OBJECT_TABLE_FILE);
+    public void createObjectDetailsTable() {
+        createTable(OBJECT_DETAILS_TABLE_FILE);
     }
 
     private void createTable(String fileName) {

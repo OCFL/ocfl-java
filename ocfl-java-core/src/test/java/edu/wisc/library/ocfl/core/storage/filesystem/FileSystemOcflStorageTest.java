@@ -6,11 +6,11 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.itest.ITestHelper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.test.OcflAsserts;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -132,7 +132,7 @@ public class FileSystemOcflStorageTest {
         var storage = FileSystemOcflStorage.builder()
                 .checkNewVersionFixity(enableFixityCheck)
                 .build(repoDir);
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig);
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
         return storage;
     }
 
