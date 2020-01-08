@@ -449,7 +449,7 @@ public class OcflS3Client implements CloudClient {
             var key = o.key();
             return new ListResult.ObjectListing()
                     .setKey(key)
-                    .setFileName(prefix.isEmpty() ? key : key.substring(prefix.length()));
+                    .setKeySuffix(prefix.isEmpty() ? key : key.substring(prefix.length()));
         }).collect(Collectors.toList());
 
         var dirs = s3Result.commonPrefixes().stream()
@@ -457,8 +457,7 @@ public class OcflS3Client implements CloudClient {
                 .map(p -> {
                     var path = p.prefix();
                     return new ListResult.DirectoryListing()
-                            .setPath(p.prefix())
-                            .setFileName(prefix.isEmpty() ? path : path.substring(prefix.length()));
+                            .setPath(path);
                 })
                 .collect(Collectors.toList());
 

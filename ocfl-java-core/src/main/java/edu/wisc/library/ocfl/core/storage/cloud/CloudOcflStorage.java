@@ -501,7 +501,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         RevisionId revisionId = null;
 
         for (var revisionStr : revisions.getObjects()) {
-            var id = RevisionId.fromString(revisionStr.getFileName());
+            var id = RevisionId.fromString(revisionStr.getKeySuffix());
             if (revisionId == null) {
                 revisionId = id;
             } else if (revisionId.compareTo(id) < 1) {

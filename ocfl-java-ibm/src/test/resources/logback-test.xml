@@ -9,6 +9,7 @@
     </appender>
 
     <logger name="edu.wisc.library" level="debug"/>
+    <logger name="org.apache.http" level="info"/>
 
     <root level="debug">
         <appender-ref ref="STDOUT" />

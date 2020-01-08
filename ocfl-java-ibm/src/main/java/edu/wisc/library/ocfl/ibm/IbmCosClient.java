@@ -8,9 +8,9 @@ import com.ibm.cloud.objectstorage.services.s3.transfer.TransferManager;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
@@ -282,14 +282,13 @@ public class IbmCosClient implements CloudClient {
             var key = decodeKey(o.getKey());
             return new ListResult.ObjectListing()
                     .setKey(key)
-                    .setFileName(prefix.isEmpty() ? key : key.substring(prefix.length()));
+                    .setKeySuffix(prefix.isEmpty() ? key : key.substring(prefix.length()));
         }).collect(Collectors.toList());
 
         var dirs = s3Result.getCommonPrefixes().stream().map(p -> {
             var path = decodeKey(p);
             return new ListResult.DirectoryListing()
-                    .setPath(path)
-                    .setFileName(prefix.isEmpty() ? path : path.substring(prefix.length()));
+                    .setPath(path);
         }).collect(Collectors.toList());
 
         return new ListResult()

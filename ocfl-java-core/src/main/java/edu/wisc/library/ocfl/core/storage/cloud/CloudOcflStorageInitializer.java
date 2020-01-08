@@ -133,7 +133,7 @@ public class CloudOcflStorageInitializer {
         var response = cloudClient.listDirectory(prefix);
 
         for (var object : response.getObjects()) {
-            if (object.getFileName().startsWith(OBJECT_MARKER_PREFIX)) {
+            if (object.getKeySuffix().startsWith(OBJECT_MARKER_PREFIX)) {
                 return (String) object.getKey().subSequence(0, object.getKey().lastIndexOf('/'));
             }
         }

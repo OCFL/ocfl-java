@@ -55,13 +55,13 @@ public class ListResult {
     }
 
     /**
-     * Encapsulates an object key and its filename. An object's filename is the portion of its key that's after the final
-     * '/' separator.
+     * Encapsulates an object key and its suffix. An object's suffix is the portion of its key that's after the key prefix
+     * the list operation was on
      */
     public static class ObjectListing {
 
         private String key;
-        private String fileName;
+        private String keySuffix;
 
         /**
          * The key the object is stored at.
@@ -78,16 +78,16 @@ public class ListResult {
         }
 
         /**
-         * The object's filename, the final portion of its key that's after the final '/' separator
+         * The object's key suffix, the portion of the key that appears after the key prefix the list operation was on
          *
-         * @return object filename
+         * @return object key suffix
          */
-        public String getFileName() {
-            return fileName;
+        public String getKeySuffix() {
+            return keySuffix;
         }
 
-        public ObjectListing setFileName(String fileName) {
-            this.fileName = fileName;
+        public ObjectListing setKeySuffix(String keySuffix) {
+            this.keySuffix = keySuffix;
             return this;
         }
 
@@ -95,7 +95,7 @@ public class ListResult {
         public String toString() {
             return "ObjectListing{" +
                     "key='" + key + '\'' +
-                    ", fileName='" + fileName + '\'' +
+                    ", keySuffix='" + keySuffix + '\'' +
                     '}';
         }
     }
@@ -107,7 +107,6 @@ public class ListResult {
     public static class DirectoryListing {
 
         private String path;
-        private String fileName;
 
         /**
          * The object key prefix
@@ -123,25 +122,10 @@ public class ListResult {
             return this;
         }
 
-        /**
-         * The directory's filename, the final portion of the prefix that's after the final '/' separator
-         *
-         * @return object filename
-         */
-        public String getFileName() {
-            return fileName;
-        }
-
-        public DirectoryListing setFileName(String fileName) {
-            this.fileName = fileName;
-            return this;
-        }
-
         @Override
         public String toString() {
             return "DirectoryListing{" +
                     "path='" + path + '\'' +
-                    ", fileName='" + fileName + '\'' +
                     '}';
         }
     }

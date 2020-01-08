@@ -52,6 +52,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
             if (inventory != null) {
                 var baos = new ByteArrayOutputStream();
                 var stream = new DigestOutputStream(baos, inventory.getDigestAlgorithm().getMessageDigest());
+                // TODO is there another way to get the bytes without serializing?
                 inventoryMapper.write(stream, inventory);
                 var digest = Bytes.wrap(stream.getMessageDigest().digest()).encodeHex(false);
                 objectDetailsDb.addObjectDetails(inventory, digest, baos.toByteArray());
