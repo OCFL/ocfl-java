@@ -11,6 +11,9 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import java.nio.file.Path;
 import java.util.Map;
 
+/**
+ * Adds an Inventory caching layer on top of an OcflStorage implementation.
+ */
 public class CachingOcflStorage extends AbstractOcflStorage {
 
     private Cache<String, Inventory> inventoryCache;
@@ -21,11 +24,20 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void doInitialize(LayoutConfig layoutConfig) {
         delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper);
     }
 
+    /**
+     * If the inventory is cached, it's returned immediately. Otherwise, it's fetched from the delegate storage.
+     *
+     * @param objectId the id of the object to load
+     * @return inventory
+     */
     @Override
     public Inventory loadInventory(String objectId) {
         ensureOpen();
@@ -33,6 +45,12 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         return inventoryCache.get(objectId, delegate::loadInventory);
     }
 
+    /**
+     * Stores a new version of an object and writes the inventory to the cache.
+     *
+     * @param inventory the updated object inventory
+     * @param stagingDir the directory that contains the composed contents of the new object version
+     */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         ensureOpen();
@@ -46,6 +64,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
         ensureOpen();
@@ -53,6 +74,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         return delegate.getObjectStreams(inventory, versionId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
         ensureOpen();
@@ -60,6 +84,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         delegate.reconstructObjectVersion(inventory, versionId, stagingDir);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void purgeObject(String objectId) {
         ensureOpen();
@@ -71,6 +98,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
         ensureOpen();
@@ -84,6 +114,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void purgeMutableHead(String objectId) {
         ensureOpen();
@@ -95,6 +128,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean containsObject(String objectId) {
         ensureOpen();
@@ -102,6 +138,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         return delegate.containsObject(objectId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String objectRootPath(String objectId) {
         ensureOpen();
@@ -109,6 +148,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         return delegate.objectRootPath(objectId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close() {
         delegate.close();

@@ -103,6 +103,8 @@ public class OcflS3Client implements CloudClient {
         return dstPath;
     }
 
+    // TODO concurrency?
+    // TODO reduce memory consumption?
     private void multipartUpload(Path srcPath, String dstPath, long fileSize) {
         var partSize = determinePartSize(fileSize);
 

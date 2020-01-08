@@ -12,11 +12,12 @@ import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * ObjectLock implementation that uses Postgres row locks. Postgres 9.3 or greater is required.
+ */
 public class PostgresObjectLock implements ObjectLock {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostgresObjectLock.class);
-
-    // TODO must be >= 9.3
 
     private static final String OBJECT_LOCK_FAIL = "55P03";
 
@@ -30,6 +31,9 @@ public class PostgresObjectLock implements ObjectLock {
         this.waitSeconds = timeUnit.toSeconds(waitTime);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void doInWriteLock(String objectId, Runnable doInLock) {
         doInWriteLock(objectId, () -> {
@@ -38,6 +42,9 @@ public class PostgresObjectLock implements ObjectLock {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
         try (var connection = dataSource.getConnection()) {

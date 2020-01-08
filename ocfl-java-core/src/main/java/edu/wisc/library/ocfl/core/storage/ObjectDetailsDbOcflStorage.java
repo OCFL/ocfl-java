@@ -7,7 +7,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.core.db.OcflObjectDatabase;
+import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
 import edu.wisc.library.ocfl.core.db.OcflObjectDetails;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
@@ -26,21 +26,31 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(ObjectDetailsDbOcflStorage.class);
 
-    private OcflObjectDatabase objectDetailsDb;
+    private ObjectDetailsDatabase objectDetailsDb;
     private OcflStorage delegate;
     private SidecarMapper sidecarMapper;
 
-    public ObjectDetailsDbOcflStorage(OcflObjectDatabase objectDetailsDb, OcflStorage delegate) {
+    public ObjectDetailsDbOcflStorage(ObjectDetailsDatabase objectDetailsDb, OcflStorage delegate) {
         this.objectDetailsDb = Enforce.notNull(objectDetailsDb, "objectDetailsDb cannot be null");
         this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
         this.sidecarMapper = new SidecarMapper();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void doInitialize(LayoutConfig layoutConfig) {
         delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper);
     }
 
+    /**
+     * If the object is stored in the database with its inventory, then the inventory is loaded from there. Otherwise,
+     * it's pulled from the underlying storage and inserted into the database before it's returned.
+     *
+     * @param objectId the id of the object to load
+     * @return inventory
+     */
     @Override
     public Inventory loadInventory(String objectId) {
         ensureOpen();
@@ -50,9 +60,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
             var inventory = delegate.loadInventory(objectId);
 
             if (inventory != null) {
+                // TODO this means that objects that are not already in the db must be deserialized twice!
                 var baos = new ByteArrayOutputStream();
                 var stream = new DigestOutputStream(baos, inventory.getDigestAlgorithm().getMessageDigest());
-                // TODO is there another way to get the bytes without serializing?
                 inventoryMapper.write(stream, inventory);
                 var digest = Bytes.wrap(stream.getMessageDigest().digest()).encodeHex(false);
                 objectDetailsDb.addObjectDetails(inventory, digest, baos.toByteArray());
@@ -63,6 +73,13 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         return parseInventory(details);
     }
 
+    /**
+     * Writes the new object version to the underlying storage within a transaction that updates the object details
+     * state within the database.
+     *
+     * @param inventory the updated object inventory
+     * @param stagingDir the directory that contains the composed contents of the new object version
+     */
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         ensureOpen();
@@ -70,6 +87,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         updateDetails(inventory, stagingDir, () -> delegate.storeNewVersion(inventory, stagingDir));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
         ensureOpen();
@@ -77,6 +97,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         return delegate.getObjectStreams(inventory, versionId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
         ensureOpen();
@@ -84,6 +107,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         delegate.reconstructObjectVersion(inventory, versionId, stagingDir);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void purgeObject(String objectId) {
         ensureOpen();
@@ -92,6 +118,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         objectDetailsDb.deleteObjectDetails(objectId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
         ensureOpen();
@@ -99,6 +128,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         updateDetails(newInventory, stagingDir, () -> delegate.commitMutableHead(oldInventory, newInventory, stagingDir));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void purgeMutableHead(String objectId) {
         ensureOpen();
@@ -107,6 +139,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         objectDetailsDb.deleteObjectDetails(objectId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean containsObject(String objectId) {
         ensureOpen();
@@ -114,6 +149,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         return delegate.containsObject(objectId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String objectRootPath(String objectId) {
         ensureOpen();
@@ -121,6 +159,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         return delegate.objectRootPath(objectId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close() {
         delegate.close();
@@ -133,7 +174,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         try {
             objectDetailsDb.updateObjectDetails(inventory, digest, inventoryPath, runnable);
         } catch (ObjectOutOfSyncException e) {
-            // TODO could this cause problems if there was something waiting for the lock?
+            // TODO it's possible that the ObjectDetails should be deleted on any SQLException
             try {
                 objectDetailsDb.deleteObjectDetails(inventory.getId());
             } catch (RuntimeException e1) {

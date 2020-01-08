@@ -6,6 +6,9 @@ import edu.wisc.library.ocfl.core.model.RevisionId;
 
 import java.time.LocalDateTime;
 
+/**
+ * Represents a ObjectDetails database record.
+ */
 public class OcflObjectDetails {
 
     private String objectId;
@@ -17,6 +20,11 @@ public class OcflObjectDetails {
     private byte[] inventoryBytes;
     private LocalDateTime updateTimestamp;
 
+    /**
+     * The OCFL object id
+     *
+     * @return OCFL object id
+     */
     public String getObjectId() {
         return objectId;
     }
@@ -26,6 +34,11 @@ public class OcflObjectDetails {
         return this;
     }
 
+    /**
+     * The HEAD version of the object
+     *
+     * @return HEAD version of the object
+     */
     public VersionId getVersionId() {
         return versionId;
     }
@@ -35,6 +48,11 @@ public class OcflObjectDetails {
         return this;
     }
 
+    /**
+     * The HEAD revision of the object. This will only be set if the mutable HEAD extension is used.
+     *
+     * @return HEAD revision id
+     */
     public RevisionId getRevisionId() {
         return revisionId;
     }
@@ -44,6 +62,11 @@ public class OcflObjectDetails {
         return this;
     }
 
+    /**
+     * The storage relative path to the object's root directory
+     *
+     * @return storate relative path to the object's root directory
+     */
     public String getObjectRootPath() {
         return objectRootPath;
     }
@@ -53,6 +76,11 @@ public class OcflObjectDetails {
         return this;
     }
 
+    /**
+     * The digest of the serialized inventory
+     *
+     * @return digest of the serialized inventory
+     */
     public String getInventoryDigest() {
         return inventoryDigest;
     }
@@ -62,6 +90,11 @@ public class OcflObjectDetails {
         return this;
     }
 
+    /**
+     * The algorithm used to compute the inventory digest
+     *
+     * @return algorithm used to compute the inventory digest
+     */
     public DigestAlgorithm getDigestAlgorithm() {
         return digestAlgorithm;
     }
@@ -71,6 +104,11 @@ public class OcflObjectDetails {
         return this;
     }
 
+    /**
+     * The bytes of the serialized inventory
+     *
+     * @return bytes of the serialized inventory
+     */
     public byte[] getInventoryBytes() {
         return inventoryBytes;
     }
@@ -80,6 +118,11 @@ public class OcflObjectDetails {
         return this;
     }
 
+    /**
+     * The timestamp the record was last updated
+     *
+     * @return timestamp the record was last updated
+     */
     public LocalDateTime getUpdateTimestamp() {
         return updateTimestamp;
     }

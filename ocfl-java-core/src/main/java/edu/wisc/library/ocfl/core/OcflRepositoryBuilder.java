@@ -6,9 +6,11 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
-import edu.wisc.library.ocfl.core.db.OcflObjectDatabase;
+import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
+import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
+import edu.wisc.library.ocfl.core.lock.DatabaseObjectLockBuilder;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -41,7 +43,7 @@ public class OcflRepositoryBuilder {
     private InventoryMapper inventoryMapper;
     private PathSanitizer pathSanitizer;
     private ContentPathConstraintProcessor contentPathConstraintProcessor;
-    private OcflObjectDatabase objectDetailsDb;
+    private ObjectDetailsDatabase objectDetailsDb;
 
     private int digestThreadPoolSize;
     private int copyThreadPoolSize;
@@ -67,12 +69,15 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Used to lock objects when read and writing. The default is an InMemoryObjectLock instance that will wait 10 seconds
-     * for the lock before failing. Override to change the wait period or implement a different type of lock, such as
-     * a distributed lock when coordinating across multiple instances accessing the same OCFL repository.
+     * Used to lock objects when read and writing. The default is an {@link InMemoryObjectLock} instance that will wait 10 seconds
+     * for the lock before failing. Override to change the wait period or implement a different type of lock.
+     *
+     * <p>Use {@link DatabaseObjectLockBuilder} to construct an object lock that's backed by a relational database. This
+     * is primarily intended to be used when working with a cloud object store like S3.
      *
      * @param objectLock object lock
      * @return builder
+     * @see DatabaseObjectLockBuilder
      */
     public OcflRepositoryBuilder objectLock(ObjectLock objectLock) {
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
@@ -80,10 +85,8 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Used to cache deserialized inventories. The default is an in memory CaffeineCache instance that has a maximum size
+     * Used to cache deserialized inventories. The default is an in memory {@link CaffeineCache} instance that has a maximum size
      * of 1,000 objects and an expiry of 10 minutes. Override to adjust the settings or change the cache implementation.
-     * In memory implementations of this cache will become troublesome if multiple processes are accessing the same
-     * OCFL repository, in which case no cache or a distributed cache would be better choices.
      *
      * @param inventoryCache inventory cache
      * @return builder
@@ -93,7 +96,16 @@ public class OcflRepositoryBuilder {
         return this;
     }
 
-    public OcflRepositoryBuilder objectDetailsDb(OcflObjectDatabase objectDetailsDb) {
+    /**
+     * Used to store details about OCFL objects in the repository. This is primarily intended to be used when working
+     * with a cloud object store like S3. Use {@link ObjectDetailsDatabaseBuilder} to construct an {@link ObjectDetailsDatabase}
+     * instance.
+     *
+     * @param objectDetailsDb object details db
+     * @return builder
+     * @see ObjectDetailsDatabaseBuilder
+     */
+    public OcflRepositoryBuilder objectDetailsDb(ObjectDetailsDatabase objectDetailsDb) {
         this.objectDetailsDb = objectDetailsDb;
         return this;
     }
@@ -101,6 +113,7 @@ public class OcflRepositoryBuilder {
     /**
      * Changes the InventoryMapper to pretty print Inventory JSON files so that they are human readable but use more
      * disk space.
+     *
      * @return builder
      */
     public OcflRepositoryBuilder prettyPrintJson() {

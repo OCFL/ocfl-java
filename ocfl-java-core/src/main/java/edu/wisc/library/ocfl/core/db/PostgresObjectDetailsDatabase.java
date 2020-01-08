@@ -21,20 +21,25 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-public class DefaultOcflObjectDatabase implements OcflObjectDatabase {
+public class PostgresObjectDetailsDatabase implements ObjectDetailsDatabase {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflObjectDatabase.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PostgresObjectDetailsDatabase.class);
 
     private DataSource dataSource;
     private boolean storeInventory;
 
-    public DefaultOcflObjectDatabase(DataSource dataSource, boolean storeInventory) {
+    public PostgresObjectDetailsDatabase(DataSource dataSource, boolean storeInventory) {
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.storeInventory = storeInventory;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectDetails retrieveObjectDetails(String objectId) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+
         OcflObjectDetails details = null;
 
         try (var connection = dataSource.getConnection()) {
@@ -64,8 +69,15 @@ public class DefaultOcflObjectDatabase implements OcflObjectDatabase {
         return details;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void addObjectDetails(Inventory inventory, String inventoryDigest, byte[] inventoryBytes) {
+        Enforce.notNull(inventory, "inventory cannot be null");
+        Enforce.notBlank(inventoryDigest, "inventoryDigest cannot be blank");
+        Enforce.notNull(inventoryBytes, "inventoryBytes cannot be null");
+
         try {
             updateObjectDetailsInternal(inventory, inventoryDigest, new ByteArrayInputStream(inventoryBytes), () -> {});
         } catch (ObjectOutOfSyncException e) {
@@ -78,8 +90,16 @@ public class DefaultOcflObjectDatabase implements OcflObjectDatabase {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void updateObjectDetails(Inventory inventory, String inventoryDigest, Path inventoryFile, Runnable runnable) {
+        Enforce.notNull(inventory, "inventory cannot be null");
+        Enforce.notBlank(inventoryDigest, "inventoryDigest cannot be blank");
+        Enforce.notNull(inventoryFile, "inventoryFile cannot be null");
+        Enforce.notNull(runnable, "runnable cannot be null");
+
         try (var inventoryStream = Files.newInputStream(inventoryFile)) {
             updateObjectDetailsInternal(inventory, inventoryDigest, inventoryStream, runnable);
         } catch (IOException e) {
@@ -87,8 +107,13 @@ public class DefaultOcflObjectDatabase implements OcflObjectDatabase {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteObjectDetails(String objectId) {
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+
         try (var connection = dataSource.getConnection()) {
             try (var statement = connection.prepareStatement("DELETE FROM ocfl_object_details WHERE object_id = ?")) {
                 statement.setString(1, objectId);
@@ -237,6 +262,7 @@ public class DefaultOcflObjectDatabase implements OcflObjectDatabase {
         return currentRevisionId.previousRevisionId().toString();
     }
 
+    // Optimistic locking clause to ensure the object was unchanged.
     private String insertWhereClause(Inventory inventory, String previousRevision) {
         if (previousRevision != null) {
             return "ocfl_object_details.version_id = ? AND ocfl_object_details.revision_id = ?";
