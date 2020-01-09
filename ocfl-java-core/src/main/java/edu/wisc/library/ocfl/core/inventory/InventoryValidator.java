@@ -52,6 +52,7 @@ public final class InventoryValidator {
     private static void validateFixity(Inventory inventory) {
         var fixityMap = inventory.getFixity();
 
+        // TODO this may be very slow as well...
         if (fixityMap != null) {
             fixityMap.forEach((algorithm, map) -> {
                 map.forEach((digest, contentPaths) -> {
@@ -72,13 +73,16 @@ public final class InventoryValidator {
 
         for (var i = 1; i <= versionMap.size(); i++) {
             var versionId = new VersionId(i);
-            var version = versionMap.get(versionId);
-            validateVersion(inventory, version, versionId);
+            notNull(versionMap.get(versionId), String.format("Version %s is missing", versionId));
         }
 
         var expectedHead = new VersionId(versionMap.size());
         isTrue(inventory.getHead().equals(expectedHead), String.format("HEAD must be the latest version. Expected: %s; Was: %s",
                 expectedHead, inventory.getHead()));
+
+        // TODO only doing a complete validation on the most recent version because validating all of the versions
+        // TODO can be very slow when there are a lot of files and versions
+        validateVersion(inventory, versionMap.get(expectedHead), expectedHead);
     }
 
     private static void validateVersion(Inventory inventory, Version version, VersionId versionId) {
