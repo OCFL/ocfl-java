@@ -488,14 +488,13 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     }
 
     private String createRevisionMarker(Inventory inventory) {
-        var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()),
-                "revisions", inventory.getRevisionId().toString());
-        return cloudClient.uploadBytes(revisionPath, inventory.getRevisionId().toString().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN);
+        var revision = inventory.getRevisionId().toString();
+        var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadRevisionsPath(inventory.getObjectRootPath()), revision);
+        return cloudClient.uploadBytes(revisionPath, revision.getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN);
     }
 
     private RevisionId identifyLatestRevision(String objectRootPath) {
-        // TODO this is not implemented yet
-        var revisionsPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(objectRootPath), "revisions");
+        var revisionsPath = ObjectPaths.mutableHeadRevisionsPath(objectRootPath);
         var revisions = cloudClient.listDirectory(revisionsPath);
 
         RevisionId revisionId = null;

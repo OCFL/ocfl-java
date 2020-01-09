@@ -132,6 +132,26 @@ public final class ObjectPaths {
     }
 
     /**
+     * Path the revisions directory under the mutable HEAD extension directory
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return Path the revisions directory under the mutable HEAD extension directory
+     */
+    public static String mutableHeadRevisionsPath(String objectRootPath) {
+        return FileUtil.pathJoinFailEmpty(objectRootPath, OcflConstants.MUTABLE_HEAD_REVISIONS_PATH);
+    }
+
+    /**
+     * Path the revisions directory under the mutable HEAD extension directory
+     *
+     * @param objectRootPath path to the root of an ocfl object
+     * @return Path the revisions directory under the mutable HEAD extension directory
+     */
+    public static Path mutableHeadRevisionsPath(Path objectRootPath) {
+        return objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_REVISIONS_PATH);
+    }
+
+    /**
      * Creates an ObjectRoot using absolute paths
      *
      * @param inventory deserialized inventory
@@ -187,6 +207,7 @@ public final class ObjectPaths {
         private Path headVersionPath;
         private Path mutableHeadExtPath;
         private Path mutableHeadPath;
+        private Path mutableHeadRevisionsPath;
 
         private VersionRoot headVersion;
         private VersionRoot mutableHeadVersion;
@@ -250,6 +271,13 @@ public final class ObjectPaths {
                 mutableHeadPath = path.resolve(OcflConstants.MUTABLE_HEAD_VERSION_PATH);
             }
             return mutableHeadPath;
+        }
+
+        public Path mutableHeadRevisionsPath() {
+            if (mutableHeadRevisionsPath == null) {
+                mutableHeadRevisionsPath = path.resolve(OcflConstants.MUTABLE_HEAD_REVISIONS_PATH);
+            }
+            return mutableHeadRevisionsPath;
         }
 
         public VersionRoot version(VersionId versionId) {

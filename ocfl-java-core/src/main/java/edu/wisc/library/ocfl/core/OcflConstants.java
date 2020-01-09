@@ -22,5 +22,6 @@ public final class OcflConstants {
 
     public static final String MUTABLE_HEAD_EXT_PATH = "extensions/mutable-head";
     public static final String MUTABLE_HEAD_VERSION_PATH = MUTABLE_HEAD_EXT_PATH + "/HEAD";
+    public static final String MUTABLE_HEAD_REVISIONS_PATH = MUTABLE_HEAD_EXT_PATH + "/revisions";
 
 }

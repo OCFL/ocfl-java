@@ -258,13 +258,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 throw e;
             }
 
-            try {
-                // TODO need to decide how to handle empty revisions..
-                FileUtil.deleteEmptyDirs(versionRoot.contentPath());
-            } catch (RuntimeException e) {
-                // This does not fail the commit
-                LOG.error("Failed to delete an empty directory. It may need to be deleted manually.", e);
-            }
+            // TODO double check that there aren't files under content that aren't listed in the manifest?
+            deleteEmptyDirs(versionRoot.contentPath());
         } catch (RuntimeException e) {
             FileUtil.safeDeletePath(versionRoot.path());
             throw e;
@@ -353,7 +348,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private Inventory parseMutableHeadInventory(String objectRootPath, Path inventoryPath) {
         verifyInventory(inventoryPath);
-        var revisionId = identifyLatestRevision(inventoryPath.getParent());
+        var revisionId = identifyLatestRevision(objectRootPath);
         return inventoryMapper.readMutableHead(objectRootPath, revisionId, inventoryPath);
     }
 
@@ -370,9 +365,10 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private RevisionId identifyLatestRevision(Path versionPath) {
-        try (var files = Files.list(versionPath)) {
-            var result = files.filter(Files::isDirectory)
+    private RevisionId identifyLatestRevision(String objectRootPath) {
+        var revisionsPath = ObjectPaths.mutableHeadRevisionsPath(objectRootPath);
+        try (var files = Files.list(Paths.get(revisionsPath))) {
+            var result = files.filter(Files::isRegularFile)
                     .map(Path::getFileName).map(Path::toString)
                     .filter(RevisionId::isRevisionId)
                     .map(RevisionId::fromString)
@@ -443,22 +439,30 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         var versionRoot = objectRoot.headVersion();
         var revisionPath = versionRoot.contentRoot().headRevisionPath();
         var stagingVersionRoot = ObjectPaths.version(inventory, stagingDir);
+        var revisionsDirPath = objectRoot.mutableHeadRevisionsPath();
 
         var isNewMutableHead = Files.notExists(versionRoot.inventoryFile());
 
         try {
-            moveToRevisionDirectory(inventory, stagingVersionRoot, versionRoot);
-
-            if (isNewMutableHead) {
-                copyRootInventorySidecar(objectRoot, versionRoot);
-            }
+            var revisionMarker = createRevisionMarker(inventory, revisionsDirPath);
 
             try {
-                versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
-                copyInventory(stagingVersionRoot, versionRoot);
-                // TODO verify inventory integrity?
+                moveToRevisionDirectory(inventory, stagingVersionRoot, versionRoot);
+
+                if (isNewMutableHead) {
+                    copyRootInventorySidecar(objectRoot, versionRoot);
+                }
+
+                try {
+                    versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
+                    copyInventory(stagingVersionRoot, versionRoot);
+                    // TODO verify inventory integrity?
+                } catch (RuntimeException e) {
+                    FileUtil.safeDeletePath(revisionPath);
+                    throw e;
+                }
             } catch (RuntimeException e) {
-                FileUtil.safeDeletePath(revisionPath);
+                FileUtil.safeDeletePath(revisionMarker);
                 throw e;
             }
         } catch (RuntimeException e) {
@@ -468,7 +472,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw e;
         }
 
-        // TODO since this isn't guaranteed to have completed do we need to run it on commit?
+        deleteEmptyDirs(versionRoot.contentPath());
         deleteMutableHeadFilesNotInManifest(inventory, objectRoot, versionRoot);
     }
 
@@ -486,6 +490,20 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         } catch (FileAlreadyExistsException e) {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
+        } catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+    }
+
+    private Path createRevisionMarker(Inventory inventory, Path revisionsPath) {
+        SafeFiles.createDirectories(revisionsPath);
+        var revision = inventory.getRevisionId().toString();
+        try {
+            var revisionMarker = Files.createFile(revisionsPath.resolve(revision));
+            return Files.writeString(revisionMarker, revision);
+        } catch (FileAlreadyExistsException e) {
+            throw new ObjectOutOfSyncException(
+                    String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
@@ -529,6 +547,15 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 LOG.error("Failed to rollback inventory at {}", objectRoot.inventoryFile(), e1);
             }
             throw e;
+        }
+    }
+
+    private void deleteEmptyDirs(Path path) {
+        try {
+            FileUtil.deleteEmptyDirs(path);
+        } catch (RuntimeException e) {
+            // This does not fail the commit
+            LOG.error("Failed to delete an empty directory. It may need to be deleted manually.", e);
         }
     }
 

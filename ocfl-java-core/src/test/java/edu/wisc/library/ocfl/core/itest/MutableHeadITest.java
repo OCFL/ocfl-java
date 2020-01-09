@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core.itest;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
+import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
@@ -8,6 +9,7 @@ import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
+import edu.wisc.library.ocfl.core.test.OcflAsserts;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,6 +78,74 @@ public class MutableHeadITest {
 
         assertTrue(details.getHeadVersion().isMutable(), "HEAD isMutable");
         assertFalse(details.getVersion(VersionId.fromString("v1")).isMutable(), "v1 isMutable");
+    }
+
+    @Test
+    public void shouldNotIncludeEmptyRevisionDirectoriesInMutableHeadContent() {
+        var repoName = "mutable6";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        assertFalse(repo.hasStagedChanges(objectId));
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
+                    .writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file4");
+        });
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 2"), updater -> {
+            updater.renameFile("dir1/file3", "file3")
+                    .removeFile("dir1/file4");
+        });
+
+        assertTrue(repo.hasStagedChanges(objectId));
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+
+        var details = repo.describeObject(objectId);
+
+        assertTrue(details.getHeadVersion().isMutable(), "HEAD isMutable");
+        assertFalse(details.getVersion(VersionId.fromString("v1")).isMutable(), "v1 isMutable");
+    }
+
+    @Test
+    public void shouldFailWhenRevisionMarkerAlreadyExists() {
+        var repoName = "mutable5";
+        var repoDir = newRepoDir(repoName);
+        var repo = defaultRepo(repoDir);
+
+        var objectId = "o1";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v1");
+
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        assertFalse(repo.hasStagedChanges(objectId));
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
+                    .writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file4");
+        });
+
+        OcflAsserts.assertThrowsWithMessage(ObjectOutOfSyncException.class, "Changes are out of sync with the current object state", () -> {
+            repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 2"), updater -> {
+                try {
+                    Files.writeString(repoDir.resolve("o1/extensions/mutable-head/revisions/r2"), "r2");
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                updater.writeFile(new ByteArrayInputStream("file5" .getBytes()), "file5")
+                        .renameFile("dir1/file3", "file3")
+                        .removeFile("dir1/file4");
+            });
+        });
+
+        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
     }
 
     @Test
