@@ -10,7 +10,7 @@ import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
-import edu.wisc.library.ocfl.core.lock.DatabaseObjectLockBuilder;
+import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -72,12 +72,12 @@ public class OcflRepositoryBuilder {
      * Used to lock objects when read and writing. The default is an {@link InMemoryObjectLock} instance that will wait 10 seconds
      * for the lock before failing. Override to change the wait period or implement a different type of lock.
      *
-     * <p>Use {@link DatabaseObjectLockBuilder} to construct an object lock that's backed by a relational database. This
+     * <p>Use {@link ObjectLockBuilder} to construct an object lock that's backed by a relational database. This
      * is primarily intended to be used when working with a cloud object store like S3.
      *
      * @param objectLock object lock
      * @return builder
-     * @see DatabaseObjectLockBuilder
+     * @see ObjectLockBuilder
      */
     public OcflRepositoryBuilder objectLock(ObjectLock objectLock) {
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");

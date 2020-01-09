@@ -8,14 +8,14 @@ import javax.sql.DataSource;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Constructs new {@link ObjectLock} instances that are backed by databases.
+ * Constructs new {@link ObjectLock} instances
  */
-public class DatabaseObjectLockBuilder {
+public class ObjectLockBuilder {
 
     private long waitTime;
     private TimeUnit timeUnit;
 
-    public DatabaseObjectLockBuilder() {
+    public ObjectLockBuilder() {
         waitTime = 10;
         timeUnit = TimeUnit.SECONDS;
     }
@@ -27,7 +27,7 @@ public class DatabaseObjectLockBuilder {
      * @param timeUnit unit of time
      * @return builder
      */
-    public DatabaseObjectLockBuilder waitTime(long waitTime, TimeUnit timeUnit) {
+    public ObjectLockBuilder waitTime(long waitTime, TimeUnit timeUnit) {
         this.waitTime = Enforce.expressionTrue(waitTime > 0, waitTime, "waitTime must be greater than 0");
         this.timeUnit = Enforce.notNull(timeUnit, "timeUnit cannot be null");
         return this;
@@ -37,14 +37,13 @@ public class DatabaseObjectLockBuilder {
      * Constructs a new {@link ObjectLock} that used the provided dataSource. If the database does not already contain
      * an object lock table, it attempts to create one.
      *
-     * @param dbType the type of database being used
      * @param dataSource the connection to the database
      * @return database object lock
      */
-    public ObjectLock build(DbType dbType, DataSource dataSource) {
-        Enforce.notNull(dbType, "dbType cannot be null");
+    public ObjectLock buildDbLock(DataSource dataSource) {
         Enforce.notNull(dataSource, "dataSource cannot be null");
 
+        var dbType = DbType.fromDataSource(dataSource);
         ObjectLock lock;
 
         switch (dbType) {
@@ -58,6 +57,15 @@ public class DatabaseObjectLockBuilder {
         new TableCreator(dbType, dataSource).createObjectLockTable();
 
         return lock;
+    }
+
+    /**
+     * Constructs a new in memory {@link ObjectLock}.
+     *
+     * @return in memory object lock
+     */
+    public ObjectLock buildMemLock() {
+        return new InMemoryObjectLock(waitTime, timeUnit);
     }
 
 }

@@ -30,14 +30,13 @@ public class ObjectDetailsDatabaseBuilder {
      * Constructs a new {@link ObjectDetailsDatabase} instance using the given dataSource. If the database does not
      * already contain an object details table, it attempts to create one.
      *
-     * @param dbType the type of database being used
      * @param dataSource the connection to the database
      * @return ObjectDetailsDatabase
      */
-    public ObjectDetailsDatabase build(DbType dbType, DataSource dataSource) {
-        Enforce.notNull(dbType, "dbType cannot be null");
+    public ObjectDetailsDatabase build(DataSource dataSource) {
         Enforce.notNull(dataSource, "dataSource cannot be null");
 
+        var dbType = DbType.fromDataSource(dataSource);
         ObjectDetailsDatabase database;
 
         switch (dbType) {
