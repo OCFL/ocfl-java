@@ -23,7 +23,8 @@ public class TableCreator {
     private static final String OBJECT_DETAILS_TABLE_FILE = "ocfl_object_details.sql";
 
     private Map<DbType, String> dbScriptDir = Map.of(
-            DbType.POSTGRES, "db/postgresql"
+            DbType.POSTGRES, "db/postgresql",
+            DbType.H2, "db/h2"
     );
 
     private DbType dbType;

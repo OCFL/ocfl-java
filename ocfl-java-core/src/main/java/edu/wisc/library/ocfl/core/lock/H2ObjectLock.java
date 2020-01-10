@@ -12,16 +12,16 @@ import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-public class PostgresObjectLock implements ObjectLock {
+public class H2ObjectLock implements ObjectLock {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PostgresObjectLock.class);
+    private static final Logger LOG = LoggerFactory.getLogger(H2ObjectLock.class);
 
-    private static final String OBJECT_LOCK_FAIL = "55P03";
+    private static final String OBJECT_LOCK_FAIL = "HYT00";
 
     private DataSource dataSource;
     private long waitMillis;
 
-    public PostgresObjectLock(DataSource dataSource, long waitTime, TimeUnit timeUnit) {
+    public H2ObjectLock(DataSource dataSource, long waitTime, TimeUnit timeUnit) {
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         Enforce.expressionTrue(waitTime > -1, waitTime, "waitTime cannot be negative");
         Enforce.notNull(timeUnit, "timeUnit cannot be null");
@@ -45,25 +45,28 @@ public class PostgresObjectLock implements ObjectLock {
     @Override
     public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
         try (var connection = dataSource.getConnection()) {
-            createLockRow(objectId, connection);
             connection.setAutoCommit(false);
             setLockWaitTimeout(connection);
 
-            try (var statement = acquireLock(connection)) {
-                statement.setString(1, objectId);
+            try {
+                createLockRow(objectId, connection);
 
-                try (var resultSet = statement.executeQuery()) {
-                    if (resultSet.next()) {
-                        return doInLock.call();
-                    } else {
-                        throw failedToAcquireLock(objectId);
+                try (var statement = acquireLock(connection)) {
+                    statement.setString(1, objectId);
+
+                    try (var resultSet = statement.executeQuery()) {
+                        if (resultSet.next()) {
+                            return doInLock.call();
+                        } else {
+                            throw failedToAcquireLock(objectId);
+                        }
                     }
-                } catch (SQLException e) {
-                    if (OBJECT_LOCK_FAIL.equals(e.getSQLState())) {
-                        throw failedToAcquireLock(objectId);
-                    }
-                    throw e;
                 }
+            } catch (SQLException e) {
+                if (OBJECT_LOCK_FAIL.equals(e.getSQLState())) {
+                    throw failedToAcquireLock(objectId);
+                }
+                throw e;
             } finally {
                 safeCleanup(connection);
             }
@@ -75,16 +78,15 @@ public class PostgresObjectLock implements ObjectLock {
     }
 
     private void createLockRow(String objectId, Connection connection) throws SQLException {
-        try (var statement = connection.prepareStatement("INSERT INTO ocfl_object_lock" +
-                " (object_id) VALUES (?)" +
-                " ON CONFLICT (object_id) DO NOTHING")) {
+        try (var statement = connection.prepareStatement("MERGE INTO ocfl_object_lock" +
+                     " (object_id) VALUES (?)")) {
             statement.setString(1, objectId);
             statement.executeUpdate();
         }
     }
 
     private void setLockWaitTimeout(Connection connection) throws SQLException {
-        try (var statement = connection.prepareStatement(String.format("SET LOCAL lock_timeout = %s", waitMillis))) {
+        try (var statement = connection.prepareStatement(String.format("SET LOCK_TIMEOUT %s", waitMillis))) {
             statement.executeUpdate();
         }
     }

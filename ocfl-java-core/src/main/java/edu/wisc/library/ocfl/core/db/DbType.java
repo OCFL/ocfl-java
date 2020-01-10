@@ -8,7 +8,8 @@ import java.sql.SQLException;
  */
 public enum DbType {
 
-    POSTGRES("PostgreSQL");
+    POSTGRES("PostgreSQL"),
+    H2("H2");
 
     private String productName;
 

@@ -50,6 +50,9 @@ public class ObjectLockBuilder {
             case POSTGRES:
                 lock = new PostgresObjectLock(dataSource, waitTime, timeUnit);
                 break;
+            case H2:
+                lock = new H2ObjectLock(dataSource, waitTime, timeUnit);
+                break;
             default:
                 throw new IllegalStateException(String.format("Database type %s is not mapped to an ObjectLock implementation.", dbType));
         }
