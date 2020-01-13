@@ -522,7 +522,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private boolean isFirstVersion(Inventory inventory) {
-        return inventory.getVersions().size() == 1;
+        return VersionId.V1.equals(inventory.getHead());
     }
 
     private void setupNewObjectDirs(Path objectRootPath) {
@@ -539,12 +539,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         try {
             copyInventory(source, objectRoot);
         } catch (RuntimeException e) {
-            try {
-                // TODO bug here when first version
-                var previousVersionRoot = objectRoot.version(inventory.getHead().previousVersionId());
-                copyInventory(previousVersionRoot, objectRoot);
-            } catch (RuntimeException e1) {
-                LOG.error("Failed to rollback inventory at {}", objectRoot.inventoryFile(), e1);
+            if (!isFirstVersion(inventory)) {
+                try {
+                    var previousVersionRoot = objectRoot.version(inventory.getHead().previousVersionId());
+                    copyInventory(previousVersionRoot, objectRoot);
+                } catch (RuntimeException e1) {
+                    LOG.error("Failed to rollback inventory at {}", objectRoot.inventoryFile(), e1);
+                }
             }
             throw e;
         }
