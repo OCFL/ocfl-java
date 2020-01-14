@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>edu.wisc.library.ocfl</groupId>
+        <artifactId>ocfl-java-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ocfl-java-test</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <name>OCFL Java Test Helpers</name>
+    <description>Common utilities used for constructing tests</description>
+    <url>https://github.com/UW-Madison-Library/ocfl-java</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Peter Winckles</name>
+            <email>peter.winckles@wisc.edu</email>
+            <organization>UW Madison - Library</organization>
+            <organizationUrl>https://library.wisc.edu/</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/UW-Madison-Library/ocfl-java.git</connection>
+        <developerConnection>scm:git:ssh://github.com:UW-Madison-Library/ocfl-java.git</developerConnection>
+        <url>https://github.com/UW-Madison-Library/ocfl-java</url>
+    </scm>
+
+    <build>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>edu.wisc.library.ocfl</groupId>
+            <artifactId>ocfl-java-api</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

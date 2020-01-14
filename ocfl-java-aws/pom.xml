@@ -123,7 +123,6 @@
         <dependency>
             <groupId>com.adobe.testing</groupId>
             <artifactId>s3mock-junit5</artifactId>
-            <version>2.1.17</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -10,9 +10,8 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
-import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
@@ -23,9 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,14 +32,18 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-@ExtendWith(S3MockExtension.class)
 public class OcflS3Test {
 
+    @RegisterExtension
+    public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
+
+    private final S3Client s3Client = S3_MOCK.createS3ClientV2();
+    
     @TempDir
     public Path tempDir;
 
     @Test
-    public void basicMutableHeadTest(S3Client s3Client) {
+    public void basicMutableHeadTest() {
         var bucket = "test-1";
         var repo = createRepo(s3Client, bucket);
         var objectId = "o1";
@@ -87,7 +88,7 @@ public class OcflS3Test {
     }
 
     @Test
-    public void basicPutTest(S3Client s3Client) {
+    public void basicPutTest() {
         var bucket = "test-2";
         var repo = createRepo(s3Client, bucket);
         var objectId = "o1";
@@ -127,7 +128,7 @@ public class OcflS3Test {
     }
 
     @Test
-    public void basicPurgeTest(S3Client s3Client) {
+    public void basicPurgeTest() {
         var bucket = "test-3";
         var repo = createRepo(s3Client, bucket);
         var objectId = "o1";
@@ -166,17 +167,6 @@ public class OcflS3Test {
                         .cloudClient(new OcflS3Client(s3Client, bucket))
                         .workDir(tempDir)
                         .build(), tempDir);
-    }
-
-    private Path outputDir(String pathStr) {
-        var path = Paths.get(pathStr);
-        try {
-            FileUtil.safeDeletePath(path);
-            Files.createDirectories(path.getParent());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return path;
     }
 
     private InputStream stream(String value) {

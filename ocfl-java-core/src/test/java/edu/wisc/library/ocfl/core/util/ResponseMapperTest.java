@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
-import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.commitInfo;
-import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.fileChange;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.commitInfo;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.fileChange;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 

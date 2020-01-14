@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <logger name="edu.wisc.library" level="debug"/>
+    <logger name="edu.wisc.library" level="info"/>
 
     <root level="info">
         <appender-ref ref="STDOUT" />

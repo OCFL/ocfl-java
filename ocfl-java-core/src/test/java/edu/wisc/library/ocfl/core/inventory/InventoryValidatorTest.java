@@ -5,7 +5,7 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflConfig;
 import edu.wisc.library.ocfl.core.model.*;
-import edu.wisc.library.ocfl.core.test.OcflAsserts;
+import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

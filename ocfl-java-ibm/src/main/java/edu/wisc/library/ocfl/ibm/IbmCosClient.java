@@ -175,7 +175,7 @@ public class IbmCosClient implements CloudClient {
             return s3Client.getObject(bucket, encodeKey(srcPath)).getObjectContent();
         } catch (AmazonS3Exception e) {
             if (NO_SUCH_KEY.equals(e.getErrorCode())) {
-                throw new KeyNotFoundException(e);
+                throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", srcPath, bucket), e);
             }
             throw e;
         }

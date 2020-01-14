@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.itest;
+package edu.wisc.library.ocfl.itest;
 
 import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.OcflOption;
@@ -9,8 +9,9 @@ import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
-import edu.wisc.library.ocfl.core.test.OcflAsserts;
+import edu.wisc.library.ocfl.test.OcflAsserts;
+import edu.wisc.library.ocfl.test.TestHelper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -19,48 +20,68 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Map;
 
-import static edu.wisc.library.ocfl.core.itest.ITestHelper.*;
-import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.commitInfo;
-import static edu.wisc.library.ocfl.core.matcher.OcflMatchers.*;
+import static edu.wisc.library.ocfl.itest.ITestHelper.*;
+import static edu.wisc.library.ocfl.test.TestHelper.copyDir;
+import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class FileSystemOcflITest {
+public abstract class OcflITest {
 
     @TempDir
     public Path tempRoot;
 
-    private Path reposDir;
-    private Path outputDir;
-    private Path inputDir;
-    private Path workDir;
+    protected Path outputDir;
+    protected Path inputDir;
+    protected Path workDir;
 
     private CommitInfo defaultCommitInfo;
 
     @BeforeEach
     public void setup() throws IOException {
-        reposDir = Files.createDirectory(tempRoot.resolve("repos"));
         outputDir = Files.createDirectory(tempRoot.resolve("output"));
         inputDir = Files.createDirectory(tempRoot.resolve("input"));
         workDir = Files.createDirectory(tempRoot.resolve("work"));
 
-        defaultCommitInfo = ITestHelper.commitInfo("Peter", "peter@example.com", "commit message");
+        defaultCommitInfo = TestHelper.commitInfo("Peter", "peter@example.com", "commit message");
+
+        onBefore();
+    }
+
+    @AfterEach
+    public void after() {
+        onAfter();
+    }
+
+    protected abstract OcflRepository defaultRepo(String name);
+
+    protected abstract OcflRepository existingRepo(String name, Path path);
+
+    protected abstract void verifyRepo(String name);
+
+    protected abstract List<String> listFilesInRepo(String name);
+
+    protected void onBefore() {
+
+    }
+
+    protected void onAfter() {
+
     }
 
     @Test
     public void putNewObjectAndUpdateMultipleTimesWithAdditionalPuts() {
         var repoName = "repo3";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -75,7 +96,7 @@ public class FileSystemOcflITest {
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
 
         repo.getObject(ObjectVersionId.head(objectId), outputPath1);
         verifyDirectoryContentsSame(expectedOutputPath(repoName, "o1v3"), objectId, outputPath1);
@@ -90,22 +111,20 @@ public class FileSystemOcflITest {
     @Test
     public void putObjectWithPathToSingleFile() {
         var repoName = "repo15";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void rejectRequestsWhenRepoClosed() {
         var repoName = "repo15";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         repo.close();
 
@@ -120,8 +139,7 @@ public class FileSystemOcflITest {
     @Test
     public void updateObjectMakeMultipleChangesWithinTheSameVersion() {
         var repoName = "repo4";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -141,10 +159,10 @@ public class FileSystemOcflITest {
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
-                    .writeFile(input(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
+                    .writeFile(inputStream(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
 
         repo.getObject(ObjectVersionId.head(objectId), outputPath1);
         verifyDirectoryContentsSame(expectedOutputPath(repoName, "o2v3"), objectId, outputPath1);
@@ -159,8 +177,7 @@ public class FileSystemOcflITest {
     @Test
     public void lazyLoadObject() throws IOException {
         var repoName = "repo3";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -172,7 +189,7 @@ public class FileSystemOcflITest {
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
 
         var files = repo.getObject(ObjectVersionId.head(objectId));
         assertEquals(2, files.getFiles().size());
@@ -195,8 +212,7 @@ public class FileSystemOcflITest {
     @Test
     public void renameAndRemoveFilesAddedInTheCurrentVersion() {
         var repoName = "repo17";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -221,14 +237,13 @@ public class FileSystemOcflITest {
                     .writeFile(new ByteArrayInputStream("6543210".getBytes()), "file5", OcflOption.OVERWRITE);
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void describeObject() {
         var repoName = "repo5";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -294,8 +309,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldNotAddAdditionalFixityWhenDefaultAlgorithmSpecified() {
         var repoName = "repo5";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -354,8 +368,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldFailWhenFixityDoesNotMatch() {
         var repoName = "repo5";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -370,8 +383,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldFailFixityWhenUnknownAlgorithm() {
         var repoName = "repo5";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -386,8 +398,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldFailFixityWhenFileNotAddedInBlockAndDoesNotHaveExistingFixity() {
         var repoName = "repo5";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -407,7 +418,7 @@ public class FileSystemOcflITest {
     public void readObjectFiles() {
         var repoName = "repo4";
         var repoDir = expectedRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, repoDir);
 
         var objectId = "o2";
 
@@ -438,8 +449,7 @@ public class FileSystemOcflITest {
 
     @Test
     public void changeHistory() {
-        var repoDir = newRepoDir("change-history");
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo("change-history");
 
         var objectId = "o1";
 
@@ -501,8 +511,7 @@ public class FileSystemOcflITest {
 
     @Test
     public void failWhenLogicalPathNotFoundInChangeHistory() {
-        var repoDir = newRepoDir("change-history");
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo("change-history");
 
         var objectId = "o1";
 
@@ -530,7 +539,7 @@ public class FileSystemOcflITest {
     public void getObjectFilesFromLazyLoadGetObject() {
         var repoName = "repo4";
         var repoDir = expectedRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, repoDir);
 
         var objectId = "o2";
 
@@ -562,8 +571,7 @@ public class FileSystemOcflITest {
     @Test
     public void acceptEmptyPutObjectRequests() throws IOException {
         var repoName = "repo6";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o4";
 
@@ -577,8 +585,7 @@ public class FileSystemOcflITest {
     @Test
     public void removeAllOfTheFilesFromAnObject() throws IOException {
         var repoName = "repo4";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -600,8 +607,7 @@ public class FileSystemOcflITest {
     @Test
     public void rejectInvalidObjectIds() throws IOException {
         var repoName = "repo6";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
 
@@ -612,7 +618,7 @@ public class FileSystemOcflITest {
     public void rejectObjectNotFoundWhenObjectDoesNotExists() throws IOException {
         var repoName = "repo4";
         var repoDir = expectedRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, repoDir);
 
         assertThrows(NotFoundException.class, () -> repo.getObject(ObjectVersionId.head("bogus"), outputPath(repoName, "bogus")));
     }
@@ -621,7 +627,7 @@ public class FileSystemOcflITest {
     public void rejectObjectNotFoundWhenObjectExistsButVersionDoesNot() throws IOException {
         var repoName = "repo4";
         var repoDir = expectedRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, repoDir);
 
         var objectId = "o2";
 
@@ -631,8 +637,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldUpdateObjectWhenReferenceVersionSpecifiedAndIsMostRecentVersion() {
         var repoName = "repo4";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -649,17 +654,16 @@ public class FileSystemOcflITest {
 
         repo.updateObject(ObjectVersionId.version(objectId, "v2"), defaultCommitInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
-                    .writeFile(input(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
+                    .writeFile(inputStream(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void rejectUpdateObjectWhenReferenceVersionSpecifiedAndIsNotMostRecentVersion() {
         var repoName = "repo4";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -676,15 +680,14 @@ public class FileSystemOcflITest {
 
         assertThrows(ObjectOutOfSyncException.class, () -> repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultCommitInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
-                    .writeFile(input(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
+                    .writeFile(inputStream(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         }));
     }
 
     @Test
     public void shouldCreateNewVersionWhenObjectUpdateWithNoChanges() {
         var repoName = "repo7";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -693,14 +696,14 @@ public class FileSystemOcflITest {
             // no op
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void failGetObjectWhenInventoryFixityCheckFails() {
         var repoName = "invalid-inventory-fixity";
         var repoDir = sourceRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, repoDir);
 
         assertThrows(FixityCheckException.class, () -> repo.describeObject("z1"));
     }
@@ -721,7 +724,7 @@ public class FileSystemOcflITest {
     public void failGetObjectWhenFileFixityCheckFails() {
         var repoName = "invalid-file-fixity";
         var repoDir = sourceRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, repoDir);
 
         assertThrows(FixityCheckException.class, () -> repo.getObject(ObjectVersionId.head("o1"), outputPath(repoName, "blah")));
     }
@@ -730,7 +733,7 @@ public class FileSystemOcflITest {
     public void failGetObjectWhenInvalidDigestAlgorithmUsed() {
         var repoName = "invalid-digest-algorithm";
         var repoDir = sourceRepoPath(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, repoDir);
 
         assertThat(assertThrows(RuntimeIOException.class, () -> {
             repo.getObject(ObjectVersionId.head("o1"));
@@ -740,8 +743,7 @@ public class FileSystemOcflITest {
     @Test
     public void putObjectWithDuplicateFiles() {
         var repoName = "repo8";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o5";
 
@@ -751,17 +753,14 @@ public class FileSystemOcflITest {
 
         // Which duplicate file that's preserved is non-deterministic
         var expectedPaths = ITestHelper.listAllPaths(expectedRepoPath(repoName));
-        var actualPaths = ITestHelper.listAllPaths(repoDir);
+        var actualPaths = listFilesInRepo(repoName);
         assertEquals(expectedPaths.size(), actualPaths.size());
     }
 
     @Test
     public void useZeroPaddedVersionsWhenExistingVersionIsZeroPadded() {
         var repoName = "zero-padded";
-        var repoDir = newRepoDir(repoName);
-        copyDir(sourceRepoPath(repoName), repoDir);
-
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, sourceRepoPath(repoName));
 
         var objectId = "o1";
 
@@ -769,16 +768,13 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void useDifferentContentDirectoryWhenExistingObjectIsUsingDifferentDir() {
         var repoName = "different-content";
-        var repoDir = newRepoDir(repoName);
-        copyDir(sourceRepoPath(repoName), repoDir);
-
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, sourceRepoPath(repoName));
 
         var objectId = "o1";
 
@@ -786,16 +782,13 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void shouldUseDifferentDigestAlgorithmWhenInventoryHasDifferent() {
         var repoName = "different-digest";
-        var repoDir = newRepoDir(repoName);
-        copyDir(sourceRepoPath(repoName), repoDir);
-
-        var repo = defaultRepo(repoDir);
+        var repo = existingRepo(repoName, sourceRepoPath(repoName));
 
         var objectId = "o1";
 
@@ -803,15 +796,14 @@ public class FileSystemOcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     @EnabledOnOs(OS.LINUX)
     public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() throws IOException {
         var repoName = "repo16";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -824,7 +816,7 @@ public class FileSystemOcflITest {
         var backslashFile = expectedRepoPath.resolve("o1/v1/content/backslash\\path\\file");
         try {
             Files.write(backslashFile, "test1".getBytes());
-            verifyDirectoryContentsSame(expectedRepoPath, repoDir);
+            verifyRepo(repoName);
         } finally {
             Files.deleteIfExists(backslashFile);
         }
@@ -833,8 +825,7 @@ public class FileSystemOcflITest {
     @Test
     public void rejectPathsWhenInvalidAndNotSanitized() {
         var repoName = "repo9";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -876,8 +867,7 @@ public class FileSystemOcflITest {
     @Test
     public void reinstateFileThatWasRemoved() {
         var repoName = "repo9";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -891,14 +881,13 @@ public class FileSystemOcflITest {
             updater.reinstateFile(VersionId.fromString("v1"), "file3", "file3");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void reinstateFileThatWasNeverRemoved() {
         var repoName = "repo10";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -909,14 +898,13 @@ public class FileSystemOcflITest {
             updater.reinstateFile(VersionId.fromString("v1"), "file2", "file1");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void shouldRejectReinstateWhenVersionDoesNotExist() {
         var repoName = "repo10";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -934,8 +922,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldRejectReinstateWhenFileDoesNotExist() {
         var repoName = "repo10";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -953,8 +940,7 @@ public class FileSystemOcflITest {
     @Test
     public void purgeObjectWhenExists() {
         var repoName = "purge-object";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -968,14 +954,13 @@ public class FileSystemOcflITest {
             repo.describeObject(objectId);
         });
 
-        assertEquals(3, ITestHelper.listAllPaths(repoDir).size());
+        assertEquals(2, listFilesInRepo(repoName).size());
     }
 
     @Test
     public void purgeObjectDoNothingWhenDoesNotExist() {
         var repoName = "purge-object";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -989,14 +974,13 @@ public class FileSystemOcflITest {
             repo.describeObject("o4");
         });
 
-        assertEquals(13, ITestHelper.listAllPaths(repoDir).size());
+        assertEquals(9, listFilesInRepo(repoName).size());
     }
 
     @Test
     public void shouldCreateNewObjectWithUpdateObjectApi() {
         var repoName = "repo11";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -1007,14 +991,13 @@ public class FileSystemOcflITest {
                     .addPath(sourcePath.resolve("file3"), "file3");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void shouldReturnObjectExistence() {
         var repoName = "repo11";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -1029,8 +1012,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldMoveFilesIntoRepoOnPutObjectWhenMoveSourceSpecified() {
         var repoName = "repo3";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o1";
 
@@ -1042,7 +1024,7 @@ public class FileSystemOcflITest {
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"), OcflOption.MOVE_SOURCE);
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"), OcflOption.MOVE_SOURCE);
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
         assertFalse(Files.exists(sourcePathV1));
         assertFalse(Files.exists(sourcePathV2));
         assertFalse(Files.exists(sourcePathV3));
@@ -1051,8 +1033,7 @@ public class FileSystemOcflITest {
     @Test
     public void shouldMoveFilesIntoRepoOnUpdateObjectWhenMoveSourceSpecified() {
         var repoName = "repo4";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -1072,16 +1053,15 @@ public class FileSystemOcflITest {
                     .addPath(sourcePathV3.resolve("dir1"), "dir1", OcflOption.MOVE_SOURCE);
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
-        assertEquals(2, ITestHelper.listAllPaths(sourcePathV2).size());
-        assertEquals(1, ITestHelper.listAllPaths(sourcePathV3).size());
+        verifyRepo(repoName);
+        assertEquals(0, ITestHelper.listAllPaths(sourcePathV2).size());
+        assertEquals(0, ITestHelper.listAllPaths(sourcePathV3).size());
     }
 
     @Test
     public void shouldMoveSrcDirContentsIntoSubdirWhenSubdirSpecifiedAsDst() {
         var repoName = "repo12";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -1095,14 +1075,13 @@ public class FileSystemOcflITest {
             updater.addPath(sourcePathV2, "sub", OcflOption.MOVE_SOURCE);
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void shouldAddFileWithFileNameWhenNoDestinationGiven() {
         var repoName = "repo13";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -1121,8 +1100,7 @@ public class FileSystemOcflITest {
     @Test
     public void addDirectoryToRootWhenDestinationNotSpecified() {
         var repoName = "repo13";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -1132,14 +1110,13 @@ public class FileSystemOcflITest {
             updater.addPath(sourcePathV1, "");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void writeInputStreamToObjectWhenHasFixityCheckAndValid() {
         var repoName = "repo14";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -1147,18 +1124,17 @@ public class FileSystemOcflITest {
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
             updater.writeFile(
-                    new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456"),
+                    new FixityCheckInputStream(inputStream(sourcePath.resolve("file1")), DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456"),
                     "file1");
         });
 
-        verifyDirectoryContentsSame(expectedRepoPath(repoName), repoDir);
+        verifyRepo(repoName);
     }
 
     @Test
     public void failInputStreamToObjectWhenHasFixityCheckAndNotValid() {
         var repoName = "repo14";
-        var repoDir = newRepoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -1167,7 +1143,7 @@ public class FileSystemOcflITest {
         assertThrows(FixityCheckException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
                 updater.writeFile(
-                        new FixityCheckInputStream(input(sourcePath.resolve("file1")), DigestAlgorithm.md5, "bogus"),
+                        new FixityCheckInputStream(inputStream(sourcePath.resolve("file1")), DigestAlgorithm.md5, "bogus"),
                         "file1");
             });
         });
@@ -1175,9 +1151,9 @@ public class FileSystemOcflITest {
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
         var stream = actual.getStream();
-        var contents = ITestHelper.inputToString(stream);
+        var contents = TestHelper.inputToString(stream);
         stream.checkFixity();
-        assertEquals(ITestHelper.inputToString(Files.newInputStream(expectedFile)), contents);
+        assertEquals(TestHelper.inputToString(Files.newInputStream(expectedFile)), contents);
     }
 
     private Path outputPath(String repoName, String path) {
@@ -1188,59 +1164,6 @@ public class FileSystemOcflITest {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private Path newRepoDir(String name) {
-        try {
-            return Files.createDirectory(reposDir.resolve(name));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private InputStream input(Path path) {
-        try {
-            return Files.newInputStream(path);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private OcflRepository defaultRepo(Path repoDir) {
-        var repo = new OcflRepositoryBuilder()
-                .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
-                .inventoryMapper(ITestHelper.testInventoryMapper())
-                .build(new FileSystemOcflStorageBuilder()
-                        .checkNewVersionFixity(true)
-                        .objectMapper(ITestHelper.prettyPrintMapper())
-                        .build(repoDir),
-                workDir);
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
-        return repo;
-    }
-
-    private Path copyDir(Path source, Path target) {
-        try (var files = Files.walk(source)) {
-            files.forEach(f -> {
-                try {
-                    Files.copy(f, target.resolve(source.relativize(f)), StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return target;
-    }
-
-    private void printFiles(Path path) {
-        try {
-            Files.walk(path).forEach(System.out::println);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        ;
     }
 
 }

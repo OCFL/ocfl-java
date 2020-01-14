@@ -1,13 +1,12 @@
-package edu.wisc.library.ocfl.core.itest;
+package edu.wisc.library.ocfl.itest;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -19,27 +18,44 @@ import java.nio.file.Paths;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class BadReposITests {
+public abstract class BadReposITest {
 
     @TempDir
     public Path tempRoot;
 
-    private Path workDir;
-    private Path outputDir;
+    protected Path workDir;
+    protected Path outputDir;
 
     @BeforeEach
     public void setup() throws IOException {
         workDir = Files.createDirectory(tempRoot.resolve("work"));
         outputDir = Files.createDirectory(tempRoot.resolve("output"));
+
+        onBefore();
     }
+
+    @AfterEach
+    public void after() {
+        onAfter();
+    }
+
+    protected void onBefore() {
+
+    }
+
+    protected void onAfter() {
+
+    }
+
+    protected abstract MutableOcflRepository defaultRepo(String name);
 
     @Test
     public void shouldFailGetObjectWhenLogicalPathContainsIllegalChars() {
         var repoName = "bad-logical-paths";
-        var repoDir = repoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         var objectId = "o2";
 
@@ -72,56 +88,39 @@ public class BadReposITests {
     @Test
     public void failWhenSidecarHasInvalidDigest() {
         var repoName = "invalid-sidecar-digest";
-        var repoDir = repoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
         assertThat(assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2")).getMessage(),
-                containsString("specifies digest algorithm md5"));
+                containsString("sidecar"));
     }
 
     @Test
     public void failWhenMissingSidecar() {
         var repoName = "missing-sidecar";
-        var repoDir = repoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
         assertThat(assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2")).getMessage(),
-                containsString("Expected there to be one inventory sidecar file"));
+                containsString("inventory sidecar"));
     }
 
     @Test
     public void failWhenMissingInventory() {
         var repoName = "missing-inventory";
-        var repoDir = repoDir(repoName);
 
-        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoDir)).getMessage(),
+        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoName)).getMessage(),
                 containsString("Missing inventory"));
     }
 
     @Test
     public void failWhenMissingVersion() {
         var repoName = "missing-version";
-        var repoDir = repoDir(repoName);
-        var repo = defaultRepo(repoDir);
+        var repo = defaultRepo(repoName);
 
-        assertThat(assertThrows(RuntimeIOException.class, () -> repo.getObject(ObjectVersionId.head("o2"), outputDir.resolve("out"))).getMessage(),
-                containsString("NoSuchFile"));
+        assertThat(assertThrows(RuntimeException.class, () -> repo.getObject(ObjectVersionId.head("o2"), outputDir.resolve("out"))).getMessage(),
+                either(containsString("NoSuchFile")).or(containsString("not found")));
     }
 
-    private Path repoDir(String name) {
+    protected Path repoDir(String name) {
         return Paths.get("src/test/resources/invalid-repos", name);
-    }
-
-    private MutableOcflRepository defaultRepo(Path repoDir) {
-        var repo = new OcflRepositoryBuilder()
-                .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
-                .inventoryMapper(ITestHelper.testInventoryMapper())
-                .buildMutable(new FileSystemOcflStorageBuilder()
-                        .checkNewVersionFixity(true)
-                        .objectMapper(ITestHelper.prettyPrintMapper())
-                        .build(repoDir),
-                workDir);
-        ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
-        return repo;
     }
 
 }

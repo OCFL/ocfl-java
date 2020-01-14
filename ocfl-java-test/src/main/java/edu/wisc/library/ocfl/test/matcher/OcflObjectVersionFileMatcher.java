@@ -1,9 +1,9 @@
-package edu.wisc.library.ocfl.core.matcher;
+package edu.wisc.library.ocfl.test.matcher;
 
 import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.core.itest.ITestHelper;
+import edu.wisc.library.ocfl.test.TestHelper;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
@@ -34,7 +34,7 @@ public class OcflObjectVersionFileMatcher extends TypeSafeMatcher<OcflObjectVers
 
     private boolean sameContent(FixityCheckInputStream stream) {
         if (content != null) {
-            var actual = ITestHelper.inputToString(stream);
+            var actual = TestHelper.inputToString(stream);
             stream.checkFixity();
             return Objects.equals(content, actual);
         }

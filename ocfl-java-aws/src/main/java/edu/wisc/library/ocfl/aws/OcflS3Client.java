@@ -277,7 +277,7 @@ public class OcflS3Client implements CloudClient {
                     .key(srcPath)
                     .build());
         } catch (NoSuchKeyException e) {
-            throw new KeyNotFoundException(e);
+            throw new KeyNotFoundException(String.format("Key %s not found in bucket.", srcPath, bucket), e);
         }
     }
 

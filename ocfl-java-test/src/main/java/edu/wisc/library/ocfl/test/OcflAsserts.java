@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.test;
+package edu.wisc.library.ocfl.test;
 
 import org.junit.jupiter.api.function.Executable;
 

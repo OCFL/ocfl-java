@@ -6,7 +6,7 @@ import edu.wisc.library.ocfl.core.encode.DigestEncoder;
 import edu.wisc.library.ocfl.core.encode.NoOpEncoder;
 import edu.wisc.library.ocfl.core.encode.PairTreeEncoder;
 import edu.wisc.library.ocfl.core.encode.UrlEncoder;
-import edu.wisc.library.ocfl.core.test.OcflAsserts;
+import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

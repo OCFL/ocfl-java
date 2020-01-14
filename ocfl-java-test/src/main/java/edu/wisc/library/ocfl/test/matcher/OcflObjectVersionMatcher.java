@@ -1,10 +1,8 @@
-package edu.wisc.library.ocfl.core.matcher;
+package edu.wisc.library.ocfl.test.matcher;
 
-import edu.wisc.library.ocfl.api.model.FileDetails;
-import edu.wisc.library.ocfl.api.model.VersionDetails;
+import edu.wisc.library.ocfl.api.OcflObjectVersion;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 
@@ -12,27 +10,27 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
-public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
+public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion> {
 
     private String objectId;
     private VersionId versionId;
     private CommitInfoMatcher commitInfoMatcher;
-    private Collection<Matcher<FileDetails>> fileDetailsMatchers;
+    private Collection<OcflObjectVersionFileMatcher> fileMatchers;
 
-    VersionDetailsMatcher(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
+    OcflObjectVersionMatcher(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
         this.objectId = objectId;
         this.versionId = VersionId.fromString(versionId);
         this.commitInfoMatcher = commitInfoMatcher;
-        this.fileDetailsMatchers = Arrays.asList(fileDetailsMatchers);
+        this.fileMatchers = Arrays.asList(fileMatchers);
     }
 
     @Override
-    protected boolean matchesSafely(VersionDetails item) {
+    protected boolean matchesSafely(OcflObjectVersion item) {
         return Objects.equals(objectId, item.getObjectId())
                 && Objects.equals(versionId, item.getVersionId())
                 && commitInfoMatcher.matches(item.getCommitInfo())
                 // Hamcrest has some infuriating overloaded methods...
-                && Matchers.containsInAnyOrder((Collection) fileDetailsMatchers).matches(item.getFiles());
+                && Matchers.containsInAnyOrder((Collection) fileMatchers).matches(item.getFiles());
     }
 
     @Override
@@ -43,8 +41,8 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
                 .appendValue(versionId)
                 .appendText(", commitInfo=")
                 .appendDescriptionOf(commitInfoMatcher)
-                .appendText(", fileDetails=")
-                .appendList("[", ",", "]", fileDetailsMatchers)
+                .appendText(", file=")
+                .appendList("[", ",", "]", fileMatchers)
                 .appendText("}");
     }
 

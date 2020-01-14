@@ -1,8 +1,8 @@
 package edu.wisc.library.ocfl.core.inventory;
 
-import edu.wisc.library.ocfl.core.itest.ITestHelper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.test.ITestHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

@@ -41,6 +41,8 @@
         <module>ocfl-java-core</module>
         <module>ocfl-java-aws</module>
         <module>ocfl-java-ibm</module>
+        <module>ocfl-java-itest</module>
+        <module>ocfl-java-test</module>
     </modules>
 
     <properties>
@@ -287,37 +289,41 @@
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest-library</artifactId>
                 <version>2.2</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
                 <version>5.5.2</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-engine</artifactId>
                 <version>5.5.2</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
                 <version>3.2.4</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>42.2.9</version>
-                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>1.4.200</version>
             </dependency>
             <dependency>
                 <groupId>com.mchange</groupId>
                 <artifactId>c3p0</artifactId>
                 <version>0.9.5.5</version>
-                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.adobe.testing</groupId>
+                <artifactId>s3mock-junit5</artifactId>
+                <version>2.1.17</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

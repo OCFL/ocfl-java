@@ -1,7 +1,7 @@
 package edu.wisc.library.ocfl.core.mapping;
 
 import edu.wisc.library.ocfl.core.extension.layout.config.*;
-import edu.wisc.library.ocfl.core.test.OcflAsserts;
+import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

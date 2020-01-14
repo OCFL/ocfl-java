@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.matcher;
+package edu.wisc.library.ocfl.test.matcher;
 
 import edu.wisc.library.ocfl.api.model.CommitInfo;
 import org.hamcrest.Description;
