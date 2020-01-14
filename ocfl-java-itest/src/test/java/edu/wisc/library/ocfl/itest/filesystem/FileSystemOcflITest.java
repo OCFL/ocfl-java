@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.itest.filesystem;
 
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
+import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -41,6 +42,7 @@ public class FileSystemOcflITest extends OcflITest {
 
         var repo = new OcflRepositoryBuilder()
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
+                .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .build(new FileSystemOcflStorageBuilder()
                                 .checkNewVersionFixity(true)

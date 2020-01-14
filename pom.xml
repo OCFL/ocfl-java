@@ -51,7 +51,7 @@
 
         <java.version>11</java.version>
 
-        <jackson.version>2.10.1</jackson.version>
+        <jackson.version>2.10.2</jackson.version>
         <slf4j.version>2.0.0-alpha1</slf4j.version>
     </properties>
 
@@ -279,7 +279,7 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.10.37</version>
+                <version>2.10.41</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -323,7 +323,7 @@
             <dependency>
                 <groupId>com.adobe.testing</groupId>
                 <artifactId>s3mock-junit5</artifactId>
-                <version>2.1.17</version>
+                <version>2.1.18</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

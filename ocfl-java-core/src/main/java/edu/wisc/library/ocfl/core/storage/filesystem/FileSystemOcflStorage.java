@@ -96,15 +96,15 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
         Inventory inventory = null;
         var objectRootPathStr = objectRootPath(objectId);
-        var objectRootPath = repositoryRoot.resolve(objectRootPathStr);
+        var objectRootPathAbsolute = repositoryRoot.resolve(objectRootPathStr);
 
-        if (Files.exists(objectRootPath)) {
-            var mutableHeadInventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
+        if (Files.exists(objectRootPathAbsolute)) {
+            var mutableHeadInventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPathAbsolute);
             if (Files.exists(mutableHeadInventoryPath)) {
-                ensureRootObjectHasNotChanged(objectId, objectRootPath);
-                inventory = parseMutableHeadInventory(objectRootPathStr, mutableHeadInventoryPath);
+                ensureRootObjectHasNotChanged(objectId, objectRootPathAbsolute);
+                inventory = parseMutableHeadInventory(objectRootPathStr, objectRootPathAbsolute, mutableHeadInventoryPath);
             } else {
-                inventory = parseInventory(objectRootPathStr, ObjectPaths.inventoryPath(objectRootPath));
+                inventory = parseInventory(objectRootPathStr, ObjectPaths.inventoryPath(objectRootPathAbsolute));
             }
         }
 
@@ -346,9 +346,9 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         return inventoryMapper.read(objectRootPath, inventoryPath);
     }
 
-    private Inventory parseMutableHeadInventory(String objectRootPath, Path inventoryPath) {
+    private Inventory parseMutableHeadInventory(String objectRootPath, Path objectRootPathAbsolute, Path inventoryPath) {
         verifyInventory(inventoryPath);
-        var revisionId = identifyLatestRevision(objectRootPath);
+        var revisionId = identifyLatestRevision(objectRootPathAbsolute);
         return inventoryMapper.readMutableHead(objectRootPath, revisionId, inventoryPath);
     }
 
@@ -365,9 +365,9 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private RevisionId identifyLatestRevision(String objectRootPath) {
+    private RevisionId identifyLatestRevision(Path objectRootPath) {
         var revisionsPath = ObjectPaths.mutableHeadRevisionsPath(objectRootPath);
-        try (var files = Files.list(Paths.get(revisionsPath))) {
+        try (var files = Files.list(revisionsPath)) {
             var result = files.filter(Files::isRegularFile)
                     .map(Path::getFileName).map(Path::toString)
                     .filter(RevisionId::isRevisionId)
