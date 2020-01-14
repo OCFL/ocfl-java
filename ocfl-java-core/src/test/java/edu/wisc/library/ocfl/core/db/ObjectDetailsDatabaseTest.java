@@ -470,7 +470,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldFailWhenConcurrentAddAndDifferentDigest() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).build(dataSource);
+        database = new ObjectDetailsDatabaseBuilder().waitTime(1, TimeUnit.SECONDS).build(dataSource);
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
