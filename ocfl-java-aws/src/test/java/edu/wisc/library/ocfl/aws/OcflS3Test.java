@@ -10,9 +10,11 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
-import org.junit.jupiter.api.Test;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -42,10 +44,11 @@ public class OcflS3Test {
     @TempDir
     public Path tempDir;
 
-    @Test
-    public void basicMutableHeadTest() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "ocfl-repo-1"})
+    public void basicMutableHeadTest(String repoPrefix) {
         var bucket = "test-1";
-        var repo = createRepo(s3Client, bucket);
+        var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
         repo.stageChanges(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
@@ -54,7 +57,7 @@ public class OcflS3Test {
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
         });
 
-        assertObjectsExist(s3Client, bucket, "o1/", List.of(
+        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -72,7 +75,7 @@ public class OcflS3Test {
 
         repo.commitStagedChanges(objectId, commitInfo("Peter", "winckles@wisc.edu", "commit"));
 
-        assertObjectsExist(s3Client, bucket, "o1/", List.of(
+        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -87,10 +90,11 @@ public class OcflS3Test {
         assertEquals("file2", streamToString(repo.getObject(ObjectVersionId.head(objectId)).getFile("dir/sub/file2.txt").getStream()));
     }
 
-    @Test
-    public void basicPutTest() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "ocfl-repo-1"})
+    public void basicPutTest(String repoPrefix) {
         var bucket = "test-2";
-        var repo = createRepo(s3Client, bucket);
+        var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
         repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
@@ -99,7 +103,7 @@ public class OcflS3Test {
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
         });
 
-        assertObjectsExist(s3Client, bucket, "o1/", List.of(
+        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -113,7 +117,7 @@ public class OcflS3Test {
             updater.writeFile(stream("file3"), "dir/sub/file3.txt", OcflOption.OVERWRITE);
         });
 
-        assertObjectsExist(s3Client, bucket, "o1/", List.of(
+        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -127,10 +131,11 @@ public class OcflS3Test {
         ));
     }
 
-    @Test
-    public void basicPurgeTest() {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "ocfl-repo-1"})
+    public void basicPurgeTest(String repoPrefix) {
         var bucket = "test-3";
-        var repo = createRepo(s3Client, bucket);
+        var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
         repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
@@ -142,21 +147,23 @@ public class OcflS3Test {
         repo.purgeObject(objectId);
 
         assertFalse(repo.containsObject(objectId));
-        assertObjectsExist(s3Client, bucket, "o1/", List.of());
+        assertObjectsExist(s3Client, bucket, repoPrefix,"o1/", List.of());
     }
 
-    private void assertObjectsExist(S3Client s3Client, String bucket, String prefix, Collection<String> expectedKeys) {
+    private void assertObjectsExist(S3Client s3Client, String bucket, String repoPrefix, String prefix, Collection<String> expectedKeys) {
         var result = s3Client.listObjectsV2(ListObjectsV2Request.builder()
                 .bucket(bucket)
-                .prefix(prefix)
+                .prefix(FileUtil.pathJoinIgnoreEmpty(repoPrefix, prefix))
                 .build());
 
         var actualKeys = result.contents().stream().map(S3Object::key).collect(Collectors.toList());
+        var prefixedExpected = expectedKeys.stream().map(k -> FileUtil.pathJoinIgnoreEmpty(repoPrefix, k))
+                .collect(Collectors.toList());
 
-        assertThat(actualKeys, containsInAnyOrder(expectedKeys.toArray(String[]::new)));
+        assertThat(actualKeys, containsInAnyOrder(prefixedExpected.toArray(String[]::new)));
     }
 
-    private MutableOcflRepository createRepo(S3Client s3Client, String bucket) {
+    private MutableOcflRepository createRepo(S3Client s3Client, String bucket, String repoPrefix) {
         s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
 
         return new OcflRepositoryBuilder()
@@ -164,7 +171,7 @@ public class OcflS3Test {
                 .prettyPrintJson()
                 .contentPathConstraintProcessor(DefaultContentPathConstraints.cloud())
                 .buildMutable(CloudOcflStorage.builder()
-                        .cloudClient(new OcflS3Client(s3Client, bucket))
+                        .cloudClient(new OcflS3Client(s3Client, bucket, repoPrefix))
                         .workDir(tempDir)
                         .build(), tempDir);
     }

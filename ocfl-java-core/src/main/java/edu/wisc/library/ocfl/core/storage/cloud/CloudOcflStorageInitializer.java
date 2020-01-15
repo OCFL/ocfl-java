@@ -46,7 +46,6 @@ public class CloudOcflStorageInitializer {
         this.objectIdPathMapperBuilder = Enforce.notNull(objectIdPathMapperBuilder, "objectIdPathMapperBuilder cannot be null");
     }
 
-    // TODO do we need to support creating a repository within a bucket. ie allow for other repos in the same bucket or non-repo content?
     public ObjectIdPathMapper initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
 
@@ -75,8 +74,9 @@ public class CloudOcflStorageInitializer {
         OcflVersion existingOcflVersion = null;
 
         for (var file : listRootObjects()) {
-            if (file.startsWith("0=")) {
-                existingOcflVersion = OcflVersion.fromOcflVersionString(file.substring(2));
+            var path = file.getPath();
+            if (path.startsWith("0=")) {
+                existingOcflVersion = OcflVersion.fromOcflVersionString(path.substring(2));
                 break;
             }
         }
@@ -134,7 +134,8 @@ public class CloudOcflStorageInitializer {
 
         for (var object : response.getObjects()) {
             if (object.getKeySuffix().startsWith(OBJECT_MARKER_PREFIX)) {
-                return (String) object.getKey().subSequence(0, object.getKey().lastIndexOf('/'));
+                var path = object.getKey().getPath();
+                return (String) path.subSequence(0, path.lastIndexOf('/'));
             }
         }
 
@@ -188,7 +189,7 @@ public class CloudOcflStorageInitializer {
     private String writeOcflSpec(OcflVersion ocflVersion) {
         var ocflSpecFile = ocflVersion.getOcflVersion() + ".txt";
         try (var ocflSpecStream = this.getClass().getClassLoader().getResourceAsStream(ocflSpecFile)) {
-            return uploadStream(ocflSpecFile, ocflSpecStream);
+            return uploadStream(ocflSpecFile, ocflSpecStream).getPath();
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
@@ -197,17 +198,17 @@ public class CloudOcflStorageInitializer {
     private String writeNamasteFile(OcflVersion ocflVersion) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
         return cloudClient.uploadBytes(namasteFile.fileName(), namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
-                MIME_TEXT);
+                MIME_TEXT).getPath();
     }
 
     private List<String> writeOcflLayout(LayoutConfig layoutConfig) {
         var keys = new ArrayList<String>();
         var spec = LayoutSpec.layoutSpecForConfig(layoutConfig);
         try {
-            keys.add(cloudClient.uploadBytes(LAYOUT_SPEC, objectMapper.writeValueAsBytes(spec), MIME_JSON));
+            keys.add(cloudClient.uploadBytes(LAYOUT_SPEC, objectMapper.writeValueAsBytes(spec), MIME_JSON).getPath());
             // TODO versioning...
             keys.add(cloudClient.uploadBytes(extensionLayoutSpecFile(spec),
-                    objectMapper.writeValueAsBytes(layoutConfig), MIME_JSON));
+                    objectMapper.writeValueAsBytes(layoutConfig), MIME_JSON).getPath());
             return keys;
         } catch (IOException e) {
             throw new RuntimeIOException(e);
@@ -256,7 +257,7 @@ public class CloudOcflStorageInitializer {
         }
     }
 
-    private String uploadStream(String remotePath, InputStream stream) {
+    private CloudObjectKey uploadStream(String remotePath, InputStream stream) {
         try {
             return cloudClient.uploadBytes(remotePath, stream.readAllBytes(), MIME_TEXT);
         } catch (IOException e) {
@@ -264,7 +265,7 @@ public class CloudOcflStorageInitializer {
         }
     }
 
-    private List<String> listRootObjects() {
+    private List<CloudObjectKey> listRootObjects() {
         return cloudClient.listDirectory("").getObjects().stream()
                 .map(ListResult.ObjectListing::getKey)
                 .collect(Collectors.toList());

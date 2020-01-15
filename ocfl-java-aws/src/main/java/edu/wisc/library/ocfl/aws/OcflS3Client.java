@@ -5,6 +5,7 @@ import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -51,12 +52,36 @@ public class OcflS3Client implements CloudClient {
     // TODO experiment with performance with async client
     private S3Client s3Client;
     private String bucket;
+    private String repoPrefix;
+    private CloudObjectKey.Builder keyBuilder;
 
     public OcflS3Client(S3Client s3Client, String bucket) {
-        this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
-        this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
+        this(s3Client, bucket, "");
     }
 
+    public OcflS3Client(S3Client s3Client, String bucket, String prefix) {
+        this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+        this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
+        this.repoPrefix = sanitizeRepoPrefix(Enforce.notNull(prefix, "prefix cannot be null"));
+        this.keyBuilder = CloudObjectKey.builder().prefix(repoPrefix);
+    }
+
+    private static String sanitizeRepoPrefix(String repoPrefix) {
+        return repoPrefix.substring(0, indexLastNonSlash(repoPrefix));
+    }
+
+    private static int indexLastNonSlash(String string) {
+        for (int i = string.length(); i > 0; i--) {
+            if (string.charAt(i - 1) != '/') {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String bucket() {
         return bucket;
@@ -66,7 +91,15 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
-    public String uploadFile(Path srcPath, String dstPath) {
+    public String prefix() {
+        return repoPrefix;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public CloudObjectKey uploadFile(Path srcPath, String dstPath) {
         return uploadFile(srcPath, dstPath, null);
     }
 
@@ -74,17 +107,18 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
-    public String uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
+    public CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
         var fileSize = SafeFiles.size(srcPath);
+        var dstKey = keyBuilder.buildFromPath(dstPath);
 
         if (fileSize >= MAX_FILE_BYTES) {
             throw new IllegalArgumentException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
         }
 
         if (fileSize > MAX_PART_BYTES) {
-            multipartUpload(srcPath, dstPath, fileSize);
+            multipartUpload(srcPath, dstKey, fileSize);
         } else {
-            LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstPath, fileSize);
+            LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
             if (md5digest == null) {
                 md5digest = DigestUtil.computeDigest(DigestAlgorithm.md5, srcPath);
@@ -94,24 +128,24 @@ public class OcflS3Client implements CloudClient {
 
             s3Client.putObject(PutObjectRequest.builder()
                     .bucket(bucket)
-                    .key(dstPath)
+                    .key(dstKey.getKey())
                     .contentMD5(md5Base64)
                     .contentLength(fileSize)
                     .build(), srcPath);
         }
 
-        return dstPath;
+        return dstKey;
     }
 
     // TODO concurrency?
     // TODO reduce memory consumption?
-    private void multipartUpload(Path srcPath, String dstPath, long fileSize) {
+    private void multipartUpload(Path srcPath, CloudObjectKey dstKey, long fileSize) {
         var partSize = determinePartSize(fileSize);
 
-        LOG.debug("Multipart upload of {} to bucket {} key {}. File size: {}; part size: {}", srcPath, bucket, dstPath,
+        LOG.debug("Multipart upload of {} to bucket {} key {}. File size: {}; part size: {}", srcPath, bucket, dstKey,
                 fileSize, partSize);
 
-        var uploadId = beginMultipartUpload(dstPath);
+        var uploadId = beginMultipartUpload(dstKey);
 
         var completedParts = new ArrayList<CompletedPart>();
 
@@ -127,7 +161,7 @@ public class OcflS3Client implements CloudClient {
 
                     var partResponse = s3Client.uploadPart(UploadPartRequest.builder()
                             .bucket(bucket)
-                            .key(dstPath)
+                            .key(dstKey.getKey())
                             .uploadId(uploadId)
                             .partNumber(i)
                             .contentMD5(Bytes.wrap(digest).encodeBase64())
@@ -146,9 +180,9 @@ public class OcflS3Client implements CloudClient {
                 throw new RuntimeIOException(e);
             }
 
-            completeMultipartUpload(uploadId, dstPath, completedParts);
+            completeMultipartUpload(uploadId, dstKey, completedParts);
         } catch (RuntimeException e) {
-            abortMultipartUpload(uploadId, dstPath);
+            abortMultipartUpload(uploadId, dstKey);
             throw e;
         }
     }
@@ -157,54 +191,58 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
-    public String uploadBytes(String dstPath, byte[] bytes, String contentType) {
-        LOG.debug("Writing string to bucket {} key {}", bucket, dstPath);
+    public CloudObjectKey uploadBytes(String dstPath, byte[] bytes, String contentType) {
+        var dstKey = keyBuilder.buildFromPath(dstPath);
+        LOG.debug("Writing string to bucket {} key {}", bucket, dstKey);
 
         s3Client.putObject(PutObjectRequest.builder()
                 .bucket(bucket)
-                .key(dstPath)
+                .key(dstKey.getKey())
                 .contentType(contentType)
                 .build(), RequestBody.fromBytes(bytes));
 
-        return dstPath;
+        return dstKey;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String copyObject(String srcPath, String dstPath) {
-        LOG.debug("Copying {} to {} in bucket {}", srcPath, dstPath, bucket);
+    public CloudObjectKey copyObject(String srcPath, String dstPath) {
+        var srcKey = keyBuilder.buildFromPath(srcPath);
+        var dstKey = keyBuilder.buildFromPath(dstPath);
+
+        LOG.debug("Copying {} to {} in bucket {}", srcKey, dstKey, bucket);
 
         try {
             s3Client.copyObject(CopyObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(dstPath)
-                    .copySource(keyWithBucketName(srcPath))
+                    .destinationBucket(bucket)
+                    .destinationKey(dstKey.getKey())
+                    .copySource(keyWithBucketName(srcKey.getKey()))
                     .build());
         } catch (NoSuchKeyException e) {
             throw new KeyNotFoundException(e);
         } catch (SdkException e) {
             // TODO verify class and message
             if (e.getMessage().contains("copy source is larger than the maximum allowable size")) {
-                multipartCopy(srcPath, dstPath);
+                multipartCopy(srcKey, dstKey);
             } else {
                 throw e;
             }
         }
 
-        return dstPath;
+        return dstKey;
     }
 
-    private void multipartCopy(String srcPath, String dstPath) {
-        var head = headObject(srcPath);
+    private void multipartCopy(CloudObjectKey srcKey, CloudObjectKey dstKey) {
+        var head = headObject(srcKey);
         var fileSize = head.contentLength();
         var partSize = determinePartSize(fileSize);
 
-        LOG.debug("Multipart copy of {} to {} in bucket {}: File size {}; part size: {}", srcPath, dstPath, bucket,
+        LOG.debug("Multipart copy of {} to {} in bucket {}: File size {}; part size: {}", srcKey, dstKey, bucket,
                 fileSize, partSize);
 
-        var uploadId = beginMultipartUpload(dstPath);
+        var uploadId = beginMultipartUpload(dstKey);
 
         try {
             var completedParts = new ArrayList<CompletedPart>();
@@ -215,8 +253,8 @@ public class OcflS3Client implements CloudClient {
                 var end = Math.min(fileSize - 1, part * partSize - 1);
                 var partResponse = s3Client.uploadPartCopy(UploadPartCopyRequest.builder()
                         .bucket(bucket)
-                        .key(dstPath)
-                        .copySource(keyWithBucketName(srcPath))
+                        .key(dstKey.getKey())
+                        .copySource(keyWithBucketName(srcKey.getKey()))
                         .partNumber(part)
                         .uploadId(uploadId)
                         .copySourceRange(String.format("bytes=%s-%s", position, end))
@@ -231,17 +269,17 @@ public class OcflS3Client implements CloudClient {
                 position = end + 1;
             }
 
-            completeMultipartUpload(uploadId, dstPath, completedParts);
+            completeMultipartUpload(uploadId, dstKey, completedParts);
         } catch (RuntimeException e) {
-            abortMultipartUpload(uploadId, dstPath);
+            abortMultipartUpload(uploadId, dstKey);
             throw e;
         }
     }
 
-    private HeadObjectResponse headObject(String key) {
+    private HeadObjectResponse headObject(CloudObjectKey key) {
         return s3Client.headObject(HeadObjectRequest.builder()
                 .bucket(bucket)
-                .key(key)
+                .key(key.getKey())
                 .build());
     }
 
@@ -250,12 +288,13 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public Path downloadFile(String srcPath, Path dstPath) {
-        LOG.debug("Downloading bucket {} key {} to {}", bucket, srcPath, dstPath);
+        var srcKey = keyBuilder.buildFromPath(srcPath);
+        LOG.debug("Downloading bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
             s3Client.getObject(GetObjectRequest.builder()
                     .bucket(bucket)
-                    .key(srcPath)
+                    .key(srcKey.getKey())
                     .build(), dstPath);
         } catch (NoSuchKeyException e) {
             throw new KeyNotFoundException(e);
@@ -269,15 +308,16 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public InputStream downloadStream(String srcPath) {
-        LOG.debug("Streaming bucket {} key {}", bucket, srcPath);
+        var srcKey = keyBuilder.buildFromPath(srcPath);
+        LOG.debug("Streaming bucket {} key {}", bucket, srcKey);
 
         try {
             return s3Client.getObject(GetObjectRequest.builder()
                     .bucket(bucket)
-                    .key(srcPath)
+                    .key(srcKey.getKey())
                     .build());
         } catch (NoSuchKeyException e) {
-            throw new KeyNotFoundException(String.format("Key %s not found in bucket.", srcPath, bucket), e);
+            throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", srcKey, bucket), e);
         }
     }
 
@@ -298,9 +338,10 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public ListResult list(String prefix) {
+        var prefixedPrefix = keyBuilder.buildFromPath(prefix);
         return toListResult(s3Client.listObjectsV2(ListObjectsV2Request.builder()
                 .bucket(bucket)
-                .prefix(prefix)
+                .prefix(prefixedPrefix.getKey())
                 .build()));
     }
 
@@ -309,7 +350,7 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public ListResult listDirectory(String path) {
-        var prefix = path;
+        var prefix = keyBuilder.buildFromPath(path).getKey();
 
         if (!prefix.isEmpty() && !prefix.endsWith("/")) {
             prefix = prefix + "/";
@@ -335,19 +376,29 @@ public class OcflS3Client implements CloudClient {
                 .map(ListResult.ObjectListing::getKey)
                 .collect(Collectors.toList());
 
-        deleteObjects(keys);
+        deleteObjectsInternal(keys);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void deleteObjects(Collection<String> objectKeys) {
+    public void deleteObjects(Collection<String> objectPaths) {
+        if (!objectPaths.isEmpty()) {
+            var objectKeys = objectPaths.stream()
+                    .map(key -> keyBuilder.buildFromPath(key))
+                    .collect(Collectors.toList());
+
+            deleteObjectsInternal(objectKeys);
+        }
+    }
+
+    private void deleteObjectsInternal(Collection<CloudObjectKey> objectKeys) {
         LOG.debug("Deleting objects in bucket {}: {}", bucket, objectKeys);
 
         if (!objectKeys.isEmpty()) {
             var objectIds = objectKeys.stream()
-                    .map(key -> ObjectIdentifier.builder().key(key).build())
+                    .map(key -> ObjectIdentifier.builder().key(key.getKey()).build())
                     .collect(Collectors.toList());
 
             s3Client.deleteObjects(DeleteObjectsRequest.builder()
@@ -363,19 +414,19 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
-    public void safeDeleteObjects(String... objectKeys) {
-        safeDeleteObjects(Arrays.asList(objectKeys));
+    public void safeDeleteObjects(String... objectPaths) {
+        safeDeleteObjects(Arrays.asList(objectPaths));
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void safeDeleteObjects(Collection<String> objectKeys) {
+    public void safeDeleteObjects(Collection<String> objectPaths) {
         try {
-            deleteObjects(objectKeys);
+            deleteObjects(objectPaths);
         } catch (RuntimeException e) {
-            LOG.error("Failed to cleanup objects in bucket {}: {}", bucket, objectKeys, e);
+            LOG.error("Failed to cleanup objects in bucket {}: {}", bucket, objectPaths, e);
         }
     }
 
@@ -394,17 +445,17 @@ public class OcflS3Client implements CloudClient {
         }
     }
 
-    private String beginMultipartUpload(String key) {
+    private String beginMultipartUpload(CloudObjectKey key) {
         return s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                 .bucket(bucket)
-                .key(key)
+                .key(key.getKey())
                 .build()).uploadId();
     }
 
-    private void completeMultipartUpload(String uploadId, String key, List<CompletedPart> parts) {
+    private void completeMultipartUpload(String uploadId, CloudObjectKey key, List<CompletedPart> parts) {
         s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
                 .bucket(bucket)
-                .key(key)
+                .key(key.getKey())
                 .uploadId(uploadId)
                 .multipartUpload(CompletedMultipartUpload.builder()
                         .parts(parts)
@@ -412,11 +463,11 @@ public class OcflS3Client implements CloudClient {
                 .build());
     }
 
-    private void abortMultipartUpload(String uploadId, String key) {
+    private void abortMultipartUpload(String uploadId, CloudObjectKey key) {
         try {
             s3Client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
                     .bucket(bucket)
-                    .key(key)
+                    .key(key.getKey())
                     .uploadId(uploadId)
                     .build());
         } catch (RuntimeException e) {
@@ -445,13 +496,14 @@ public class OcflS3Client implements CloudClient {
     }
 
     private ListResult toListResult(ListObjectsV2Response s3Result) {
-        var prefix = s3Result.prefix() == null ? "" : s3Result.prefix();
+        var prefixLength = s3Result.prefix() == null ? 0 : s3Result.prefix().length();
+        var repoPrefixLength = repoPrefix.isBlank() ? 0 : repoPrefix.length() + 1;
 
         var objects = s3Result.contents().stream().map(o -> {
             var key = o.key();
             return new ListResult.ObjectListing()
-                    .setKey(key)
-                    .setKeySuffix(prefix.isEmpty() ? key : key.substring(prefix.length()));
+                    .setKey(keyBuilder.buildFromKey(key))
+                    .setKeySuffix(key.substring(prefixLength));
         }).collect(Collectors.toList());
 
         var dirs = s3Result.commonPrefixes().stream()
@@ -459,7 +511,7 @@ public class OcflS3Client implements CloudClient {
                 .map(p -> {
                     var path = p.prefix();
                     return new ListResult.DirectoryListing()
-                            .setPath(path);
+                            .setPath(path.substring(repoPrefixLength));
                 })
                 .collect(Collectors.toList());
 

@@ -9,54 +9,60 @@ import java.util.Collection;
  */
 public interface CloudClient {
 
-    // TODO this should probably support multiple OCFL repos in a single bucket
-
     /**
      * The name of the bucket the OCFL repository is in.
      * 
      * @return bucket name
      */
     String bucket();
+
+    /**
+     * The key prefix of all objects within the OCFL repository. This may be empty. Multiple different OCFL repositories
+     * may be stored in the same bucket if they use different key prefixes.
+     *
+     * @return the key prefix common to all objects in the repository
+     */
+    String prefix();
     
     /**
      * Uploads a file to the destination, and returns the object key. A md5 digest of the file is calculated prior to
      * initiating the upload, and is used for transmission fixity.
      *
      * @param srcPath src file
-     * @param dstPath object key
+     * @param dstPath object path
      * @return object key
      */
-    String uploadFile(Path srcPath, String dstPath);
+    CloudObjectKey uploadFile(Path srcPath, String dstPath);
 
     /**
      * Uploads a file to the destination, and returns the object key. If the md5 digest is null, it is calculated prior to
      * upload.
      *
      * @param srcPath src file
-     * @param dstPath object key
+     * @param dstPath object path
      * @param md5digest the md5 digest of the file to upload or null
      * @return object key
      */
-    String uploadFile(Path srcPath, String dstPath, byte[] md5digest);
+    CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest);
 
     /**
      * Uploads an object with byte content
      *
-     * @param dstPath object key
+     * @param dstPath object path
      * @param bytes the object content
      * @return object key
      */
-    String uploadBytes(String dstPath, byte[] bytes, String contentType);
+    CloudObjectKey uploadBytes(String dstPath, byte[] bytes, String contentType);
 
     /**
      * Copies an object from one location to another within the same bucket.
      *
      * @param srcPath source object key
-     * @param dstPath destination object key
+     * @param dstPath destination object path
      * @return the destination key
      * @throws KeyNotFoundException when srcPath not found
      */
-    String copyObject(String srcPath, String dstPath);
+    CloudObjectKey copyObject(String srcPath, String dstPath);
 
     /**
      * Downloads an object to the local filesystem.

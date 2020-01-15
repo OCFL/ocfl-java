@@ -60,7 +60,7 @@ public class ListResult {
      */
     public static class ObjectListing {
 
-        private String key;
+        private CloudObjectKey key;
         private String keySuffix;
 
         /**
@@ -68,11 +68,11 @@ public class ListResult {
          *
          * @return object key
          */
-        public String getKey() {
+        public CloudObjectKey getKey() {
             return key;
         }
 
-        public ObjectListing setKey(String key) {
+        public ObjectListing setKey(CloudObjectKey key) {
             this.key = key;
             return this;
         }

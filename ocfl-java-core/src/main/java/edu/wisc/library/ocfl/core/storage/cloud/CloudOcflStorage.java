@@ -457,7 +457,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var rootSidecarPath = ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory);
         var sidecarName = rootSidecarPath.substring(rootSidecarPath.lastIndexOf('/') + 1);
         return cloudClient.copyObject(rootSidecarPath,
-                FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()), "root-" + sidecarName));
+                FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()), "root-" + sidecarName)).getPath();
     }
 
     private Inventory downloadAndParseInventory(String objectRootPath, Path localPath) {
@@ -490,7 +490,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private String createRevisionMarker(Inventory inventory) {
         var revision = inventory.getRevisionId().toString();
         var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadRevisionsPath(inventory.getObjectRootPath()), revision);
-        return cloudClient.uploadBytes(revisionPath, revision.getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN);
+        return cloudClient.uploadBytes(revisionPath, revision.getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN).getPath();
     }
 
     private RevisionId identifyLatestRevision(String objectRootPath) {
@@ -517,7 +517,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var deleteKeys = new ArrayList<String>();
 
         keys.getObjects().forEach(o -> {
-            var key = o.getKey();
+            var key = o.getKey().getPath();
             var contentPath = key.substring(inventory.getObjectRootPath().length() + 1);
             if (inventory.getFileId(contentPath) == null) {
                 deleteKeys.add(key);
@@ -609,7 +609,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private String writeObjectNamasteFile(String objectRootPath) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
         var key = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
-        return cloudClient.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN);
+        return cloudClient.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN).getPath();
     }
 
 }

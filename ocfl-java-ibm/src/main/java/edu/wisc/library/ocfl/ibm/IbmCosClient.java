@@ -9,6 +9,7 @@ import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -49,11 +50,32 @@ public class IbmCosClient implements CloudClient {
     private AmazonS3 s3Client;
     private TransferManager transferManager;
     private String bucket;
+    private String repoPrefix;
+    private CloudObjectKey.Builder keyBuilder;
 
     public IbmCosClient(AmazonS3 s3Client, TransferManager transferManager, String bucket) {
+        this(s3Client, transferManager, bucket, "");
+    }
+
+    public IbmCosClient(AmazonS3 s3Client, TransferManager transferManager, String bucket, String prefix) {
         this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
         this.transferManager = Enforce.notNull(transferManager, "transferManager cannot be null");
         this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
+        this.repoPrefix = sanitizeRepoPrefix(Enforce.notNull(prefix, "prefix cannot be null"));
+        this.keyBuilder = CloudObjectKey.builder().prefix(repoPrefix);
+    }
+
+    private static String sanitizeRepoPrefix(String repoPrefix) {
+        return repoPrefix.substring(0, indexLastNonSlash(repoPrefix));
+    }
+
+    private static int indexLastNonSlash(String string) {
+        for (int i = string.length(); i > 0; i--) {
+            if (string.charAt(i - 1) != '/') {
+                return i;
+            }
+        }
+        return 0;
     }
 
     /**
@@ -67,17 +89,26 @@ public class IbmCosClient implements CloudClient {
     /**
      * {@inheritDoc}
      */
-    public String uploadFile(Path srcPath, String dstPath) {
+    @Override
+    public String prefix() {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public CloudObjectKey uploadFile(Path srcPath, String dstPath) {
         return uploadFile(srcPath, dstPath, null);
     }
 
     /**
      * {@inheritDoc}
      */
-    public String uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
+    public CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
+        var dstKey = keyBuilder.buildFromPath(dstPath);
         var fileSize = SafeFiles.size(srcPath);
 
-        LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstPath, fileSize);
+        LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
         if (fileSize >= MAX_FILE_BYTES) {
             throw new IllegalArgumentException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
@@ -92,7 +123,7 @@ public class IbmCosClient implements CloudClient {
         var metadata = new ObjectMetadata();
         metadata.setContentMD5(md5Base64);
 
-        var request = new PutObjectRequest(bucket, encodeKey(dstPath), srcPath.toFile()).withMetadata(metadata);
+        var request = new PutObjectRequest(bucket, encodeKey(dstKey.getKey()), srcPath.toFile()).withMetadata(metadata);
 
         if (fileSize > MAX_PART_BYTES) {
             try {
@@ -104,32 +135,36 @@ public class IbmCosClient implements CloudClient {
             s3Client.putObject(request);
         }
 
-        return dstPath;
+        return dstKey;
     }
 
     /**
      * {@inheritDoc}
      */
-    public String uploadBytes(String dstPath, byte[] bytes, String contentType) {
-        LOG.debug("Writing string to bucket {} key {}", bucket, dstPath);
+    public CloudObjectKey uploadBytes(String dstPath, byte[] bytes, String contentType) {
+        var dstKey = keyBuilder.buildFromKey(dstPath);
+        LOG.debug("Writing string to bucket {} key {}", bucket, dstKey);
 
         var metadata = new ObjectMetadata();
         metadata.setContentType(contentType);
         metadata.setContentLength(bytes.length);
 
-        s3Client.putObject(new PutObjectRequest(bucket, encodeKey(dstPath), new ByteArrayInputStream(bytes), metadata));
+        s3Client.putObject(new PutObjectRequest(bucket, encodeKey(dstKey.getKey()), new ByteArrayInputStream(bytes), metadata));
 
-        return dstPath;
+        return dstKey;
     }
 
     /**
      * {@inheritDoc}
      */
-    public String copyObject(String srcPath, String dstPath) {
-        LOG.debug("Copying {} to {} in bucket {}", srcPath, dstPath, bucket);
+    public CloudObjectKey copyObject(String srcPath, String dstPath) {
+        var srcKey = keyBuilder.buildFromPath(srcPath);
+        var dstKey = keyBuilder.buildFromPath(dstPath);
+
+        LOG.debug("Copying {} to {} in bucket {}", srcKey, dstKey, bucket);
 
         try {
-            s3Client.copyObject(bucket, encodeKey(srcPath), bucket, encodeKey(dstPath));
+            s3Client.copyObject(bucket, encodeKey(srcKey.getKey()), bucket, encodeKey(dstKey.getKey()));
         } catch (AmazonS3Exception e) {
             if (NO_SUCH_KEY.equals(e.getErrorCode())) {
                 throw new KeyNotFoundException(e);
@@ -138,23 +173,25 @@ public class IbmCosClient implements CloudClient {
         } catch (SdkClientException e) {
             // TODO verify class and message
             if (e.getMessage().contains("copy source is larger than the maximum allowable size")) {
-                transferManager.copy(bucket, srcPath, bucket, dstPath);
+                transferManager.copy(bucket, encodeKey(srcKey.getKey()), bucket, encodeKey(dstKey.getKey()));
             } else {
                 throw e;
             }
         }
 
-        return dstPath;
+        return dstKey;
     }
 
     /**
      * {@inheritDoc}
      */
     public Path downloadFile(String srcPath, Path dstPath) {
-        LOG.debug("Downloading bucket {} key {} to {}", bucket, srcPath, dstPath);
+        var srcKey = keyBuilder.buildFromPath(srcPath);
+
+        LOG.debug("Downloading bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
-            s3Client.getObject(new GetObjectRequest(bucket, encodeKey(srcPath)), dstPath.toFile());
+            s3Client.getObject(new GetObjectRequest(bucket, encodeKey(srcKey.getKey())), dstPath.toFile());
         } catch (AmazonS3Exception e) {
             if (NO_SUCH_KEY.equals(e.getErrorCode())) {
                 throw new KeyNotFoundException(e);
@@ -169,13 +206,15 @@ public class IbmCosClient implements CloudClient {
      * {@inheritDoc}
      */
     public InputStream downloadStream(String srcPath) {
-        LOG.debug("Streaming bucket {} key {}", bucket, srcPath);
+        var srcKey = keyBuilder.buildFromPath(srcPath);
+
+        LOG.debug("Streaming bucket {} key {}", bucket, srcKey);
 
         try {
-            return s3Client.getObject(bucket, encodeKey(srcPath)).getObjectContent();
+            return s3Client.getObject(bucket, encodeKey(srcKey.getKey())).getObjectContent();
         } catch (AmazonS3Exception e) {
             if (NO_SUCH_KEY.equals(e.getErrorCode())) {
-                throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", srcPath, bucket), e);
+                throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", srcKey, bucket), e);
             }
             throw e;
         }
@@ -196,14 +235,15 @@ public class IbmCosClient implements CloudClient {
      * {@inheritDoc}
      */
     public ListResult list(String prefix) {
-        return toListResult(s3Client.listObjectsV2(bucket, encodeKey(prefix)));
+        var prefixedPrefix = keyBuilder.buildFromPath(prefix);
+        return toListResult(s3Client.listObjectsV2(bucket, encodeKey(prefixedPrefix.getKey())));
     }
 
     /**
      * {@inheritDoc}
      */
     public ListResult listDirectory(String path) {
-        var prefix = path;
+        var prefix = keyBuilder.buildFromPath(path).getKey();
 
         if (!prefix.isEmpty() && !prefix.endsWith("/")) {
             prefix = prefix + "/";
@@ -227,13 +267,21 @@ public class IbmCosClient implements CloudClient {
                 .map(ListResult.ObjectListing::getKey)
                 .collect(Collectors.toList());
 
-        deleteObjects(keys);
+        deleteObjectsInternal(keys);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void deleteObjects(Collection<String> objectKeys) {
+    public void deleteObjects(Collection<String> objectPaths) {
+        if (!objectPaths.isEmpty()) {
+            var objectKeys = objectPaths.stream().map(keyBuilder::buildFromPath)
+                    .collect(Collectors.toList());
+            deleteObjectsInternal(objectKeys);
+        }
+    }
+
+    private void deleteObjectsInternal(Collection<CloudObjectKey> objectKeys) {
         LOG.debug("Deleting objects in bucket {}: {}", bucket, objectKeys);
 
         if (!objectKeys.isEmpty()) {
@@ -276,19 +324,20 @@ public class IbmCosClient implements CloudClient {
     }
 
     private ListResult toListResult(ListObjectsV2Result s3Result) {
-        var prefix = s3Result.getPrefix() == null ? "" : decodeKey(s3Result.getPrefix());
+        var prefixLength = s3Result.getPrefix() == null ? 0 : decodeKey(s3Result.getPrefix()).length();
+        var repoPrefixLength = repoPrefix.isBlank() ? 0 : repoPrefix.length() + 1;
 
         var objects = s3Result.getObjectSummaries().stream().map(o -> {
             var key = decodeKey(o.getKey());
             return new ListResult.ObjectListing()
-                    .setKey(key)
-                    .setKeySuffix(prefix.isEmpty() ? key : key.substring(prefix.length()));
+                    .setKey(keyBuilder.buildFromKey(key))
+                    .setKeySuffix(key.substring(prefixLength));
         }).collect(Collectors.toList());
 
         var dirs = s3Result.getCommonPrefixes().stream().map(p -> {
             var path = decodeKey(p);
             return new ListResult.DirectoryListing()
-                    .setPath(path);
+                    .setPath(path.substring(repoPrefixLength));
         }).collect(Collectors.toList());
 
         return new ListResult()
@@ -296,12 +345,8 @@ public class IbmCosClient implements CloudClient {
                 .setDirectories(dirs);
     }
 
-    private Collection<String> encodeKeys(Collection<String> keys) {
-        return keys.stream().map(this::encodeKey).collect(Collectors.toList());
-    }
-
-    private Collection<String> decodeKeys(Collection<String> encodedKeys) {
-        return encodedKeys.stream().map(this::decodeKey).collect(Collectors.toList());
+    private Collection<String> encodeKeys(Collection<CloudObjectKey> keys) {
+        return keys.stream().map(CloudObjectKey::getKey).map(this::encodeKey).collect(Collectors.toList());
     }
 
     private String encodeKey(String key) {
