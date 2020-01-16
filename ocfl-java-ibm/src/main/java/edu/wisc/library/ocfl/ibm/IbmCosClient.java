@@ -142,7 +142,7 @@ public class IbmCosClient implements CloudClient {
      * {@inheritDoc}
      */
     public CloudObjectKey uploadBytes(String dstPath, byte[] bytes, String contentType) {
-        var dstKey = keyBuilder.buildFromKey(dstPath);
+        var dstKey = keyBuilder.buildFromPath(dstPath);
         LOG.debug("Writing string to bucket {} key {}", bucket, dstKey);
 
         var metadata = new ObjectMetadata();
@@ -316,7 +316,7 @@ public class IbmCosClient implements CloudClient {
             s3Client.headBucket(new HeadBucketRequest(bucket));
             return true;
         } catch (AmazonS3Exception e) {
-            if ("NoSuchBucket".equals(e.getErrorCode())) {
+            if ("404 Not Found".equals(e.getErrorCode()) || "NoSuchBucket".equals(e.getErrorCode())) {
                 return false;
             }
             throw e;
