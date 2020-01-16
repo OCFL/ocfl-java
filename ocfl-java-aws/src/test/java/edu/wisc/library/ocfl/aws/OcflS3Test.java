@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,10 +45,12 @@ public class OcflS3Test {
     @TempDir
     public Path tempDir;
 
+    private static final AtomicInteger count = new AtomicInteger(0);
+
     @ParameterizedTest
     @ValueSource(strings = {"", "ocfl-repo-1"})
     public void basicMutableHeadTest(String repoPrefix) {
-        var bucket = "test-1";
+        var bucket = createBucket();
         var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
@@ -57,7 +60,7 @@ public class OcflS3Test {
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
         });
 
-        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
+        assertObjectsExist(bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -75,7 +78,7 @@ public class OcflS3Test {
 
         repo.commitStagedChanges(objectId, commitInfo("Peter", "winckles@wisc.edu", "commit"));
 
-        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
+        assertObjectsExist(bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -93,7 +96,7 @@ public class OcflS3Test {
     @ParameterizedTest
     @ValueSource(strings = {"", "ocfl-repo-1"})
     public void basicPutTest(String repoPrefix) {
-        var bucket = "test-2";
+        var bucket = createBucket();
         var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
@@ -103,7 +106,7 @@ public class OcflS3Test {
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
         });
 
-        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
+        assertObjectsExist(bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -117,7 +120,7 @@ public class OcflS3Test {
             updater.writeFile(stream("file3"), "dir/sub/file3.txt", OcflOption.OVERWRITE);
         });
 
-        assertObjectsExist(s3Client, bucket, repoPrefix, "o1/", List.of(
+        assertObjectsExist(bucket, repoPrefix, "o1/", List.of(
                 "o1/0=ocfl_object_1.0",
                 "o1/inventory.json",
                 "o1/inventory.json.sha512",
@@ -134,7 +137,7 @@ public class OcflS3Test {
     @ParameterizedTest
     @ValueSource(strings = {"", "ocfl-repo-1"})
     public void basicPurgeTest(String repoPrefix) {
-        var bucket = "test-3";
+        var bucket = createBucket();
         var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
@@ -147,10 +150,10 @@ public class OcflS3Test {
         repo.purgeObject(objectId);
 
         assertFalse(repo.containsObject(objectId));
-        assertObjectsExist(s3Client, bucket, repoPrefix,"o1/", List.of());
+        assertObjectsExist(bucket, repoPrefix,"o1/", List.of());
     }
 
-    private void assertObjectsExist(S3Client s3Client, String bucket, String repoPrefix, String prefix, Collection<String> expectedKeys) {
+    private void assertObjectsExist(String bucket, String repoPrefix, String prefix, Collection<String> expectedKeys) {
         var result = s3Client.listObjectsV2(ListObjectsV2Request.builder()
                 .bucket(bucket)
                 .prefix(FileUtil.pathJoinIgnoreEmpty(repoPrefix, prefix))
@@ -163,9 +166,13 @@ public class OcflS3Test {
         assertThat(actualKeys, containsInAnyOrder(prefixedExpected.toArray(String[]::new)));
     }
 
-    private MutableOcflRepository createRepo(S3Client s3Client, String bucket, String repoPrefix) {
+    private String createBucket() {
+        var bucket = "test-" + count.incrementAndGet();
         s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
+        return bucket;
+    }
 
+    private MutableOcflRepository createRepo(S3Client s3Client, String bucket, String repoPrefix) {
         return new OcflRepositoryBuilder()
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .prettyPrintJson()

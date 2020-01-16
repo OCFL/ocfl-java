@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
  */
 public class OcflObjectDetails {
 
-    // TODO this is incorrect. it needs to take into account some sort of repository identifier.
     private String objectId;
     private VersionId versionId;
     private RevisionId revisionId;

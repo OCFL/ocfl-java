@@ -87,6 +87,12 @@
 
         <!-- Test -->
         <dependency>
+            <groupId>edu.wisc.library.ocfl</groupId>
+            <artifactId>ocfl-java-test</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
