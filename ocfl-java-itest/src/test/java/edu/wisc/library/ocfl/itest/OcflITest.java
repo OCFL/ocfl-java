@@ -716,7 +716,9 @@ public abstract class OcflITest {
             new OcflRepositoryBuilder()
                     .layoutConfig(DefaultLayoutConfig.pairTreeConfig())
                     .inventoryMapper(ITestHelper.testInventoryMapper())
-                    .build(FileSystemOcflStorage.builder().build(repoDir), repoDir.resolve("deposit"));
+                    .storage(FileSystemOcflStorage.builder().repositoryRoot(repoDir).build())
+                    .workDir(repoDir.resolve("deposit"))
+                    .build();
         });
     }
 

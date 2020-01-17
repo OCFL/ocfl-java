@@ -10,9 +10,9 @@ import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
-import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
+import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
@@ -35,8 +35,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class OcflRepositoryBuilder {
 
+    private OcflStorage storage;
     private OcflConfig config;
     private LayoutConfig layoutConfig;
+    private Path workDir;
 
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
@@ -66,6 +68,29 @@ public class OcflRepositoryBuilder {
         contentPathConstraintProcessor = DefaultContentPathConstraints.none();
         digestThreadPoolSize = Runtime.getRuntime().availableProcessors();
         copyThreadPoolSize = digestThreadPoolSize * 2;
+    }
+
+    /**
+     * The storage layer the repository should use. Required.
+     *
+     * @param storage the storage layer implementation that the OCFL repository should use
+     * @return builder
+     */
+    public OcflRepositoryBuilder storage(OcflStorage storage) {
+        this.storage = Enforce.notNull(storage, "storage cannot be null");
+        return this;
+    }
+
+    /**
+     * The temporary workspace the repository uses to assemble object versions. This directory cannot be located within
+     * the OCFL storage root. Required.
+     *
+     * @param workDir the work directory to assemble versions in before they're moved to storage -- cannot be within the OCFL storage root
+     * @return builder
+     */
+    public OcflRepositoryBuilder workDir(Path workDir) {
+        this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
+        return this;
     }
 
     /**
@@ -174,6 +199,7 @@ public class OcflRepositoryBuilder {
      *
      * @param contentPathConstraintProcessor constraint processor
      * @return builder
+     * @see DefaultContentPathConstraints
      */
     public OcflRepositoryBuilder contentPathConstraintProcessor(ContentPathConstraintProcessor contentPathConstraintProcessor) {
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
@@ -230,26 +256,22 @@ public class OcflRepositoryBuilder {
     /**
      * Constructs an OCFL repository. Brand new repositories are initialized.
      *
-     * @param storage the storage layer implementation that the OCFL repository should use
-     * @param workDir the work directory to assemble versions in before they're moved to storage -- cannot be within the OCFL storage root
      * @return OcflRepository
      */
-    public OcflRepository build(OcflStorage storage, Path workDir) {
-        return buildDefault(storage, workDir);
+    public OcflRepository build() {
+        return buildDefault();
     }
 
     /**
      * Constructs an OCFL repository that allows the use of the Mutable HEAD Extension. Brand new repositories are initialized.
      *
-     * @param storage the storage layer implementation that the OCFL repository should use
-     * @param workDir the work directory to assemble versions in before they're moved to storage -- cannot be within the OCFL storage root
      * @return MutableOcflRepository
      */
-    public MutableOcflRepository buildMutable(OcflStorage storage, Path workDir) {
-        return buildDefault(storage, workDir);
+    public MutableOcflRepository buildMutable() {
+        return buildDefault();
     }
 
-    private DefaultOcflRepository buildDefault(OcflStorage storage, Path workDir) {
+    private DefaultOcflRepository buildDefault() {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 

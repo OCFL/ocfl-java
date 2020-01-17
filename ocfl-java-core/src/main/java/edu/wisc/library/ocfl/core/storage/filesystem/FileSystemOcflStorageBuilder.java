@@ -13,6 +13,7 @@ import java.nio.file.Path;
  */
 public class FileSystemOcflStorageBuilder {
 
+    private Path repositoryRoot;
     private int threadPoolSize;
     private boolean checkNewVersionFixity;
     private ObjectMapper objectMapper;
@@ -22,6 +23,17 @@ public class FileSystemOcflStorageBuilder {
         this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.checkNewVersionFixity = false;
         this.objectMapper = ObjectMappers.prettyPrintMapper();
+    }
+
+    /**
+     * Sets the path to the OCFL repository root directory. Required.
+     *
+     * @param repositoryRoot the path to the OCFL storage root
+     * @return builder
+     */
+    public FileSystemOcflStorageBuilder repositoryRoot(Path repositoryRoot) {
+        this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
+        return this;
     }
 
     /**
@@ -73,9 +85,9 @@ public class FileSystemOcflStorageBuilder {
     /**
      * Builds a new FileSystemOcflStorage object
      *
-     * @param repositoryRoot the path to the OCFL storage root
+     * @return file system storage
      */
-    public FileSystemOcflStorage build(Path repositoryRoot) {
+    public FileSystemOcflStorage build() {
         var init = initializer;
         if (init == null) {
             init = new FileSystemOcflStorageInitializer(objectMapper, new ObjectIdPathMapperBuilder());

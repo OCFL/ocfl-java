@@ -55,10 +55,32 @@ public class OcflS3Client implements CloudClient {
     private String repoPrefix;
     private CloudObjectKey.Builder keyBuilder;
 
+    /**
+     * Used to create a new OcflS3Client instance.
+     *
+     * @return builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * @see OcflS3Client#builder()
+     *
+     * @param s3Client aws sdk s3 client
+     * @param bucket s3 bucket
+     */
     public OcflS3Client(S3Client s3Client, String bucket) {
         this(s3Client, bucket, "");
     }
 
+    /**
+     * @see OcflS3Client#builder()
+     *
+     * @param s3Client aws sdk s3 client
+     * @param bucket s3 bucket
+     * @param prefix key prefix
+     */
     public OcflS3Client(S3Client s3Client, String bucket, String prefix) {
         this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
         this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
@@ -518,6 +540,55 @@ public class OcflS3Client implements CloudClient {
         return new ListResult()
                 .setObjects(objects)
                 .setDirectories(dirs);
+    }
+
+    public static class Builder {
+        private S3Client s3Client;
+        private String bucket;
+        private String repoPrefix;
+
+        /**
+         * The AWS SDK s3 client. Required.
+         *
+         * @param s3Client s3 client
+         * @return builder
+         */
+        public Builder s3Client(S3Client s3Client) {
+            this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+            return this;
+        }
+
+        /**
+         * The S3 bucket to use. Required.
+         *
+         * @param bucket s3 bucket
+         * @return builder
+         */
+        public Builder bucket(String bucket) {
+            this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
+            return this;
+        }
+
+        /**
+         * The key prefix to use for the repository. Optional.
+         *
+         * @param repoPrefix key prefix
+         * @return builder
+         */
+        public Builder repoPrefix(String repoPrefix) {
+            this.repoPrefix = repoPrefix;
+            return this;
+        }
+
+        /**
+         * Constructs a new OcflS3Client. s3Client and bucket must be set.
+         *
+         * @return OcflS3Client
+         */
+        public OcflS3Client build() {
+            var prefix = repoPrefix == null ? "" : repoPrefix;
+            return new OcflS3Client(s3Client, bucket, prefix);
+        }
     }
 
 }

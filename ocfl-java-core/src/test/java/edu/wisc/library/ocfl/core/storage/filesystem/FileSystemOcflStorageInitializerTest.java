@@ -89,9 +89,12 @@ public class FileSystemOcflStorageInitializerTest {
         var repo = new OcflRepositoryBuilder()
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
-                .build(FileSystemOcflStorage.builder()
+                .storage(FileSystemOcflStorage.builder()
+                        .repositoryRoot(repoDir)
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                .build(repoDir), workDir);
+                        .build())
+                .workDir(workDir)
+                .build();
 
         Files.delete(repoDir.resolve("ocfl_layout.json"));
         Files.delete(repoDir.resolve("extension-layout-flat.json"));
@@ -111,9 +114,11 @@ public class FileSystemOcflStorageInitializerTest {
         var repo = new OcflRepositoryBuilder()
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
-                .build(FileSystemOcflStorage.builder()
+                .storage(FileSystemOcflStorage.builder()
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                .build(repoDir), workDir);
+                        .repositoryRoot(repoDir).build())
+                .workDir(workDir)
+                .build();
 
         Files.delete(repoDir.resolve("ocfl_layout.json"));
         Files.delete(repoDir.resolve("extension-layout-flat.json"));

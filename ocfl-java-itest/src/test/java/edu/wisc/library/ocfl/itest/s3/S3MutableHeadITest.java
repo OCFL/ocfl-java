@@ -62,11 +62,13 @@ public class S3MutableHeadITest extends MutableHeadITest {
                 .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraintProcessor(DefaultContentPathConstraints.cloud())
-                .buildMutable(CloudOcflStorage.builder()
+                .storage(CloudOcflStorage.builder()
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .cloudClient(new OcflS3Client(s3Client, name))
                         .workDir(workDir)
-                        .build(), workDir);
+                        .build())
+                .workDir(workDir)
+                .buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;
     }

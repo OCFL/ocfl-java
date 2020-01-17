@@ -53,10 +53,34 @@ public class IbmCosClient implements CloudClient {
     private String repoPrefix;
     private CloudObjectKey.Builder keyBuilder;
 
+    /**
+     * Used to create a new IbmCosClient instance.
+     *
+     * @return builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * @see IbmCosClient#builder()
+     *
+     * @param s3Client cos client
+     * @param transferManager transfer manager
+     * @param bucket s3 bucket
+     */
     public IbmCosClient(AmazonS3 s3Client, TransferManager transferManager, String bucket) {
         this(s3Client, transferManager, bucket, "");
     }
 
+    /**
+     * @see IbmCosClient#builder()
+     *
+     * @param s3Client cos client
+     * @param transferManager transfer manager
+     * @param bucket s3 bucket
+     * @param prefix key prefix
+     */
     public IbmCosClient(AmazonS3 s3Client, TransferManager transferManager, String bucket, String prefix) {
         this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
         this.transferManager = Enforce.notNull(transferManager, "transferManager cannot be null");
@@ -369,6 +393,64 @@ public class IbmCosClient implements CloudClient {
 
     private String decodeKey(String encodedKey) {
         return URLDecoder.decode(encodedKey, StandardCharsets.UTF_8);
+    }
+
+    public static class Builder {
+
+        private AmazonS3 s3Client;
+        private TransferManager transferManager;
+        private String bucket;
+        private String repoPrefix;
+
+        /**
+         * The IBM CoS client
+         *
+         * @param s3Client ibm cos client
+         * @return builder
+         */
+        public Builder s3Client(AmazonS3 s3Client) {
+            this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+            return this;
+        }
+
+        /**
+         * The IBM CoS transfer manager
+         *
+         * @param transferManager transfer manager
+         * @return builder
+         */
+        public Builder transferManager(TransferManager transferManager) {
+            this.transferManager = Enforce.notNull(transferManager, "transferManager cannot be null");
+            return this;
+        }
+
+        /**
+         * The S3 bucket to use. Required.
+         *
+         * @param bucket s3 bucket
+         * @return builder
+         */
+        public Builder bucket(String bucket) {
+            this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
+            return this;
+        }
+
+        /**
+         * The key prefix to use for the repository. Optional.
+         *
+         * @param repoPrefix key prefix
+         * @return builder
+         */
+        public Builder repoPrefix(String repoPrefix) {
+            this.repoPrefix = repoPrefix;
+            return this;
+        }
+
+        public IbmCosClient build() {
+            var prefix = repoPrefix == null ? "" : repoPrefix;
+            return new IbmCosClient(s3Client, transferManager, bucket, prefix);
+        }
+
     }
 
 }

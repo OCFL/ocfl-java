@@ -52,7 +52,8 @@ public class FileSystemOcflStorageTest {
     public void shouldRejectCallsWhenNotInitialized() {
         var storage = FileSystemOcflStorage.builder()
                 .checkNewVersionFixity(true)
-                .build(repoDir);
+                .repositoryRoot(repoDir)
+                .build();
 
         OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "must be initialized", () -> {
             storage.loadInventory("o1");
@@ -131,7 +132,8 @@ public class FileSystemOcflStorageTest {
     private FileSystemOcflStorage newStorage(boolean enableFixityCheck) {
         var storage = FileSystemOcflStorage.builder()
                 .checkNewVersionFixity(enableFixityCheck)
-                .build(repoDir);
+                .repositoryRoot(repoDir)
+                .build();
         storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
         return storage;
     }

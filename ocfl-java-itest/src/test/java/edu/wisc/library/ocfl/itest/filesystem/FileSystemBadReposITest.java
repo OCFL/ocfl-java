@@ -15,11 +15,13 @@ public class FileSystemBadReposITest extends BadReposITest {
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .buildMutable(new FileSystemOcflStorageBuilder()
-                                .checkNewVersionFixity(true)
-                                .objectMapper(ITestHelper.prettyPrintMapper())
-                                .build(repoDir(name)),
-                        workDir);
+                .storage(new FileSystemOcflStorageBuilder()
+                        .checkNewVersionFixity(true)
+                        .objectMapper(ITestHelper.prettyPrintMapper())
+                        .repositoryRoot(repoDir(name))
+                        .build())
+                .workDir(workDir)
+                .buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;
     }

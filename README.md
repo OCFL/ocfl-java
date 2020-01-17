@@ -23,7 +23,7 @@ After building the libraries locally, add the following to you're project's POM:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-core</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -35,7 +35,9 @@ var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL
 
 var repo = new OcflRepositoryBuilder()
                 .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
-                .build(FileSystemOcflStorage.builder().build(repoDir), workDir);
+                .storage(FileSystemOcflStorage.builder().repositoryRoot(repoDir).build())
+                .workDir(workDir)
+                .build();
 
 repo.putObject(ObjectVersionId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
 repo.getObject(ObjectVersionId.head("o1"), Paths.get("object-in-dir"));

@@ -26,11 +26,13 @@ public class FileSystemMutableHeadITest extends MutableHeadITest {
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .buildMutable(new FileSystemOcflStorageBuilder()
-                                .checkNewVersionFixity(true)
-                                .objectMapper(ITestHelper.prettyPrintMapper())
-                                .build(repoDir),
-                        workDir);
+                .storage(new FileSystemOcflStorageBuilder()
+                        .checkNewVersionFixity(true)
+                        .objectMapper(ITestHelper.prettyPrintMapper())
+                        .repositoryRoot(repoDir)
+                        .build())
+                .workDir(workDir)
+                .buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
         return repo;
     }

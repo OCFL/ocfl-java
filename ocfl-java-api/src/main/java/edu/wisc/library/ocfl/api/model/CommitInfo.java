@@ -9,6 +9,24 @@ public class CommitInfo {
     private String message;
 
     /**
+     * Convenience method for constructing a commit info object.
+     *
+     * @param message the commit message
+     * @param userName the name of the user who committed the change
+     * @param userAddress the address of the user who committed the change
+     * @return commit info
+     */
+    public static CommitInfo build(String message, String userName, String userAddress) {
+        var info = new CommitInfo().setMessage(message);
+        if (userName != null || userAddress != null) {
+            info.setUser(new User()
+                    .setName(userName)
+                    .setAddress(userAddress));
+        }
+        return info;
+    }
+
+    /**
      * The user who authored the version
      */
     public User getUser() {

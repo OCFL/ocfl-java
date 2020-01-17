@@ -177,10 +177,12 @@ public class OcflS3Test {
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .prettyPrintJson()
                 .contentPathConstraintProcessor(DefaultContentPathConstraints.cloud())
-                .buildMutable(CloudOcflStorage.builder()
+                .storage(CloudOcflStorage.builder()
                         .cloudClient(new OcflS3Client(s3Client, bucket, repoPrefix))
                         .workDir(tempDir)
-                        .build(), tempDir);
+                        .build())
+                .workDir(tempDir)
+                .buildMutable();
     }
 
     private InputStream stream(String value) {
