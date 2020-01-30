@@ -94,7 +94,7 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Used to lock objects when read and writing. The default is an {@link InMemoryObjectLock} instance that will wait 10 seconds
+     * Used to lock objects when writing. The default is an {@link InMemoryObjectLock} instance that will wait 10 seconds
      * for the lock before failing. Override to change the wait period or implement a different type of lock.
      *
      * <p>Use {@link ObjectLockBuilder} to construct an object lock that's backed by a relational database. This
