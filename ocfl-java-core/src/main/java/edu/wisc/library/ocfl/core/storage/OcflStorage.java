@@ -137,7 +137,7 @@ public interface OcflStorage {
 
     /**
      * Returns a stream of object ids for all of the OCFL objects stored in a repository. This stream is populated on demand,
-     * and it may be quite slow.
+     * and it may be quite slow. Remember to close the stream when you are done with it.
      *
      * @return stream of object ids
      */

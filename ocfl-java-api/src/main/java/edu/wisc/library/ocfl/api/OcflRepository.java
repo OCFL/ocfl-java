@@ -127,7 +127,7 @@ public interface OcflRepository {
 
     /**
      * Returns a stream of OCFL object ids for all of the objects stored in the repository. This stream is populated on
-     * demand. Warning: Iterating over every object id may be quite slow.
+     * demand. Warning: Iterating over every object id may be quite slow. Remember to close the stream when you are done with it.
      *
      * @return steam of all OCFL object ids
      */
