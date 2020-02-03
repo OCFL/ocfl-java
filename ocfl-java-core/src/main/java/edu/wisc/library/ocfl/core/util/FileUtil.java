@@ -160,7 +160,7 @@ public final class FileUtil {
 
     public static void deleteEmptyDirs(Path root) {
         try (var files = Files.walk(root)) {
-            files.filter(Files::isDirectory)
+            files.filter(f -> Files.isDirectory(f, LinkOption.NOFOLLOW_LINKS))
                     .filter(f -> !f.equals(root))
                     .filter(FileUtil::isDirEmpty)
                     .forEach(QuietFiles::delete);
@@ -199,7 +199,7 @@ public final class FileUtil {
     public static List<Path> findFiles(Path path) {
         var files = new ArrayList<Path>();
 
-        if (Files.isDirectory(path)) {
+        if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
             try (var paths = Files.walk(path)) {
                 paths.filter(Files::isRegularFile)
                         .forEach(files::add);

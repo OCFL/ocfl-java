@@ -5,42 +5,49 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.FileVisitOption;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.EnumSet;
+import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
-import static edu.wisc.library.ocfl.core.util.FileTreeWalker.EventType.START_DIRECTORY;
 
 /**
  * Iterator that iterates over OCFL object root directories. Object roots are identified by the presence of a file that's
  * prefixed with '0=ocfl_object'.
  */
+// TODO needs more tests!
 class OcflObjectRoodDirIterator implements Iterator<Path>, Closeable {
 
     private static final String OCFL_OBJECT_MARKER_PREFIX = "0=ocfl_object";
 
     private Path start;
-    private FileTreeWalker walker;
-    private FileTreeWalker.Event next;
     private boolean started = false;
+    private boolean closed = false;
+
+    private ArrayDeque<Directory> dirStack;
+    private Path next;
 
     OcflObjectRoodDirIterator(Path start) {
         this.start = Enforce.notNull(start, "start cannot be null");
-        this.walker = new FileTreeWalker(EnumSet.noneOf(FileVisitOption.class), Integer.MAX_VALUE);
+        this.dirStack = new ArrayDeque<>();
     }
 
     @Override
     public void close() {
-        walker.close();
+        if (!closed) {
+            while (!dirStack.isEmpty()) {
+                popDirectory();
+            }
+            closed = true;
+        }
     }
 
     @Override
     public boolean hasNext() {
-        if (!walker.isOpen()) {
-            throw new IllegalStateException("FileTreeWalker is closed.");
+        if (closed) {
+            throw new IllegalStateException("Iterator is closed.");
         }
         fetchNextIfNeeded();
         return next != null;
@@ -53,47 +60,96 @@ class OcflObjectRoodDirIterator implements Iterator<Path>, Closeable {
         }
         var result = next;
         next = null;
-        return result.file();
+        return result;
     }
 
     private void fetchNextIfNeeded() {
         try {
             if (next == null) {
-                FileTreeWalker.Event event;
-                if (!started) {
-                    event = walker.walk(start);
-                    started = true;
-                } else {
-                    event = walker.next();
-                }
+                var nextDirectory = fetchNextDirectory();
 
-                while (event != null) {
-                    if (event.ioeException() != null) {
-                        throw event.ioeException();
+                while (nextDirectory != null) {
+                    var children = Files.newDirectoryStream(nextDirectory, p -> {
+                        return p.getFileName().toString().startsWith(OCFL_OBJECT_MARKER_PREFIX);
+                    });
+
+                    // Found OCFL object marker -- current directory is an OCFL object root
+                    if (children.iterator().hasNext()) {
+                        // Do not process children
+                        popDirectory();
+                        next = nextDirectory;
+                        return;
                     }
 
-                    var file = event.file();
-
-                    if (event.type() == START_DIRECTORY) {
-                        var children = Files.newDirectoryStream(file, p -> {
-                            return p.getFileName().toString().startsWith(OCFL_OBJECT_MARKER_PREFIX);
-                        });
-
-                        // Found OCFL object marker -- current directory is an OCFL object root
-                        if (children.iterator().hasNext()) {
-                            // Do not process children
-                            walker.pop();
-                            next = event;
-                            return;
-                        }
-                    }
-
-                    event = walker.next();
+                    nextDirectory = fetchNextDirectory();
                 }
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private Path fetchNextDirectory() {
+        if (!started) {
+            dirStack.push(new Directory(start));
+            started = true;
+        }
+
+        var top = dirStack.peek();
+
+        while (top != null) {
+            var child = top.nextChild();
+
+            if (child == null) {
+                popDirectory();
+                top = dirStack.peek();
+            } else if (Files.isDirectory(child, LinkOption.NOFOLLOW_LINKS)) {
+                dirStack.push(new Directory(child));
+                return child;
+            }
+        }
+
+        return null;
+    }
+
+    private void popDirectory() {
+        if (!dirStack.isEmpty()) {
+            var top = dirStack.pop();
+            top.close();
+        }
+    }
+
+    private static class Directory {
+
+        private Path path;
+        private DirectoryStream<Path> stream;
+        private Iterator<Path> children;
+
+        Directory(Path path) {
+            try {
+                this.path = path;
+                this.stream = Files.newDirectoryStream(path);
+                this.children = stream.iterator();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        Path nextChild() {
+            if (children.hasNext()) {
+                return children.next();
+            }
+            return null;
+        }
+
+        void close() {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+
     }
 
 }
