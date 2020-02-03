@@ -11,7 +11,6 @@ import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.*;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
@@ -40,23 +39,23 @@ import java.util.stream.Stream;
  *
  * @see OcflRepositoryBuilder
  */
-public class DefaultOcflRepository implements MutableOcflRepository {
+public class DefaultOcflRepository implements OcflRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflRepository.class);
 
-    private OcflStorage storage;
-    private InventoryMapper inventoryMapper;
-    private SidecarMapper sidecarMapper;
-    private Path workDir;
-    private ObjectLock objectLock;
-    private ResponseMapper responseMapper;
-    private InventoryUpdater.Builder inventoryUpdaterBuilder;
-    private AddFileProcessor.Builder addFileProcessorBuilder;
+    protected final OcflStorage storage;
+    protected final InventoryMapper inventoryMapper;
+    protected final SidecarMapper sidecarMapper;
+    protected final Path workDir;
+    protected final ObjectLock objectLock;
+    protected final ResponseMapper responseMapper;
+    protected final InventoryUpdater.Builder inventoryUpdaterBuilder;
+    protected final AddFileProcessor.Builder addFileProcessorBuilder;
 
-    private OcflConfig config;
+    protected final OcflConfig config;
 
-    private ParallelProcess parallelProcess;
-    private ParallelProcess copyParallelProcess;
+    private final ParallelProcess parallelProcess;
+    private final ParallelProcess copyParallelProcess;
 
     private Clock clock;
 
@@ -307,92 +306,6 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId stageChanges(ObjectVersionId objectVersionId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
-        ensureOpen();
-
-        Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
-        Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
-
-        var inventory = loadInventory(objectVersionId);
-
-        if (inventory == null) {
-            // Note: If the mutable HEAD creation fails, the object with the empty version remains
-            inventory = createAndPersistEmptyVersion(objectVersionId);
-        }
-
-        enforceObjectVersionForUpdate(objectVersionId, inventory);
-
-        var stagingDir = createStagingDir(objectVersionId);
-        var contentDir = QuietFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
-
-        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
-        var addFileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
-        var updater = new DefaultOcflObjectUpdater(inventory, inventoryUpdater, contentDir, addFileProcessor);
-
-        try {
-            objectUpdater.accept(updater);
-            var newInventory = buildNewInventory(inventoryUpdater, commitInfo);
-            writeNewVersion(newInventory, stagingDir);
-            return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
-        } finally {
-            FileUtil.safeDeletePath(stagingDir);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ObjectVersionId commitStagedChanges(String objectId, CommitInfo commitInfo) {
-        ensureOpen();
-
-        Enforce.notBlank(objectId, "objectId cannot be blank");
-
-        var inventory = requireInventory(ObjectVersionId.head(objectId));
-
-        if (inventory.hasMutableHead()) {
-            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(), commitInfo);
-            var stagingDir = FileUtil.createTempDir(workDir, objectId);
-            writeInventory(newInventory, stagingDir);
-
-            try {
-                objectLock.doInWriteLock(inventory.getId(), () -> storage.commitMutableHead(inventory, newInventory, stagingDir));
-            } finally {
-                FileUtil.safeDeletePath(stagingDir);
-            }
-        }
-
-        return ObjectVersionId.version(objectId, inventory.getHead());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void purgeStagedChanges(String objectId) {
-        ensureOpen();
-
-        Enforce.notBlank(objectId, "objectId cannot be blank");
-
-        objectLock.doInWriteLock(objectId, () -> storage.purgeMutableHead(objectId));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean hasStagedChanges(String objectId) {
-        ensureOpen();
-        // TODO return false if object does not exist?
-        Enforce.notBlank(objectId, "objectId cannot be blank");
-        var inventory = requireInventory(ObjectVersionId.head(objectId));
-        return inventory.hasMutableHead();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void close() {
         closed = true;
         parallelProcess.shutdown();
@@ -400,7 +313,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         storage.close();
     }
 
-    private Inventory loadInventory(ObjectVersionId objectId) {
+    protected Inventory loadInventory(ObjectVersionId objectId) {
         return storage.loadInventory(objectId.getObjectId());
     }
 
@@ -412,12 +325,12 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         return inventory;
     }
 
-    private Inventory createStubInventory(ObjectVersionId objectId) {
+    protected Inventory createStubInventory(ObjectVersionId objectId) {
         var objectRootPath = storage.objectRootPath(objectId.getObjectId());
         return Inventory.stubInventory(objectId.getObjectId(), config, objectRootPath);
     }
 
-    private Inventory requireInventory(ObjectVersionId objectId) {
+    protected Inventory requireInventory(ObjectVersionId objectId) {
         var inventory = loadInventory(objectId);
         if (inventory == null) {
             throw new NotFoundException(String.format("Object %s was not found.", objectId));
@@ -425,7 +338,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         return inventory;
     }
 
-    private Inventory buildNewInventory(InventoryUpdater inventoryUpdater, CommitInfo commitInfo) {
+    protected Inventory buildNewInventory(InventoryUpdater inventoryUpdater, CommitInfo commitInfo) {
         return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(), commitInfo));
     }
 
@@ -442,44 +355,19 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         }
     }
 
-    private void writeNewVersion(Inventory inventory, Path stagingDir) {
+    protected void writeNewVersion(Inventory inventory, Path stagingDir) {
         writeInventory(inventory, stagingDir);
         objectLock.doInWriteLock(inventory.getId(), () -> storage.storeNewVersion(inventory, stagingDir));
     }
 
-    private void writeInventory(Inventory inventory, Path stagingDir) {
+    protected void writeInventory(Inventory inventory, Path stagingDir) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
         inventoryMapper.write(inventoryPath, inventory);
         String inventoryDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), inventoryPath);
         sidecarMapper.writeSidecar(inventory, inventoryDigest, stagingDir);
     }
 
-    private Inventory createAndPersistEmptyVersion(ObjectVersionId objectId) {
-        LOG.info("Creating object {} with an empty version.", objectId.getObjectId());
-
-        var stubInventory = createStubInventory(objectId);
-        var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        QuietFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
-
-        try {
-            var inventoryBuilder = Inventory.builder(stubInventory);
-            var inventory = inventoryBuilder
-                    .addHeadVersion(Version.builder()
-                            .commitInfo(new CommitInfo()
-                                    .setMessage("Auto-generated empty object version.")
-                                    .setUser(new edu.wisc.library.ocfl.api.model.User().setName("ocfl-java")))
-                            .created(now())
-                            .build())
-                    .build();
-
-            writeNewVersion(inventory, stagingDir);
-            return inventory;
-        } finally {
-            FileUtil.safeDeletePath(stagingDir);
-        }
-    }
-
-    private void enforceObjectVersionForUpdate(ObjectVersionId objectId, Inventory inventory) {
+    protected void enforceObjectVersionForUpdate(ObjectVersionId objectId, Inventory inventory) {
         if (!objectId.isHead() && !objectId.getVersionId().equals(inventory.getHead())) {
             throw new ObjectOutOfSyncException(String.format("Cannot update object %s because the HEAD version is %s, but version %s was specified.",
                     objectId.getObjectId(), inventory.getHead(), objectId.getVersionId()));
@@ -514,7 +402,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         }
     }
 
-    private Path createStagingDir(ObjectVersionId objectVersionId) {
+    protected Path createStagingDir(ObjectVersionId objectVersionId) {
         return FileUtil.createTempDir(workDir, objectVersionId.getObjectId());
     }
 
@@ -522,14 +410,8 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         return QuietFiles.createDirectories(resolveContentDir(inventory, stagingDir));
     }
 
-    private Path resolveContentDir(Inventory inventory, Path parent) {
+    protected Path resolveContentDir(Inventory inventory, Path parent) {
         return parent.resolve(inventory.resolveContentDirectory());
-    }
-
-    private Path resolveRevisionDir(Inventory inventory, Path parent) {
-        var contentDir = resolveContentDir(inventory, parent);
-        var newRevision = inventory.nextRevisionId();
-        return contentDir.resolve(newRevision.toString());
     }
 
     private VersionDetails createVersionDetails(Inventory inventory, VersionId versionId) {
@@ -537,13 +419,13 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         return responseMapper.mapVersion(inventory, versionId, version);
     }
 
-    private OffsetDateTime now() {
+    protected OffsetDateTime now() {
         // OCFL spec has timestamps reported at second granularity. Unfortunately, it's difficult to make Jackson
         // interact with ISO 8601 at anything other than nanosecond granularity.
         return OffsetDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
     }
 
-    private void ensureOpen() {
+    protected void ensureOpen() {
         if (closed) {
             throw new IllegalStateException(DefaultOcflRepository.class.getName() + " is closed.");
         }

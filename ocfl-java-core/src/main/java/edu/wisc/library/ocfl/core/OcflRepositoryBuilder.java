@@ -259,7 +259,7 @@ public class OcflRepositoryBuilder {
      * @return OcflRepository
      */
     public OcflRepository build() {
-        return buildDefault();
+        return buildInternal(DefaultOcflRepository.class);
     }
 
     /**
@@ -268,10 +268,10 @@ public class OcflRepositoryBuilder {
      * @return MutableOcflRepository
      */
     public MutableOcflRepository buildMutable() {
-        return buildDefault();
+        return buildInternal(DefaultMutableOcflRepository.class);
     }
 
-    private DefaultOcflRepository buildDefault() {
+    private <T extends OcflRepository> T buildInternal(Class<T> clazz) {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 
@@ -281,10 +281,17 @@ public class OcflRepositoryBuilder {
         Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");
 
-        return new DefaultOcflRepository(wrappedStorage, workDir,
+        if (MutableOcflRepository.class.isAssignableFrom(clazz)) {
+            return clazz.cast(new DefaultMutableOcflRepository(wrappedStorage, workDir,
+                    objectLock, inventoryMapper,
+                    pathSanitizer, contentPathConstraintProcessor,
+                    config, digestThreadPoolSize, copyThreadPoolSize));
+        }
+
+        return clazz.cast(new DefaultOcflRepository(wrappedStorage, workDir,
                 objectLock, inventoryMapper,
                 pathSanitizer, contentPathConstraintProcessor,
-                config, digestThreadPoolSize, copyThreadPoolSize);
+                config, digestThreadPoolSize, copyThreadPoolSize));
     }
 
     private OcflStorage cache(OcflStorage storage) {
