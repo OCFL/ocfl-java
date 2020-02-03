@@ -275,6 +275,13 @@
                 <version>1.3.0</version>
             </dependency>
 
+            <!-- Guava -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>28.2-jre</version>
+            </dependency>
+
             <!-- AWS -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>

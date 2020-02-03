@@ -25,6 +25,7 @@ module edu.wisc.library.ocfl.core {
     requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.datatype.jsr310;
     requires com.github.benmanes.caffeine;
+    requires com.google.common;
     requires edu.wisc.library.ocfl.api;
     requires java.naming;
     requires java.sql;

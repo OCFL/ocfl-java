@@ -89,6 +89,12 @@
             <artifactId>bytes</artifactId>
         </dependency>
 
+        <!-- Guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>edu.wisc.library.ocfl</groupId>
