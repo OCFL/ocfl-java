@@ -9,7 +9,7 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
-import edu.wisc.library.ocfl.core.util.SafeFiles;
+import edu.wisc.library.ocfl.core.util.QuietFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -130,7 +130,7 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
-        var fileSize = SafeFiles.size(srcPath);
+        var fileSize = QuietFiles.size(srcPath);
         var dstKey = keyBuilder.buildFromPath(dstPath);
 
         if (fileSize >= MAX_FILE_BYTES) {

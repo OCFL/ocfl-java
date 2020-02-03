@@ -23,7 +23,7 @@ import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import edu.wisc.library.ocfl.core.util.SafeFiles;
+import edu.wisc.library.ocfl.core.util.QuietFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class FileSystemOcflStorage extends AbstractOcflStorage {
 
@@ -115,6 +116,19 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public Stream<String> listObjectIds() {
+        return FileUtil.findOcflObjectRootDirs(repositoryRoot).map(rootPath -> {
+            var relativeRootStr = FileUtil.pathToStringStandardSeparator(repositoryRoot.relativize(rootPath));
+            var inventoryPath = ObjectPaths.inventoryPath(rootPath);
+            var inventory = inventoryMapper.read(relativeRootStr, inventoryPath);
+            return inventory.getId();
+        });
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         ensureOpen();
 
@@ -173,7 +187,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 logicalPathConstraints.apply(logicalPath);
                 var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
 
-                SafeFiles.createDirectories(destination.getParent());
+                QuietFiles.createDirectories(destination.getParent());
 
                 if (Thread.interrupted()) {
                     break;
@@ -478,7 +492,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private void copyRootInventorySidecar(ObjectPaths.ObjectRoot objectRoot, ObjectPaths.VersionRoot versionRoot) {
         var rootSidecar = objectRoot.inventorySidecar();
-        SafeFiles.copy(rootSidecar,
+        QuietFiles.copy(rootSidecar,
                 versionRoot.path().getParent().resolve("root-" + rootSidecar.getFileName().toString()),
                 StandardCopyOption.REPLACE_EXISTING);
     }
@@ -496,7 +510,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private Path createRevisionMarker(Inventory inventory, Path revisionsPath) {
-        SafeFiles.createDirectories(revisionsPath);
+        QuietFiles.createDirectories(revisionsPath);
         var revision = inventory.getRevisionId().toString();
         try {
             var revisionMarker = Files.createFile(revisionsPath.resolve(revision));
@@ -526,13 +540,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private void setupNewObjectDirs(Path objectRootPath) {
-        SafeFiles.createDirectories(objectRootPath);
+        QuietFiles.createDirectories(objectRootPath);
         new NamasteTypeFile(ocflVersion.getOcflObjectVersion()).writeFile(objectRootPath);
     }
 
     private void copyInventory(ObjectPaths.HasInventory source, ObjectPaths.HasInventory destination) {
-        SafeFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
-        SafeFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
+        QuietFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
+        QuietFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void copyInventoryToRootWithRollback(ObjectPaths.HasInventory source, ObjectPaths.ObjectRoot objectRoot, Inventory inventory) {

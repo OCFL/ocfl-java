@@ -12,6 +12,7 @@ import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Extension point that allows the OCFL repository to use any number of storage implementations so long as they
@@ -133,6 +134,14 @@ public interface OcflStorage {
      * @return the relative path from the storage root to the object root
      */
     String objectRootPath(String objectId);
+
+    /**
+     * Returns a stream of object ids for all of the OCFL objects stored in a repository. This stream is populated on demand,
+     * and it may be quite slow.
+     *
+     * @return stream of object ids
+     */
+    Stream<String> listObjectIds();
 
     /**
      * Shutsdown any resources the OclfStorage may have open, such as ExecutorServices. Once closed, additional requests

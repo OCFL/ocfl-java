@@ -20,10 +20,14 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FileSystemOcflStorageTest {
@@ -117,6 +121,48 @@ public class FileSystemOcflStorageTest {
                 containsString("file1 in object o1 failed its sha512 fixity check. Expected: 1; Actual: "));
     }
 
+    @Test
+    public void shouldListObjectIdsWhenOnlyOne() {
+        var storage = FileSystemOcflStorage.builder()
+                .repositoryRoot(existingRepoRoot("repo-one-object"))
+                .build();
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, DefaultLayoutConfig.nTupleHashConfig(), ITestHelper.testInventoryMapper());
+
+        var objectIdsStream = storage.listObjectIds();
+
+        var objectIds = objectIdsStream.collect(Collectors.toList());
+
+        assertThat(objectIds, containsInAnyOrder("o1"));
+    }
+
+    @Test
+    public void shouldListObjectIdsWhenMultipleObjects() {
+        var storage = FileSystemOcflStorage.builder()
+                .repositoryRoot(existingRepoRoot("repo-multiple-objects"))
+                .build();
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, DefaultLayoutConfig.nTupleHashConfig(), ITestHelper.testInventoryMapper());
+
+        var objectIdsStream = storage.listObjectIds();
+
+        var objectIds = objectIdsStream.collect(Collectors.toList());
+
+        assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
+    }
+
+    @Test
+    public void shouldListObjectIdsWhenOnlyNone() {
+        var storage = FileSystemOcflStorage.builder()
+                .repositoryRoot(existingRepoRoot("repo-no-objects"))
+                .build();
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, DefaultLayoutConfig.nTupleHashConfig(), ITestHelper.testInventoryMapper());
+
+        var objectIdsStream = storage.listObjectIds();
+
+        var objectIds = objectIdsStream.collect(Collectors.toList());
+
+        assertEquals(0, objectIds.size());
+    }
+
     private InventoryBuilder inventoryBuilder() {
         return Inventory.builder()
                 .id("o1")
@@ -136,6 +182,10 @@ public class FileSystemOcflStorageTest {
                 .build();
         storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
         return storage;
+    }
+
+    private Path existingRepoRoot(String name) {
+        return Paths.get("src/test/resources/repos/" + name);
     }
 
 }

@@ -10,6 +10,7 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Adds an Inventory caching layer on top of an OcflStorage implementation.
@@ -146,6 +147,16 @@ public class CachingOcflStorage extends AbstractOcflStorage {
         ensureOpen();
 
         return delegate.objectRootPath(objectId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Stream<String> listObjectIds() {
+        ensureOpen();
+
+        return delegate.listObjectIds();
     }
 
     /**

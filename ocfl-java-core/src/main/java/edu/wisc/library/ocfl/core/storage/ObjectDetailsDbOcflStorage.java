@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Path;
 import java.security.DigestOutputStream;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
 
@@ -56,6 +57,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         ensureOpen();
 
         var details = objectDetailsDb.retrieveObjectDetails(objectId);
+
         if (details == null || details.getInventoryBytes() == null) {
             var inventory = delegate.loadInventory(objectId);
 
@@ -70,6 +72,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
 
             return inventory;
         }
+
         return parseInventory(details);
     }
 
@@ -157,6 +160,16 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         ensureOpen();
 
         return delegate.objectRootPath(objectId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Stream<String> listObjectIds() {
+        ensureOpen();
+
+        return delegate.listObjectIds();
     }
 
     /**

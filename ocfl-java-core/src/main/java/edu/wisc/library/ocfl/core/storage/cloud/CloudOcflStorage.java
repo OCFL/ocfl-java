@@ -25,7 +25,7 @@ import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import edu.wisc.library.ocfl.core.util.SafeFiles;
+import edu.wisc.library.ocfl.core.util.QuietFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 /**
  * {@link OcflStorage} implementation for integrating with cloud storage providers. {@link CloudClient} implementation
@@ -125,6 +126,15 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public Stream<String> listObjectIds() {
+        // TODO
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         ensureOpen();
 
@@ -176,7 +186,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                 logicalPathConstraints.apply(logicalPath);
                 var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
 
-                SafeFiles.createDirectories(destination.getParent());
+                QuietFiles.createDirectories(destination.getParent());
 
                 if (Thread.interrupted()) {
                     break;

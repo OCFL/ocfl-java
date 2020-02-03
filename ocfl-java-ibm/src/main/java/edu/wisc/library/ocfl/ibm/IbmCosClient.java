@@ -13,7 +13,7 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
-import edu.wisc.library.ocfl.core.util.SafeFiles;
+import edu.wisc.library.ocfl.core.util.QuietFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +130,7 @@ public class IbmCosClient implements CloudClient {
      */
     public CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
         var dstKey = keyBuilder.buildFromPath(dstPath);
-        var fileSize = SafeFiles.size(srcPath);
+        var fileSize = QuietFiles.size(srcPath);
 
         LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 

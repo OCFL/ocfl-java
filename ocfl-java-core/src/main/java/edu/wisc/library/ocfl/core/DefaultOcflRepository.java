@@ -18,8 +18,8 @@ import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import edu.wisc.library.ocfl.core.util.QuietFiles;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
-import edu.wisc.library.ocfl.core.util.SafeFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Primary implementation of the OcflRepository API. It is storage agnostic. It is typically instantiated using
@@ -296,6 +297,16 @@ public class DefaultOcflRepository implements MutableOcflRepository {
      * {@inheritDoc}
      */
     @Override
+    public Stream<String> listObjectIds() {
+        ensureOpen();
+
+        return storage.listObjectIds();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public ObjectVersionId stageChanges(ObjectVersionId objectVersionId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
         ensureOpen();
 
@@ -312,7 +323,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
         enforceObjectVersionForUpdate(objectVersionId, inventory);
 
         var stagingDir = createStagingDir(objectVersionId);
-        var contentDir = SafeFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
+        var contentDir = QuietFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
         var addFileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
@@ -448,7 +459,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
 
         var stubInventory = createStubInventory(objectId);
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        SafeFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
+        QuietFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
 
         try {
             var inventoryBuilder = Inventory.builder(stubInventory);
@@ -508,7 +519,7 @@ public class DefaultOcflRepository implements MutableOcflRepository {
     }
 
     private Path createStagingContentDir(Inventory inventory, Path stagingDir) {
-        return SafeFiles.createDirectories(resolveContentDir(inventory, stagingDir));
+        return QuietFiles.createDirectories(resolveContentDir(inventory, stagingDir));
     }
 
     private Path resolveContentDir(Inventory inventory, Path parent) {

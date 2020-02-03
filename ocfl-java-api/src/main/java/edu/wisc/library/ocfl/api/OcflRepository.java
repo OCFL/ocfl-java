@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.model.*;
 
 import java.nio.file.Path;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Interface for interacting with an OCFL repository.
@@ -125,6 +126,14 @@ public interface OcflRepository {
     void purgeObject(String objectId);
 
     /**
+     * Returns a stream of OCFL object ids for all of the objects stored in the repository. This stream is populated on
+     * demand. Warning: Iterating over every object id may be quite slow.
+     *
+     * @return steam of all OCFL object ids
+     */
+    Stream<String> listObjectIds();
+
+    /**
      * Shutsdown any resources the OcflRepository may have open, such as ExecutorServices. Once closed, additional requests
      * will be rejected. Calling this method is optional, and it is more efficient to just let the shutdown hooks take care
      * of closing the resources.
@@ -132,7 +141,5 @@ public interface OcflRepository {
     void close();
 
     // TODO rollbackObject?
-
-    // TODO list objects? this is a daunting prospect without an index
 
 }

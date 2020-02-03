@@ -11,9 +11,9 @@ import java.nio.file.StandardCopyOption;
 /**
  * This class is just a wrapper around {@link Files} that converts IOExceptions into RuntimeIOExceptions.
  */
-public final class SafeFiles {
+public final class QuietFiles {
 
-    private SafeFiles() {
+    private QuietFiles() {
 
     }
 
