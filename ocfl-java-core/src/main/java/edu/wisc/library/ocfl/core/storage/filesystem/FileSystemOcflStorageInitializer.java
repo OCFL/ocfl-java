@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflVersion;
@@ -37,11 +36,12 @@ import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
@@ -76,7 +76,7 @@ public class FileSystemOcflStorageInitializer {
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
 
         if (!Files.exists(repositoryRoot)) {
-            QuietFiles.createDirectories(repositoryRoot);
+            UncheckedFiles.createDirectories(repositoryRoot);
         } else {
             Enforce.expressionTrue(Files.isDirectory(repositoryRoot), repositoryRoot,
                     "repositoryRoot must be a directory");
@@ -176,7 +176,7 @@ public class FileSystemOcflStorageInitializer {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
 
         return ref.get();
@@ -220,7 +220,7 @@ public class FileSystemOcflStorageInitializer {
         try (var ocflSpecStream = this.getClass().getClassLoader().getResourceAsStream(ocflSpecFile)) {
             Files.copy(ocflSpecStream, repositoryRoot.resolve(ocflSpecFile));
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -231,7 +231,7 @@ public class FileSystemOcflStorageInitializer {
             // TODO versioning...
             objectMapper.writeValue(layoutExtensionConfigPath(repositoryRoot, spec).toFile(), layoutConfig);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -263,7 +263,7 @@ public class FileSystemOcflStorageInitializer {
         try {
             return objectMapper.readValue(path.toFile(), clazz);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

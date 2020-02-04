@@ -29,7 +29,6 @@ import com.ibm.cloud.objectstorage.SdkClientException;
 import com.ibm.cloud.objectstorage.services.s3.AmazonS3;
 import com.ibm.cloud.objectstorage.services.s3.model.*;
 import com.ibm.cloud.objectstorage.services.s3.transfer.TransferManager;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
@@ -37,13 +36,14 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -154,7 +154,7 @@ public class IbmCosClient implements CloudClient {
      */
     public CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
         var dstKey = keyBuilder.buildFromPath(dstPath);
-        var fileSize = QuietFiles.size(srcPath);
+        var fileSize = UncheckedFiles.size(srcPath);
 
         LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
@@ -275,7 +275,7 @@ public class IbmCosClient implements CloudClient {
         try (var stream = downloadStream(srcPath)) {
             return new String(stream.readAllBytes());
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

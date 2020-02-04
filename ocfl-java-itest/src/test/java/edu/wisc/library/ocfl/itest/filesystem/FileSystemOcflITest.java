@@ -7,7 +7,7 @@ import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
@@ -46,12 +46,12 @@ public class FileSystemOcflITest extends OcflITest {
 
     @Override
     protected void onBefore() {
-        reposDir = QuietFiles.createDirectories(tempRoot.resolve("repos"));
+        reposDir = UncheckedFiles.createDirectories(tempRoot.resolve("repos"));
     }
 
     @Override
     protected OcflRepository defaultRepo(String name) {
-        var repoDir = QuietFiles.createDirectories(repoDir(name));
+        var repoDir = UncheckedFiles.createDirectories(repoDir(name));
         return existingRepo(name, null);
     }
 

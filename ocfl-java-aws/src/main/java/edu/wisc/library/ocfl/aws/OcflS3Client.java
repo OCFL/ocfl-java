@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.aws;
 
 import at.favre.lib.bytes.Bytes;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
@@ -33,7 +32,7 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -44,6 +43,7 @@ import software.amazon.awssdk.utils.http.SdkHttpUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
@@ -154,7 +154,7 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
-        var fileSize = QuietFiles.size(srcPath);
+        var fileSize = UncheckedFiles.size(srcPath);
         var dstKey = keyBuilder.buildFromPath(dstPath);
 
         if (fileSize >= MAX_FILE_BYTES) {
@@ -223,7 +223,7 @@ public class OcflS3Client implements CloudClient {
                     i++;
                 }
             } catch (IOException e) {
-                throw new RuntimeIOException(e);
+                throw new UncheckedIOException(e);
             }
 
             completeMultipartUpload(uploadId, dstKey, completedParts);
@@ -375,7 +375,7 @@ public class OcflS3Client implements CloudClient {
         try (var stream = downloadStream(srcPath)) {
             return new String(stream.readAllBytes());
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

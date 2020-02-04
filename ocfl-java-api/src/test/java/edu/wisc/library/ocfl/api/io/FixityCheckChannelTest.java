@@ -1,12 +1,12 @@
 package edu.wisc.library.ocfl.api.io;
 
 import at.favre.lib.bytes.Bytes;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -60,7 +60,7 @@ public class FixityCheckChannelTest {
 
             return Bytes.wrap(digest.digest()).encodeHex();
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

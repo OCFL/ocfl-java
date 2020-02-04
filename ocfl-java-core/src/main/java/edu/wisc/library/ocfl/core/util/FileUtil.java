@@ -25,12 +25,12 @@
 package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.OcflOption;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -56,7 +56,7 @@ public final class FileUtil {
             var name = URLEncoder.encode(prefix, StandardCharsets.UTF_8) + "-" + Long.toUnsignedString(RANDOM.nextLong());
             return Files.createDirectory(rootPath.resolve(name));
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -92,7 +92,7 @@ public final class FileUtil {
         } catch (FileAlreadyExistsException e) {
             throw e;
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
 
         try {
@@ -100,7 +100,7 @@ public final class FileUtil {
         } catch (FileAlreadyExistsException e) {
             throw e;
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
 
         try {
@@ -130,7 +130,7 @@ public final class FileUtil {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -159,7 +159,7 @@ public final class FileUtil {
             Files.createDirectories(dst.getParent());
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -168,7 +168,7 @@ public final class FileUtil {
             Files.createDirectories(dst.getParent());
             Files.move(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -176,9 +176,9 @@ public final class FileUtil {
         try (var files = Files.walk(root)) {
             files.sorted(Comparator.reverseOrder())
                     .filter(f -> !f.equals(root))
-                    .forEach(QuietFiles::delete);
+                    .forEach(UncheckedFiles::delete);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -187,9 +187,9 @@ public final class FileUtil {
             files.filter(f -> Files.isDirectory(f, LinkOption.NOFOLLOW_LINKS))
                     .filter(f -> !f.equals(root))
                     .filter(FileUtil::isDirEmpty)
-                    .forEach(QuietFiles::delete);
+                    .forEach(UncheckedFiles::delete);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -216,7 +216,7 @@ public final class FileUtil {
         try {
             return !Files.newDirectoryStream(path).iterator().hasNext();
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -228,7 +228,7 @@ public final class FileUtil {
                 paths.filter(Files::isRegularFile)
                         .forEach(files::add);
             } catch (IOException e) {
-                throw new RuntimeIOException(e);
+                throw new UncheckedIOException(e);
             }
         } else {
             files.add(path);

@@ -37,7 +37,7 @@ import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,7 +108,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var tempPath = stagingDir.resolve(UUID.randomUUID().toString());
         var digestInput = wrapInDigestInputStream(input);
         LOG.debug("Writing input stream to temp file: {}", tempPath);
-        QuietFiles.copy(digestInput, tempPath);
+        UncheckedFiles.copy(digestInput, tempPath);
 
         if (input instanceof FixityCheckInputStream) {
             ((FixityCheckInputStream) input).checkFixity();
@@ -119,7 +119,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
         if (!result.isNew()) {
             LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", tempPath, digest);
-            QuietFiles.delete(tempPath);
+            UncheckedFiles.delete(tempPath);
         } else {
             var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
             LOG.debug("Moving file <{}> to <{}>", tempPath, stagingFullPath);
@@ -237,7 +237,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             var stagingPath = stagingFullPath(remove.getPathUnderContentDir());
             if (Files.exists(stagingPath)) {
                 LOG.debug("Deleting {} because it was added and then removed in the same version.", stagingPath);
-                QuietFiles.delete(stagingPath);
+                UncheckedFiles.delete(stagingPath);
             }
         });
     }

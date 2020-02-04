@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.storage.cloud;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflVersion;
@@ -41,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -184,7 +184,7 @@ public class CloudOcflStorageInitializer {
 
             return (String) id;
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         } catch (KeyNotFoundException e) {
             // TODO if there's not root inventory should we look for the inventory in the latest version directory?
             throw new CorruptObjectException(String.format("Missing inventory at %s in bucket %s", inventoryPath, cloudClient.bucket()));
@@ -215,7 +215,7 @@ public class CloudOcflStorageInitializer {
         try (var ocflSpecStream = this.getClass().getClassLoader().getResourceAsStream(ocflSpecFile)) {
             return uploadStream(ocflSpecFile, ocflSpecStream).getPath();
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -235,7 +235,7 @@ public class CloudOcflStorageInitializer {
                     objectMapper.writeValueAsBytes(layoutConfig), MIME_JSON).getPath());
             return keys;
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -249,7 +249,7 @@ public class CloudOcflStorageInitializer {
         } catch (KeyNotFoundException e) {
             return null;
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -259,7 +259,7 @@ public class CloudOcflStorageInitializer {
         } catch (KeyNotFoundException e) {
             throw new IllegalStateException(String.format("Missing layout extension configuration at %s", extensionLayoutSpecFile(spec)));
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -271,7 +271,7 @@ public class CloudOcflStorageInitializer {
         try {
             return objectMapper.readValue(stream, clazz);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -285,7 +285,7 @@ public class CloudOcflStorageInitializer {
         try {
             return cloudClient.uploadBytes(remotePath, stream.readAllBytes(), MIME_TEXT);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

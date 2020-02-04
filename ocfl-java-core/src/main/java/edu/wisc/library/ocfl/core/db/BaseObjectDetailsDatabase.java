@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.db;
 
 import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -39,6 +38,7 @@ import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -148,7 +148,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         try (var inventoryStream = Files.newInputStream(inventoryFile)) {
             updateObjectDetailsInternal(inventory, inventoryDigest, inventoryStream, runnable);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

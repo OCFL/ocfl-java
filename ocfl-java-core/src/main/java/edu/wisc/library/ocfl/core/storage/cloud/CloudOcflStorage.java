@@ -29,7 +29,6 @@ import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
@@ -49,11 +48,12 @@ import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -210,7 +210,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                 logicalPathConstraints.apply(logicalPath);
                 var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
 
-                QuietFiles.createDirectories(destination.getParent());
+                UncheckedFiles.createDirectories(destination.getParent());
 
                 if (Thread.interrupted()) {
                     break;
@@ -223,7 +223,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                     throw new FixityCheckException(
                             String.format("File %s in object %s failed its fixity check.", logicalPath, inventory.getId()), e);
                 } catch (IOException e) {
-                    throw new RuntimeIOException(e);
+                    throw new UncheckedIOException(e);
                 }
             }
         });

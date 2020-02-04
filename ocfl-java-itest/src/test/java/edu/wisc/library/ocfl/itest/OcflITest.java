@@ -3,7 +3,10 @@ package edu.wisc.library.ocfl.itest;
 import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
-import edu.wisc.library.ocfl.api.exception.*;
+import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
+import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -737,7 +741,7 @@ public abstract class OcflITest {
         var repoDir = sourceRepoPath(repoName);
         var repo = existingRepo(repoName, repoDir);
 
-        assertThat(assertThrows(RuntimeIOException.class, () -> {
+        assertThat(assertThrows(UncheckedIOException.class, () -> {
             repo.getObject(ObjectVersionId.head("o1"));
         }).getMessage(), containsString("digestAlgorithm must be sha512 or sha256"));
     }

@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core;
 import edu.wisc.library.ocfl.api.*;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
@@ -41,11 +40,12 @@ import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.UncheckedIOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -373,7 +373,7 @@ public class DefaultOcflRepository implements OcflRepository {
             storage.reconstructObjectVersion(inventory, versionId, stagingDir);
             FileUtil.moveDirectory(stagingDir, outputPath);
         } catch (FileAlreadyExistsException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         } finally {
             FileUtil.safeDeletePath(stagingDir);
         }
@@ -431,7 +431,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     private Path createStagingContentDir(Inventory inventory, Path stagingDir) {
-        return QuietFiles.createDirectories(resolveContentDir(inventory, stagingDir));
+        return UncheckedFiles.createDirectories(resolveContentDir(inventory, stagingDir));
     }
 
     protected Path resolveContentDir(Inventory inventory, Path parent) {

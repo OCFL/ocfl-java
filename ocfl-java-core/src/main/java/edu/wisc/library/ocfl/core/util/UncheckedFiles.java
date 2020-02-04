@@ -24,20 +24,19 @@
 
 package edu.wisc.library.ocfl.core.util;
 
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
-
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * This class is just a wrapper around {@link Files} that converts IOExceptions into RuntimeIOExceptions.
+ * This class is just a wrapper around {@link Files} that converts IOExceptions into UncheckedIOExceptions.
  */
-public final class QuietFiles {
+public final class UncheckedFiles {
 
-    private QuietFiles() {
+    private UncheckedFiles() {
 
     }
 
@@ -45,7 +44,7 @@ public final class QuietFiles {
         try {
             return Files.createDirectories(path);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -53,7 +52,7 @@ public final class QuietFiles {
         try {
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -61,7 +60,7 @@ public final class QuietFiles {
         try {
             Files.copy(input, dst);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -69,7 +68,7 @@ public final class QuietFiles {
         try {
             Files.delete(path);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -77,7 +76,7 @@ public final class QuietFiles {
         try {
             return Files.size(path);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

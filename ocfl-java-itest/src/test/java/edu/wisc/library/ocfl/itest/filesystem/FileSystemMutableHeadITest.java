@@ -5,7 +5,7 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.MutableHeadITest;
 
@@ -21,7 +21,7 @@ public class FileSystemMutableHeadITest extends MutableHeadITest {
 
     @Override
     protected MutableOcflRepository defaultRepo(String name) {
-        var repoDir = QuietFiles.createDirectories(repoDir(name));
+        var repoDir = UncheckedFiles.createDirectories(repoDir(name));
         var repo = new OcflRepositoryBuilder()
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .inventoryCache(new NoOpCache<>())

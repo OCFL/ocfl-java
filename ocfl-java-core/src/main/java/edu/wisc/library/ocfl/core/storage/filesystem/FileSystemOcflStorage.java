@@ -28,7 +28,6 @@ import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.exception.RuntimeIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -47,11 +46,12 @@ import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -211,7 +211,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 logicalPathConstraints.apply(logicalPath);
                 var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
 
-                QuietFiles.createDirectories(destination.getParent());
+                UncheckedFiles.createDirectories(destination.getParent());
 
                 if (Thread.interrupted()) {
                     break;
@@ -221,7 +221,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                     Files.copy(stream, destination);
                     stream.checkFixity();
                 } catch (IOException e) {
-                    throw new RuntimeIOException(e);
+                    throw new UncheckedIOException(e);
                 } catch (FixityCheckException e) {
                     throw new FixityCheckException(
                             String.format("File %s in object %s failed its fixity check.", logicalPath, inventory.getId()), e);
@@ -246,12 +246,12 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                             try {
                                 Files.delete(f);
                             } catch (IOException e) {
-                                throw new RuntimeIOException(String.format("Failed to delete file %s while purging object %s." +
+                                throw new UncheckedIOException(String.format("Failed to delete file %s while purging object %s." +
                                         " The purge failed the object may need to be deleted manually.", f, objectId), e);
                             }
                         });
             } catch (IOException e) {
-                throw new RuntimeIOException(String.format("Failed to purge object %s at %s. The object may need to be deleted manually.",
+                throw new UncheckedIOException(String.format("Failed to purge object %s at %s. The object may need to be deleted manually.",
                         objectId, objectRootPath), e);
             }
         }
@@ -324,12 +324,12 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                             try {
                                 Files.delete(f);
                             } catch (IOException e) {
-                                throw new RuntimeIOException(String.format("Failed to delete file %s while purging mutable HEAD of object %s." +
+                                throw new UncheckedIOException(String.format("Failed to delete file %s while purging mutable HEAD of object %s." +
                                         " The purge failed and the mutable HEAD may need to be deleted manually.", f, objectId), e);
                             }
                         });
             } catch (IOException e) {
-                throw new RuntimeIOException(String.format("Failed to purge mutable HEAD of object %s at %s. The object may need to be deleted manually.",
+                throw new UncheckedIOException(String.format("Failed to purge mutable HEAD of object %s at %s. The object may need to be deleted manually.",
                         objectId, extensionRoot), e);
             }
         }
@@ -416,7 +416,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             }
             return result.get();
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -437,7 +437,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
             return sidecars.get(0);
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -516,7 +516,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private void copyRootInventorySidecar(ObjectPaths.ObjectRoot objectRoot, ObjectPaths.VersionRoot versionRoot) {
         var rootSidecar = objectRoot.inventorySidecar();
-        QuietFiles.copy(rootSidecar,
+        UncheckedFiles.copy(rootSidecar,
                 versionRoot.path().getParent().resolve("root-" + rootSidecar.getFileName().toString()),
                 StandardCopyOption.REPLACE_EXISTING);
     }
@@ -529,12 +529,12 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
     private Path createRevisionMarker(Inventory inventory, Path revisionsPath) {
-        QuietFiles.createDirectories(revisionsPath);
+        UncheckedFiles.createDirectories(revisionsPath);
         var revision = inventory.getRevisionId().toString();
         try {
             var revisionMarker = Files.createFile(revisionsPath.resolve(revision));
@@ -543,7 +543,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -555,7 +555,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         } catch (IOException e) {
-            throw new RuntimeIOException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -564,13 +564,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private void setupNewObjectDirs(Path objectRootPath) {
-        QuietFiles.createDirectories(objectRootPath);
+        UncheckedFiles.createDirectories(objectRootPath);
         new NamasteTypeFile(ocflVersion.getOcflObjectVersion()).writeFile(objectRootPath);
     }
 
     private void copyInventory(ObjectPaths.HasInventory source, ObjectPaths.HasInventory destination) {
-        QuietFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
-        QuietFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
+        UncheckedFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
+        UncheckedFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void copyInventoryToRootWithRollback(ObjectPaths.HasInventory source, ObjectPaths.ObjectRoot objectRoot, Inventory inventory) {

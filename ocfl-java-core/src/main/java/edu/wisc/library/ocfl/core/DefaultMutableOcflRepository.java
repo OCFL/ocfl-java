@@ -39,7 +39,7 @@ import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor
 import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.QuietFiles;
+import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +101,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         enforceObjectVersionForUpdate(objectVersionId, inventory);
 
         var stagingDir = createStagingDir(objectVersionId);
-        var contentDir = QuietFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
+        var contentDir = UncheckedFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
         var addFileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
@@ -172,7 +172,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
         var stubInventory = createStubInventory(objectId);
         var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
-        QuietFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
+        UncheckedFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
 
         try {
             var inventoryBuilder = Inventory.builder(stubInventory);
