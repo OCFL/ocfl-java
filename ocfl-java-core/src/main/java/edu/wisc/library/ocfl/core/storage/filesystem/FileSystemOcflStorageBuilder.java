@@ -33,7 +33,7 @@ import java.nio.file.Path;
 
 /**
  * Builder for constructing FileSystemOcflStorage objects. It is configured with sensible defaults and can minimally be
- * used as {@code new FileSystemOcflStorageBuilder().build(repoPath).}
+ * used as {@code FileSystemOcflStorage.builder().repositoryRoot(repoRoot).build()}
  */
 public class FileSystemOcflStorageBuilder {
 

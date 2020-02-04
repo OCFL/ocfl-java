@@ -67,7 +67,7 @@ public class FileSystemOcflITest extends OcflITest {
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .storage(new FileSystemOcflStorageBuilder()
+                .storage(FileSystemOcflStorage.builder()
                         .checkNewVersionFixity(true)
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .repositoryRoot(repoDir)
