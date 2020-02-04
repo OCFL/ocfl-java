@@ -119,6 +119,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public Inventory loadInventory(String objectId) {
         ensureOpen();
 
+        LOG.debug("Load inventory for object <{}>", objectId);
+
         Inventory inventory = null;
         var objectRootPathStr = objectRootPath(objectId);
         var objectRootPathAbsolute = repositoryRoot.resolve(objectRootPathStr);
@@ -141,6 +143,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public Stream<String> listObjectIds() {
+        LOG.debug("List object ids");
+
         return FileUtil.findOcflObjectRootDirs(repositoryRoot).map(rootPath -> {
             var relativeRootStr = FileUtil.pathToStringStandardSeparator(repositoryRoot.relativize(rootPath));
             var inventoryPath = ObjectPaths.inventoryPath(rootPath);
@@ -155,6 +159,9 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         ensureOpen();
+
+        LOG.debug("Store new version of object <{}> version <{}> revision <{}> from staging directory <{}>",
+                inventory.getId(), inventory.getHead(), inventory.getRevisionId(), stagingDir);
 
         var objectRootPath = objectRootPathFull(inventory.getId());
         var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
@@ -172,6 +179,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     @Override
     public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
         ensureOpen();
+
+        LOG.debug("Get file streams for object <{}> version <{}>", inventory.getId(), versionId);
 
         var objectRootPath = objectRootPathFull(inventory.getId());
         var version = inventory.ensureVersion(versionId);
@@ -196,6 +205,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
         ensureOpen();
+
+        LOG.debug("Reconstruct object <{}> version <{}> in directory <{}>", inventory.getId(), versionId, stagingDir);
 
         var objectRootPath = objectRootPathFull(inventory.getId());
         var version = inventory.ensureVersion(versionId);
@@ -237,6 +248,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public void purgeObject(String objectId) {
         ensureOpen();
 
+        LOG.info("Purge object <{}>", objectId);
+
         var objectRootPath = objectRootPathFull(objectId);
 
         if (Files.exists(objectRootPath)) {
@@ -263,6 +276,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     @Override
     public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
         ensureOpen();
+
+        LOG.debug("Commit mutable HEAD on object <{}>", newInventory.getId());
 
         var objectRootPath = objectRootPathFull(newInventory.getId());
         var objectRoot = ObjectPaths.objectRoot(newInventory, objectRootPath);
@@ -314,6 +329,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public void purgeMutableHead(String objectId) {
         ensureOpen();
 
+        LOG.info("Purge mutable HEAD on object <{}>", objectId);
+
         var objectRootPath = objectRootPathFull(objectId);
         var extensionRoot = ObjectPaths.mutableHeadExtensionRoot(objectRootPath);
 
@@ -342,7 +359,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public boolean containsObject(String objectId) {
         ensureOpen();
 
-        return Files.exists(ObjectPaths.inventoryPath(objectRootPathFull(objectId)));
+        var exists = Files.exists(ObjectPaths.inventoryPath(objectRootPathFull(objectId)));
+
+        LOG.debug("OCFL repository contains object <{}>: {}", objectId, exists);
+
+        return exists;
     }
 
     /**
@@ -352,7 +373,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public String objectRootPath(String objectId) {
         ensureOpen();
 
-        return objectIdPathMapper.map(objectId);
+        var objectRootPath = objectIdPathMapper.map(objectId);
+
+        LOG.debug("Object root path for object <{}>: {}", objectId, objectRootPath);
+
+        return objectRootPath;
     }
 
     /**
@@ -368,6 +393,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public void close() {
+        LOG.debug("Closing " + this.getClass().getName());
         parallelProcess.shutdown();
     }
 

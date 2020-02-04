@@ -194,7 +194,7 @@ public class CloudOcflStorageInitializer {
     private ObjectIdPathMapper initNewRepo(OcflVersion ocflVersion, LayoutConfig layoutConfig) {
         Enforce.notNull(layoutConfig, "layoutConfig cannot be null when initializing a new repo");
 
-        LOG.info("Initializing new OCFL repository in the bucket {}", cloudClient.bucket());
+        LOG.info("Initializing new OCFL repository in the bucket <{}> prefix <{}>", cloudClient.bucket(), cloudClient.prefix());
 
         var keys = new ArrayList<String>();
 

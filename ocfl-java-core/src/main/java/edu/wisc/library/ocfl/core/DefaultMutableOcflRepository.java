@@ -91,6 +91,8 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
 
+        LOG.debug("Stage changes to object <{}>", objectVersionId.getObjectId());
+
         var inventory = loadInventory(objectVersionId);
 
         if (inventory == null) {
@@ -126,6 +128,8 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
+        LOG.debug("Commit staged changes on object <{}>", objectId);
+
         var inventory = requireInventory(ObjectVersionId.head(objectId));
 
         if (inventory.hasMutableHead()) {
@@ -152,6 +156,8 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
+        LOG.info("Purge staged changes on object <{}>", objectId);
+
         objectLock.doInWriteLock(objectId, () -> storage.purgeMutableHead(objectId));
     }
 
@@ -163,6 +169,9 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         ensureOpen();
         // TODO return false if object does not exist?
         Enforce.notBlank(objectId, "objectId cannot be blank");
+
+        LOG.debug("Check if object <{}> has staged changes", objectId);
+
         var inventory = requireInventory(ObjectVersionId.head(objectId));
         return inventory.hasMutableHead();
     }

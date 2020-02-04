@@ -91,6 +91,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
+        LOG.debug("Add <{}> to object <{}> at logical path <{}>", sourcePath, inventory.getId(), destinationPath);
+
         var newStagedFiles = addFileProcessor.processPath(sourcePath, destinationPath, ocflOptions);
         stagedFileMap.putAll(newStagedFiles);
 
@@ -104,6 +106,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     public OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notNull(input, "input cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
+
+        LOG.debug("Write stream to object <{}> at logical path <{}>", inventory.getId(), destinationPath);
 
         var tempPath = stagingDir.resolve(UUID.randomUUID().toString());
         var digestInput = wrapInDigestInputStream(input);
@@ -137,6 +141,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     public OcflObjectUpdater removeFile(String path) {
         Enforce.notBlank(path, "path cannot be blank");
 
+        LOG.debug("Remove <{}> from object <{}>", path, inventory.getId());
+
         var results = inventoryUpdater.removeFile(path);
         removeUnneededStagedFiles(results);
 
@@ -150,6 +156,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     public OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
+
+        LOG.debug("Rename file in object <{}> from <{}> to <{}>", inventory.getId(), sourcePath, destinationPath);
 
         var results = inventoryUpdater.renameFile(sourcePath, destinationPath, ocflOptions);
         removeUnneededStagedFiles(results);
@@ -166,6 +174,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
+        LOG.debug("Reinstate file at <{}> in object <{}> to <{}>", sourcePath, sourceVersionId, destinationPath);
+
         var results = inventoryUpdater.reinstateFile(sourceVersionId, sourcePath, destinationPath, ocflOptions);
         removeUnneededStagedFiles(results);
 
@@ -177,6 +187,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      */
     @Override
     public OcflObjectUpdater clearVersionState() {
+        LOG.debug("Clear current version state in object <{}>", inventory.getId());
         inventoryUpdater.clearState();
         return this;
     }
@@ -189,6 +200,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notBlank(logicalPath, "logicalPath cannot be blank");
         Enforce.notNull(algorithm, "algorithm cannot be null");
         Enforce.notBlank(value, "value cannot be null");
+
+        LOG.debug("Add file fixity for file <{}> in object <{}>: Algorithm: {}; Value: {}",
+                logicalPath, inventory.getId(), algorithm.getOcflName(), value);
 
         var digest = inventoryUpdater.getFixityDigest(logicalPath, algorithm);
         var alreadyExists = true;
@@ -228,6 +242,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      */
     @Override
     public OcflObjectUpdater clearFixityBlock() {
+        LOG.info("Clear fixity block in object <{}>", inventory.getId());
         inventoryUpdater.clearFixity();
         return this;
     }

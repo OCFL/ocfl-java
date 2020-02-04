@@ -143,6 +143,8 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
+        LOG.debug("Putting object at <{}> into OCFL repo under id <{}>", path, objectVersionId.getObjectId());
+
         var inventory = loadInventoryWithDefault(objectVersionId);
         ensureNoMutableHead(inventory);
         enforceObjectVersionForUpdate(objectVersionId, inventory);
@@ -174,6 +176,8 @@ public class DefaultOcflRepository implements OcflRepository {
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
+
+        LOG.debug("Update object <{}>", objectVersionId.getObjectId());
 
         var inventory = loadInventoryWithDefault(objectVersionId);
         ensureNoMutableHead(inventory);
@@ -209,6 +213,8 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.expressionTrue(Files.exists(outputPath.getParent()), outputPath, "outputPath parent must exist");
         Enforce.expressionTrue(Files.isDirectory(outputPath.getParent()), outputPath, "outputPath parent must be a directory");
 
+        LOG.debug("Get object <{}> and copy to <{}>", objectVersionId, outputPath);
+
         var inventory = requireInventory(objectVersionId);
         requireVersion(objectVersionId, inventory);
         var versionId = resolveVersion(objectVersionId, inventory);
@@ -224,6 +230,8 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
+
+        LOG.debug("Get object <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
         requireVersion(objectVersionId, inventory);
@@ -252,6 +260,8 @@ public class DefaultOcflRepository implements OcflRepository {
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
+        LOG.debug("Describe object <{}>", objectId);
+
         var inventory = requireInventory(ObjectVersionId.head(objectId));
 
         return responseMapper.mapInventory(inventory);
@@ -265,6 +275,8 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
+
+        LOG.debug("Describe version <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
         requireVersion(objectVersionId, inventory);
@@ -282,6 +294,8 @@ public class DefaultOcflRepository implements OcflRepository {
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
         Enforce.notBlank(logicalPath, "logicalPath cannot be blank");
+
+        LOG.debug("Get file change history for object <{}> logical path <{}>", objectId, logicalPath);
 
         var inventory = requireInventory(ObjectVersionId.head(objectId));
         var changeHistory = responseMapper.fileChangeHistory(inventory, logicalPath);
@@ -301,6 +315,9 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
+
+        LOG.debug("Contains object <{}>", objectId);
+
         return storage.containsObject(objectId);
     }
 
@@ -313,6 +330,8 @@ public class DefaultOcflRepository implements OcflRepository {
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
+        LOG.info("Purge object <{}>", objectId);
+
         objectLock.doInWriteLock(objectId, () -> storage.purgeObject(objectId));
     }
 
@@ -323,6 +342,8 @@ public class DefaultOcflRepository implements OcflRepository {
     public Stream<String> listObjectIds() {
         ensureOpen();
 
+        LOG.debug("List object ids");
+
         return storage.listObjectIds();
     }
 
@@ -331,6 +352,8 @@ public class DefaultOcflRepository implements OcflRepository {
      */
     @Override
     public void close() {
+        LOG.debug("Close OCFL repository");
+
         closed = true;
         parallelProcess.shutdown();
         copyParallelProcess.shutdown();

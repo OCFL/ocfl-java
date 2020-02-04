@@ -127,6 +127,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public Inventory loadInventory(String objectId) {
         ensureOpen();
 
+        LOG.debug("Load inventory for object <{}>", objectId);
+
         var objectRootPath = objectRootPath(objectId);
         var tempDir = FileUtil.createTempDir(workDir, objectId);
         var localInventoryPath = tempDir.resolve(OcflConstants.INVENTORY_FILE);
@@ -152,6 +154,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     @Override
     public Stream<String> listObjectIds() {
         // TODO
+        LOG.debug("List object ids");
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
@@ -161,6 +164,9 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     @Override
     public void storeNewVersion(Inventory inventory, Path stagingDir) {
         ensureOpen();
+
+        LOG.debug("Store new version of object <{}> version <{}> revision <{}> from staging directory <{}>",
+                inventory.getId(), inventory.getHead(), inventory.getRevisionId(), stagingDir);
 
         if (inventory.hasMutableHead()) {
             storeNewMutableHeadVersion(inventory, stagingDir);
@@ -175,6 +181,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     @Override
     public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
         ensureOpen();
+
+        LOG.debug("Get file streams for object <{}> version <{}>", inventory.getId(), versionId);
 
         var version = inventory.ensureVersion(versionId);
         var algorithm = inventory.getDigestAlgorithm();
@@ -197,6 +205,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     @Override
     public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
         ensureOpen();
+
+        LOG.debug("Reconstruct object <{}> version <{}> in directory <{}>", inventory.getId(), versionId, stagingDir);
 
         var version = inventory.ensureVersion(versionId);
         var digestAlgorithm = inventory.getDigestAlgorithm();
@@ -236,6 +246,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public void purgeObject(String objectId) {
         ensureOpen();
 
+        LOG.info("Purge object <{}>", objectId);
+
         cloudClient.deletePath(objectRootPath(objectId));
     }
 
@@ -245,6 +257,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     @Override
     public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
         ensureOpen();
+
+        LOG.debug("Commit mutable HEAD on object <{}>", newInventory.getId());
 
         ensureRootObjectHasNotChanged(newInventory);
 
@@ -280,6 +294,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public void purgeMutableHead(String objectId) {
         ensureOpen();
 
+        LOG.info("Purge mutable HEAD on object <{}>", objectId);
+
         cloudClient.deletePath(ObjectPaths.mutableHeadExtensionRoot(objectRootPath(objectId)));
     }
 
@@ -290,7 +306,11 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public boolean containsObject(String objectId) {
         ensureOpen();
 
-        return !cloudClient.listDirectory(objectRootPath(objectId)).getObjects().isEmpty();
+        var exists = !cloudClient.listDirectory(objectRootPath(objectId)).getObjects().isEmpty();
+
+        LOG.debug("OCFL repository contains object <{}>: {}", objectId, exists);
+
+        return exists;
     }
 
     /**
@@ -300,7 +320,11 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public String objectRootPath(String objectId) {
         ensureOpen();
 
-        return objectIdPathMapper.map(objectId);
+        var objectRootPath = objectIdPathMapper.map(objectId);
+
+        LOG.debug("Object root path for object <{}>: {}", objectId, objectRootPath);
+
+        return objectRootPath;
     }
 
     /**
@@ -316,6 +340,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public void close() {
+        LOG.debug("Closing " + this.getClass().getName());
         parallelProcess.shutdown();
     }
 
