@@ -12,7 +12,7 @@ jobs:
       language: shell
       before_install:
         - choco install openjdk11 -y
-        - refreshenv
+        - powershell -Command Update-SessionEnvironment
 
 install: true
 script: ./mvnw clean install
