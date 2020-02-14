@@ -1,8 +1,18 @@
 language: java
-jdk: openjdk11
+
 sudo: false
 cache:
   directories:
   - $HOME/.m2
-install: true
-script: mvn clean install
+
+jobs:
+  include:
+    - os: linux
+      jdk: openjdk11
+    - os: windows
+      language: generic
+
+install:
+  - ./.travis/install.sh
+
+script: ./mvnw clean install
