@@ -1,6 +1,6 @@
 language: java
 
-sudo: false
+filter_secrets: false
 cache:
   directories:
   - $HOME/.m2
@@ -11,7 +11,6 @@ jobs:
       jdk: openjdk11
     - os: windows
       language: generic
-      filter_secrets: false
       before_install:
         - choco install openjdk11 -y
 
