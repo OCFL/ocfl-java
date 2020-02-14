@@ -11,8 +11,8 @@ jobs:
       jdk: openjdk11
     - os: windows
       language: generic
+      before_install:
+        - choco install openjdk11 -y
 
-install:
-  - ./.travis/install.sh
-
+install: true
 script: ./mvnw clean install
