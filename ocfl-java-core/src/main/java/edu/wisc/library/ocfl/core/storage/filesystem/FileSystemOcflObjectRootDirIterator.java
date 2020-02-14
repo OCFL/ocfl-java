@@ -43,10 +43,8 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
 
     @Override
     protected boolean isObjectRoot(String path) {
-        try {
-            var objectMarkers = Files.newDirectoryStream(Paths.get(path), p -> {
-                return p.getFileName().toString().startsWith(OCFL_OBJECT_MARKER_PREFIX);
-            });
+        try (var objectMarkers = Files.newDirectoryStream(Paths.get(path),
+                p -> p.getFileName().toString().startsWith(OCFL_OBJECT_MARKER_PREFIX))) {
             return objectMarkers.iterator().hasNext();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
