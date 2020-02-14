@@ -8,11 +8,11 @@ jobs:
   include:
     - os: linux
       jdk: openjdk11
-#    - os: windows
-#      language: shell
-#      before_install:
-#        - choco install openjdk11 -y
-#        - powershell -Command Update-SessionEnvironment
+    - os: windows
+      language: shell
+      before_install:
+        - choco install openjdk11 -y
+        - cmd.exe //c "RefreshEnv.cmd"
 
 install: true
 script: ./mvnw clean install
