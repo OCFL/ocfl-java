@@ -43,11 +43,10 @@ public class FileSystemOcflITest extends OcflITest {
             updater.writeFile(inputStream("test3"), "test3.txt");
         });
 
-        var objectIdsStream = repo.listObjectIds();
-
-        var objectIds = objectIdsStream.collect(Collectors.toList());
-
-        assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
+        try (var objectIdsStream = repo.listObjectIds()) {
+            var objectIds = objectIdsStream.collect(Collectors.toList());
+            assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
+        }
     }
 
     @Override
