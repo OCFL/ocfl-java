@@ -1,6 +1,5 @@
 language: java
 
-filter_secrets: false
 cache:
   directories:
   - $HOME/.m2
@@ -13,6 +12,7 @@ jobs:
       language: shell
       before_install:
         - choco install openjdk11 -y
+        - refreshenv
 
 install: true
 script: ./mvnw clean install
