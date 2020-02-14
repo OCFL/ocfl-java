@@ -11,6 +11,7 @@ jobs:
       jdk: openjdk11
     - os: windows
       language: generic
+      filter_secrets: false
       before_install:
         - choco install openjdk11 -y
 
