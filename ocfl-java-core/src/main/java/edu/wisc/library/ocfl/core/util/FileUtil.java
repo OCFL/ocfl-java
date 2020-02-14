@@ -191,8 +191,8 @@ public final class FileUtil {
     }
 
     public static boolean isDirEmpty(Path path) {
-        try {
-            return !Files.newDirectoryStream(path).iterator().hasNext();
+        try (var stream = Files.newDirectoryStream(path)) {
+            return !stream.iterator().hasNext();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
