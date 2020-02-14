@@ -11,6 +11,7 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
@@ -48,7 +49,7 @@ public abstract class OcflITest {
     protected Path inputDir;
     protected Path workDir;
 
-    private CommitInfo defaultCommitInfo;
+    protected CommitInfo defaultCommitInfo;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -66,9 +67,17 @@ public abstract class OcflITest {
         onAfter();
     }
 
-    protected abstract OcflRepository defaultRepo(String name);
+    protected OcflRepository defaultRepo(String name) {
+        return defaultRepo(name, DefaultLayoutConfig.flatUrlConfig());
+    }
 
-    protected abstract OcflRepository existingRepo(String name, Path path);
+    protected abstract OcflRepository defaultRepo(String name, LayoutConfig layoutConfig);
+
+    protected OcflRepository existingRepo(String name, Path path) {
+        return existingRepo(name, path, DefaultLayoutConfig.flatUrlConfig());
+    }
+
+    protected abstract OcflRepository existingRepo(String name, Path path, LayoutConfig layoutConfig);
 
     protected abstract void verifyRepo(String name);
 

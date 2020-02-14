@@ -1,11 +1,12 @@
 package edu.wisc.library.ocfl.itest.filesystem;
 
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
@@ -14,11 +15,11 @@ import edu.wisc.library.ocfl.test.TestHelper;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.*;
+import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
@@ -26,16 +27,21 @@ public class FileSystemOcflITest extends OcflITest {
 
     private Path reposDir;
 
-    // TODO move to base once implemented for cloud
+    // TODO move once this issue is resolved: https://github.com/adobe/S3Mock/issues/215
     @Test
     public void listObjectsInRepo() {
-        var repo = new OcflRepositoryBuilder()
-                .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
-                .workDir(workDir)
-                .storage(FileSystemOcflStorage.builder()
-                        .repositoryRoot(Paths.get("src/test/resources/expected/repos/repo-multiple-objects"))
-                        .build())
-                .build();
+        var repoName = "repo-list";
+        var repo = defaultRepo(repoName, DefaultLayoutConfig.nTupleHashConfig());
+
+        repo.updateObject(ObjectVersionId.head("o1"), defaultCommitInfo, updater -> {
+            updater.writeFile(inputStream("test1"), "test1.txt");
+        });
+        repo.updateObject(ObjectVersionId.head("o2"), defaultCommitInfo, updater -> {
+            updater.writeFile(inputStream("test2"), "test2.txt");
+        });
+        repo.updateObject(ObjectVersionId.head("o3"), defaultCommitInfo, updater -> {
+            updater.writeFile(inputStream("test3"), "test3.txt");
+        });
 
         var objectIdsStream = repo.listObjectIds();
 
@@ -50,13 +56,13 @@ public class FileSystemOcflITest extends OcflITest {
     }
 
     @Override
-    protected OcflRepository defaultRepo(String name) {
+    protected OcflRepository defaultRepo(String name, LayoutConfig layoutConfig) {
         var repoDir = UncheckedFiles.createDirectories(repoDir(name));
-        return existingRepo(name, null);
+        return existingRepo(name, null, layoutConfig);
     }
 
     @Override
-    protected OcflRepository existingRepo(String name, Path path) {
+    protected OcflRepository existingRepo(String name, Path path, LayoutConfig layoutConfig) {
         var repoDir = repoDir(name);
 
         if (path != null) {
@@ -64,7 +70,7 @@ public class FileSystemOcflITest extends OcflITest {
         }
 
         var repo = new OcflRepositoryBuilder()
-                .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
+                .layoutConfig(layoutConfig)
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .storage(FileSystemOcflStorage.builder()

@@ -61,6 +61,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * {@link OcflStorage} implementation for integrating with cloud storage providers. {@link CloudClient} implementation
@@ -153,9 +154,12 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public Stream<String> listObjectIds() {
-        // TODO
         LOG.debug("List object ids");
-        throw new UnsupportedOperationException("Not yet implemented");
+
+        return findOcflObjectRootDirs("").map(objectRoot -> {
+            var inventory = streamInventory(objectRoot);
+            return inventory.getId();
+        });
     }
 
     /**
@@ -546,6 +550,11 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
     }
 
+    private Inventory streamInventory(String objectRootPath) {
+        var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
+        return inventoryMapper.read(objectRootPath, cloudClient.downloadStream(inventoryPath));
+    }
+
     private String createRevisionMarker(Inventory inventory) {
         var revision = inventory.getRevisionId().toString();
         var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadRevisionsPath(inventory.getObjectRootPath()), revision);
@@ -595,6 +604,19 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
 
         return inventory.getHead().toString();
+    }
+
+    private Stream<String> findOcflObjectRootDirs(String start) {
+        var iterator = new CloudOcflObjectRootDirIterator(start, cloudClient);
+        try {
+            var spliterator = Spliterators.spliteratorUnknownSize(iterator,
+                    Spliterator.ORDERED | Spliterator.IMMUTABLE | Spliterator.DISTINCT);
+            return StreamSupport.stream(spliterator, false)
+                    .onClose(iterator::close);
+        } catch (RuntimeException e) {
+            iterator.close();
+            throw e;
+        }
     }
 
     private void ensureNoMutableHead(Inventory inventory) {

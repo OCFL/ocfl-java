@@ -37,8 +37,6 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public final class FileUtil {
 
@@ -131,26 +129,6 @@ public final class FileUtil {
             });
         } catch (IOException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    /**
-     * Iterates over the directories under an OCFL storage root looking for object root directories. Object root directories
-     * are detected by the presence of a file that's prefixed with '0=ocfl_object'.
-     *
-     * @param start the OCFL storage root
-     * @return stream of paths to OCFL object roots
-     */
-    public static Stream<Path> findOcflObjectRootDirs(Path start) {
-        var iterator = new OcflObjectRoodDirIterator(start);
-        try {
-            var spliterator = Spliterators.spliteratorUnknownSize(iterator,
-                    Spliterator.ORDERED | Spliterator.IMMUTABLE | Spliterator.DISTINCT);
-            return StreamSupport.stream(spliterator, false)
-                    .onClose(iterator::close);
-        } catch (RuntimeException e) {
-            iterator.close();
-            throw e;
         }
     }
 

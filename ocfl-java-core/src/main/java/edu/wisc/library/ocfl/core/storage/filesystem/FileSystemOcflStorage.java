@@ -53,13 +53,12 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.*;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class FileSystemOcflStorage extends AbstractOcflStorage {
 
@@ -145,7 +144,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public Stream<String> listObjectIds() {
         LOG.debug("List object ids");
 
-        return FileUtil.findOcflObjectRootDirs(repositoryRoot).map(rootPath -> {
+        return findOcflObjectRootDirs(repositoryRoot).map(rootPath -> {
             var relativeRootStr = FileUtil.pathToStringStandardSeparator(repositoryRoot.relativize(rootPath));
             var inventoryPath = ObjectPaths.inventoryPath(rootPath);
             var inventory = inventoryMapper.read(relativeRootStr, inventoryPath);
@@ -669,6 +668,20 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         if (!expected.isEmpty()) {
             var filePaths = expected.stream().map(inventory::getContentPath).collect(Collectors.toList());
             throw new CorruptObjectException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
+        }
+    }
+
+    private Stream<Path> findOcflObjectRootDirs(Path start) {
+        var iterator = new FileSystemOcflObjectRootDirIterator(start);
+        try {
+            var spliterator = Spliterators.spliteratorUnknownSize(iterator,
+                    Spliterator.ORDERED | Spliterator.IMMUTABLE | Spliterator.DISTINCT);
+            return StreamSupport.stream(spliterator, false)
+                    .map(Paths::get)
+                    .onClose(iterator::close);
+        } catch (RuntimeException e) {
+            iterator.close();
+            throw e;
         }
     }
 
