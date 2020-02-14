@@ -10,7 +10,7 @@ jobs:
     - os: linux
       jdk: openjdk11
     - os: windows
-      language: generic
+      language: shell
       before_install:
         - choco install openjdk11 -y
 
