@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -49,13 +50,13 @@ public class InventoryMapperTest {
     }
 
     private String readFile(String name) throws IOException {
-        return new String(Files.readAllBytes(Paths.get("src/test/resources/other", name)));
+        return Files.readString(Paths.get("src/test/resources/other", name), StandardCharsets.UTF_8);
     }
 
     private String writeInventoryToString(Inventory inventory) {
         var outputStream = new ByteArrayOutputStream();
         mapper.write(outputStream, inventory);
-        return new String(outputStream.toByteArray());
+        return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
     }
 
 }
