@@ -1,5 +1,8 @@
 language: java
 
+git:
+  autocrlf: false
+
 cache:
   directories:
   - $HOME/.m2
