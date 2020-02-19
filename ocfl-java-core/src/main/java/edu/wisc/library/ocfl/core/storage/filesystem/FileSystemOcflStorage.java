@@ -52,8 +52,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -405,27 +413,34 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             // TODO if there's not root inventory should we look for the inventory in the latest version directory?
             throw new CorruptObjectException("Missing inventory at " + inventoryPath);
         }
-        verifyInventory(inventoryPath);
-        return inventoryMapper.read(objectRootPath, inventoryPath);
+
+        try (var inventoryStream = inventoryVerifyingInputStream(inventoryPath)) {
+            var inventory = inventoryMapper.read(objectRootPath, inventoryStream);
+            inventoryStream.checkFixity();
+            return inventory;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private Inventory parseMutableHeadInventory(String objectRootPath, Path objectRootPathAbsolute, Path inventoryPath) {
-        verifyInventory(inventoryPath);
         var revisionId = identifyLatestRevision(objectRootPathAbsolute);
-        return inventoryMapper.readMutableHead(objectRootPath, revisionId, inventoryPath);
+
+        try (var inventoryStream = inventoryVerifyingInputStream(inventoryPath)) {
+            var inventory = inventoryMapper.readMutableHead(objectRootPath, revisionId, inventoryStream);
+            inventoryStream.checkFixity();
+            return inventory;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
-    private void verifyInventory(Path inventoryPath) {
+    private FixityCheckInputStream inventoryVerifyingInputStream(Path inventoryPath) throws IOException {
         var sidecarPath = findInventorySidecar(inventoryPath.getParent());
         var expectedDigest = sidecarMapper.readSidecar(sidecarPath);
         var algorithm = sidecarMapper.getDigestAlgorithmFromSidecar(FileUtil.pathToStringStandardSeparator(sidecarPath));
 
-        var actualDigest = DigestUtil.computeDigestHex(algorithm, inventoryPath);
-
-        if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-            throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
-                    inventoryPath, algorithm.getOcflName(), expectedDigest, actualDigest));
-        }
+        return new FixityCheckInputStream(Files.newInputStream(inventoryPath), algorithm, expectedDigest);
     }
 
     private RevisionId identifyLatestRevision(Path objectRootPath) {

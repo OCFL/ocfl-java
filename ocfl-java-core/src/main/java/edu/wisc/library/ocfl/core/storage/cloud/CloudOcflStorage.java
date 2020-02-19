@@ -58,7 +58,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -135,12 +141,12 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var localInventoryPath = tempDir.resolve(OcflConstants.INVENTORY_FILE);
 
         try {
-            var inventory = downloadAndParseMutableInventory(objectRootPath, localInventoryPath);
+            var inventory = downloadAndVerifyMutableInventory(objectRootPath, localInventoryPath);
 
             if (inventory != null) {
                 ensureRootObjectHasNotChanged(inventory);
             } else {
-                inventory = downloadAndParseInventory(objectRootPath, localInventoryPath);
+                inventory = downloadAndVerifyInventory(objectRootPath, localInventoryPath);
             }
 
             return inventory;
@@ -157,7 +163,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         LOG.debug("List object ids");
 
         return findOcflObjectRootDirs("").map(objectRoot -> {
-            var inventory = streamInventory(objectRoot);
+            var inventory = downloadInventory(objectRoot);
             return inventory.getId();
         });
     }
@@ -523,7 +529,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                 FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()), "root-" + sidecarName)).getPath();
     }
 
-    private Inventory downloadAndParseInventory(String objectRootPath, Path localPath) {
+    private Inventory downloadAndVerifyInventory(String objectRootPath, Path localPath) {
         try {
             var remotePath = ObjectPaths.inventoryPath(objectRootPath);
             cloudClient.downloadFile(remotePath, localPath);
@@ -536,7 +542,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private Inventory downloadAndParseMutableInventory(String objectRootPath, Path localPath) {
+    private Inventory downloadAndVerifyMutableInventory(String objectRootPath, Path localPath) {
         try {
             var remotePath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
             cloudClient.downloadFile(remotePath, localPath);
@@ -550,9 +556,13 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private Inventory streamInventory(String objectRootPath) {
+    private Inventory downloadInventory(String objectRootPath) {
         var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
-        return inventoryMapper.read(objectRootPath, cloudClient.downloadStream(inventoryPath));
+        try (var stream = cloudClient.downloadStream(inventoryPath)) {
+            return inventoryMapper.read(objectRootPath, stream);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private String createRevisionMarker(Inventory inventory) {
