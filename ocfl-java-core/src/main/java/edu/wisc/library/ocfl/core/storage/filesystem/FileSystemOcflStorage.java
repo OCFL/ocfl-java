@@ -47,21 +47,17 @@ import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
+import net.jodah.failsafe.Failsafe;
+import net.jodah.failsafe.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.nio.file.*;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -82,6 +78,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     private boolean checkNewVersionFixity;
 
     private ObjectIdPathMapper objectIdPathMapper;
+
+    /**
+     * This retry policy is used for retrying IO operations
+     */
+    private RetryPolicy<Void> ioRetry;
 
     /**
      * Create a new builder.
@@ -117,6 +118,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
         this.logicalPathConstraints = PathConstraints.logicalPathConstraints();
         this.sidecarMapper = new SidecarMapper();
+        this.ioRetry = new RetryPolicy<Void>()
+                .handle(UncheckedIOException.class, IOException.class)
+                .withBackoff(50, 200, ChronoUnit.MILLIS, 1.5)
+                .withJitter(Duration.ofMillis(10))
+                .withMaxRetries(5);
     }
 
     /**
@@ -307,7 +313,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             try {
                 // The inventory is written to the root first so that the mutable version can be recovered if the write fails
                 copyInventoryToRootWithRollback(stagingRoot, objectRoot, newInventory);
-                // TODO this is still slightly dangerous if one file succeeds and the other fails...
                 copyInventory(stagingRoot, versionRoot);
             } catch (RuntimeException e) {
                 try {
@@ -609,13 +614,14 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private void copyInventory(ObjectPaths.HasInventory source, ObjectPaths.HasInventory destination) {
-        UncheckedFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
-        UncheckedFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
+        Failsafe.with(ioRetry).run(() -> {
+            UncheckedFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
+            UncheckedFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
+        });
     }
 
     private void copyInventoryToRootWithRollback(ObjectPaths.HasInventory source, ObjectPaths.ObjectRoot objectRoot, Inventory inventory) {
         try {
-            // TODO need retry logic
             copyInventory(source, objectRoot);
         } catch (RuntimeException e) {
             if (!isFirstVersion(inventory)) {

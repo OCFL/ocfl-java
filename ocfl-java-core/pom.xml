@@ -113,10 +113,14 @@
             <artifactId>bytes</artifactId>
         </dependency>
 
-        <!-- Guava -->
+        <!-- Util -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.jodah</groupId>
+            <artifactId>failsafe</artifactId>
         </dependency>
 
         <!-- Test -->

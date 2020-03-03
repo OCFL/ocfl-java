@@ -27,6 +27,7 @@ module edu.wisc.library.ocfl.core {
     requires com.github.benmanes.caffeine;
     requires com.google.common;
     requires edu.wisc.library.ocfl.api;
+    requires failsafe;
     requires java.naming;
     requires java.sql;
     requires org.slf4j;
