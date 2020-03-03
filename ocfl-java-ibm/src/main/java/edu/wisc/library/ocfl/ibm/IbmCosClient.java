@@ -44,9 +44,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -171,7 +168,7 @@ public class IbmCosClient implements CloudClient {
         var metadata = new ObjectMetadata();
         metadata.setContentMD5(md5Base64);
 
-        var request = new PutObjectRequest(bucket, encodeKey(dstKey.getKey()), srcPath.toFile()).withMetadata(metadata);
+        var request = new PutObjectRequest(bucket, dstKey.getKey(), srcPath.toFile()).withMetadata(metadata);
 
         if (fileSize > MAX_PART_BYTES) {
             try {
@@ -197,7 +194,7 @@ public class IbmCosClient implements CloudClient {
         metadata.setContentType(contentType);
         metadata.setContentLength(bytes.length);
 
-        s3Client.putObject(new PutObjectRequest(bucket, encodeKey(dstKey.getKey()), new ByteArrayInputStream(bytes), metadata));
+        s3Client.putObject(new PutObjectRequest(bucket, dstKey.getKey(), new ByteArrayInputStream(bytes), metadata));
 
         return dstKey;
     }
@@ -212,7 +209,7 @@ public class IbmCosClient implements CloudClient {
         LOG.debug("Copying {} to {} in bucket {}", srcKey, dstKey, bucket);
 
         try {
-            s3Client.copyObject(bucket, encodeKey(srcKey.getKey()), bucket, encodeKey(dstKey.getKey()));
+            s3Client.copyObject(bucket, srcKey.getKey(), bucket, dstKey.getKey());
         } catch (AmazonS3Exception e) {
             if (NO_SUCH_KEY.equals(e.getErrorCode())) {
                 throw new KeyNotFoundException(e);
@@ -221,7 +218,7 @@ public class IbmCosClient implements CloudClient {
         } catch (SdkClientException e) {
             // TODO verify class and message
             if (e.getMessage().contains("copy source is larger than the maximum allowable size")) {
-                transferManager.copy(bucket, encodeKey(srcKey.getKey()), bucket, encodeKey(dstKey.getKey()));
+                transferManager.copy(bucket, srcKey.getKey(), bucket, dstKey.getKey());
             } else {
                 throw e;
             }
@@ -239,7 +236,7 @@ public class IbmCosClient implements CloudClient {
         LOG.debug("Downloading bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
-            s3Client.getObject(new GetObjectRequest(bucket, encodeKey(srcKey.getKey())), dstPath.toFile());
+            s3Client.getObject(new GetObjectRequest(bucket, srcKey.getKey()), dstPath.toFile());
         } catch (AmazonS3Exception e) {
             if (NO_SUCH_KEY.equals(e.getErrorCode())) {
                 throw new KeyNotFoundException(e);
@@ -259,7 +256,7 @@ public class IbmCosClient implements CloudClient {
         LOG.debug("Streaming bucket {} key {}", bucket, srcKey);
 
         try {
-            return s3Client.getObject(bucket, encodeKey(srcKey.getKey())).getObjectContent();
+            return s3Client.getObject(bucket, srcKey.getKey()).getObjectContent();
         } catch (AmazonS3Exception e) {
             if (NO_SUCH_KEY.equals(e.getErrorCode())) {
                 throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", srcKey, bucket), e);
@@ -284,7 +281,7 @@ public class IbmCosClient implements CloudClient {
      */
     public ListResult list(String prefix) {
         var prefixedPrefix = keyBuilder.buildFromPath(prefix);
-        return toListResult(s3Client.listObjectsV2(bucket, encodeKey(prefixedPrefix.getKey())));
+        return toListResult(s3Client.listObjectsV2(bucket, prefixedPrefix.getKey()));
     }
 
     /**
@@ -301,7 +298,7 @@ public class IbmCosClient implements CloudClient {
 
         return toListResult(s3Client.listObjectsV2(new ListObjectsV2Request()
                 .withBucketName(bucket)
-                .withPrefix(encodeKey(prefix))
+                .withPrefix(prefix)
                 .withDelimiter("/")));
     }
 
@@ -334,7 +331,7 @@ public class IbmCosClient implements CloudClient {
 
         if (!objectKeys.isEmpty()) {
             s3Client.deleteObjects(new DeleteObjectsRequest(bucket)
-                    .withKeys(encodeKeys(objectKeys).toArray(String[]::new)));
+                    .withKeys(objectKeys.stream().map(CloudObjectKey::getKey).toArray(String[]::new)));
         }
     }
 
@@ -372,18 +369,17 @@ public class IbmCosClient implements CloudClient {
     }
 
     private ListResult toListResult(ListObjectsV2Result s3Result) {
-        var prefixLength = s3Result.getPrefix() == null ? 0 : decodeKey(s3Result.getPrefix()).length();
+        var prefixLength = s3Result.getPrefix() == null ? 0 : s3Result.getPrefix().length();
         var repoPrefixLength = repoPrefix.isBlank() ? 0 : repoPrefix.length() + 1;
 
         var objects = s3Result.getObjectSummaries().stream().map(o -> {
-            var key = decodeKey(o.getKey());
+            var key = o.getKey();
             return new ListResult.ObjectListing()
                     .setKey(keyBuilder.buildFromKey(key))
                     .setKeySuffix(key.substring(prefixLength));
         }).collect(Collectors.toList());
 
-        var dirs = s3Result.getCommonPrefixes().stream().map(p -> {
-            var path = decodeKey(p);
+        var dirs = s3Result.getCommonPrefixes().stream().map(path -> {
             return new ListResult.DirectoryListing()
                     .setPath(path.substring(repoPrefixLength));
         }).collect(Collectors.toList());
@@ -391,32 +387,6 @@ public class IbmCosClient implements CloudClient {
         return new ListResult()
                 .setObjects(objects)
                 .setDirectories(dirs);
-    }
-
-    private Collection<String> encodeKeys(Collection<CloudObjectKey> keys) {
-        return keys.stream().map(CloudObjectKey::getKey).map(this::encodeKey).collect(Collectors.toList());
-    }
-
-    private String encodeKey(String key) {
-        var parts = key.split("/");
-        var builder = new StringBuilder();
-
-        for (var i = 0; i < parts.length; i++) {
-            builder.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8));
-            if (i < parts.length - 1) {
-                builder.append("/");
-            }
-        }
-
-        if (key.endsWith("/")) {
-            builder.append("/");
-        }
-
-        return builder.toString();
-    }
-
-    private String decodeKey(String encodedKey) {
-        return URLDecoder.decode(encodedKey, StandardCharsets.UTF_8);
     }
 
     public static class Builder {

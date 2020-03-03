@@ -615,6 +615,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private void copyInventoryToRootWithRollback(ObjectPaths.HasInventory source, ObjectPaths.ObjectRoot objectRoot, Inventory inventory) {
         try {
+            // TODO need retry logic
             copyInventory(source, objectRoot);
         } catch (RuntimeException e) {
             if (!isFirstVersion(inventory)) {
