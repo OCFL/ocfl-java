@@ -69,9 +69,7 @@ public class CancellableCompletionService<T> extends ExecutorCompletionService<T
             } catch (ExecutionException e) {
                 // TODO rethrowing the cause loses the stack trace
                 LOG.info("Exception in processing thread", e);
-                futures.forEach(future -> {
-                    future.cancel(true);
-                });
+                cancelFutures();
                 throw (RuntimeException) e.getCause();
             }
         }
@@ -88,14 +86,28 @@ public class CancellableCompletionService<T> extends ExecutorCompletionService<T
             } catch (ExecutionException e) {
                 // TODO rethrowing the cause loses the stack trace
                 LOG.info("Exception in processing thread", e);
-                futures.forEach(future -> {
-                    future.cancel(true);
-                });
+                cancelFutures();
                 throw (RuntimeException) e.getCause();
             }
         }
 
         return results;
+    }
+
+    private void cancelFutures() {
+        try {
+            futures.forEach(future -> future.cancel(true));
+            // Wait for all of the futures to complete. This is slower, but will avoid some bugs.
+            futures.forEach(future -> {
+                try {
+                    future.get();
+                } catch (Exception e) {
+                    // Ignore
+                }
+            });
+        } catch (RuntimeException e) {
+            // Ignore
+        }
     }
 
 }
