@@ -34,6 +34,7 @@ public class ObjectDetails {
 
     private String id;
     private VersionId headVersionId;
+    private DigestAlgorithm digestAlgorithm;
     private Map<VersionId, VersionDetails> versions;
 
     public ObjectDetails() {
@@ -76,6 +77,18 @@ public class ObjectDetails {
     }
 
     /**
+     * The digest algorithm used to identify files within the OCFL object
+     */
+    public DigestAlgorithm getDigestAlgorithm() {
+        return digestAlgorithm;
+    }
+
+    public ObjectDetails setDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
+        this.digestAlgorithm = digestAlgorithm;
+        return this;
+    }
+
+    /**
      * Map of version id to version details for all of the versions of the object.
      *
      * @return map of all of the object's versions
@@ -104,6 +117,7 @@ public class ObjectDetails {
         return "ObjectDetails{" +
                 "id='" + id + '\'' +
                 ", headVersionId='" + headVersionId + '\'' +
+                ", digestAlgorithm='" + digestAlgorithm + '\'' +
                 ", versions=" + versions +
                 '}';
     }

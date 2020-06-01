@@ -40,6 +40,7 @@ public class ResponseMapper {
     public ObjectDetails mapInventory(Inventory inventory) {
         var details = new ObjectDetails()
                 .setId(inventory.getId())
+                .setDigestAlgorithm(inventory.getDigestAlgorithm())
                 .setHeadVersionId(inventory.getHead());
 
         var versionMap = inventory.getVersions().entrySet().stream()

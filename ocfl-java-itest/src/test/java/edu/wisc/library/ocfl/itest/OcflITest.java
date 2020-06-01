@@ -281,6 +281,7 @@ public abstract class OcflITest {
 
         assertEquals(objectId, objectDetails.getId());
         assertEquals(VersionId.fromString("v3"), objectDetails.getHeadVersionId());
+        assertEquals(DigestAlgorithm.sha512, objectDetails.getDigestAlgorithm());
         assertEquals(3, objectDetails.getVersionMap().size());
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
