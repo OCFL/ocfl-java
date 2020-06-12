@@ -25,6 +25,7 @@
 package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,13 +50,19 @@ public final class FileUtil {
     private static final SecureRandom RANDOM = new SecureRandom();
 
 
-    public static Path createTempDir(Path rootPath, String prefix) {
-        try {
-            var name = URLEncoder.encode(prefix, StandardCharsets.UTF_8) + "-" + Long.toUnsignedString(RANDOM.nextLong());
-            return Files.createDirectory(rootPath.resolve(name));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    /**
+     * Creates a new directory as a child of the parent path named: md5(objectId)-[random-long]
+     *
+     * A hash is used to avoid problems with object ids that are longer than 255 characters.
+     *
+     * @param parent the path to create the new directory under
+     * @param objectId the object id to create the directory for
+     * @return the path to the new directory
+     */
+    public static Path createObjectTempDir(Path parent, String objectId) {
+        var digest = DigestUtil.computeDigestHex(DigestAlgorithm.md5, objectId);
+        UncheckedFiles.createDirectories(parent);
+        return UncheckedFiles.createDirectory(parent.resolve(digest + "-" + Long.toUnsignedString(RANDOM.nextLong())));
     }
 
     /**

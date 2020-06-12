@@ -102,7 +102,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
         enforceObjectVersionForUpdate(objectVersionId, inventory);
 
-        var stagingDir = createStagingDir(objectVersionId);
+        var stagingDir = createStagingDir(objectVersionId.getObjectId());
         var contentDir = UncheckedFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
@@ -134,7 +134,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
         if (inventory.hasMutableHead()) {
             var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(), commitInfo);
-            var stagingDir = FileUtil.createTempDir(workDir, objectId);
+            var stagingDir = FileUtil.createObjectTempDir(workDir, objectId);
             writeInventory(newInventory, stagingDir);
 
             try {
@@ -180,7 +180,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         LOG.info("Creating object {} with an empty version.", objectId.getObjectId());
 
         var stubInventory = createStubInventory(objectId);
-        var stagingDir = FileUtil.createTempDir(workDir, objectId.getObjectId());
+        var stagingDir = FileUtil.createObjectTempDir(workDir, objectId.getObjectId());
         UncheckedFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
 
         try {

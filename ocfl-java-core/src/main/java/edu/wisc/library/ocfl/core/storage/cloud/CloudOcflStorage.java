@@ -58,7 +58,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -131,7 +137,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         LOG.debug("Load inventory for object <{}>", objectId);
 
         var objectRootPath = objectRootPath(objectId);
-        var tempDir = FileUtil.createTempDir(workDir, objectId);
+        var tempDir = FileUtil.createObjectTempDir(workDir, objectId);
         var localInventoryPath = tempDir.resolve(OcflConstants.INVENTORY_FILE);
 
         try {

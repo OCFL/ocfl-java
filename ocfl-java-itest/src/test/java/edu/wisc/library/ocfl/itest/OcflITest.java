@@ -11,6 +11,9 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.*;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.layout.config.EncapsulationConfig;
+import edu.wisc.library.ocfl.core.extension.layout.config.EncapsulationType;
+import edu.wisc.library.ocfl.core.extension.layout.config.EncodingType;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
@@ -132,6 +135,26 @@ public abstract class OcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
         verifyRepo(repoName);
+    }
+
+    @Test
+    public void shouldNotFailWhenObjectIdLongerThan255Characters() {
+        var repoName = "long-id";
+        var repo = defaultRepo(repoName, DefaultLayoutConfig.nTupleHashConfig()
+                .setEncapsulation(new EncapsulationConfig()
+                        .setType(EncapsulationType.ID).setEncoding(EncodingType.HASH).setDefaultString("obj")));
+
+        var objectId = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" +
+                "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" +
+                "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+            updater.writeFile(inputStream("long-id"), "file1.txt");
+        });
+
+        var object = repo.getObject(ObjectVersionId.head(objectId));
+
+        assertEquals(objectId, object.getObjectId());
     }
 
     @Test

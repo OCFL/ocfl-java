@@ -48,6 +48,14 @@ public final class UncheckedFiles {
         }
     }
 
+    public static Path createDirectory(Path path) {
+        try {
+            return Files.createDirectory(path);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public static void copy(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
             Files.copy(src, dst, copyOptions);

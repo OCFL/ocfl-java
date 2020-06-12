@@ -24,14 +24,27 @@
 
 package edu.wisc.library.ocfl.core;
 
-import edu.wisc.library.ocfl.api.*;
+import edu.wisc.library.ocfl.api.OcflObjectUpdater;
+import edu.wisc.library.ocfl.api.OcflObjectVersion;
+import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
+import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.*;
+import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.FileChangeHistory;
+import edu.wisc.library.ocfl.api.model.ObjectDetails;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.VersionDetails;
+import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
-import edu.wisc.library.ocfl.core.inventory.*;
+import edu.wisc.library.ocfl.core.inventory.AddFileProcessor;
+import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
+import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
+import edu.wisc.library.ocfl.core.inventory.InventoryValidator;
+import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
@@ -138,8 +151,6 @@ public class DefaultOcflRepository implements OcflRepository {
     public ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions) {
         ensureOpen();
 
-        // TODO max object id length? should probably be 255 bytes
-
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
 
@@ -151,7 +162,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildBlankState(inventory);
 
-        var stagingDir = createStagingDir(objectVersionId);
+        var stagingDir = createStagingDir(objectVersionId.getObjectId());
         var contentDir = createStagingContentDir(inventory, stagingDir);
 
         var fileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
@@ -183,7 +194,7 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureNoMutableHead(inventory);
         enforceObjectVersionForUpdate(objectVersionId, inventory);
 
-        var stagingDir = createStagingDir(objectVersionId);
+        var stagingDir = createStagingDir(objectVersionId.getObjectId());
         var contentDir = createStagingContentDir(inventory, stagingDir);
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory);
@@ -390,7 +401,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
-        var stagingDir = FileUtil.createTempDir(workDir, inventory.getId());
+        var stagingDir = createStagingDir(inventory.getId());
 
         try {
             storage.reconstructObjectVersion(inventory, versionId, stagingDir);
@@ -449,8 +460,8 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    protected Path createStagingDir(ObjectVersionId objectVersionId) {
-        return FileUtil.createTempDir(workDir, objectVersionId.getObjectId());
+    protected Path createStagingDir(String objectId) {
+        return FileUtil.createObjectTempDir(workDir, objectId);
     }
 
     private Path createStagingContentDir(Inventory inventory, Path stagingDir) {
