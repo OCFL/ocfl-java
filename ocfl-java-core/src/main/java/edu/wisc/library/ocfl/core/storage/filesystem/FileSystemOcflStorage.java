@@ -281,6 +281,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                         objectId, objectRootPath), e);
             }
         }
+
+        try {
+            FileUtil.deleteDirAndParentsIfEmpty(objectRootPath.getParent());
+        } catch (UncheckedIOException e) {
+            LOG.error(String.format("Failed to cleanup all empty directories in path %s." +
+                    " There may be empty directories remaining in the OCFL storage hierarchy.", objectRootPath));
+        }
     }
 
     /**

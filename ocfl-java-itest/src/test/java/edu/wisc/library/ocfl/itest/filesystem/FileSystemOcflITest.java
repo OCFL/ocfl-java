@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.itest.filesystem;
 
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
@@ -12,9 +13,14 @@ import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,6 +28,8 @@ import static edu.wisc.library.ocfl.itest.ITestHelper.*;
 import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FileSystemOcflITest extends OcflITest {
 
@@ -47,6 +55,23 @@ public class FileSystemOcflITest extends OcflITest {
             var objectIds = objectIdsStream.collect(Collectors.toList());
             assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
         }
+    }
+
+    @Test
+    public void purgeShouldRemoveEmptyParentDirs() throws IOException {
+        var repoName = "purge-empty-dirs";
+        var repo = defaultRepo(repoName, DefaultLayoutConfig.nTupleHashConfig());
+
+        var objectId = "o3";
+
+        var sourcePathV1 = sourceObjectPath(objectId, "v2");
+
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+
+        repo.purgeObject(objectId);
+
+        assertThat(Arrays.asList(repoDir(repoName).toFile().list()).stream().collect(Collectors.toList()),
+                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt", "extension-layout-n-tuple.json", "ocfl_layout.json"));
     }
 
     @Override

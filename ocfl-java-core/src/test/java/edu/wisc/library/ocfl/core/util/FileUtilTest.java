@@ -189,4 +189,29 @@ public class FileUtilTest {
         }
     }
 
+    @Test
+    public void shouldDeleteParentsWhenEmpty() throws IOException {
+        var path = Files.createDirectories(tempRoot.resolve("a/b/c/d/e"));
+
+        Files.createDirectories(tempRoot.resolve("a/b/1"));
+
+        FileUtil.deleteDirAndParentsIfEmpty(path);
+
+        assertThat(tempRoot.resolve("a/b").toFile(), anExistingDirectory());
+        assertThat(tempRoot.resolve("a/b/1").toFile(), anExistingDirectory());
+        assertThat(tempRoot.resolve("a/b/c").toFile(), not(anExistingDirectory()));
+    }
+
+    @Test
+    public void shouldNotDeleteParentsWhenNotEmpty() throws IOException {
+        var path = Files.createDirectories(tempRoot.resolve("a/b/c/d/e"));
+
+        Files.createDirectories(path.resolve("1"));
+
+        FileUtil.deleteDirAndParentsIfEmpty(path);
+
+        assertThat(path.toFile(), anExistingDirectory());
+        assertThat(path.resolve("1").toFile(), anExistingDirectory());
+    }
+
 }

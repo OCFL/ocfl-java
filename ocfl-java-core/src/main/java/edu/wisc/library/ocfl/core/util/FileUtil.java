@@ -32,8 +32,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.SecureRandom;
@@ -157,6 +155,11 @@ public final class FileUtil {
         }
     }
 
+    /**
+     * Recursively deletes all of the children of the specified path. The root path itself is not deleted.
+     *
+     * @param root the path under which all children should be deleted
+     */
     public static void deleteChildren(Path root) {
         try (var files = Files.walk(root)) {
             files.sorted(Comparator.reverseOrder())
@@ -167,6 +170,11 @@ public final class FileUtil {
         }
     }
 
+    /**
+     * Deletes any empty directories under the specified path
+     *
+     * @param root the path to prune empty child directories from
+     */
     public static void deleteEmptyDirs(Path root) {
         try (var files = Files.walk(root)) {
             files.filter(f -> Files.isDirectory(f, LinkOption.NOFOLLOW_LINKS))
@@ -178,6 +186,24 @@ public final class FileUtil {
         }
     }
 
+    /**
+     * Deletes the specified directory and any of its parents that are empty. The search terminates as soon as
+     * a non-empty parent directory is encountered.
+     *
+     * @param path the path do delete
+     */
+    public static void deleteDirAndParentsIfEmpty(Path path) {
+        if (FileUtil.isDirEmpty(path)) {
+            UncheckedFiles.delete(path);
+            FileUtil.deleteDirAndParentsIfEmpty(path.getParent());
+        }
+    }
+
+    /**
+     * Deletes the path and all of its children. Any exception that is thrown is logged as a warning.
+     *
+     * @param path the path to delete
+     */
     public static void safeDeletePath(Path path) {
         if (Files.exists(path)) {
             try (var paths = Files.walk(path)) {
