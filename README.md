@@ -95,7 +95,7 @@ and content directory. The defaults are `v1`, `sha512`, and `content`.
 * **prettyPrintJson**: Enables pretty print JSON in newly written inventory files. By default, pretty printing is disabled
  to reduce inventory file size.
 * **contentPathConstraintProcessor**: Configures what file name constraints are enforced on OCFL content paths. By default,
-there are no special constraints applied. Used `DefaultContentPathConstraints` for a selection of preconfigured defaults.
+there are no special constraints applied. Used `ContentPathConstraints` for a selection of preconfigured defaults.
 You may want to apply constraints if you are concerned about portability between filesystems. For example, disallowing `:`
 and `\` characters.
 * **pathSanitizer**: `PathSanitizer` implementations are used to map logical paths to safe content paths. By default, no
@@ -182,7 +182,7 @@ to the number of available processors.
 ```java
 var repo = new OcflRepositoryBuilder()
         .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
-        .contentPathConstraintProcessor(DefaultContentPathConstraints.cloud())
+        .contentPathConstraintProcessor(ContentPathConstraints.cloud())
         .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
         .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
         .storage(CloudOcflStorage.builder()

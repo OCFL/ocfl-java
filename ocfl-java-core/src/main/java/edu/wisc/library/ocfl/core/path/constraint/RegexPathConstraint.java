@@ -34,8 +34,8 @@ import java.util.regex.Pattern;
  */
 public class RegexPathConstraint implements PathConstraint, FileNameConstraint {
 
-    private Pattern pattern;
-    private boolean mustMatch;
+    private final Pattern pattern;
+    private final boolean mustMatch;
 
     /**
      * Creates a new constraint that validates paths do not match the regex

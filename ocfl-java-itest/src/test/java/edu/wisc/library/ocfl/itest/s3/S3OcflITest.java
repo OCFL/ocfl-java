@@ -9,7 +9,7 @@ import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
 import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
-import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
@@ -65,7 +65,7 @@ public class S3OcflITest extends OcflITest {
                 .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
                 .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .contentPathConstraintProcessor(DefaultContentPathConstraints.cloud())
+                .contentPathConstraintProcessor(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .cloudClient(OcflS3Client.builder()

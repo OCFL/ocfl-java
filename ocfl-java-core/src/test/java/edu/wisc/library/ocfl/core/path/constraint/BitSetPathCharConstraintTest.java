@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class BitSetPathCharConstraintTest {
 
     @Test
-    public void shouldRejectBlacklistedChar() {
-        var constraint = BitSetPathCharConstraint.blackList('a', '\u0000');
+    public void shouldRejectBlocklistedChar() {
+        var constraint = BitSetPathCharConstraint.blockList('a', '\u0000');
 
         assertThrows(PathConstraintException.class, () -> {
             constraint.apply('a', "path");
@@ -23,8 +23,8 @@ public class BitSetPathCharConstraintTest {
     }
 
     @Test
-    public void shouldRejectRangeOfBlacklistedChars() {
-        var constraint = BitSetPathCharConstraint.blackListRange((char) 0, (char) 31);
+    public void shouldRejectRangeOfBlocklistedChars() {
+        var constraint = BitSetPathCharConstraint.blockListRange((char) 0, (char) 31);
 
         var cr = new AtomicReference<Character>();
 
@@ -38,8 +38,8 @@ public class BitSetPathCharConstraintTest {
     }
 
     @Test
-    public void shouldRejectCharNotOnWhiteList() {
-        var constraint = BitSetPathCharConstraint.whiteList('b', 'c');
+    public void shouldRejectCharNotOnAcceptList() {
+        var constraint = BitSetPathCharConstraint.acceptList('b', 'c');
 
         assertThrows(PathConstraintException.class, () -> {
             constraint.apply('a', "path");
@@ -48,8 +48,8 @@ public class BitSetPathCharConstraintTest {
     }
 
     @Test
-    public void shouldOnlyAcceptCharsInWhiteListedRange() {
-        var constraint = BitSetPathCharConstraint.whiteListRange('a', 'z');
+    public void shouldOnlyAcceptCharsInAcceptListedRange() {
+        var constraint = BitSetPathCharConstraint.acceptListRange('a', 'z');
 
         var cr = new AtomicReference<Character>();
 

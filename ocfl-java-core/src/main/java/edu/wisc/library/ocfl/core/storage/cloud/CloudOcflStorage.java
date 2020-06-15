@@ -42,7 +42,7 @@ import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.PathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -123,7 +123,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
-        this.logicalPathConstraints = PathConstraints.logicalPathConstraints();
+        this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(this.cloudClient);
     }
 

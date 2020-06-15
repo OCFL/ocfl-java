@@ -8,7 +8,7 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
-import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -176,7 +176,7 @@ public class OcflS3Test {
         return new OcflRepositoryBuilder()
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .prettyPrintJson()
-                .contentPathConstraintProcessor(DefaultContentPathConstraints.cloud())
+                .contentPathConstraintProcessor(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()
                         .cloudClient(new OcflS3Client(s3Client, bucket, repoPrefix))
                         .workDir(tempDir)

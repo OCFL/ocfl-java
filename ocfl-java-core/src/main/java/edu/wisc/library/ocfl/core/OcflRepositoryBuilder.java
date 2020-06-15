@@ -39,7 +39,7 @@ import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.sanitize.NoOpPathSanitizer;
 import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.storage.CachingOcflStorage;
@@ -89,7 +89,7 @@ public class OcflRepositoryBuilder {
                 .maximumSize(1_000).build());
         inventoryMapper = InventoryMapper.defaultMapper();
         pathSanitizer = new NoOpPathSanitizer();
-        contentPathConstraintProcessor = DefaultContentPathConstraints.none();
+        contentPathConstraintProcessor = ContentPathConstraints.none();
         digestThreadPoolSize = Runtime.getRuntime().availableProcessors();
         copyThreadPoolSize = digestThreadPoolSize * 2;
     }
@@ -201,11 +201,11 @@ public class OcflRepositoryBuilder {
      * ensure the portability of content paths. The following default generic constraint configurations are provided:
      *
      * <ul>
-     *     <li>{@link DefaultContentPathConstraints#unix()}</li>
-     *     <li>{@link DefaultContentPathConstraints#windows()}</li>
-     *     <li>{@link DefaultContentPathConstraints#cloud()}</li>
-     *     <li>{@link DefaultContentPathConstraints#all()}</li>
-     *     <li>{@link DefaultContentPathConstraints#none()}</li>
+     *     <li>{@link ContentPathConstraints#unix()}</li>
+     *     <li>{@link ContentPathConstraints#windows()}</li>
+     *     <li>{@link ContentPathConstraints#cloud()}</li>
+     *     <li>{@link ContentPathConstraints#all()}</li>
+     *     <li>{@link ContentPathConstraints#none()}</li>
      * </ul>
      *
      * <p>Constraints should be applied that target filesystems that are NOT the local filesystem. The local filesystem
@@ -223,7 +223,7 @@ public class OcflRepositoryBuilder {
      *
      * @param contentPathConstraintProcessor constraint processor
      * @return builder
-     * @see DefaultContentPathConstraints
+     * @see ContentPathConstraints
      */
     public OcflRepositoryBuilder contentPathConstraintProcessor(ContentPathConstraintProcessor contentPathConstraintProcessor) {
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");

@@ -33,8 +33,8 @@ import java.nio.file.FileSystems;
  */
 public class BackslashPathSeparatorConstraint implements PathCharConstraint {
 
-    private char pathSeparator;
-    private boolean isBackslash;
+    private final char pathSeparator;
+    private final boolean isBackslash;
 
     public BackslashPathSeparatorConstraint() {
         // TODO note: this not 100% accurate because the filesystem that the repository is on may be different than the

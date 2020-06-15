@@ -35,9 +35,9 @@ import java.util.List;
  */
 public class PathConstraintProcessor {
 
-    private List<PathConstraint> pathConstraints;
-    private List<FileNameConstraint> fileNameConstraints;
-    private List<PathCharConstraint> charConstraints;
+    private final List<PathConstraint> pathConstraints;
+    private final List<FileNameConstraint> fileNameConstraints;
+    private final List<PathCharConstraint> charConstraints;
 
     /**
      * Use this to construct a new PathConstraintProcessor
@@ -57,42 +57,88 @@ public class PathConstraintProcessor {
         private List<FileNameConstraint> fileNameConstraints = new ArrayList<>();
         private List<PathCharConstraint> charConstraints = new ArrayList<>();
 
+        /**
+         * Adds a new path constraint
+         *
+         * @param pathConstraint constraint to add
+         * @return builder
+         */
         public Builder pathConstraint(PathConstraint pathConstraint) {
             pathConstraints.add(Enforce.notNull(pathConstraint, "pathConstraint cannot be null"));
             return this;
         }
 
+        /**
+         * Replaces the list of path constraints
+         *
+         * @param pathConstraints list of path constraints to use
+         * @return builder
+         */
         public Builder pathConstraints(List<PathConstraint> pathConstraints) {
             this.pathConstraints = Enforce.notNull(pathConstraints, "pathConstraints cannot be null");
             return this;
         }
 
+        /**
+         * Adds a new filename constraint
+         *
+         * @param fileNameConstraint constraint to add
+         * @return builder
+         */
         public Builder fileNameConstraint(FileNameConstraint fileNameConstraint) {
             fileNameConstraints.add(Enforce.notNull(fileNameConstraint, "fileNameConstraint cannot be null"));
             return this;
         }
 
+        /**
+         * Replaces the list of filename constraints
+         *
+         * @param fileNameConstraints list of filename constraints to use
+         * @return builder
+         */
         public Builder fileNameConstraints(List<FileNameConstraint> fileNameConstraints) {
             this.fileNameConstraints = Enforce.notNull(fileNameConstraints, "fileNameConstraints cannot be null");
             return this;
         }
 
+        /**
+         * Adds a new character constraint
+         *
+         * @param charConstraint constraint to add
+         * @return builder
+         */
         public Builder charConstraint(PathCharConstraint charConstraint) {
             charConstraints.add(Enforce.notNull(charConstraint, "charConstraint cannot be null"));
             return this;
         }
 
+        /**
+         * Replaces the list of character constraints
+         *
+         * @param charConstraints list of character constraints to use
+         * @return builder
+         */
         public Builder charConstraints(List<PathCharConstraint> charConstraints) {
             this.charConstraints = Enforce.notNull(charConstraints, "charConstraints cannot be null");
             return this;
         }
 
+        /**
+         * @return new PathConstraintProcessor
+         */
         public PathConstraintProcessor build() {
             return new PathConstraintProcessor(pathConstraints, fileNameConstraints, charConstraints);
         }
 
     }
 
+    /**
+     * Constructs a new PathConstraintProcessor. The builder {@link PathConstraintProcessor.Builder} may also be used.
+     *
+     * @param pathConstraints list of path constraints
+     * @param fileNameConstraints list of filename constraints
+     * @param charConstraints list of character constraints
+     */
     public PathConstraintProcessor(List<PathConstraint> pathConstraints, List<FileNameConstraint> fileNameConstraints, List<PathCharConstraint> charConstraints) {
         this.pathConstraints = Enforce.notNull(pathConstraints, "pathConstraints cannot be null");
         this.fileNameConstraints = Enforce.notNull(fileNameConstraints, "fileNameConstraints cannot be null");
@@ -126,31 +172,67 @@ public class PathConstraintProcessor {
         return path;
     }
 
+    /**
+     * Adds a new path constraint to the beginning of the list of path constraints
+     *
+     * @param pathConstraint constraint to add
+     * @return this
+     */
     public PathConstraintProcessor prependPathConstraint(PathConstraint pathConstraint) {
         this.pathConstraints.add(0, Enforce.notNull(pathConstraint, "pathConstraint cannot be null"));
         return this;
     }
 
+    /**
+     * Adds a new filename constraint to the beginning of the list of filename constraints
+     *
+     * @param fileNameConstraint constraint to add
+     * @return this
+     */
     public PathConstraintProcessor prependFileNameConstraint(FileNameConstraint fileNameConstraint) {
         this.fileNameConstraints.add(0, Enforce.notNull(fileNameConstraint, "fileNameConstraint cannot be null"));
         return this;
     }
 
+    /**
+     * Adds a new character constraint to the beginning of the list of character constraints
+     *
+     * @param charConstraint constraint to add
+     * @return this
+     */
     public PathConstraintProcessor prependCharConstraint(PathCharConstraint charConstraint) {
         this.charConstraints.add(0, Enforce.notNull(charConstraint, "charConstraint cannot be null"));
         return this;
     }
 
+    /**
+     * Adds a new path constraint to the end of the list of path constraints
+     *
+     * @param pathConstraint constraint to add
+     * @return this
+     */
     public PathConstraintProcessor appendPathConstraint(PathConstraint pathConstraint) {
         this.pathConstraints.add(Enforce.notNull(pathConstraint, "pathConstraint cannot be null"));
         return this;
     }
 
+    /**
+     * Adds a new filename constraint to the end of the list of filename constraints
+     *
+     * @param fileNameConstraint constraint to add
+     * @return this
+     */
     public PathConstraintProcessor appendFileNameConstraint(FileNameConstraint fileNameConstraint) {
         this.fileNameConstraints.add(Enforce.notNull(fileNameConstraint, "fileNameConstraint cannot be null"));
         return this;
     }
 
+    /**
+     * Adds a new character constraint to the end of the list of character constraints
+     *
+     * @param charConstraint constraint to add
+     * @return this
+     */
     public PathConstraintProcessor appendCharConstraint(PathCharConstraint charConstraint) {
         this.charConstraints.add(Enforce.notNull(charConstraint, "charConstraint cannot be null"));
         return this;

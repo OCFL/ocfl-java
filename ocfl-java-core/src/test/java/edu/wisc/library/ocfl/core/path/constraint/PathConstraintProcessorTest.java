@@ -36,7 +36,7 @@ public class PathConstraintProcessorTest {
         return PathConstraintProcessor.builder()
                 .pathConstraint(PathLengthConstraint.maxChars(10))
                 .fileNameConstraint(RegexPathConstraint.mustNotContain(Pattern.compile("^\\.\\.$")))
-                .charConstraint(BitSetPathCharConstraint.blackList('\\'))
+                .charConstraint(BitSetPathCharConstraint.blockList('\\'))
                 .build();
     }
 

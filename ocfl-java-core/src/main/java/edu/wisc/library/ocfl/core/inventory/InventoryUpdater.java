@@ -37,7 +37,7 @@ import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.constraint.PathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -142,7 +142,7 @@ public class InventoryUpdater {
         this.contentPathMapper = Enforce.notNull(contentPathMapper, "contentPathMapper cannot be null");
         this.objectId = inventory.getId();
         this.mutableHead = inventoryBuilder.hasMutableHead();
-        this.logicalPathConstraints = PathConstraints.noEmptyOrDotFilenames();
+        this.logicalPathConstraints = LogicalPathConstraints.constraints();
     }
 
     /**

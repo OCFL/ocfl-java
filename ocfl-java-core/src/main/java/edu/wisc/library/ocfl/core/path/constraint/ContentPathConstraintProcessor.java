@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
  * This class enforces constraints on content paths. At the minimum, content paths must adhere to the following constraints:
  *
  * <ul>
- *     <li>Cannot have a trailing /</li>
+ *     <li>Cannot have a leading OR trailing /</li>
  *     <li>Cannot contain the following filenames: '.', '..'</li>
  *     <li>Cannot contain an empty filename</li>
  *     <li>Windows only: Cannot contain a \</li>
@@ -42,15 +42,15 @@ import java.util.regex.Pattern;
  */
 public class ContentPathConstraintProcessor {
 
-    private static final PathConstraint TRAILING_SLASH_CONSTRAINT = RegexPathConstraint
-            .mustNotContain(Pattern.compile("^.*/$"));
+    private static final PathConstraint LEADING_SLASH_CONSTRAINT = BeginEndPathConstraint.mustNotBeginWith("/");
+    private static final PathConstraint TRAILING_SLASH_CONSTRAINT = BeginEndPathConstraint.mustNotEndWith("/");
     private static final FileNameConstraint DOT_CONSTRAINT = RegexPathConstraint
             .mustNotContain(Pattern.compile("^\\.{1,2}$"));
     private static final FileNameConstraint NON_EMPTY_CONSTRAINT = new NonEmptyFileNameConstraint();
     private static final PathCharConstraint BACKSLASH_CONSTRAINT = new BackslashPathSeparatorConstraint();
 
-    private PathConstraintProcessor storagePathConstraintProcessor;
-    private PathConstraintProcessor contentPathConstraintProcessor;
+    private final PathConstraintProcessor storagePathConstraintProcessor;
+    private final PathConstraintProcessor contentPathConstraintProcessor;
 
     /**
      * Use this to construct a ContentPathConstraintProcessor
@@ -74,32 +74,54 @@ public class ContentPathConstraintProcessor {
             contentPathConstraintProcessor = PathConstraintProcessor.builder().build();
         }
 
+        /**
+         * Sets the PathConstraintProcessor to apply to storage paths.
+         *
+         * @param storagePathConstraintProcessor storage path constraint processor
+         * @return builder
+         */
         public Builder storagePathConstraintProcessor(PathConstraintProcessor storagePathConstraintProcessor) {
             this.storagePathConstraintProcessor = Enforce.notNull(storagePathConstraintProcessor, "storagePathConstraintProcessor cannot be null");
             return this;
         }
 
+        /**
+         * Sets the PathConstraintProcessor to apply to content paths
+         *
+         * @param contentPathConstraintProcessor content path constraint processor
+         * @return builder
+         */
         public Builder contentPathConstraintProcessor(PathConstraintProcessor contentPathConstraintProcessor) {
             this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
             return this;
         }
 
+        /**
+         * @return new ContentPathConstraintProcessor
+         */
         public ContentPathConstraintProcessor build() {
-
             return new ContentPathConstraintProcessor(storagePathConstraintProcessor, contentPathConstraintProcessor);
         }
 
     }
 
+    /**
+     * Constructs a new ContentPathConstraintProcessor. Alternatively, use {@link ContentPathConstraintProcessor.Builder}.
+     *
+     * @param storagePathConstraintProcessor the constraints to apply to storage paths
+     * @param contentPathConstraintProcessor the constraints to apply to content paths
+     */
     public ContentPathConstraintProcessor(PathConstraintProcessor storagePathConstraintProcessor, PathConstraintProcessor contentPathConstraintProcessor) {
         this.storagePathConstraintProcessor = Enforce.notNull(storagePathConstraintProcessor, "storagePathConstraintProcessor cannot be null");
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
 
+        // Add the required content path constraints to the beginning of the content path constraint processor constraint list
         this.contentPathConstraintProcessor
-                .prependPathConstraint(TRAILING_SLASH_CONSTRAINT)
-                .prependFileNameConstraint(NON_EMPTY_CONSTRAINT)
+                .prependCharConstraint(BACKSLASH_CONSTRAINT)
                 .prependFileNameConstraint(DOT_CONSTRAINT)
-                .prependCharConstraint(BACKSLASH_CONSTRAINT);
+                .prependFileNameConstraint(NON_EMPTY_CONSTRAINT)
+                .prependPathConstraint(TRAILING_SLASH_CONSTRAINT)
+                .prependPathConstraint(LEADING_SLASH_CONSTRAINT);
     }
 
     /**

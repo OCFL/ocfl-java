@@ -50,8 +50,8 @@ public class PathLengthConstraint implements PathConstraint, FileNameConstraint 
         }
     }
 
-    private int maxLength;
-    private Type type;
+    private final int maxLength;
+    private final Type type;
 
     /**
      * Creates a new constraint that limits the number of characters in a path

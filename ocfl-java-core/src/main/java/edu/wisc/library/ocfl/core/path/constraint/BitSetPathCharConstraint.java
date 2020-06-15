@@ -34,8 +34,8 @@ import java.util.BitSet;
  */
 public class BitSetPathCharConstraint implements PathCharConstraint {
 
-    private BitSet charSet;
-    private boolean blackList;
+    private final BitSet charSet;
+    private final boolean blockList;
 
     /**
      * Creates a constraint that rejects the specified characters
@@ -43,7 +43,7 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
      * @param chars the characters to reject
      * @return constraint
      */
-    public static BitSetPathCharConstraint blackList(char... chars) {
+    public static BitSetPathCharConstraint blockList(char... chars) {
         return build(true, chars);
     }
 
@@ -54,7 +54,7 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
      * @param end end of range, inclusive
      * @return constraint
      */
-    public static BitSetPathCharConstraint blackListRange(char start, char end) {
+    public static BitSetPathCharConstraint blockListRange(char start, char end) {
         return build(true, start, end);
     }
 
@@ -64,7 +64,7 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
      * @param chars the characters to accept
      * @return constraint
      */
-    public static BitSetPathCharConstraint whiteList(char... chars) {
+    public static BitSetPathCharConstraint acceptList(char... chars) {
         return build(false, chars);
     }
 
@@ -75,28 +75,28 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
      * @param end end of range, inclusive
      * @return constraint
      */
-    public static BitSetPathCharConstraint whiteListRange(char start, char end) {
+    public static BitSetPathCharConstraint acceptListRange(char start, char end) {
         return build(false, start, end);
     }
 
-    private static BitSetPathCharConstraint build(boolean blackList, char... chars) {
+    private static BitSetPathCharConstraint build(boolean blockList, char... chars) {
         var charSet = new BitSet(256);
         for (var c : chars) {
             charSet.set(c);
         }
-        return new BitSetPathCharConstraint(blackList, charSet);
+        return new BitSetPathCharConstraint(blockList, charSet);
     }
 
-    private static BitSetPathCharConstraint build(boolean blackList, char start, char end) {
+    private static BitSetPathCharConstraint build(boolean blockList, char start, char end) {
         var charSet = new BitSet(256);
         for (var c = start; c <= end; c++) {
             charSet.set(c);
         }
-        return new BitSetPathCharConstraint(blackList, charSet);
+        return new BitSetPathCharConstraint(blockList, charSet);
     }
 
-    public BitSetPathCharConstraint(boolean blackList, BitSet charSet) {
-        this.blackList = blackList;
+    public BitSetPathCharConstraint(boolean blockList, BitSet charSet) {
+        this.blockList = blockList;
         this.charSet = Enforce.notNull(charSet, "charSet cannot be null");
     }
 
@@ -106,10 +106,10 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
     @Override
     public void apply(char c, String path) {
         if (charSet.get(c)) {
-            if (blackList) {
+            if (blockList) {
                 throwException(c, path);
             }
-        } else if (!blackList) {
+        } else if (!blockList) {
             throwException(c, path);
         }
     }

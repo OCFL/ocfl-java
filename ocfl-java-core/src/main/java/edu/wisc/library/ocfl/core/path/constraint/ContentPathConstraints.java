@@ -37,13 +37,13 @@ import java.util.regex.Pattern;
  * <p>The following constraints are ALWAYS applied:
  *
  * <ul>
- *     <li>Cannot have a trailing /</li>
+ *     <li>Cannot have a leading OR trailing /</li>
  *     <li>Cannot contain the following filenames: '.', '..'</li>
  *     <li>Cannot contain an empty filename</li>
  *     <li>Windows only: Cannot contain a \</li>
  * </ul>
  */
-public final class DefaultContentPathConstraints {
+public final class ContentPathConstraints {
 
     private static final char NUL = 0;
     private static final char ASCII_CTRL_START = 0;
@@ -62,10 +62,10 @@ public final class DefaultContentPathConstraints {
             Pattern.CASE_INSENSITIVE
     ));
 
-    private static final PathCharConstraint NO_ASCII_CTRL = BitSetPathCharConstraint.blackListRange(ASCII_CTRL_START, ASCII_CTRL_END);
-    private static final PathCharConstraint NO_ASCII_EXT_CTRL = BitSetPathCharConstraint.blackListRange(ASCII_CTRL_EXT_START, ASCII_CTRL_EXT_END);
+    private static final PathCharConstraint NO_ASCII_CTRL = BitSetPathCharConstraint.blockListRange(ASCII_CTRL_START, ASCII_CTRL_END);
+    private static final PathCharConstraint NO_ASCII_EXT_CTRL = BitSetPathCharConstraint.blockListRange(ASCII_CTRL_EXT_START, ASCII_CTRL_EXT_END);
 
-    private DefaultContentPathConstraints() {
+    private ContentPathConstraints() {
 
     }
 
@@ -84,7 +84,7 @@ public final class DefaultContentPathConstraints {
         return ContentPathConstraintProcessor.builder()
                 .contentPathConstraintProcessor(PathConstraintProcessor.builder()
                         .fileNameConstraint(PathLengthConstraint.maxBytes(255))
-                        .charConstraint(BitSetPathCharConstraint.blackList(NUL))
+                        .charConstraint(BitSetPathCharConstraint.blockList(NUL))
                         .build())
                 .build();
     }
@@ -108,7 +108,7 @@ public final class DefaultContentPathConstraints {
                         .fileNameConstraint(NO_WINDOWS_RESERVED_WORDS)
                         .fileNameConstraint(NO_SPACE_OR_PERIOD_AT_END)
                         .charConstraint(NO_ASCII_CTRL)
-                        .charConstraint(BitSetPathCharConstraint.blackList('<', '>', ':', '"', '\\', '|', '?', '*'))
+                        .charConstraint(BitSetPathCharConstraint.blockList('<', '>', ':', '"', '\\', '|', '?', '*'))
                         .build())
                 .build();
     }
@@ -137,7 +137,7 @@ public final class DefaultContentPathConstraints {
                         .fileNameConstraint(NO_SPACE_OR_PERIOD_AT_END) // Azure
                         .charConstraint(NO_ASCII_CTRL) // Azure & Google
                         .charConstraint(NO_ASCII_EXT_CTRL) // Google
-                        .charConstraint(BitSetPathCharConstraint.blackList('\\', '#', '[', ']', '*', '?')) // Azure & Google (mostly Google)
+                        .charConstraint(BitSetPathCharConstraint.blockList('\\', '#', '[', ']', '*', '?')) // Azure & Google (mostly Google)
                         .build())
                 .build();
     }
@@ -169,7 +169,7 @@ public final class DefaultContentPathConstraints {
                         .fileNameConstraint(NO_SPACE_OR_PERIOD_AT_END) // Windows & Azure
                         .charConstraint(NO_ASCII_CTRL) // Windows, Azure, Google
                         .charConstraint(NO_ASCII_EXT_CTRL) // Google
-                        .charConstraint(BitSetPathCharConstraint.blackList(
+                        .charConstraint(BitSetPathCharConstraint.blockList(
                                 '<', '>', ':', '"', '\\', '|', '?', '*', '#', '[', ']' // Windows & Google
                         ))
                         .build())

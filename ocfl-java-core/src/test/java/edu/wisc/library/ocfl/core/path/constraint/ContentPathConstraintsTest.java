@@ -5,11 +5,21 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class DefaultContentPathConstraintsTest {
+public class ContentPathConstraintsTest {
 
     @Test
     public void shouldEnforceUnixConstraints() {
-        var processor = DefaultContentPathConstraints.unix();
+        var processor = ContentPathConstraints.unix();
+
+        // leading slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("/path", "/path");
+        });
+
+        // trailing slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("path/", "/path");
+        });
 
         // more than 255 bytes
         assertThrows(PathConstraintException.class, () -> {
@@ -29,7 +39,17 @@ public class DefaultContentPathConstraintsTest {
 
     @Test
     public void shouldEnforceWindowsConstraints() {
-        var processor = DefaultContentPathConstraints.windows();
+        var processor = ContentPathConstraints.windows();
+
+        // leading slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("/path", "/path");
+        });
+
+        // trailing slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("path/", "/path");
+        });
 
         // more than 255 chars
         processor.apply("path/\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF\u2EEF" +
@@ -86,7 +106,17 @@ public class DefaultContentPathConstraintsTest {
 
     @Test
     public void shouldEnforceCloudConstraints() {
-        var processor = DefaultContentPathConstraints.cloud();
+        var processor = ContentPathConstraints.cloud();
+
+        // leading slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("/path", "/path");
+        });
+
+        // trailing slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("path/", "/path");
+        });
 
         // storage path max 1024 bytes
         assertThrows(PathConstraintException.class, () -> {
@@ -152,7 +182,17 @@ public class DefaultContentPathConstraintsTest {
 
     @Test
     public void shouldEnforceAllConstraints() {
-        var processor = DefaultContentPathConstraints.all();
+        var processor = ContentPathConstraints.all();
+
+        // leading slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("/path", "/path");
+        });
+
+        // trailing slash
+        assertThrows(PathConstraintException.class, () -> {
+            processor.apply("path/", "/path");
+        });
 
         // storage path max 1024 bytes
         assertThrows(PathConstraintException.class, () -> {
