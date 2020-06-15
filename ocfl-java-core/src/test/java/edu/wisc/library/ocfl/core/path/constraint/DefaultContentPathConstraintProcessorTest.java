@@ -7,21 +7,21 @@ import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ContentPathConstraintProcessorTest {
+public class DefaultContentPathConstraintProcessorTest {
 
     @Test
     public void shouldEnforceBaselineConstraintsWhenNoOthersProvided() {
         assertThrows(PathConstraintException.class, () -> {
-            ContentPathConstraintProcessor.builder().build().apply("path/", "storage");
+            DefaultContentPathConstraintProcessor.builder().build().apply("path/", "storage");
         });
         assertThrows(PathConstraintException.class, () -> {
-            ContentPathConstraintProcessor.builder().build().apply("path/../file", "storage");
+            DefaultContentPathConstraintProcessor.builder().build().apply("path/../file", "storage");
         });
         assertThrows(PathConstraintException.class, () -> {
-            ContentPathConstraintProcessor.builder().build().apply("./file", "storage");
+            DefaultContentPathConstraintProcessor.builder().build().apply("./file", "storage");
         });
         assertThrows(PathConstraintException.class, () -> {
-            ContentPathConstraintProcessor.builder().build().apply("path//file", "storage");
+            DefaultContentPathConstraintProcessor.builder().build().apply("path//file", "storage");
         });
     }
 
@@ -29,19 +29,19 @@ public class ContentPathConstraintProcessorTest {
     @EnabledOnOs(OS.WINDOWS)
     public void shouldEnforceNoBackslashOnWindows() {
         assertThrows(PathConstraintException.class, () -> {
-            ContentPathConstraintProcessor.builder().build().apply("path\\file", "storage");
+            DefaultContentPathConstraintProcessor.builder().build().apply("path\\file", "storage");
         });
     }
 
     @Test
     @EnabledOnOs(OS.LINUX)
     public void shouldNotEnforceNoBackslashOnLinux() {
-        ContentPathConstraintProcessor.builder().build().apply("path\\file", "storage");
+        DefaultContentPathConstraintProcessor.builder().build().apply("path\\file", "storage");
     }
 
     @Test
     public void shouldApplyConstraintToStoragePath() {
-        var processor = ContentPathConstraintProcessor.builder()
+        var processor = DefaultContentPathConstraintProcessor.builder()
                 .storagePathConstraintProcessor(PathConstraintProcessor.builder()
                         .pathConstraint(PathLengthConstraint.maxChars(5)).build()).build();
 
@@ -52,7 +52,7 @@ public class ContentPathConstraintProcessorTest {
 
     @Test
     public void shouldApplyConstraintToContentPath() {
-        var processor = ContentPathConstraintProcessor.builder()
+        var processor = DefaultContentPathConstraintProcessor.builder()
                 .contentPathConstraintProcessor(PathConstraintProcessor.builder()
                         .pathConstraint(PathLengthConstraint.maxChars(5)).build()).build();
 

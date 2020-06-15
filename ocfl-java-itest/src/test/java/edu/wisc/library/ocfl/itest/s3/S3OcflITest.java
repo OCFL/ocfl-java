@@ -65,7 +65,7 @@ public class S3OcflITest extends OcflITest {
                 .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
                 .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .contentPathConstraintProcessor(ContentPathConstraints.cloud())
+                .contentPathConstraints(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .cloudClient(OcflS3Client.builder()

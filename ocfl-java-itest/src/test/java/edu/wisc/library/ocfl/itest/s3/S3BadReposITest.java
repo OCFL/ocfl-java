@@ -58,7 +58,7 @@ public class S3BadReposITest extends BadReposITest {
                 .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
                 .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .contentPathConstraintProcessor(ContentPathConstraints.cloud())
+                .contentPathConstraints(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .cloudClient(new OcflS3Client(s3Client, name))

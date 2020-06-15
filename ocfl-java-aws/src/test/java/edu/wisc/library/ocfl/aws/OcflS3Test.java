@@ -176,7 +176,7 @@ public class OcflS3Test {
         return new OcflRepositoryBuilder()
                 .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
                 .prettyPrintJson()
-                .contentPathConstraintProcessor(ContentPathConstraints.cloud())
+                .contentPathConstraints(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()
                         .cloudClient(new OcflS3Client(s3Client, bucket, repoPrefix))
                         .workDir(tempDir)

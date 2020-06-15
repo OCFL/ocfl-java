@@ -81,7 +81,7 @@ public final class ContentPathConstraints {
      * @return ContentPathConstraintProcessor
      */
     public static ContentPathConstraintProcessor unix() {
-        return ContentPathConstraintProcessor.builder()
+        return DefaultContentPathConstraintProcessor.builder()
                 .contentPathConstraintProcessor(PathConstraintProcessor.builder()
                         .fileNameConstraint(PathLengthConstraint.maxBytes(255))
                         .charConstraint(BitSetPathCharConstraint.blockList(NUL))
@@ -102,7 +102,7 @@ public final class ContentPathConstraints {
      * @return ContentPathConstraintProcessor
      */
     public static ContentPathConstraintProcessor windows() {
-        return ContentPathConstraintProcessor.builder()
+        return DefaultContentPathConstraintProcessor.builder()
                 .contentPathConstraintProcessor(PathConstraintProcessor.builder()
                         .fileNameConstraint(PathLengthConstraint.maxChars(255))
                         .fileNameConstraint(NO_WINDOWS_RESERVED_WORDS)
@@ -128,7 +128,7 @@ public final class ContentPathConstraints {
      * @return ContentPathConstraintProcessor
      */
     public static ContentPathConstraintProcessor cloud() {
-        return ContentPathConstraintProcessor.builder()
+        return DefaultContentPathConstraintProcessor.builder()
                 .storagePathConstraintProcessor(PathConstraintProcessor.builder()
                         .pathConstraint(PathLengthConstraint.maxBytes(1024)) // Amazon & Google
                         .build())
@@ -159,7 +159,7 @@ public final class ContentPathConstraints {
      * @return ContentPathConstraintProcessor
      */
     public static ContentPathConstraintProcessor all() {
-        return ContentPathConstraintProcessor.builder()
+        return DefaultContentPathConstraintProcessor.builder()
                 .storagePathConstraintProcessor(PathConstraintProcessor.builder()
                         .pathConstraint(PathLengthConstraint.maxBytes(1024)) // Amazon & Google
                         .build())
@@ -182,7 +182,7 @@ public final class ContentPathConstraints {
      * @return ContentPathConstraintProcessor
      */
     public static ContentPathConstraintProcessor none() {
-        return ContentPathConstraintProcessor.builder().build();
+        return DefaultContentPathConstraintProcessor.builder().build();
     }
 
 }

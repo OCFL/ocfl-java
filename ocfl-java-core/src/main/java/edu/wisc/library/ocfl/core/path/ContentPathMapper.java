@@ -31,6 +31,7 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.sanitize.NoOpPathSanitizer;
 import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -42,13 +43,13 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
  */
 public class ContentPathMapper {
 
-    private String objectRootPath;
-    private String contentDirectory;
-    private VersionId versionId;
-    private RevisionId revisionId;
+    private final String objectRootPath;
+    private final String contentDirectory;
+    private final VersionId versionId;
+    private final RevisionId revisionId;
 
-    private PathSanitizer pathSanitizer;
-    private ContentPathConstraintProcessor contentPathConstraintProcessor;
+    private final PathSanitizer pathSanitizer;
+    private final ContentPathConstraintProcessor contentPathConstraintProcessor;
 
     public static Builder builder() {
         return new Builder();

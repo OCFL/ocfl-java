@@ -197,7 +197,7 @@ public class OcflRepositoryBuilder {
      * Overrides the default ContentPathConstraintProcessor that is used to enforce restrictions on what constitutes a valid
      * content path. By default, there are no restrictions.
      *
-     * <p>Path constraints are applied AFTER the logical path has been sanitized, and are used to attempt to
+     * <p>Path constraints are applied after logical paths are mapped to content paths, and are used to attempt to
      * ensure the portability of content paths. The following default generic constraint configurations are provided:
      *
      * <ul>
@@ -212,10 +212,10 @@ public class OcflRepositoryBuilder {
      * will enforce its own constraints just fine. This mechanism is intended to enforce path constraints that the local
      * filesystem does not.
      *
-     * <p>The following constraints are ALWAYS applied:
+     * <p>If you use the builtin constraint processor, the following constraints are ALWAYS applied:
      *
      * <ul>
-     *     <li>Cannot have a trailing /</li>
+     *     <li>Cannot have a leading OR trailing /</li>
      *     <li>Cannot contain the following filenames: '.', '..'</li>
      *     <li>Cannot contain an empty filename</li>
      *     <li>Windows only: Cannot contain a \</li>
@@ -225,7 +225,7 @@ public class OcflRepositoryBuilder {
      * @return builder
      * @see ContentPathConstraints
      */
-    public OcflRepositoryBuilder contentPathConstraintProcessor(ContentPathConstraintProcessor contentPathConstraintProcessor) {
+    public OcflRepositoryBuilder contentPathConstraints(ContentPathConstraintProcessor contentPathConstraintProcessor) {
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
         return this;
     }
