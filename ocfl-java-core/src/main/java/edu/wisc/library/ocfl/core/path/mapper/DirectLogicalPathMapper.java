@@ -22,21 +22,19 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.path.sanitize;
+package edu.wisc.library.ocfl.core.path.mapper;
 
 /**
- * PathSanitizers are used to clean logical paths so that they can be safely mapped to content paths for storage. In the
- * most extreme case, this may involve completely transforming the path. The primary concerns are transforming illegal
- * characters and ensuring that the path is not too long.
+ * Directly maps logical paths to content paths without making any changes.
  */
-public interface PathSanitizer {
+public class DirectLogicalPathMapper implements LogicalPathMapper {
 
     /**
-     * Sanitizes the given logical path to a storage safe path
-     *
-     * @param logicalPath path to sanitize
-     * @return sanitized path that can be mapped to a content path
+     * {@inheritDoc}
      */
-    String sanitize(String logicalPath);
+    @Override
+    public String toContentPathPart(String logicalPath) {
+        return logicalPath;
+    }
 
 }

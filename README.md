@@ -98,8 +98,8 @@ and content directory. The defaults are `v1`, `sha512`, and `content`.
 there are no special constraints applied. Used `ContentPathConstraints` for a selection of preconfigured defaults.
 You may want to apply constraints if you are concerned about portability between filesystems. For example, disallowing `:`
 and `\` characters.
-* **pathSanitizer**: `PathSanitizer` implementations are used to map logical paths to safe content paths. By default, no
-special mapping is done and logical paths are mapped directly to content paths.
+* **logicalPathMapper**: `LogicalPathMapper` implementations are used to map logical paths to safe content paths. By default,
+ logical paths are mapped directly to content paths without making any changes.
 * **digestThreadPoolSize**: Sets the size of the thread pool that's used to calculate digests. By default, the thread pool
 size is equal to the number of available processors.
 * **copyThreadPoolSize**: Sets the size of the thread pool that's used for copying/moving files. By default, the thread pool

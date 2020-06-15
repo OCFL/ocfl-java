@@ -36,7 +36,7 @@ import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
+import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
@@ -63,7 +63,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
      * @param workDir path to the directory to use for assembling ocfl versions
      * @param objectLock locking client
      * @param inventoryMapper object mapper for serializing inventories
-     * @param pathSanitizer content path sanitizer
+     * @param logicalPathMapper logical path mapper
      * @param contentPathConstraintProcessor content path constraint processor
      * @param config ocfl defaults configuration
      * @param digestThreadPoolSize number of threads to use for computing digests
@@ -72,12 +72,12 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
     public DefaultMutableOcflRepository(OcflStorage storage, Path workDir,
                                         ObjectLock objectLock,
                                         InventoryMapper inventoryMapper,
-                                        PathSanitizer pathSanitizer,
+                                        LogicalPathMapper logicalPathMapper,
                                         ContentPathConstraintProcessor contentPathConstraintProcessor,
                                         OcflConfig config,
                                         int digestThreadPoolSize, int copyThreadPoolSize) {
         super(storage, workDir, objectLock, inventoryMapper,
-                pathSanitizer, contentPathConstraintProcessor, config,
+                logicalPathMapper, contentPathConstraintProcessor, config,
                 digestThreadPoolSize, copyThreadPoolSize);
     }
 

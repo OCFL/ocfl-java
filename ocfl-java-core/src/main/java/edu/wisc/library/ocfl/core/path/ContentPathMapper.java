@@ -31,15 +31,13 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
-import edu.wisc.library.ocfl.core.path.constraint.DefaultContentPathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.sanitize.NoOpPathSanitizer;
-import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
+import edu.wisc.library.ocfl.core.path.mapper.DirectLogicalPathMapper;
+import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 
 /**
- * This class sanitizes logical paths, applies content path constraints, and finally returns a mapped content path.
- * It should only be used on input logical paths.
+ * This maps logical paths to content paths and applies content path constraints.
  */
 public class ContentPathMapper {
 
@@ -48,7 +46,7 @@ public class ContentPathMapper {
     private final VersionId versionId;
     private final RevisionId revisionId;
 
-    private final PathSanitizer pathSanitizer;
+    private final LogicalPathMapper logicalPathMapper;
     private final ContentPathConstraintProcessor contentPathConstraintProcessor;
 
     public static Builder builder() {
@@ -57,16 +55,16 @@ public class ContentPathMapper {
 
     public static class Builder {
 
-        private PathSanitizer pathSanitizer;
+        private LogicalPathMapper logicalPathMapper;
         private ContentPathConstraintProcessor contentPathConstraintProcessor;
 
         public Builder() {
-            pathSanitizer = new NoOpPathSanitizer();
+            logicalPathMapper = new DirectLogicalPathMapper();
             contentPathConstraintProcessor = ContentPathConstraints.none();
         }
 
-        public Builder pathSanitizer(PathSanitizer pathSanitizer) {
-            this.pathSanitizer = Enforce.notNull(pathSanitizer, "pathSanitizer cannot be null");
+        public Builder logicalPathMapper(LogicalPathMapper logicalPathMapper) {
+            this.logicalPathMapper = Enforce.notNull(logicalPathMapper, "logicalPathMapper cannot be null");
             return this;
         }
 
@@ -77,23 +75,23 @@ public class ContentPathMapper {
 
         public ContentPathMapper buildStandardVersion(Inventory inventory) {
             Enforce.notNull(inventory, "inventory cannot be null");
-            return new ContentPathMapper(pathSanitizer, contentPathConstraintProcessor,
+            return new ContentPathMapper(logicalPathMapper, contentPathConstraintProcessor,
                     inventory.getObjectRootPath(), inventory.resolveContentDirectory(),
                     Enforce.notNull(inventory.nextVersionId(), "versionId cannot be null"), null);
         }
 
         public ContentPathMapper buildMutableVersion(Inventory inventory) {
             Enforce.notNull(inventory, "inventory cannot be null");
-            return new ContentPathMapper(pathSanitizer, contentPathConstraintProcessor,
+            return new ContentPathMapper(logicalPathMapper, contentPathConstraintProcessor,
                     inventory.getObjectRootPath(), inventory.resolveContentDirectory(),
                     null, Enforce.notNull(inventory.nextRevisionId(), "revisionId cannot be null"));
         }
 
     }
 
-    public ContentPathMapper(PathSanitizer pathSanitizer, ContentPathConstraintProcessor contentPathConstraintProcessor,
+    public ContentPathMapper(LogicalPathMapper logicalPathMapper, ContentPathConstraintProcessor contentPathConstraintProcessor,
                              String objectRootPath, String contentDirectory, VersionId versionId, RevisionId revisionId) {
-        this.pathSanitizer = Enforce.notNull(pathSanitizer, "pathSanitizer cannot be null");
+        this.logicalPathMapper = Enforce.notNull(logicalPathMapper, "logicalPathMapper cannot be null");
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
@@ -109,29 +107,29 @@ public class ContentPathMapper {
      * @return the content path to store the file at
      */
     public String fromLogicalPath(String logicalPath) {
-        var sanitizedLogicalPath = pathSanitizer.sanitize(logicalPath);
+        var contentPathPart = logicalPathMapper.toContentPathPart(logicalPath);
 
-        var contentPath = contentPath(sanitizedLogicalPath);
+        var contentPath = contentPath(contentPathPart);
         var storagePath = FileUtil.pathJoinFailEmpty(objectRootPath, contentPath);
 
-        contentPathConstraintProcessor.apply(sanitizedLogicalPath, storagePath);
+        contentPathConstraintProcessor.apply(contentPathPart, storagePath);
 
         return contentPath;
     }
 
-    private String contentPath(String logicalPath) {
+    private String contentPath(String contentPathPart) {
         if (isMutableHead()) {
             return FileUtil.pathJoinFailEmpty(
                     OcflConstants.MUTABLE_HEAD_VERSION_PATH,
                     contentDirectory,
                     revisionId.toString(),
-                    logicalPath);
+                    contentPathPart);
         }
 
         return FileUtil.pathJoinFailEmpty(
                 versionId.toString(),
                 contentDirectory,
-                logicalPath);
+                contentPathPart);
     }
 
     private boolean isMutableHead() {

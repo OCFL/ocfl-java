@@ -40,8 +40,8 @@ import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
-import edu.wisc.library.ocfl.core.path.sanitize.NoOpPathSanitizer;
-import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
+import edu.wisc.library.ocfl.core.path.mapper.DirectLogicalPathMapper;
+import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
 import edu.wisc.library.ocfl.core.storage.CachingOcflStorage;
 import edu.wisc.library.ocfl.core.storage.ObjectDetailsDbOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
@@ -67,7 +67,7 @@ public class OcflRepositoryBuilder {
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
     private InventoryMapper inventoryMapper;
-    private PathSanitizer pathSanitizer;
+    private LogicalPathMapper logicalPathMapper;
     private ContentPathConstraintProcessor contentPathConstraintProcessor;
     private ObjectDetailsDatabase objectDetailsDb;
 
@@ -88,7 +88,7 @@ public class OcflRepositoryBuilder {
                 .expireAfterAccess(Duration.ofMinutes(10))
                 .maximumSize(1_000).build());
         inventoryMapper = InventoryMapper.defaultMapper();
-        pathSanitizer = new NoOpPathSanitizer();
+        logicalPathMapper = new DirectLogicalPathMapper();
         contentPathConstraintProcessor = ContentPathConstraints.none();
         digestThreadPoolSize = Runtime.getRuntime().availableProcessors();
         copyThreadPoolSize = digestThreadPoolSize * 2;
@@ -182,14 +182,15 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Overrides the default NoOpPathSanitizer. PathSanitizers are used to clean logical file paths so that they can
-     * safely be used as content paths to store files on disk.
+     * Overrides the default {@link DirectLogicalPathMapper}. {@link LogicalPathMapper}s are used to map logical paths
+     * to content paths so that they can safely be written to disk. The default behaviour is to map logical paths to
+     * content paths directly without any changes.
      *
-     * @param pathSanitizer path sanitizer
+     * @param logicalPathMapper logical path mapper
      * @return builder
      */
-    public OcflRepositoryBuilder pathSanitizer(PathSanitizer pathSanitizer) {
-        this.pathSanitizer = Enforce.notNull(pathSanitizer, "pathSanitizer cannot be null");
+    public OcflRepositoryBuilder logicalPathMapper(LogicalPathMapper logicalPathMapper) {
+        this.logicalPathMapper = Enforce.notNull(logicalPathMapper, "logicalPathMapper cannot be null");
         return this;
     }
 
@@ -221,12 +222,12 @@ public class OcflRepositoryBuilder {
      *     <li>Windows only: Cannot contain a \</li>
      * </ul>
      *
-     * @param contentPathConstraintProcessor constraint processor
+     * @param contentPathConstraints constraint processor
      * @return builder
      * @see ContentPathConstraints
      */
-    public OcflRepositoryBuilder contentPathConstraints(ContentPathConstraintProcessor contentPathConstraintProcessor) {
-        this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
+    public OcflRepositoryBuilder contentPathConstraints(ContentPathConstraintProcessor contentPathConstraints) {
+        this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraints cannot be null");
         return this;
     }
 
@@ -308,13 +309,13 @@ public class OcflRepositoryBuilder {
         if (MutableOcflRepository.class.isAssignableFrom(clazz)) {
             return clazz.cast(new DefaultMutableOcflRepository(wrappedStorage, workDir,
                     objectLock, inventoryMapper,
-                    pathSanitizer, contentPathConstraintProcessor,
+                    logicalPathMapper, contentPathConstraintProcessor,
                     config, digestThreadPoolSize, copyThreadPoolSize));
         }
 
         return clazz.cast(new DefaultOcflRepository(wrappedStorage, workDir,
                 objectLock, inventoryMapper,
-                pathSanitizer, contentPathConstraintProcessor,
+                logicalPathMapper, contentPathConstraintProcessor,
                 config, digestThreadPoolSize, copyThreadPoolSize));
     }
 

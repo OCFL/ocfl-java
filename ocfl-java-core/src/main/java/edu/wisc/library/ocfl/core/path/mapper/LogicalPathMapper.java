@@ -22,16 +22,23 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.path.sanitize;
+package edu.wisc.library.ocfl.core.path.mapper;
 
 /**
- * PathSanitizer that simply returns the logical path without changing anything
+ * Maps logical paths to content paths. In this case, the content paths are not full content paths relative the object
+ * root directory, but rather partial content paths that are relative a version's content directory. The primary concern
+ * here is transforming illegal characters and ensuring that the path is not too long, so that it can safely be written
+ * to disk.
  */
-public class NoOpPathSanitizer implements PathSanitizer {
+public interface LogicalPathMapper {
 
-    @Override
-    public String sanitize(String logicalPath) {
-        return logicalPath;
-    }
+    /**
+     * Maps a logical path to a content path. This content path MUST be relative a version's content directory;
+     * not the object root.
+     *
+     * @param logicalPath path to map
+     * @return content path relative version content directory
+     */
+    String toContentPathPart(String logicalPath);
 
 }

@@ -49,7 +49,7 @@ import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
-import edu.wisc.library.ocfl.core.path.sanitize.PathSanitizer;
+import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -105,7 +105,7 @@ public class DefaultOcflRepository implements OcflRepository {
      * @param workDir path to the directory to use for assembling ocfl versions
      * @param objectLock locking client
      * @param inventoryMapper object mapper for serializing inventories
-     * @param pathSanitizer content path sanitizer
+     * @param logicalPathMapper logical path mapper
      * @param contentPathConstraintProcessor content path constraint processor
      * @param config ocfl defaults configuration
      * @param digestThreadPoolSize number of threads to use for computing digests
@@ -114,7 +114,7 @@ public class DefaultOcflRepository implements OcflRepository {
     public DefaultOcflRepository(OcflStorage storage, Path workDir,
                                  ObjectLock objectLock,
                                  InventoryMapper inventoryMapper,
-                                 PathSanitizer pathSanitizer,
+                                 LogicalPathMapper logicalPathMapper,
                                  ContentPathConstraintProcessor contentPathConstraintProcessor,
                                  OcflConfig config,
                                  int digestThreadPoolSize, int copyThreadPoolSize) {
@@ -129,7 +129,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         inventoryUpdaterBuilder = InventoryUpdater.builder().contentPathMapperBuilder(
                 ContentPathMapper.builder()
-                        .pathSanitizer(pathSanitizer)
+                        .logicalPathMapper(logicalPathMapper)
                         .contentPathConstraintProcessor(contentPathConstraintProcessor));
 
         sidecarMapper = new SidecarMapper();
