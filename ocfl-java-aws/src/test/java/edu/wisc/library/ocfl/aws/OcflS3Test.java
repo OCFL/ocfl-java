@@ -66,12 +66,12 @@ public class OcflS3Test {
                 "o1/inventory.json.sha512",
                 "o1/v1/inventory.json",
                 "o1/v1/inventory.json.sha512",
-                "o1/extensions/mutable-head/root-inventory.json.sha512",
-                "o1/extensions/mutable-head/revisions/r1",
-                "o1/extensions/mutable-head/HEAD/inventory.json",
-                "o1/extensions/mutable-head/HEAD/inventory.json.sha512",
-                "o1/extensions/mutable-head/HEAD/content/r1/dir/file1.txt",
-                "o1/extensions/mutable-head/HEAD/content/r1/dir/sub/file2.txt"
+                "o1/extensions/0004-mutable-head/root-inventory.json.sha512",
+                "o1/extensions/0004-mutable-head/revisions/r1",
+                "o1/extensions/0004-mutable-head/head/inventory.json",
+                "o1/extensions/0004-mutable-head/head/inventory.json.sha512",
+                "o1/extensions/0004-mutable-head/head/content/r1/dir/file1.txt",
+                "o1/extensions/0004-mutable-head/head/content/r1/dir/sub/file2.txt"
         ));
 
         assertEquals("file1", streamToString(repo.getObject(ObjectVersionId.head(objectId)).getFile("dir/file1.txt").getStream()));

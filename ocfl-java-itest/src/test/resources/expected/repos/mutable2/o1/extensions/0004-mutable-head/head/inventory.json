@@ -6,7 +6,7 @@
   "contentDirectory" : "content",
   "fixity" : { },
   "manifest" : {
-    "3eb3222d4b5629a27dede47a90c7665fcaff1305c2c6c645465edc8278768032ca223f9193f3e9d6bb7a8b950ed284030d256ce1ee33e1de7e9f3e2cb1a834a0" : [ "extensions/mutable-head/HEAD/content/r2/file4" ]
+    "3eb3222d4b5629a27dede47a90c7665fcaff1305c2c6c645465edc8278768032ca223f9193f3e9d6bb7a8b950ed284030d256ce1ee33e1de7e9f3e2cb1a834a0" : [ "extensions/0004-mutable-head/head/content/r2/file4" ]
   },
   "versions" : {
     "v1" : {

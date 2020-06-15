@@ -44,8 +44,8 @@ public final class OcflConstants {
     public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha512;
     public static final Set<DigestAlgorithm> ALLOWED_DIGEST_ALGORITHMS = Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
 
-    public static final String MUTABLE_HEAD_EXT_PATH = "extensions/mutable-head";
-    public static final String MUTABLE_HEAD_VERSION_PATH = MUTABLE_HEAD_EXT_PATH + "/HEAD";
+    public static final String MUTABLE_HEAD_EXT_PATH = "extensions/0004-mutable-head";
+    public static final String MUTABLE_HEAD_VERSION_PATH = MUTABLE_HEAD_EXT_PATH + "/head";
     public static final String MUTABLE_HEAD_REVISIONS_PATH = MUTABLE_HEAD_EXT_PATH + "/revisions";
 
 }
