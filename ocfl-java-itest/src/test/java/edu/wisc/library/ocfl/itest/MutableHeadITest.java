@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class MutableHeadITest {
 
+    private static final String O1_PATH = "235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc";
+
     @TempDir
     public Path tempRoot;
 
@@ -238,7 +240,7 @@ public abstract class MutableHeadITest {
 
         OcflAsserts.assertThrowsWithMessage(ObjectOutOfSyncException.class, "Changes are out of sync with the current object state", () -> {
             repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 2"), updater -> {
-                writeFile(repoName, "o1/extensions/0004-mutable-head/revisions/r2", TestHelper.inputStream("r2"));
+                writeFile(repoName, O1_PATH + "/extensions/0004-mutable-head/revisions/r2", TestHelper.inputStream("r2"));
                 updater.writeFile(new ByteArrayInputStream("file5" .getBytes()), "file5")
                         .renameFile("dir1/file3", "file3")
                         .removeFile("dir1/file4");

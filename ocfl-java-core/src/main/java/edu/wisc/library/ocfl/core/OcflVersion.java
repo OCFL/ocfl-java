@@ -38,8 +38,8 @@ public enum OcflVersion {
     private static final String OCFL_PREFIX = "ocfl_";
     private static final String OBJECT_PREFIX = "ocfl_object_";
 
-    private String versionString;
-    private InventoryType inventoryType;
+    private final String versionString;
+    private final InventoryType inventoryType;
 
     OcflVersion(String versionString, InventoryType inventoryType) {
         this.versionString = versionString;

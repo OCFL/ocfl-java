@@ -26,7 +26,7 @@ package edu.wisc.library.ocfl.core.storage;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflVersion;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 
 /**
@@ -44,7 +44,7 @@ public abstract class AbstractOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void initializeStorage(OcflVersion ocflVersion, LayoutConfig layoutConfig, InventoryMapper inventoryMapper) {
+    public synchronized void initializeStorage(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig, InventoryMapper inventoryMapper) {
         if (initialized) {
             return;
         }
@@ -69,7 +69,7 @@ public abstract class AbstractOcflStorage implements OcflStorage {
      *
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
      */
-    protected abstract void doInitialize(LayoutConfig layoutConfig);
+    protected abstract void doInitialize(OcflExtensionConfig layoutConfig);
 
     /**
      * Throws an exception if the repository has not been initialized or is closed

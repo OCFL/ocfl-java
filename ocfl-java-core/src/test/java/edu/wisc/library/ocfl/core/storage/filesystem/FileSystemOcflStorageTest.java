@@ -4,8 +4,8 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.OcflConstants;
-import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
@@ -40,7 +40,7 @@ public class FileSystemOcflStorageTest {
     private Path stagingDir;
     private Path stagingContentDir;
 
-    private LayoutConfig layoutConfig;
+    private OcflExtensionConfig layoutConfig;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -49,7 +49,7 @@ public class FileSystemOcflStorageTest {
         stagingDir = Files.createDirectories(workDir.resolve("staging"));
         stagingContentDir = Files.createDirectories(stagingDir.resolve("content"));
 
-        layoutConfig = DefaultLayoutConfig.flatUrlConfig();
+        layoutConfig = new HashedTruncatedNTupleConfig();
     }
 
     @Test
@@ -126,7 +126,7 @@ public class FileSystemOcflStorageTest {
         var storage = FileSystemOcflStorage.builder()
                 .repositoryRoot(existingRepoRoot("repo-one-object"))
                 .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, DefaultLayoutConfig.nTupleHashConfig(), ITestHelper.testInventoryMapper());
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -140,7 +140,7 @@ public class FileSystemOcflStorageTest {
         var storage = FileSystemOcflStorage.builder()
                 .repositoryRoot(existingRepoRoot("repo-multiple-objects"))
                 .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, DefaultLayoutConfig.nTupleHashConfig(), ITestHelper.testInventoryMapper());
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -154,7 +154,7 @@ public class FileSystemOcflStorageTest {
         var storage = FileSystemOcflStorage.builder()
                 .repositoryRoot(existingRepoRoot("repo-no-objects"))
                 .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, DefaultLayoutConfig.nTupleHashConfig(), ITestHelper.testInventoryMapper());
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
 
         var objectIdsStream = storage.listObjectIds();
 

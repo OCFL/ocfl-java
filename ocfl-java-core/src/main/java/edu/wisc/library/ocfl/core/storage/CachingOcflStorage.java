@@ -29,7 +29,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.nio.file.Path;
@@ -41,8 +41,8 @@ import java.util.stream.Stream;
  */
 public class CachingOcflStorage extends AbstractOcflStorage {
 
-    private Cache<String, Inventory> inventoryCache;
-    private OcflStorage delegate;
+    private final Cache<String, Inventory> inventoryCache;
+    private final OcflStorage delegate;
 
     public CachingOcflStorage(Cache<String, Inventory> inventoryCache, OcflStorage delegate) {
         this.inventoryCache = Enforce.notNull(inventoryCache, "inventoryCache cannot be null");
@@ -53,7 +53,7 @@ public class CachingOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    protected void doInitialize(LayoutConfig layoutConfig) {
+    protected void doInitialize(OcflExtensionConfig layoutConfig) {
         delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper);
     }
 

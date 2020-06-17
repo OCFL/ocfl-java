@@ -32,7 +32,7 @@ import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
@@ -61,7 +61,7 @@ public class OcflRepositoryBuilder {
 
     private OcflStorage storage;
     private OcflConfig config;
-    private LayoutConfig layoutConfig;
+    private OcflExtensionConfig layoutConfig;
     private Path workDir;
 
     private ObjectLock objectLock;
@@ -246,12 +246,12 @@ public class OcflRepositoryBuilder {
      * Sets OCFL storage layout configuration. If no layout config is specified, the client will attempt to auto-detect
      * the configuration from an existing repository. If it is a new repository, then layout configuration MUST be supplied.
      *
-     * @see edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig
+     * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig
      *
      * @param layoutConfig storage layout configuration
      * @return builder
      */
-    public OcflRepositoryBuilder layoutConfig(LayoutConfig layoutConfig) {
+    public OcflRepositoryBuilder layoutConfig(OcflExtensionConfig layoutConfig) {
         this.layoutConfig = Enforce.notNull(layoutConfig, "layoutConfig cannot be null");
         return this;
     }

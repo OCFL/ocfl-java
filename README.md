@@ -26,7 +26,7 @@ After building the libraries locally, add the following to your project's POM:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-core</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.4-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -36,7 +36,7 @@ Add the following if you'd like to use Amazon S3 for the storage layer:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-aws</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.4-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -47,7 +47,7 @@ var repoDir = Paths.get("ocfl-repo"); // This directory contains the OCFL storag
 var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL versions. It cannot be within the OCFL storage root.
 
 var repo = new OcflRepositoryBuilder()
-        .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
+        .layoutConfig(new HashedTruncatedNTupleConfig())
         .storage(FileSystemOcflStorage.builder().repositoryRoot(repoDir).build())
         .workDir(workDir)
         .build();
@@ -85,8 +85,8 @@ or `CloudOcflStorage.builder()` to create the `OcflStorage` implementation.
 it is critical that this directory is located on the same volume as the OCFL storage root.
 * **layoutConfig**: Configures the storage layout the OCFL repository uses. This is the method it uses to map object ids
 to directories under the OCFL storage root. The layout configuration must be set when creating new OCFL repositories, but is
-not required when opening an existing repository. Use `DefaultLayoutConfig` for preconfigured layout options, or build your
-own using `FlatLayoutConfig` or `NTupleLayoutConfig`. The recommended layout is `DefaultLayoutConfig.nTupleHashConfig()`.
+not required when opening an existing repository. Storage layouts must be defined in by an OCFL extension. Currently,
+the only implemented extension is `0003-hashed-n-tuple-trees`, which is configured using `HashedTruncatedNTupleConfig`.
 
 ### Optional Properties
 
@@ -137,7 +137,7 @@ on the same mount, as recommended.
 
 ```java
 var repo = new OcflRepositoryBuilder()
-        .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
+        .layoutConfig(new HashedTruncatedNTupleConfig())
         .storage(FileSystemOcflStorage.builder()
                 .repositoryRoot(repoDir)
                 .build())
@@ -181,7 +181,7 @@ to the number of available processors.
 
 ```java
 var repo = new OcflRepositoryBuilder()
-        .layoutConfig(DefaultLayoutConfig.nTupleHashConfig())
+        .layoutConfig(new HashedTruncatedNTupleConfig())
         .contentPathConstraints(ContentPathConstraints.cloud())
         .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
         .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
@@ -276,6 +276,19 @@ to move the source files into the staging directory instead of copying them.
 
 [OCFL extensions](https://github.com/OCFL/extensions) are additional features that the community has specified that are
 outside of the scope of the OCFL spec.
+
+### Storage Layout Extensions
+
+Storage layout extensions describe how OCFL object id should be mapped to paths within the OCFL storage root. `ocfl-java`
+includes built-in implementations of these extensions, but, you can override these implementations or add new layout extensions
+by writing your own implementations of `OcflStorageLayoutExtension` and registering the extension by calling `OcflExtensionRegistry.register("new-extension-name", NewExtension.class)`
+BEFORE initializing your OCFL repository.
+
+The following is a list of currently supported storage layout extensions:
+
+* **0003-hashed-n-tuple-trees**
+  * Configuration class: `HashedTruncatedNTupleConfig`
+  * Implementation class: `HashedTruncatedNTupleExtension`
 
 ### Mutable HEAD Extension
 

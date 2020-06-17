@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
@@ -114,7 +113,7 @@ public class FileSystemOcflStorageBuilder {
     public FileSystemOcflStorage build() {
         var init = initializer;
         if (init == null) {
-            init = new FileSystemOcflStorageInitializer(objectMapper, new ObjectIdPathMapperBuilder());
+            init = new FileSystemOcflStorageInitializer(objectMapper);
         }
 
         return new FileSystemOcflStorage(repositoryRoot, threadPoolSize, checkNewVersionFixity, init);

@@ -1,35 +1,32 @@
 package edu.wisc.library.ocfl.itest.filesystem;
 
 import edu.wisc.library.ocfl.api.OcflRepository;
-import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static edu.wisc.library.ocfl.itest.ITestHelper.*;
+import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.fixTime;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
 import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FileSystemOcflITest extends OcflITest {
 
@@ -39,7 +36,7 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void listObjectsInRepo() {
         var repoName = "repo-list";
-        var repo = defaultRepo(repoName, DefaultLayoutConfig.nTupleHashConfig());
+        var repo = defaultRepo(repoName, new HashedTruncatedNTupleConfig());
 
         repo.updateObject(ObjectVersionId.head("o1"), defaultCommitInfo, updater -> {
             updater.writeFile(inputStream("test1"), "test1.txt");
@@ -60,7 +57,7 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void purgeShouldRemoveEmptyParentDirs() throws IOException {
         var repoName = "purge-empty-dirs";
-        var repo = defaultRepo(repoName, DefaultLayoutConfig.nTupleHashConfig());
+        var repo = defaultRepo(repoName, new HashedTruncatedNTupleConfig());
 
         var objectId = "o3";
 
@@ -71,7 +68,7 @@ public class FileSystemOcflITest extends OcflITest {
         repo.purgeObject(objectId);
 
         assertThat(Arrays.asList(repoDir(repoName).toFile().list()).stream().collect(Collectors.toList()),
-                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt", "extension-layout-n-tuple.json", "ocfl_layout.json"));
+                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt", "0003-hashed-n-tuple-trees.json", "ocfl_layout.json"));
     }
 
     @Override
@@ -80,13 +77,13 @@ public class FileSystemOcflITest extends OcflITest {
     }
 
     @Override
-    protected OcflRepository defaultRepo(String name, LayoutConfig layoutConfig) {
+    protected OcflRepository defaultRepo(String name, OcflExtensionConfig layoutConfig) {
         var repoDir = UncheckedFiles.createDirectories(repoDir(name));
         return existingRepo(name, null, layoutConfig);
     }
 
     @Override
-    protected OcflRepository existingRepo(String name, Path path, LayoutConfig layoutConfig) {
+    protected OcflRepository existingRepo(String name, Path path, OcflExtensionConfig layoutConfig) {
         var repoDir = repoDir(name);
 
         if (path != null) {

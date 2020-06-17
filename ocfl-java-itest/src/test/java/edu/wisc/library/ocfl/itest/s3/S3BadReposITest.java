@@ -7,7 +7,7 @@ import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
-import edu.wisc.library.ocfl.core.extension.layout.config.DefaultLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
@@ -53,7 +53,7 @@ public class S3BadReposITest extends BadReposITest {
         createBucket(name);
         copyFiles(name);
         var repo = new OcflRepositoryBuilder()
-                .layoutConfig(DefaultLayoutConfig.flatUrlConfig())
+                .layoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
                 .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))

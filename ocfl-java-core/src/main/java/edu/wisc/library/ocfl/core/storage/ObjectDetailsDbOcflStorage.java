@@ -33,7 +33,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
 import edu.wisc.library.ocfl.core.db.OcflObjectDetails;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -51,9 +51,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(ObjectDetailsDbOcflStorage.class);
 
-    private ObjectDetailsDatabase objectDetailsDb;
-    private OcflStorage delegate;
-    private SidecarMapper sidecarMapper;
+    private final ObjectDetailsDatabase objectDetailsDb;
+    private final OcflStorage delegate;
+    private final SidecarMapper sidecarMapper;
 
     public ObjectDetailsDbOcflStorage(ObjectDetailsDatabase objectDetailsDb, OcflStorage delegate) {
         this.objectDetailsDb = Enforce.notNull(objectDetailsDb, "objectDetailsDb cannot be null");
@@ -65,7 +65,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    protected void doInitialize(LayoutConfig layoutConfig) {
+    protected void doInitialize(OcflExtensionConfig layoutConfig) {
         delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper);
     }
 

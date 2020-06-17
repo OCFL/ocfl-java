@@ -1,10 +1,19 @@
 package edu.wisc.library.ocfl.itest.s3;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -61,7 +70,7 @@ public class S3ITestHelper {
                         || pStr.contains("deposit")
                         // TODO remove this once layout an extensions are finalized
                         || pStr.contains("ocfl_layout")
-                        || pStr.contains("extension-layout"));
+                        || pStr.contains(HashedTruncatedNTupleExtension.EXTENSION_NAME));
             }).filter(p -> Files.isRegularFile(p)).forEach(p -> {
                 paths.add(FileUtil.pathToStringStandardSeparator(root.relativize(p)));
             });
@@ -94,7 +103,7 @@ public class S3ITestHelper {
                 .build());
 
         return result.contents().stream().map(S3Object::key).filter(k -> {
-            return !(k.contains("ocfl_layout") || k.contains("extension-layout"));
+            return !(k.contains("ocfl_layout") || k.contains(HashedTruncatedNTupleExtension.EXTENSION_NAME));
         }).collect(Collectors.toList());
     }
 

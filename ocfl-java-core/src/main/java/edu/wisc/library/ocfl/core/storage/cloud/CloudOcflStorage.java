@@ -37,12 +37,12 @@ import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
-import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -86,15 +86,15 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private static final String MIMETYPE_TEXT_PLAIN = "text/plain; charset=UTF-8";
 
-    private PathConstraintProcessor logicalPathConstraints;
+    private final PathConstraintProcessor logicalPathConstraints;
 
-    private CloudClient cloudClient;
-    private Path workDir;
+    private final CloudClient cloudClient;
+    private final Path workDir;
 
-    private CloudOcflStorageInitializer initializer;
-    private ObjectIdPathMapper objectIdPathMapper;
-    private ParallelProcess parallelProcess; // TODO performance test this vs async client
-    private CloudOcflFileRetriever.Builder fileRetrieverBuilder;
+    private final CloudOcflStorageInitializer initializer;
+    private OcflStorageLayoutExtension storageLayoutExtension;
+    private final ParallelProcess parallelProcess; // TODO performance test this vs async client
+    private final CloudOcflFileRetriever.Builder fileRetrieverBuilder;
 
     /**
      * Create a new builder.
@@ -330,7 +330,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public String objectRootPath(String objectId) {
         ensureOpen();
 
-        var objectRootPath = objectIdPathMapper.map(objectId);
+        var objectRootPath = storageLayoutExtension.mapObjectId(objectId);
 
         LOG.debug("Object root path for object <{}>: {}", objectId, objectRootPath);
 
@@ -341,8 +341,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    protected void doInitialize(LayoutConfig layoutConfig) {
-        this.objectIdPathMapper = this.initializer.initializeStorage(ocflVersion, layoutConfig);
+    protected void doInitialize(OcflExtensionConfig layoutConfig) {
+        this.storageLayoutExtension = this.initializer.initializeStorage(ocflVersion, layoutConfig);
     }
 
     /**

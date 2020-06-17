@@ -35,13 +35,13 @@ import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
-import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -54,10 +54,18 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.*;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -68,21 +76,21 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemOcflStorage.class);
 
-    private PathConstraintProcessor logicalPathConstraints;
+    private final PathConstraintProcessor logicalPathConstraints;
 
-    private Path repositoryRoot;
-    private SidecarMapper sidecarMapper;
-    private FileSystemOcflStorageInitializer initializer;
-    private ParallelProcess parallelProcess;
+    private final Path repositoryRoot;
+    private final SidecarMapper sidecarMapper;
+    private final FileSystemOcflStorageInitializer initializer;
+    private final ParallelProcess parallelProcess;
 
-    private boolean checkNewVersionFixity;
+    private final boolean checkNewVersionFixity;
 
-    private ObjectIdPathMapper objectIdPathMapper;
+    private OcflStorageLayoutExtension storageLayoutExtension;
 
     /**
      * This retry policy is used for retrying IO operations
      */
-    private RetryPolicy<Void> ioRetry;
+    private final RetryPolicy<Void> ioRetry;
 
     /**
      * Create a new builder.
@@ -392,7 +400,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public String objectRootPath(String objectId) {
         ensureOpen();
 
-        var objectRootPath = objectIdPathMapper.map(objectId);
+        var objectRootPath = storageLayoutExtension.mapObjectId(objectId);
 
         LOG.debug("Object root path for object <{}>: {}", objectId, objectRootPath);
 
@@ -403,8 +411,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    protected void doInitialize(LayoutConfig layoutConfig) {
-        this.objectIdPathMapper = this.initializer.initializeStorage(repositoryRoot, ocflVersion, layoutConfig);
+    protected void doInitialize(OcflExtensionConfig layoutConfig) {
+        this.storageLayoutExtension = this.initializer.initializeStorage(repositoryRoot, ocflVersion, layoutConfig);
     }
 
     /**
@@ -417,7 +425,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private Path objectRootPathFull(String objectId) {
-        return repositoryRoot.resolve(objectIdPathMapper.map(objectId));
+        return repositoryRoot.resolve(storageLayoutExtension.mapObjectId(objectId));
     }
 
     private Inventory parseInventory(String objectRootPath, Path inventoryPath) {

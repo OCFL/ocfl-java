@@ -7,7 +7,7 @@ import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
-import edu.wisc.library.ocfl.core.extension.layout.config.LayoutConfig;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
@@ -57,7 +57,7 @@ public class S3OcflITest extends OcflITest {
     }
 
     @Override
-    protected OcflRepository defaultRepo(String name, LayoutConfig layoutConfig) {
+    protected OcflRepository defaultRepo(String name, OcflExtensionConfig layoutConfig) {
         createBucket(name);
         var repo = new OcflRepositoryBuilder()
                 .layoutConfig(layoutConfig)
@@ -81,7 +81,7 @@ public class S3OcflITest extends OcflITest {
     }
 
     @Override
-    protected OcflRepository existingRepo(String name, Path path, LayoutConfig layoutConfig) {
+    protected OcflRepository existingRepo(String name, Path path, OcflExtensionConfig layoutConfig) {
         createBucket(name);
         FileUtil.findFiles(path).forEach(file -> {
             s3Client.putObject(PutObjectRequest.builder()

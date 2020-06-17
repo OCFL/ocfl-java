@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.storage.cloud;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.mapping.ObjectIdPathMapperBuilder;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
@@ -109,7 +108,7 @@ public class CloudOcflStorageBuilder {
     public CloudOcflStorage build() {
         var init = initializer;
         if (init == null) {
-            init = new CloudOcflStorageInitializer(cloudClient, objectMapper, new ObjectIdPathMapperBuilder());
+            init = new CloudOcflStorageInitializer(cloudClient, objectMapper);
         }
 
         return new CloudOcflStorage(cloudClient, threadPoolSize, workDir, init);
