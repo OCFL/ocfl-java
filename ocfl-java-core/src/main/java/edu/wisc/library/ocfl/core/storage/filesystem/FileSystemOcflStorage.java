@@ -320,11 +320,15 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         var versionRoot = objectRoot.headVersion();
         var stagingRoot = ObjectPaths.version(newInventory, stagingDir);
 
-        versionContentCheck(oldInventory, objectRoot, objectRoot.mutableHeadVersion().contentPath(), true);
+        // This is a safe guard to remove any remaining files that are in the new version content directory but
+        // are no longer referenced in the inventory.
+        deleteMutableHeadFilesNotInManifest(oldInventory, objectRoot, versionRoot);
 
         moveToVersionDirectory(newInventory, objectRoot.mutableHeadPath(), versionRoot);
 
         try {
+            versionContentCheck(newInventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
+
             try {
                 // The inventory is written to the root first so that the mutable version can be recovered if the write fails
                 copyInventoryToRootWithRollback(stagingRoot, objectRoot, newInventory);
@@ -338,14 +342,12 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 throw e;
             }
 
-            // TODO double check that there aren't files under content that aren't listed in the manifest?
             deleteEmptyDirs(versionRoot.contentPath());
         } catch (RuntimeException e) {
             FileUtil.safeDeletePath(versionRoot.path());
             throw e;
         }
 
-        // TODO failure conditions of this?
         FileUtil.safeDeletePath(objectRoot.mutableHeadExtensionPath());
     }
 
@@ -518,7 +520,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             try {
                 versionContentCheck(inventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
                 copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
-                // TODO verify inventory integrity again?
             } catch (RuntimeException e) {
                 FileUtil.safeDeletePath(versionRoot.path());
                 throw e;
@@ -554,7 +555,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 try {
                     versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
                     copyInventory(stagingVersionRoot, versionRoot);
-                    // TODO verify inventory integrity?
                 } catch (RuntimeException e) {
                     FileUtil.safeDeletePath(revisionPath);
                     throw e;

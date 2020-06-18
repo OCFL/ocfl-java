@@ -157,8 +157,6 @@ public class CloudOcflStorageInitializer {
                         layoutConfig, objectId, objectRoot, expectedPath
                 ));
             }
-
-            // TODO should the layout be written? even with this check it's not guaranteed to be correct
         }
 
         return layoutExtension;

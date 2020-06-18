@@ -167,7 +167,6 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
     @Override
     public boolean hasStagedChanges(String objectId) {
         ensureOpen();
-        // TODO return false if object does not exist?
         Enforce.notBlank(objectId, "objectId cannot be blank");
 
         LOG.debug("Check if object <{}> has staged changes", objectId);

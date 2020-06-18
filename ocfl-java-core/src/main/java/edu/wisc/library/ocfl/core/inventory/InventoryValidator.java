@@ -105,7 +105,7 @@ public final class InventoryValidator {
                 expectedHead, inventory.getHead()));
 
         // TODO only doing a complete validation on the most recent version because validating all of the versions
-        // TODO can be very slow when there are a lot of files and versions
+        //      can be very slow when there are a lot of files and versions
         validateVersion(inventory, versionMap.get(expectedHead), expectedHead);
     }
 

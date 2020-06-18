@@ -278,6 +278,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
 
         var versionPath = objectVersionPath(newInventory, newInventory.getHead());
+
         ensureVersionDoesNotExist(newInventory, versionPath);
 
         var objectKeys = copyMutableVersionToImmutableVersion(oldInventory, newInventory);
@@ -377,7 +378,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                 throw e;
             }
         } catch (RuntimeException e) {
-            // TODO this could be corrupt the object if another process is concurrently creating the same object
+            // TODO this could corrupt the object if another process is concurrently creating the same object
             if (namasteFile != null) {
                 cloudClient.safeDeleteObjects(namasteFile);
             }
