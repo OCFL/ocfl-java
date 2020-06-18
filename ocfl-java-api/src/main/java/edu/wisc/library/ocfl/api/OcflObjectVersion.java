@@ -39,8 +39,8 @@ import java.util.Map;
  */
 public class OcflObjectVersion {
 
-    private VersionDetails versionDetails;
-    private Map<String, OcflObjectVersionFile> fileMap;
+    private final VersionDetails versionDetails;
+    private final Map<String, OcflObjectVersionFile> fileMap;
 
     public OcflObjectVersion(VersionDetails versionDetails, Map<String, OcflObjectVersionFile> fileMap) {
         this.versionDetails = Enforce.notNull(versionDetails, "versionDetails cannot be null");

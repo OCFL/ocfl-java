@@ -82,6 +82,9 @@ public class FixityCheckInputStream extends DigestInputStream {
 
     }
 
+    /**
+     * @return the expected digest value
+     */
     public String getExpectedDigestValue() {
         return expectedDigestValue;
     }

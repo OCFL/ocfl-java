@@ -36,8 +36,8 @@ import java.util.Map;
  */
 public class OcflObjectVersionFile {
 
-    private FileDetails fileDetails;
-    private OcflFileRetriever fileRetriever;
+    private final FileDetails fileDetails;
+    private final OcflFileRetriever fileRetriever;
 
     public OcflObjectVersionFile(FileDetails fileDetails, OcflFileRetriever fileRetriever) {
         this.fileDetails = Enforce.notNull(fileDetails, "fileDetails cannot be null");

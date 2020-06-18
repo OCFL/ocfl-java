@@ -24,6 +24,9 @@
 
 package edu.wisc.library.ocfl.api.exception;
 
+/**
+ * Indicates that file already exists and could not be overwritten.
+ */
 public class OverwriteException extends RuntimeException {
 
     public OverwriteException() {

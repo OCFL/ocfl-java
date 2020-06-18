@@ -35,6 +35,10 @@ import java.nio.channels.ByteChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * A byte channel wrapper that preforms a fixity check on the bytes that pass through an underlying byte channel.
+ * After all of the channel's bytes have been read, {@code checkFixity()} should be called.
+ */
 public class FixityCheckChannel implements ByteChannel {
 
     private boolean enabled = true;
@@ -43,18 +47,40 @@ public class FixityCheckChannel implements ByteChannel {
     private final MessageDigest digest;
     private final String expectedDigestValue;
 
+    /**
+     * Constructs a new FixityCheckChannel
+     *
+     * @param delegate the channel to wrap
+     * @param digestAlgorithm the digest algorithm to use
+     * @param expectedDigestValue the expected digest value
+     */
     public FixityCheckChannel(ByteChannel delegate, DigestAlgorithm digestAlgorithm, String expectedDigestValue) {
         this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
         this.digest = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null").getMessageDigest();
         this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
     }
 
+    /**
+     * Constructs a new FixityCheckChannel
+     *
+     * @param delegate the channel to wrap
+     * @param digestAlgorithm the digest algorithm to use
+     * @param expectedDigestValue the expected digest value
+     */
     public FixityCheckChannel(ByteChannel delegate, String digestAlgorithm, String expectedDigestValue) {
         this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
         this.digest = messageDigest(Enforce.notBlank(digestAlgorithm, "digestAlgorithm cannot be blank"));
         this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
     }
 
+    /**
+     * Performs a fixity check and throws an exception if the check fails. This should only be called after the entire
+     * contents of the stream has been read.
+     *
+     * <p>If the check is disabled, nothing happens
+     *
+     * @throws FixityCheckException when the actual digest value does not match the expected value
+     */
     public void checkFixity() {
         if (enabled) {
             var actualDigest = Bytes.wrap(digest.digest()).encodeHex();
@@ -66,10 +92,19 @@ public class FixityCheckChannel implements ByteChannel {
 
     }
 
+    /**
+     * @return the expected digest value
+     */
     public String getExpectedDigestValue() {
         return expectedDigestValue;
     }
 
+    /**
+     * By default fixity checking is enabled. Use this method to disable it, and prevent needless digest computation
+     *
+     * @param enabled if fixity should be checked
+     * @return this stream
+     */
     public FixityCheckChannel enableFixityCheck(boolean enabled) {
         this.enabled = enabled;
         return this;

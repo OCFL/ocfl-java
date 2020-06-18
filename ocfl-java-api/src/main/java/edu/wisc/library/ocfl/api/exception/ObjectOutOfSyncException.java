@@ -24,6 +24,10 @@
 
 package edu.wisc.library.ocfl.api.exception;
 
+/**
+ * Indicates that an operation could not be completed because the request is out of sync with the current object
+ * state on disk.
+ */
 public class ObjectOutOfSyncException extends RuntimeException {
 
     public ObjectOutOfSyncException() {
