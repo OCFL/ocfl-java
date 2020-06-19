@@ -1176,6 +1176,87 @@ public abstract class OcflITest {
         });
     }
 
+    @Test
+    public void replicatePreviousVersionToHead() {
+        var repoName = "replicate1";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("3".getBytes()), "f3")
+                    .removeFile("f1");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
+            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+                    .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
+        });
+
+        repo.replicateVersionAsHead(ObjectVersionId.version(objectId, "v1"), defaultVersionInfo.setMessage("replicate"));
+
+        verifyRepo(repoName);
+    }
+
+    @Test
+    public void replicatePreviousVersionToHeadWhenHeadVersionSpecified() {
+        var repoName = "replicate2";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("3".getBytes()), "f3")
+                    .removeFile("f1");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
+            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+                    .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
+        });
+
+        repo.replicateVersionAsHead(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("replicate"));
+
+        verifyRepo(repoName);
+    }
+
+    @Test
+    public void failReplicateWhenVersionDoesNotExist() {
+        var repoName = "replicate3";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("3".getBytes()), "f3")
+                    .removeFile("f1");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
+            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+                    .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
+        });
+
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "version v4 was not found", () -> {
+            repo.replicateVersionAsHead(ObjectVersionId.version(objectId, "v4"), defaultVersionInfo.setMessage("replicate"));
+        });
+    }
+
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
         var stream = actual.getStream();
         var contents = TestHelper.inputToString(stream);

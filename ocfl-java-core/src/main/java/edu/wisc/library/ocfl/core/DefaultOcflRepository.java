@@ -31,12 +31,12 @@ import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
@@ -227,8 +227,7 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Get object <{}> and copy to <{}>", objectVersionId, outputPath);
 
         var inventory = requireInventory(objectVersionId);
-        requireVersion(objectVersionId, inventory);
-        var versionId = resolveVersion(objectVersionId, inventory);
+        var versionId = requireVersion(objectVersionId, inventory);
 
         getObjectInternal(inventory, versionId, outputPath);
     }
@@ -245,8 +244,7 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Get object <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
-        requireVersion(objectVersionId, inventory);
-        var versionId = resolveVersion(objectVersionId, inventory);
+        var versionId = requireVersion(objectVersionId, inventory);
 
         var versionDetails = createVersionDetails(inventory, versionId);
         var objectStreams = storage.getObjectStreams(inventory, versionId);
@@ -285,13 +283,12 @@ public class DefaultOcflRepository implements OcflRepository {
     public VersionDetails describeVersion(ObjectVersionId objectVersionId) {
         ensureOpen();
 
-        Enforce.notNull(objectVersionId, "objectId cannot be null");
+        Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
 
         LOG.debug("Describe version <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
-        requireVersion(objectVersionId, inventory);
-        var versionId = resolveVersion(objectVersionId, inventory);
+        var versionId = requireVersion(objectVersionId, inventory);
 
         return createVersionDetails(inventory, versionId);
     }
@@ -344,6 +341,56 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.info("Purge object <{}>", objectId);
 
         objectLock.doInWriteLock(objectId, () -> storage.purgeObject(objectId));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ObjectVersionId replicateVersionAsHead(ObjectVersionId objectVersionId, VersionInfo versionInfo) {
+        ensureOpen();
+
+        Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
+
+        LOG.debug("Replicate version <{}>", objectVersionId);
+
+        var inventory = requireInventory(objectVersionId);
+        var versionId = requireVersion(objectVersionId, inventory);
+
+        ensureNoMutableHead(inventory);
+
+        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory, versionId);
+        var newInventory = inventoryUpdater.buildNewInventory(now(), versionInfo);
+
+        var stagingDir = createStagingDir(objectVersionId.getObjectId());
+        // content dir is not used but must exist
+        createStagingContentDir(inventory, stagingDir);
+
+        try {
+            writeNewVersion(newInventory, stagingDir);
+            return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
+        } finally {
+            FileUtil.safeDeletePath(stagingDir);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void rollbackToVersion(ObjectVersionId objectVersionId) {
+        ensureOpen();
+
+        Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
+
+        LOG.debug("Rollback to version <{}>", objectVersionId);
+
+        var inventory = requireInventory(objectVersionId);
+        var versionId = requireVersion(objectVersionId, inventory);
+
+        // TODO Do not currently have a way to remove versions from inventories
+        // TODO Do not currently have a way to purge versions from storage
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     /**
@@ -439,25 +486,17 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    private VersionId resolveVersion(ObjectVersionId objectId, Inventory inventory) {
-        var versionId = inventory.getHead();
-
-        if (!objectId.isHead()) {
-            versionId = objectId.getVersionId();
-        }
-
-        return versionId;
-    }
-
-    private void requireVersion(ObjectVersionId objectId, Inventory inventory) {
+    private VersionId requireVersion(ObjectVersionId objectId, Inventory inventory) {
         if (objectId.isHead()) {
-            return;
+            return inventory.getHead();
         }
 
         if (inventory.getVersion(objectId.getVersionId()) == null) {
             throw new NotFoundException(String.format("Object %s version %s was not found.",
                     objectId.getObjectId(), objectId.getVersionId()));
         }
+
+        return objectId.getVersionId();
     }
 
     protected Path createStagingDir(String objectId) {

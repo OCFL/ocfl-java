@@ -26,9 +26,9 @@ package edu.wisc.library.ocfl.core.inventory;
 
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
-import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -36,8 +36,8 @@ import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
-import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
+import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -110,6 +110,24 @@ public class InventoryUpdater {
             } else {
                 versionBuilder = Version.builder();
             }
+
+            return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
+                    contentPathMapperBuilder.buildStandardVersion(inventory));
+        }
+
+        /**
+         * Constructs a new InventoryUpdater that copies over the state from a previous version.
+         *
+         * @param inventory the original inventory
+         * @param versionId the id over the version to copy
+         * @return inventory updater
+         */
+        public InventoryUpdater buildCopyState(Inventory inventory, VersionId versionId) {
+            Enforce.notNull(inventory, "inventory cannot be null");
+            Enforce.notNull(versionId, "versionId cannot be null");
+
+            var inventoryBuilder = Inventory.builder(inventory);
+            var versionBuilder = Version.builder(inventory.getVersion(versionId));
 
             return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
                     contentPathMapperBuilder.buildStandardVersion(inventory));

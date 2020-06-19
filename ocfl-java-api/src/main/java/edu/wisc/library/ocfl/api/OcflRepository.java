@@ -26,7 +26,11 @@ package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.*;
+import edu.wisc.library.ocfl.api.model.FileChangeHistory;
+import edu.wisc.library.ocfl.api.model.ObjectDetails;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.VersionDetails;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -61,7 +65,7 @@ public interface OcflRepository {
      * @param path the path to the object content
      * @param versionInfo information about the changes to the object. Can be null.
      * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
-     * @return The objectVersionId and version of the new object version
+     * @return The objectId and version of the new object version
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
     ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... ocflOptions);
@@ -78,7 +82,7 @@ public interface OcflRepository {
      *                 if the specified version matches the head object version in the repository.
      * @param versionInfo information about the changes to the object. Can be null.
      * @param objectUpdater code block within which updates to an object may be made
-     * @return The objectVersionId and version of the new object version
+     * @return The objectId and version of the new object version
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
@@ -142,14 +146,6 @@ public interface OcflRepository {
     boolean containsObject(String objectId);
 
     /**
-     * Permanently removes an object from the repository. Objects that have been purged are NOT recoverable. If an object
-     * with the specified id cannot be found it is considered purged and no exception is thrown.
-     *
-     * @param objectId the id of the object to purge
-     */
-    void purgeObject(String objectId);
-
-    /**
      * Returns a stream of OCFL object ids for all of the objects stored in the repository. This stream is populated on
      * demand. Warning: Iterating over every object id may be quite slow. Remember to close the stream when you are done with it.
      *
@@ -158,12 +154,45 @@ public interface OcflRepository {
     Stream<String> listObjectIds();
 
     /**
+     * Permanently removes an object from the repository. Objects that have been purged are NOT recoverable. If an object
+     * with the specified id cannot be found it is considered purged and no exception is thrown.
+     *
+     * @param objectId the id of the object to purge
+     */
+    void purgeObject(String objectId);
+
+    /**
+     * Creates a new head version by copying the state of the specified version. This is a non-destructive way to roll an
+     * object back to a prior version without altering its version history.
+     *
+     * <p>Use {@link #rollbackToVersion} instead if you want to roll an object back to a prior version by purging all
+     * intermediary versions.
+     *
+     * @param objectVersionId the id of the object and version to replicate
+     * @param versionInfo information about the changes to the object. Can be null.
+     * @return The objectId and version of the new object version
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
+     */
+    ObjectVersionId replicateVersionAsHead(ObjectVersionId objectVersionId, VersionInfo versionInfo);
+
+    /**
+     * Rolls an object back to the specified version. The specified version must exist and is made the head version.
+     * Any intermediary versions are PURGED. There is no way to recover versions that are purged as part of rolling back
+     * to a previous version.
+     *
+     * <p>Use {@link #replicateVersionAsHead} instead if you want to roll an object back to a prior version but do not want to
+     * delete intermediary versions.
+     *
+     * @param objectVersionId the id of the object and version to rollback to
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
+     */
+    void rollbackToVersion(ObjectVersionId objectVersionId);
+
+    /**
      * Closes any resources the OcflRepository may have open, such as ExecutorServices. Once closed, additional requests
      * will be rejected. Calling this method is optional, and it is more efficient to just let the shutdown hooks take care
      * of closing the resources.
      */
     void close();
-
-    // TODO rollbackObject?
 
 }
