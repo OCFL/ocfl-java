@@ -13,7 +13,8 @@
       "created" : "2019-08-05T15:57:53Z",
       "message" : "Auto-generated empty object version.",
       "user" : {
-        "name" : "ocfl-java"
+        "name" : "ocfl-java",
+        "address" : "https://github.com/UW-Madison-Library/ocfl-java"
       },
       "state" : { }
     },

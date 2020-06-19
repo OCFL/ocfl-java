@@ -51,7 +51,7 @@ public interface OcflObjectUpdater {
      * @param sourcePath the local file or directory to add to the object
      * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      *                    Use {@link OcflOption#OVERWRITE} to overwrite existing files within an object
-     * @return updater
+     * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
@@ -73,7 +73,7 @@ public interface OcflObjectUpdater {
      * @param destinationPath the logical path to store the sourcePath at within the object, an empty string indicates the object root
      * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      *                    Use {@link OcflOption#OVERWRITE} to overwrite existing files within an object
-     * @return updater
+     * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
@@ -93,7 +93,7 @@ public interface OcflObjectUpdater {
      * @param destinationPath the logical path to store the file at within the object
      * @param ocflOptions optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
      *                    an object
-     * @return updater
+     * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      * @throws FixityCheckException if the a FixityCheckInputStream is used and the digest does not match the expected value
@@ -104,7 +104,7 @@ public interface OcflObjectUpdater {
      * Removes a file from the object. An exception is not thrown if there is nothing at the path.
      *
      * @param path the logical path of the file to remove
-     * @return updater
+     * @return this
      */
     OcflObjectUpdater removeFile(String path);
 
@@ -118,7 +118,7 @@ public interface OcflObjectUpdater {
      * @param destinationPath the local path to rename the file to
      * @param ocflOptions optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
      *                    an object
-     * @return updater
+     * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
@@ -136,7 +136,7 @@ public interface OcflObjectUpdater {
      * @param destinationPath the logical path to reinstate the file to
      * @param ocflOptions optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
      *                    an object
-     * @return updater
+     * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
@@ -146,7 +146,7 @@ public interface OcflObjectUpdater {
      * The state of the current version of the object is cleared so that it does not reference any files. No files are deleted.
      * This can be useful to simulate {@link OcflRepository#putObject} like behavior.
      * 
-     * @return updater
+     * @return this
      */
     OcflObjectUpdater clearVersionState();
 
@@ -165,7 +165,7 @@ public interface OcflObjectUpdater {
      * @param logicalPath the logical path of the file to add fixity information for
      * @param algorithm the digest algorithm
      * @param value the expected digest value
-     * @return updater
+     * @return this
      * @throws FixityCheckException if the computed digest of the file does not match the expected value
      */
     OcflObjectUpdater addFileFixity(String logicalPath, DigestAlgorithm algorithm, String value);
@@ -174,7 +174,7 @@ public interface OcflObjectUpdater {
      * Clears the object's fixity block. The fixity block is primarily used for legacy migrations, and is not the primary
      * OCFL fixity mechanism. The fixity block can be cleared when it is no longer needed.
      *
-     * @return updater
+     * @return this
      */
     OcflObjectUpdater clearFixityBlock();
     

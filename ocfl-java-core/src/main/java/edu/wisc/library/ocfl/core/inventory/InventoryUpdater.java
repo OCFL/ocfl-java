@@ -26,7 +26,7 @@ package edu.wisc.library.ocfl.core.inventory;
 
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -150,13 +150,13 @@ public class InventoryUpdater {
      * After calling this method, the InventoryUpdater instance should NOT be used again.
      *
      * @param createdTimestamp when the version was created
-     * @param commitInfo information about the version
+     * @param versionInfo information about the version
      * @return new inventory
      */
-    public Inventory buildNewInventory(OffsetDateTime createdTimestamp, CommitInfo commitInfo) {
+    public Inventory buildNewInventory(OffsetDateTime createdTimestamp, VersionInfo versionInfo) {
         return inventoryBuilder
                 .addHeadVersion(versionBuilder
-                        .commitInfo(commitInfo)
+                        .versionInfo(versionInfo)
                         .created(createdTimestamp)
                         .build())
                 .build();

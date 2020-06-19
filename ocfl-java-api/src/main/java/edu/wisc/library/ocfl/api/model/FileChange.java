@@ -38,7 +38,7 @@ public class FileChange {
     private String storageRelativePath;
     private Map<DigestAlgorithm, String> fixity;
     private OffsetDateTime timestamp;
-    private CommitInfo commitInfo;
+    private VersionInfo versionInfo;
 
     /**
      * The type of change that occurred, UPDATE/REMOVE.
@@ -136,14 +136,14 @@ public class FileChange {
     /**
      * Description of the version
      *
-     * @return CommitInfo
+     * @return VersionInfo
      */
-    public CommitInfo getCommitInfo() {
-        return commitInfo;
+    public VersionInfo getVersionInfo() {
+        return versionInfo;
     }
 
-    public FileChange setCommitInfo(CommitInfo commitInfo) {
-        this.commitInfo = commitInfo;
+    public FileChange setVersionInfo(VersionInfo versionInfo) {
+        this.versionInfo = versionInfo;
         return this;
     }
 
@@ -156,7 +156,7 @@ public class FileChange {
                 ", storageRelativePath='" + storageRelativePath + '\'' +
                 ", fixity=" + fixity +
                 ", timestamp=" + timestamp +
-                ", commitInfo=" + commitInfo +
+                ", versionInfo=" + versionInfo +
                 '}';
     }
 

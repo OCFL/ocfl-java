@@ -31,7 +31,7 @@ import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -148,7 +148,7 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions) {
+    public ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... ocflOptions) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
@@ -168,7 +168,7 @@ public class DefaultOcflRepository implements OcflRepository {
         var fileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
         fileProcessor.processPath(path, ocflOptions);
 
-        var newInventory = buildNewInventory(inventoryUpdater, commitInfo);
+        var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
 
         try {
             writeNewVersion(newInventory, stagingDir);
@@ -182,7 +182,7 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId updateObject(ObjectVersionId objectVersionId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
+    public ObjectVersionId updateObject(ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
@@ -203,7 +203,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         try {
             objectUpdater.accept(updater);
-            var newInventory = buildNewInventory(inventoryUpdater, commitInfo);
+            var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
@@ -396,8 +396,8 @@ public class DefaultOcflRepository implements OcflRepository {
         return inventory;
     }
 
-    protected Inventory buildNewInventory(InventoryUpdater inventoryUpdater, CommitInfo commitInfo) {
-        return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(), commitInfo));
+    protected Inventory buildNewInventory(InventoryUpdater inventoryUpdater, VersionInfo versionInfo) {
+        return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(), versionInfo));
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {

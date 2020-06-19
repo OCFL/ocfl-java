@@ -26,9 +26,8 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.inventory.MutableHeadInventoryCommitter;
@@ -85,7 +84,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId stageChanges(ObjectVersionId objectVersionId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater) {
+    public ObjectVersionId stageChanges(ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
@@ -111,7 +110,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
         try {
             objectUpdater.accept(updater);
-            var newInventory = buildNewInventory(inventoryUpdater, commitInfo);
+            var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
@@ -123,7 +122,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId commitStagedChanges(String objectId, CommitInfo commitInfo) {
+    public ObjectVersionId commitStagedChanges(String objectId, VersionInfo versionInfo) {
         ensureOpen();
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
@@ -133,7 +132,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         var inventory = requireInventory(ObjectVersionId.head(objectId));
 
         if (inventory.hasMutableHead()) {
-            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(), commitInfo);
+            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(), versionInfo);
             var stagingDir = FileUtil.createObjectTempDir(workDir, objectId);
             writeInventory(newInventory, stagingDir);
 
@@ -186,9 +185,9 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
             var inventoryBuilder = Inventory.builder(stubInventory);
             var inventory = inventoryBuilder
                     .addHeadVersion(Version.builder()
-                            .commitInfo(new CommitInfo()
+                            .versionInfo(new VersionInfo()
                                     .setMessage("Auto-generated empty object version.")
-                                    .setUser(new User().setName("ocfl-java")))
+                                    .setUser("ocfl-java", "https://github.com/UW-Madison-Library/ocfl-java"))
                             .created(now())
                             .build())
                     .build();

@@ -52,7 +52,7 @@ public abstract class OcflITest {
     protected Path inputDir;
     protected Path workDir;
 
-    protected CommitInfo defaultCommitInfo;
+    protected VersionInfo defaultVersionInfo;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -60,7 +60,7 @@ public abstract class OcflITest {
         inputDir = Files.createDirectory(tempRoot.resolve("input"));
         workDir = Files.createDirectory(tempRoot.resolve("work"));
 
-        defaultCommitInfo = TestHelper.commitInfo("Peter", "peter@example.com", "commit message");
+        defaultVersionInfo = new VersionInfo().setMessage("commit message").setUser("Peter", "peter@example.com");
 
         onBefore();
     }
@@ -108,9 +108,9 @@ public abstract class OcflITest {
         var outputPath2 = outputPath(repoName, objectId + "2");
         var outputPath3 = outputPath(repoName, objectId + "3");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultVersionInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultVersionInfo.setMessage("third"));
 
         verifyRepo(repoName);
 
@@ -133,7 +133,7 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultVersionInfo);
         verifyRepo(repoName);
     }
 
@@ -146,7 +146,7 @@ public abstract class OcflITest {
                 "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" +
                 "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789";
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
             updater.writeFile(inputStream("long-id"), "file1.txt");
         });
 
@@ -166,7 +166,7 @@ public abstract class OcflITest {
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
         assertThat(assertThrows(IllegalStateException.class, () -> {
-            repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultCommitInfo);
+            repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultVersionInfo);
         }).getMessage(), containsString("is closed"));
     }
 
@@ -184,14 +184,14 @@ public abstract class OcflITest {
         var outputPath2 = outputPath(repoName, objectId + "2");
         var outputPath3 = outputPath(repoName, objectId + "3");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3")
                     .renameFile("file1", "dir3/file1");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .writeFile(inputStream(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         });
@@ -219,9 +219,9 @@ public abstract class OcflITest {
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
         var sourcePathV3 = sourceObjectPath(objectId, "v3");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultVersionInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultVersionInfo.setMessage("third"));
 
         verifyRepo(repoName);
 
@@ -253,20 +253,20 @@ public abstract class OcflITest {
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("file2"), "dir1/file2")
                     .addPath(sourcePathV2.resolve("file3"), "file3")
                     .renameFile("dir1/file2", "dir2/file3");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.writeFile(new ByteArrayInputStream("test123".getBytes()), "file4")
                     .removeFile("file4");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.writeFile(new ByteArrayInputStream("test123456".getBytes()), "file5")
                     .writeFile(new ByteArrayInputStream("6543210".getBytes()), "file5", OcflOption.OVERWRITE);
         });
@@ -281,18 +281,18 @@ public abstract class OcflITest {
 
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
             updater.addPath(sourceObjectPath(objectId, "v1"))
                     .addFileFixity("file1", DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456")
                     .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad");
         });
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.clearVersionState().addPath(sourceObjectPath(objectId, "v2"))
                     .addFileFixity("file1", DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669")
                     .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad")
                     .addFileFixity("dir1/file3", DigestAlgorithm.md5, "72b6193fe19ec99c692eba5c798e6bdf");
         });
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.clearVersionState().addPath(sourceObjectPath(objectId, "v3"))
                     .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad")
                     .addFileFixity("file4", DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669");
@@ -306,7 +306,7 @@ public abstract class OcflITest {
         assertEquals(3, objectDetails.getVersionMap().size());
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
-                commitInfo(defaultCommitInfo.getUser(), "1"),
+                versionInfo(defaultVersionInfo.getUser(), "1"),
                 fileDetails("file1", O1_PATH + "/v1/content/file1", Map.of(
                         DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
                         DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456")),
@@ -316,7 +316,7 @@ public abstract class OcflITest {
         ));
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v2")), versionDetails(objectId, "v2",
-                commitInfo(defaultCommitInfo.getUser(), "2"),
+                versionInfo(defaultVersionInfo.getUser(), "2"),
                 fileDetails("file1", O1_PATH + "/v2/content/file1", Map.of(
                         DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
                         DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669")),
@@ -329,7 +329,7 @@ public abstract class OcflITest {
         ));
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v3")), versionDetails(objectId, "v3",
-                commitInfo(defaultCommitInfo.getUser(), "3"),
+                versionInfo(defaultVersionInfo.getUser(), "3"),
                 fileDetails("file2", O1_PATH + "/v1/content/file2", Map.of(
                         DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
                         DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad")),
@@ -348,18 +348,18 @@ public abstract class OcflITest {
 
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
             updater.addPath(sourceObjectPath(objectId, "v1"))
                     .addFileFixity("file1", DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e")
                     .addFileFixity("file2", DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6");
         });
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.clearVersionState().addPath(sourceObjectPath(objectId, "v2"))
                     .addFileFixity("file1", DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc")
                     .addFileFixity("file2", DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")
                     .addFileFixity("dir1/file3", DigestAlgorithm.sha512, "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2");
         });
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.clearVersionState().addPath(sourceObjectPath(objectId, "v3"))
                     .addFileFixity("file2", DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")
                     .addFileFixity("file4", DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc");
@@ -372,7 +372,7 @@ public abstract class OcflITest {
         assertEquals(3, objectDetails.getVersionMap().size());
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
-                commitInfo(defaultCommitInfo.getUser(), "1"),
+                versionInfo(defaultVersionInfo.getUser(), "1"),
                 fileDetails("file1", O1_PATH + "/v1/content/file1", Map.of(
                         DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e")),
                 fileDetails("file2", O1_PATH + "/v1/content/file2", Map.of(
@@ -380,7 +380,7 @@ public abstract class OcflITest {
         ));
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v2")), versionDetails(objectId, "v2",
-                commitInfo(defaultCommitInfo.getUser(), "2"),
+                versionInfo(defaultVersionInfo.getUser(), "2"),
                 fileDetails("file1", O1_PATH + "/v2/content/file1", Map.of(
                         DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc")),
                 fileDetails("file2", O1_PATH + "/v1/content/file2", Map.of(
@@ -390,7 +390,7 @@ public abstract class OcflITest {
         ));
 
         assertThat(objectDetails.getVersion(VersionId.fromString("v3")), versionDetails(objectId, "v3",
-                commitInfo(defaultCommitInfo.getUser(), "3"),
+                versionInfo(defaultVersionInfo.getUser(), "3"),
                 fileDetails("file2", O1_PATH + "/v1/content/file2", Map.of(
                         DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
                 fileDetails("file4", O1_PATH + "/v2/content/file1", Map.of(
@@ -408,7 +408,7 @@ public abstract class OcflITest {
         var objectId = "o1";
 
         OcflAsserts.assertThrowsWithMessage(FixityCheckException.class, "Expected md5 digest of", () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
                 updater.addPath(sourceObjectPath(objectId, "v1"))
                         .addFileFixity("file1", DigestAlgorithm.md5, "bogus");
             });
@@ -423,7 +423,7 @@ public abstract class OcflITest {
         var objectId = "o1";
 
         OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "specified digest algorithm is not mapped to a Java name", () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
                 updater.addPath(sourceObjectPath(objectId, "v1"))
                         .addFileFixity("file1", DigestAlgorithm.fromOcflName("bogus"), "bogus");
             });
@@ -437,12 +437,12 @@ public abstract class OcflITest {
 
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
             updater.addPath(sourceObjectPath(objectId, "v1"));
         });
 
         OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "not newly added in the current block", () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
                 updater.clearVersionState().addPath(sourceObjectPath(objectId, "v2"))
                         .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad");
             });
@@ -460,7 +460,7 @@ public abstract class OcflITest {
         var ocflObject = repo.getObject(ObjectVersionId.head(objectId));
 
         assertThat(ocflObject, objectVersion(objectId, "v3",
-                commitInfo(defaultCommitInfo.getUser(), "3"),
+                versionInfo(defaultVersionInfo.getUser(), "3"),
                 versionFile("dir1/dir2/file2", O2_PATH + "/v1/content/dir1/dir2/file2",
                         "Test file 2",
                         Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
@@ -472,7 +472,7 @@ public abstract class OcflITest {
         ocflObject = repo.getObject(ObjectVersionId.version(objectId, "v1"));
 
         assertThat(ocflObject, objectVersion(objectId, "v1",
-                commitInfo(defaultCommitInfo.getUser(), "commit message"),
+                versionInfo(defaultVersionInfo.getUser(), "commit message"),
                 versionFile("dir1/dir2/file2", O2_PATH + "/v1/content/dir1/dir2/file2",
                         "Test file 2",
                         Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
@@ -488,17 +488,17 @@ public abstract class OcflITest {
 
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
                     .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.writeFile(new ByteArrayInputStream("3".getBytes()), "f3")
                     .removeFile("f1");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
@@ -511,36 +511,36 @@ public abstract class OcflITest {
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version(objectId, "v1"),
                         "f1", O1_PATH + "/v1/content/f1",
-                        commitInfo(defaultCommitInfo.getUser(), "1"),
+                        versionInfo(defaultVersionInfo.getUser(), "1"),
                         Map.of(DigestAlgorithm.sha512, "4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89903a740e1ee172da793a6e79d560e5f7f9bd058a12a280433ed6fa46510a")),
                 fileChange(FileChangeType.REMOVE,
                         ObjectVersionId.version(objectId, "v2"),
                         "f1", null,
-                        commitInfo(defaultCommitInfo.getUser(), "2"),
+                        versionInfo(defaultVersionInfo.getUser(), "2"),
                         Map.of()),
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version(objectId, "v3"),
                         "f1", O1_PATH + "/v1/content/f1",
-                        commitInfo(defaultCommitInfo.getUser(), "3"),
+                        versionInfo(defaultVersionInfo.getUser(), "3"),
                         Map.of(DigestAlgorithm.sha512, "4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89903a740e1ee172da793a6e79d560e5f7f9bd058a12a280433ed6fa46510a"))));
 
         assertThat(f2History.getFileChanges(), contains(
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version(objectId, "v1"),
                         "f2", O1_PATH + "/v1/content/f2",
-                        commitInfo(defaultCommitInfo.getUser(), "1"),
+                        versionInfo(defaultVersionInfo.getUser(), "1"),
                         Map.of(DigestAlgorithm.sha512, "40b244112641dd78dd4f93b6c9190dd46e0099194d5a44257b7efad6ef9ff4683da1eda0244448cb343aa688f5d3efd7314dafe580ac0bcbf115aeca9e8dc114")),
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version(objectId, "v3"),
                         "f2", O1_PATH + "/v3/content/f2",
-                        commitInfo(defaultCommitInfo.getUser(), "3"),
+                        versionInfo(defaultVersionInfo.getUser(), "3"),
                         Map.of(DigestAlgorithm.sha512, "7db70149dac5561e411a202629d06832b06b7e8dfef61086ff9e0922459fbe14a69d565cf838fd43681fdb29a698bfe377861b966d12416298997843820bfdb7"))));
 
         assertThat(f3History.getFileChanges(), contains(
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version(objectId, "v2"),
                         "f3", O1_PATH + "/v2/content/f3",
-                        commitInfo(defaultCommitInfo.getUser(), "2"),
+                        versionInfo(defaultVersionInfo.getUser(), "2"),
                         Map.of(DigestAlgorithm.sha512, "3bafbf08882a2d10133093a1b8433f50563b93c14acd05b79028eb1d12799027241450980651994501423a66c276ae26c43b739bc65c4e16b10c3af6c202aebb"))));
     }
 
@@ -550,17 +550,17 @@ public abstract class OcflITest {
 
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
                     .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.writeFile(new ByteArrayInputStream("3".getBytes()), "f3")
                     .removeFile("f1");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
@@ -581,7 +581,7 @@ public abstract class OcflITest {
         var objectVersion = repo.getObject(ObjectVersionId.head(objectId));
 
         assertThat(objectVersion, objectVersion(objectId, "v3",
-                commitInfo(defaultCommitInfo.getUser(), "3"),
+                versionInfo(defaultVersionInfo.getUser(), "3"),
                 versionFile("dir1/dir2/file2", O2_PATH + "/v1/content/dir1/dir2/file2",
                         "Test file 2",
                         Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
@@ -593,7 +593,7 @@ public abstract class OcflITest {
         objectVersion = repo.getObject(ObjectVersionId.version(objectId, "v1"));
 
         assertThat(objectVersion, objectVersion(objectId, "v1",
-                commitInfo(defaultCommitInfo.getUser(), defaultCommitInfo.getMessage()),
+                versionInfo(defaultVersionInfo.getUser(), defaultVersionInfo.getMessage()),
                 versionFile("dir1/dir2/file2", O2_PATH + "/v1/content/dir1/dir2/file2",
                         "Test file 2",
                         Map.of(DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
@@ -612,7 +612,7 @@ public abstract class OcflITest {
 
         var empty = Files.createDirectory(tempRoot.resolve("empty"));
 
-        repo.putObject(ObjectVersionId.head(objectId), empty, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), empty, defaultVersionInfo);
 
         assertEquals(0, repo.getObject(ObjectVersionId.head(objectId)).getFiles().size());
     }
@@ -624,11 +624,11 @@ public abstract class OcflITest {
 
         var objectId = "o2";
 
-        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultVersionInfo);
 
         var ocflObject = repo.getObject(ObjectVersionId.head(objectId));
 
-        repo.updateObject(ocflObject.getObjectVersionId(), defaultCommitInfo.setMessage("delete content"), updater -> {
+        repo.updateObject(ocflObject.getObjectVersionId(), defaultVersionInfo.setMessage("delete content"), updater -> {
             ocflObject.getFiles().forEach(file -> {
                 updater.removeFile(file.getPath());
             });
@@ -670,14 +670,14 @@ public abstract class OcflITest {
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
         var sourcePathV3 = sourceObjectPath(objectId, "v3");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
-        repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultVersionInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3")
                     .renameFile("file1", "dir3/file1");
         });
 
-        repo.updateObject(ObjectVersionId.version(objectId, "v2"), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.version(objectId, "v2"), defaultVersionInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .writeFile(inputStream(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         });
@@ -696,14 +696,14 @@ public abstract class OcflITest {
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
         var sourcePathV3 = sourceObjectPath(objectId, "v3");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
-        repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultVersionInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3")
                     .renameFile("file1", "dir3/file1");
         });
 
-        assertThrows(ObjectOutOfSyncException.class, () -> repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultCommitInfo.setMessage("3"), updater -> {
+        assertThrows(ObjectOutOfSyncException.class, () -> repo.updateObject(ObjectVersionId.version(objectId, "v1"), defaultVersionInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .writeFile(inputStream(sourcePathV3.resolve("dir1/file3")), "dir1/file3");
         }));
@@ -716,8 +716,8 @@ public abstract class OcflITest {
 
         var objectId = "o1";
 
-        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultCommitInfo.setMessage("1"));
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.putObject(ObjectVersionId.head(objectId), sourceObjectPath(objectId, "v1"), defaultVersionInfo.setMessage("1"));
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             // no op
         });
 
@@ -776,7 +776,7 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         // Which duplicate file that's preserved is non-deterministic
         var expectedPaths = ITestHelper.listAllPaths(expectedRepoPath(repoName));
@@ -793,7 +793,7 @@ public abstract class OcflITest {
 
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultVersionInfo.setMessage("second"));
 
         verifyRepo(repoName);
     }
@@ -807,7 +807,7 @@ public abstract class OcflITest {
 
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultVersionInfo.setMessage("second"));
 
         verifyRepo(repoName);
     }
@@ -821,7 +821,7 @@ public abstract class OcflITest {
 
         var sourcePathV2 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultVersionInfo.setMessage("second"));
 
         verifyRepo(repoName);
     }
@@ -858,34 +858,34 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         assertThrows(PathConstraintException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("second"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("test2".getBytes()), "file/");
             });
         });
 
         assertThrows(PathConstraintException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("second"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("test".getBytes()), "/absolute/path/file");
             });
         });
 
         assertThrows(PathConstraintException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("second"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("test".getBytes()), "empty//path/file");
             });
         });
 
         assertThrows(PathConstraintException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("second"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("test".getBytes()), "relative/../../path/file");
             });
         });
 
         assertThrows(PathConstraintException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("second"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("second"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("test".getBytes()), "./file");
             });
         });
@@ -900,11 +900,11 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.removeFile("file3");
         });
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.reinstateFile(VersionId.fromString("v1"), "file3", "file3");
         });
 
@@ -920,8 +920,8 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.reinstateFile(VersionId.fromString("v1"), "file2", "file1");
         });
 
@@ -937,10 +937,10 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         assertThat(assertThrows(IllegalArgumentException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
                 updater.reinstateFile(VersionId.fromString("v3"), "file2", "file1");
             });
         }).getMessage(), containsString("does not contain a file at"));
@@ -955,10 +955,10 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
                 updater.reinstateFile(VersionId.fromString("v1"), "file4", "file1");
             });
         });
@@ -973,7 +973,7 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         repo.purgeObject(objectId);
 
@@ -993,7 +993,7 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         repo.purgeObject("o4");
 
@@ -1013,7 +1013,7 @@ public abstract class OcflITest {
 
         var sourcePath = sourceObjectPath(objectId, "v2");
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("1"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
             updater.addPath(sourcePath.resolve("file2"), "file2")
                     .addPath(sourcePath.resolve("file3"), "file3");
         });
@@ -1030,7 +1030,7 @@ public abstract class OcflITest {
 
         var sourcePath = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePath, defaultCommitInfo.setMessage("1"));
+        repo.putObject(ObjectVersionId.head(objectId), sourcePath, defaultVersionInfo.setMessage("1"));
 
         assertTrue(repo.containsObject(objectId));
         assertFalse(repo.containsObject("o4"));
@@ -1047,9 +1047,9 @@ public abstract class OcflITest {
         var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
         var sourcePathV3 = copyDir(sourceObjectPath(objectId, "v3"), inputDir.resolve("v3"));
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo, OcflOption.MOVE_SOURCE);
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultCommitInfo.setMessage("second"), OcflOption.MOVE_SOURCE);
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultCommitInfo.setMessage("third"), OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo, OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultVersionInfo.setMessage("second"), OcflOption.MOVE_SOURCE);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV3, defaultVersionInfo.setMessage("third"), OcflOption.MOVE_SOURCE);
 
         verifyRepo(repoName);
         assertFalse(Files.exists(sourcePathV1));
@@ -1068,14 +1068,14 @@ public abstract class OcflITest {
         var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
         var sourcePathV3 = copyDir(sourceObjectPath(objectId, "v3"), inputDir.resolve("v3"));
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("2"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             updater.addPath(sourcePathV2.resolve("dir1/file3"), "dir1/file3", OcflOption.MOVE_SOURCE)
                     .renameFile("file1", "dir3/file1");
         });
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("3"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
             updater.removeFile("dir1/file3").removeFile("dir3/file1")
                     .addPath(sourcePathV3.resolve("dir1"), "dir1", OcflOption.MOVE_SOURCE);
         });
@@ -1095,10 +1095,10 @@ public abstract class OcflITest {
         var sourcePathV1 = copyDir(sourceObjectPath(objectId, "v1"), inputDir.resolve("v1"));
         var sourcePathV2 = copyDir(sourceObjectPath(objectId, "v2"), inputDir.resolve("v2"));
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
             updater.addPath(sourcePathV1, "sub", OcflOption.MOVE_SOURCE);
         });
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
             updater.addPath(sourcePathV2, "sub", OcflOption.MOVE_SOURCE);
         });
 
@@ -1114,7 +1114,7 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
             updater.addPath(sourcePathV1.resolve("file1"));
         });
 
@@ -1133,7 +1133,7 @@ public abstract class OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
             updater.addPath(sourcePathV1, "");
         });
 
@@ -1149,7 +1149,7 @@ public abstract class OcflITest {
 
         var sourcePath = sourceObjectPath(objectId, "v1");
 
-        repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
             updater.writeFile(
                     new FixityCheckInputStream(inputStream(sourcePath.resolve("file1")), DigestAlgorithm.md5, "95efdf0764d92207b4698025f2518456"),
                     "file1");
@@ -1168,7 +1168,7 @@ public abstract class OcflITest {
         var sourcePath = sourceObjectPath(objectId, "v1");
 
         assertThrows(FixityCheckException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo, updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
                 updater.writeFile(
                         new FixityCheckInputStream(inputStream(sourcePath.resolve("file1")), DigestAlgorithm.md5, "bogus"),
                         "file1");

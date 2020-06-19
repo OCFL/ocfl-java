@@ -24,26 +24,26 @@
 
 package edu.wisc.library.ocfl.test.matcher;
 
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
 import java.util.Objects;
 
-public class CommitInfoMatcher extends TypeSafeMatcher<CommitInfo> {
+public class VersionInfoMatcher extends TypeSafeMatcher<VersionInfo> {
 
     private String name;
     private String address;
     private String message;
 
-    CommitInfoMatcher(String name, String address, String message) {
+    VersionInfoMatcher(String name, String address, String message) {
         this.name = name;
         this.address = address;
         this.message = message;
     }
 
     @Override
-    protected boolean matchesSafely(CommitInfo item) {
+    protected boolean matchesSafely(VersionInfo item) {
         var matches = Objects.equals(item.getMessage(), message);
 
         if (item.getUser() != null) {
@@ -58,7 +58,7 @@ public class CommitInfoMatcher extends TypeSafeMatcher<CommitInfo> {
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("CommitInfo{message=")
+        description.appendText("VersionInfo{message=")
                 .appendValue(message)
                 .appendText(", user={name=")
                 .appendValue(name)

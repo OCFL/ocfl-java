@@ -26,7 +26,7 @@ package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 
 import java.util.function.Consumer;
@@ -52,13 +52,13 @@ public interface MutableOcflRepository extends OcflRepository {
      *
      * @param objectId the id of the object. If set to a specific version, then the update will only occur
      *                 if this version matches the head object version in the repository.
-     * @param commitInfo information about the changes to the object. Can be null.
+     * @param versionInfo information about the changes to the object. Can be null.
      * @param objectUpdater code block within which updates to an object may be made
      * @return The objectId and version of the new object version
      * @throws NotFoundException when no object can be found for the specified objectId
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectVersionId stageChanges(ObjectVersionId objectId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
+    ObjectVersionId stageChanges(ObjectVersionId objectId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
     /**
      * Converts the staged changes in the mutable HEAD into an immutable core OCFL version that can be read by any OCFL client.
@@ -70,12 +70,12 @@ public interface MutableOcflRepository extends OcflRepository {
      * <p>If the object does not have staged changes, then nothing happens.
      *
      * @param objectId the id of the object
-     * @param commitInfo information about the changes to the object. Can be null.
+     * @param versionInfo information about the changes to the object. Can be null.
      * @return The objectId and version of the committed version
      * @throws NotFoundException when no object can be found for the specified objectId
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectVersionId commitStagedChanges(String objectId, CommitInfo commitInfo);
+    ObjectVersionId commitStagedChanges(String objectId, VersionInfo versionInfo);
 
     /**
      * Deletes the staged changes (mutable HEAD) of the specified object. If the object does not have staged changes, then

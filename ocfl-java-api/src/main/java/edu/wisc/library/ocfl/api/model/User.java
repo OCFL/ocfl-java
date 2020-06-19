@@ -34,6 +34,8 @@ public class User {
 
     /**
      * Name of the user
+     *
+     * @return username or null
      */
     public String getName() {
         return name;
@@ -45,7 +47,9 @@ public class User {
     }
 
     /**
-     * Email address of the user
+     * URI identifying the user
+     *
+     * @return user address or null
      */
     public String getAddress() {
         return address;

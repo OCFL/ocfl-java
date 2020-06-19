@@ -38,13 +38,13 @@ public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion>
 
     private String objectId;
     private VersionId versionId;
-    private CommitInfoMatcher commitInfoMatcher;
+    private VersionInfoMatcher versionInfoMatcher;
     private Collection<OcflObjectVersionFileMatcher> fileMatchers;
 
-    OcflObjectVersionMatcher(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
+    OcflObjectVersionMatcher(String objectId, String versionId, VersionInfoMatcher versionInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
         this.objectId = objectId;
         this.versionId = VersionId.fromString(versionId);
-        this.commitInfoMatcher = commitInfoMatcher;
+        this.versionInfoMatcher = versionInfoMatcher;
         this.fileMatchers = Arrays.asList(fileMatchers);
     }
 
@@ -52,7 +52,7 @@ public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion>
     protected boolean matchesSafely(OcflObjectVersion item) {
         return Objects.equals(objectId, item.getObjectId())
                 && Objects.equals(versionId, item.getVersionId())
-                && commitInfoMatcher.matches(item.getCommitInfo())
+                && versionInfoMatcher.matches(item.getVersionInfo())
                 // Hamcrest has some infuriating overloaded methods...
                 && Matchers.containsInAnyOrder((Collection) fileMatchers).matches(item.getFiles());
     }
@@ -63,8 +63,8 @@ public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion>
                 .appendValue(objectId)
                 .appendText(", versionId=")
                 .appendValue(versionId)
-                .appendText(", commitInfo=")
-                .appendDescriptionOf(commitInfoMatcher)
+                .appendText(", versionInfo=")
+                .appendDescriptionOf(versionInfoMatcher)
                 .appendText(", file=")
                 .appendList("[", ",", "]", fileMatchers)
                 .appendText("}");

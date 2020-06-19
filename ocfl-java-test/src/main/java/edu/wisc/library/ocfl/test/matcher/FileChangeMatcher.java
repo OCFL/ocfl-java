@@ -42,15 +42,15 @@ public class FileChangeMatcher extends TypeSafeMatcher<FileChange> {
     private String storagePath;
     private Map<DigestAlgorithm, String> fixity;
 
-    private CommitInfoMatcher commitInfoMatcher;
+    private VersionInfoMatcher versionInfoMatcher;
 
     FileChangeMatcher(FileChangeType changeType, ObjectVersionId objectVersionId, String filePath,
-                      String storagePath, CommitInfoMatcher commitInfoMatcher, Map<DigestAlgorithm, String> fixity) {
+                      String storagePath, VersionInfoMatcher versionInfoMatcher, Map<DigestAlgorithm, String> fixity) {
         this.changeType = changeType;
         this.objectVersionId = objectVersionId;
         this.filePath = filePath;
         this.storagePath = storagePath;
-        this.commitInfoMatcher = commitInfoMatcher;
+        this.versionInfoMatcher = versionInfoMatcher;
         this.fixity = fixity;
     }
 
@@ -60,7 +60,7 @@ public class FileChangeMatcher extends TypeSafeMatcher<FileChange> {
                 && Objects.equals(changeType, item.getChangeType())
                 && Objects.equals(objectVersionId, item.getObjectVersionId())
                 && Objects.equals(storagePath, item.getStorageRelativePath())
-                && commitInfoMatcher.matches(item.getCommitInfo())
+                && versionInfoMatcher.matches(item.getVersionInfo())
                 && Objects.equals(fixity, item.getFixity());
     }
 

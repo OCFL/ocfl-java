@@ -1,6 +1,6 @@
 package edu.wisc.library.ocfl.core.inventory;
 
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflConfig;
@@ -55,7 +55,7 @@ public class MutableHeadInventoryCommitterTest {
                 .build();
 
 
-        var newInventory = MutableHeadInventoryCommitter.commit(original, now, new CommitInfo().setMessage("commit"));
+        var newInventory = MutableHeadInventoryCommitter.commit(original, now, new VersionInfo().setMessage("commit"));
 
         assertEquals(VersionId.fromString("v3"), newInventory.getHead());
         assertNull(newInventory.getRevisionId(), "revisionId");

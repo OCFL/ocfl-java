@@ -111,7 +111,7 @@ public class DigestAlgorithm {
     /**
      * The Java name for the digest algorithm.
      *
-     * @return name of the digest algorithm in Java
+     * @return name of the digest algorithm in Java or null
      */
     public String getJavaStandardName() {
         return javaStandardName;
@@ -135,7 +135,7 @@ public class DigestAlgorithm {
         try {
             return MessageDigest.getInstance(javaStandardName);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to create message digest for: " + this, e);
         }
     }
 

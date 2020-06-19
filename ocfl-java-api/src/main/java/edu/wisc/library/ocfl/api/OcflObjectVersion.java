@@ -24,7 +24,7 @@
 
 package edu.wisc.library.ocfl.api;
 
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionId;
@@ -86,10 +86,10 @@ public class OcflObjectVersion {
     /**
      * Optional description of the version
      *
-     * @return CommitInfo or null
+     * @return VersionInfo or null
      */
-    public CommitInfo getCommitInfo() {
-        return versionDetails.getCommitInfo();
+    public VersionInfo getVersionInfo() {
+        return versionDetails.getVersionInfo();
     }
 
     /**
@@ -124,7 +124,7 @@ public class OcflObjectVersion {
      * Returns the OcflObjectVersionFile for the file at the given path or null if it does not exist
      *
      * @param path logical path to the file
-     * @return OcflObjectVersionFile
+     * @return OcflObjectVersionFile or null if it does not exist
      */
     public OcflObjectVersionFile getFile(String path) {
         return fileMap.get(path);

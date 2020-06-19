@@ -38,13 +38,13 @@ public class FileSystemOcflITest extends OcflITest {
         var repoName = "repo-list";
         var repo = defaultRepo(repoName, new HashedTruncatedNTupleConfig());
 
-        repo.updateObject(ObjectVersionId.head("o1"), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo, updater -> {
             updater.writeFile(inputStream("test1"), "test1.txt");
         });
-        repo.updateObject(ObjectVersionId.head("o2"), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head("o2"), defaultVersionInfo, updater -> {
             updater.writeFile(inputStream("test2"), "test2.txt");
         });
-        repo.updateObject(ObjectVersionId.head("o3"), defaultCommitInfo, updater -> {
+        repo.updateObject(ObjectVersionId.head("o3"), defaultVersionInfo, updater -> {
             updater.writeFile(inputStream("test3"), "test3.txt");
         });
 
@@ -63,7 +63,7 @@ public class FileSystemOcflITest extends OcflITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v2");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         repo.purgeObject(objectId);
 

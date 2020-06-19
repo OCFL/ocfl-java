@@ -24,7 +24,7 @@
 
 package edu.wisc.library.ocfl.core.inventory;
 
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -50,10 +50,10 @@ public final class MutableHeadInventoryCommitter {
      *
      * @param original the inventory that contains a mutable head that should be converted
      * @param createdTimestamp the current timestamp
-     * @param commitInfo information about the version. Can be null.
+     * @param versionInfo information about the version. Can be null.
      * @return A new inventory with the mutable HEAD version rewritten.
      */
-    public static Inventory commit(Inventory original, OffsetDateTime createdTimestamp, CommitInfo commitInfo) {
+    public static Inventory commit(Inventory original, OffsetDateTime createdTimestamp, VersionInfo versionInfo) {
         Enforce.notNull(original, "inventory cannot be null");
         Enforce.notNull(createdTimestamp, "createdTimestamp cannot be null");
 
@@ -63,7 +63,7 @@ public final class MutableHeadInventoryCommitter {
 
         var versionBuilder = new VersionBuilder(original.getHeadVersion())
                 .created(createdTimestamp)
-                .commitInfo(commitInfo);
+                .versionInfo(versionInfo);
 
         var versionStr = original.getHead().toString();
         var mutableHeadFileIds = original.getFileIdsForMatchingFiles(Paths.get(OcflConstants.MUTABLE_HEAD_VERSION_PATH));

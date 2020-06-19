@@ -24,7 +24,7 @@
 
 package edu.wisc.library.ocfl.core.model;
 
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;
@@ -86,11 +86,11 @@ public class VersionBuilder {
         return this;
     }
 
-    public VersionBuilder commitInfo(CommitInfo commitInfo) {
-        if (commitInfo != null) {
-            this.message = commitInfo.getMessage();
-            if (commitInfo.getUser() != null) {
-                this.user = new User(commitInfo.getUser().getName(), commitInfo.getUser().getAddress());
+    public VersionBuilder versionInfo(VersionInfo versionInfo) {
+        if (versionInfo != null) {
+            this.message = versionInfo.getMessage();
+            if (versionInfo.getUser().getName() != null) {
+                this.user = new User(versionInfo.getUser().getName(), versionInfo.getUser().getAddress());
             }
         }
         return this;

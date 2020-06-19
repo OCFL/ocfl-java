@@ -101,7 +101,7 @@ public class ObjectDetails {
      * Returns the VersionDetails for the specified VersionId or null if the version does not exist
      *
      * @param versionId the version id of the version to retrieve
-     * @return version details
+     * @return version details or null
      */
     public VersionDetails getVersion(VersionId versionId) {
         return versions.get(versionId);

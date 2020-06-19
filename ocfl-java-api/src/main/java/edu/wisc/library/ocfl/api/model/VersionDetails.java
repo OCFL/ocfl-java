@@ -36,7 +36,7 @@ public class VersionDetails {
 
     private ObjectVersionId objectVersionId;
     private OffsetDateTime created;
-    private CommitInfo commitInfo;
+    private VersionInfo versionInfo;
     private boolean mutable;
     private Map<String, FileDetails> fileMap;
 
@@ -93,14 +93,14 @@ public class VersionDetails {
     /**
      * Description of the version
      *
-     * @return CommitInfo
+     * @return VersionInfo
      */
-    public CommitInfo getCommitInfo() {
-        return commitInfo;
+    public VersionInfo getVersionInfo() {
+        return versionInfo;
     }
 
-    public VersionDetails setCommitInfo(CommitInfo commitInfo) {
-        this.commitInfo = commitInfo;
+    public VersionDetails setVersionInfo(VersionInfo versionInfo) {
+        this.versionInfo = versionInfo;
         return this;
     }
 
@@ -141,7 +141,7 @@ public class VersionDetails {
      * Returns the FileDetails for the file at the given path or null if it does not exist
      *
      * @param path logical path to the file
-     * @return FileDetails
+     * @return FileDetails or null
      */
     public FileDetails getFile(String path) {
         return fileMap.get(path);
@@ -157,7 +157,7 @@ public class VersionDetails {
         return "VersionDetails{" +
                 "objectVersionId='" + objectVersionId + '\'' +
                 ", created=" + created +
-                ", commitInfo=" + commitInfo +
+                ", versionInfo=" + versionInfo +
                 ", mutable=" + mutable +
                 ", fileMap=" + fileMap +
                 '}';

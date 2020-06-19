@@ -3,9 +3,8 @@ package edu.wisc.library.ocfl.aws;
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflOption;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.User;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
@@ -56,7 +55,7 @@ public class OcflS3Test {
         var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
-        repo.stageChanges(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
             updater.writeFile(stream("file1"), "dir/file1.txt");
             updater.writeFile(stream("file2"), "dir/sub/file2.txt");
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
@@ -78,7 +77,7 @@ public class OcflS3Test {
 
         assertEquals("file1", streamToString(repo.getObject(ObjectVersionId.head(objectId)).getFile("dir/file1.txt").getStream()));
 
-        repo.commitStagedChanges(objectId, commitInfo("Peter", "winckles@wisc.edu", "commit"));
+        repo.commitStagedChanges(objectId, versionInfo("commit", "Peter", "winckles@wisc.edu"));
 
         assertObjectsExist(bucket, repoPrefix, O1_PATH, List.of(
                 "0=ocfl_object_1.0",
@@ -102,7 +101,7 @@ public class OcflS3Test {
         var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
             updater.writeFile(stream("file1"), "dir/file1.txt");
             updater.writeFile(stream("file2"), "dir/sub/file2.txt");
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
@@ -118,7 +117,7 @@ public class OcflS3Test {
                 "v1/content/dir/sub/file2.txt"
         ));
 
-        repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
             updater.writeFile(stream("file3"), "dir/sub/file3.txt", OcflOption.OVERWRITE);
         });
 
@@ -143,7 +142,7 @@ public class OcflS3Test {
         var repo = createRepo(s3Client, bucket, repoPrefix);
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), commitInfo("Peter", "winckles@wisc.edu", "initial commit"), updater -> {
+        repo.updateObject(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
             updater.writeFile(stream("file1"), "dir/file1.txt");
             updater.writeFile(stream("file2"), "dir/sub/file2.txt");
             updater.writeFile(stream("file1"), "dir/sub/file3.txt");
@@ -199,8 +198,8 @@ public class OcflS3Test {
         }
     }
 
-    private CommitInfo commitInfo(String user, String address, String message) {
-        return new CommitInfo().setUser(new User().setName(user).setAddress(address)).setMessage(message);
+    private VersionInfo versionInfo(String message, String name, String address) {
+        return new VersionInfo().setMessage(message).setUser(name, address);
     }
 
 }

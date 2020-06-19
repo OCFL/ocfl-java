@@ -24,9 +24,6 @@
 
 package edu.wisc.library.ocfl.test;
 
-import edu.wisc.library.ocfl.api.model.CommitInfo;
-import edu.wisc.library.ocfl.api.model.User;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,10 +55,6 @@ public final class TestHelper {
             throw new RuntimeException(e);
         }
         return string;
-    }
-
-    public static CommitInfo commitInfo(String name, String address, String message) {
-        return new CommitInfo().setMessage(message).setUser(new User().setName(name).setAddress(address));
     }
 
     public static InputStream inputStream(String content) {

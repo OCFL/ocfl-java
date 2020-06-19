@@ -40,13 +40,13 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
 
     private String objectId;
     private VersionId versionId;
-    private CommitInfoMatcher commitInfoMatcher;
+    private VersionInfoMatcher versionInfoMatcher;
     private Collection<Matcher<FileDetails>> fileDetailsMatchers;
 
-    VersionDetailsMatcher(String objectId, String versionId, CommitInfoMatcher commitInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
+    VersionDetailsMatcher(String objectId, String versionId, VersionInfoMatcher versionInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
         this.objectId = objectId;
         this.versionId = VersionId.fromString(versionId);
-        this.commitInfoMatcher = commitInfoMatcher;
+        this.versionInfoMatcher = versionInfoMatcher;
         this.fileDetailsMatchers = Arrays.asList(fileDetailsMatchers);
     }
 
@@ -54,7 +54,7 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
     protected boolean matchesSafely(VersionDetails item) {
         return Objects.equals(objectId, item.getObjectId())
                 && Objects.equals(versionId, item.getVersionId())
-                && commitInfoMatcher.matches(item.getCommitInfo())
+                && versionInfoMatcher.matches(item.getVersionInfo())
                 // Hamcrest has some infuriating overloaded methods...
                 && Matchers.containsInAnyOrder((Collection) fileDetailsMatchers).matches(item.getFiles());
     }
@@ -65,8 +65,8 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
                 .appendValue(objectId)
                 .appendText(", versionId=")
                 .appendValue(versionId)
-                .appendText(", commitInfo=")
-                .appendDescriptionOf(commitInfoMatcher)
+                .appendText(", versionInfo=")
+                .appendDescriptionOf(versionInfoMatcher)
                 .appendText(", fileDetails=")
                 .appendList("[", ",", "]", fileDetailsMatchers)
                 .appendText("}");

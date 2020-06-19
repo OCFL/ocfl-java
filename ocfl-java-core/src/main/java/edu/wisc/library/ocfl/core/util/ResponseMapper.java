@@ -24,11 +24,23 @@
 
 package edu.wisc.library.ocfl.core.util;
 
-import edu.wisc.library.ocfl.api.model.*;
+import edu.wisc.library.ocfl.api.model.FileChange;
+import edu.wisc.library.ocfl.api.model.FileChangeHistory;
+import edu.wisc.library.ocfl.api.model.FileChangeType;
+import edu.wisc.library.ocfl.api.model.FileDetails;
+import edu.wisc.library.ocfl.api.model.ObjectDetails;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.VersionDetails;
+import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -58,7 +70,7 @@ public class ResponseMapper {
                 .setCreated(version.getCreated())
                 .setMutable(inventory.hasMutableHead() && inventory.getHead().equals(versionId))
                 .setFileMap(mapFileDetails(inventory, version))
-                .setCommitInfo(commitInfo(version));
+                .setVersionInfo(versionInfo(version));
     }
 
     private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
@@ -104,7 +116,7 @@ public class ResponseMapper {
                         .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
                         .setPath(logicalPath)
                         .setTimestamp(version.getCreated())
-                        .setCommitInfo(commitInfo(version))
+                        .setVersionInfo(versionInfo(version))
                         .setStorageRelativePath(inventory.storagePath(fileId))
                         .setFixity(fixity));
             } else if (fileId == null && lastFileId != null) {
@@ -114,7 +126,7 @@ public class ResponseMapper {
                         .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
                         .setPath(logicalPath)
                         .setTimestamp(version.getCreated())
-                        .setCommitInfo(commitInfo(version))
+                        .setVersionInfo(versionInfo(version))
                         .setFixity(Collections.emptyMap()));
             }
         }
@@ -122,16 +134,14 @@ public class ResponseMapper {
         return new FileChangeHistory().setPath(logicalPath).setFileChanges(changes);
     }
 
-    private CommitInfo commitInfo(Version version) {
-        var commitInfo = new CommitInfo().setMessage(version.getMessage());
+    private VersionInfo versionInfo(Version version) {
+        var versionInfo = new VersionInfo().setMessage(version.getMessage());
 
         if (version.getUser() != null) {
-            commitInfo.setUser(new User()
-                    .setName(version.getUser().getName())
-                    .setAddress(version.getUser().getAddress()));
+            versionInfo.setUser(version.getUser().getName(), version.getUser().getAddress());
         }
 
-        return commitInfo;
+        return versionInfo;
     }
 
 }

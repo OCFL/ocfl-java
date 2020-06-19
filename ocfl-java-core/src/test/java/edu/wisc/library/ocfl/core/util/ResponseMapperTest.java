@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
-import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.commitInfo;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionInfo;
 import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.fileChange;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -54,7 +54,7 @@ public class ResponseMapperTest {
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version("o1", "v1"),
                         "f1", "o1/v1/content/f1",
-                        commitInfo(null, null, null),
+                        versionInfo(null, null, null),
                         Map.of(DigestAlgorithm.sha512, "i1"))));
     }
 
@@ -90,17 +90,17 @@ public class ResponseMapperTest {
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version("o1", "v1"),
                         "f1", "o1/v1/content/f1",
-                        commitInfo(null, null, null),
+                        versionInfo(null, null, null),
                         Map.of(DigestAlgorithm.sha512, "i1")),
                 fileChange(FileChangeType.REMOVE,
                         ObjectVersionId.version("o1", "v3"),
                         "f1", null,
-                        commitInfo(null, null, null),
+                        versionInfo(null, null, null),
                         Map.of()),
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version("o1", "v4"),
                         "f1", "o1/v1/content/f1",
-                        commitInfo(null, null, null),
+                        versionInfo(null, null, null),
                         Map.of(DigestAlgorithm.sha512, "i1"))
                 ));
     }
@@ -130,17 +130,17 @@ public class ResponseMapperTest {
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version("o1", "v1"),
                         "f1", "o1/v1/content/f1",
-                        commitInfo(null, null, null),
+                        versionInfo(null, null, null),
                         Map.of(DigestAlgorithm.sha512, "i1")),
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version("o1", "v2"),
                         "f1", "o1/v2/content/f1",
-                        commitInfo(null, null, null),
+                        versionInfo(null, null, null),
                         Map.of(DigestAlgorithm.sha512, "i2")),
                 fileChange(FileChangeType.UPDATE,
                         ObjectVersionId.version("o1", "v3"),
                         "f1", "o1/v3/content/f1",
-                        commitInfo(null, null, null),
+                        versionInfo(null, null, null),
                         Map.of(DigestAlgorithm.sha512, "i3"))
                 ));
     }

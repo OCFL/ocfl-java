@@ -52,10 +52,10 @@ var repo = new OcflRepositoryBuilder()
         .workDir(workDir)
         .build();
 
-repo.putObject(ObjectVersionId.head("o1"), Paths.get("object-out-dir"), new CommitInfo().setMessage("initial commit"));
+repo.putObject(ObjectVersionId.head("o1"), Paths.get("object-out-dir"), new VersionInfo().setMessage("initial commit"));
 repo.getObject(ObjectVersionId.head("o1"), Paths.get("object-in-dir"));
 
-repo.updateObject(ObjectVersionId.head("o1"), new CommitInfo().setMessage("update"), updater -> {
+repo.updateObject(ObjectVersionId.head("o1"), new VersionInfo().setMessage("update"), updater -> {
     updater.addPath(Paths.get("path-to-file2"), "file2")
             .removeFile("file1")
             .addPath(Paths.get("path-to-file3"), "dir1/file3");

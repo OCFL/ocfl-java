@@ -24,59 +24,65 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import edu.wisc.library.ocfl.api.util.Enforce;
+
 /**
  * Descriptive information about an object version.
  */
-public class CommitInfo {
+public class VersionInfo {
 
     private User user;
     private String message;
 
-    /**
-     * Convenience method for constructing a commit info object.
-     *
-     * @param message the commit message
-     * @param userName the name of the user who committed the change
-     * @param userAddress the address of the user who committed the change
-     * @return commit info
-     */
-    public static CommitInfo build(String message, String userName, String userAddress) {
-        var info = new CommitInfo().setMessage(message);
-        if (userName != null || userAddress != null) {
-            info.setUser(new User()
-                    .setName(userName)
-                    .setAddress(userAddress));
-        }
-        return info;
+    public VersionInfo() {
+        this.user = new User();
     }
 
     /**
      * The user who authored the version
+     *
+     * @return user object
      */
     public User getUser() {
         return user;
     }
 
-    public CommitInfo setUser(User user) {
-        this.user = user;
+    /**
+     * Sets the user info
+     *
+     * @param name the user's name, required
+     * @param address a URI that identifies the user, such as email address
+     * @return this
+     */
+    public VersionInfo setUser(String name, String address) {
+        user.setName(Enforce.notBlank(name, "username cannot be blank"))
+                .setAddress(address);
         return this;
     }
 
     /**
      * Description of version changes
+     *
+     * @return the version description
      */
     public String getMessage() {
         return message;
     }
 
-    public CommitInfo setMessage(String message) {
+    /**
+     * Sets the version description
+     *
+     * @param message version description
+     * @return this
+     */
+    public VersionInfo setMessage(String message) {
         this.message = message;
         return this;
     }
 
     @Override
     public String toString() {
-        return "CommitInfo{" +
+        return "VersionInfo{" +
                 "user=" + user +
                 ", message='" + message + '\'' +
                 '}';

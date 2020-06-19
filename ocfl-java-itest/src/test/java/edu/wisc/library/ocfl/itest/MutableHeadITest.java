@@ -2,7 +2,7 @@ package edu.wisc.library.ocfl.itest;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.CommitInfo;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
 import edu.wisc.library.ocfl.api.model.VersionId;
@@ -34,15 +34,15 @@ public abstract class MutableHeadITest {
     protected Path reposDir;
     protected Path workDir;
 
-    protected CommitInfo defaultCommitInfo;
+    protected VersionInfo defaultVersionInfo;
 
     @BeforeEach
     public void setup() throws IOException {
         reposDir = Files.createDirectory(tempRoot.resolve("repos"));
         workDir = Files.createDirectory(tempRoot.resolve("work"));
 
-        defaultCommitInfo =  new CommitInfo().setMessage("commit message")
-                .setUser(new User().setName("Peter").setAddress("peter@example.com"));
+        defaultVersionInfo =  new VersionInfo().setMessage("commit message")
+                .setUser("Peter", "peter@example.com");
 
         onBefore();
     }
@@ -75,15 +75,15 @@ public abstract class MutableHeadITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         assertFalse(repo.hasStagedChanges(objectId));
 
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
                     .writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file4");
         });
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 2"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 2"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file5" .getBytes()), "file5")
                     .renameFile("dir1/file3", "file3")
                     .removeFile("dir1/file4");
@@ -108,15 +108,15 @@ public abstract class MutableHeadITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         assertFalse(repo.hasStagedChanges(objectId));
 
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
                     .writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file4");
         });
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 2"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 2"), updater -> {
             updater.renameFile("dir1/file3", "file3")
                     .removeFile("dir1/file4");
         });
@@ -140,15 +140,15 @@ public abstract class MutableHeadITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         assertFalse(repo.hasStagedChanges(objectId));
 
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
                     .writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file4");
         });
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 2"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 2"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file5" .getBytes()), "file5")
                     .renameFile("dir1/file3", "file3")
                     .removeFile("dir1/file4");
@@ -168,10 +168,10 @@ public abstract class MutableHeadITest {
 
         var objectId = "o1";
 
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3");
         });
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file4" .getBytes()), "file4")
                     .removeFile("dir1/file3");
         });
@@ -188,14 +188,14 @@ public abstract class MutableHeadITest {
 
         var objectId = "o1";
 
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3");
         });
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file4" .getBytes()), "file4").removeFile("dir1/file3");
         });
 
-        repo.commitStagedChanges(objectId, defaultCommitInfo.setMessage("commit"));
+        repo.commitStagedChanges(objectId, defaultVersionInfo.setMessage("commit"));
 
         assertFalse(repo.hasStagedChanges(objectId));
 
@@ -209,12 +209,12 @@ public abstract class MutableHeadITest {
 
         var objectId = "o1";
 
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3");
         });
 
         assertThat(assertThrows(IllegalStateException.class, () -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("update"), updater -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("update"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("file4" .getBytes()), "file4");
             });
         }).getMessage(), Matchers.containsString("it has an active mutable HEAD"));
@@ -229,17 +229,17 @@ public abstract class MutableHeadITest {
 
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultCommitInfo);
+        repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
         assertFalse(repo.hasStagedChanges(objectId));
 
-        repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 1"), updater -> {
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3")
                     .writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file4");
         });
 
         OcflAsserts.assertThrowsWithMessage(ObjectOutOfSyncException.class, "Changes are out of sync with the current object state", () -> {
-            repo.stageChanges(ObjectVersionId.head(objectId), defaultCommitInfo.setMessage("stage 2"), updater -> {
+            repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 2"), updater -> {
                 writeFile(repoName, O1_PATH + "/extensions/0004-mutable-head/revisions/r2", TestHelper.inputStream("r2"));
                 updater.writeFile(new ByteArrayInputStream("file5" .getBytes()), "file5")
                         .renameFile("dir1/file3", "file3")

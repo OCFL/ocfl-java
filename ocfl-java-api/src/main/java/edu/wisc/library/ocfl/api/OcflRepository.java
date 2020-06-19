@@ -43,9 +43,9 @@ public interface OcflRepository {
      * Adds the object rooted at the given path to the OCFL repository under the given objectVersionId. If their is an existing
      * object with the id, then a new version of the object is created.
      *
-     * <p>It is important to note that the files present in the given path should comprise the entirety of the object. Files
-     * from previous versions that are no longer present in the path are not carried over. At the same time, files that
-     * are unchanged between object versions are not stored a second time.
+     * <p>It is important to note that this is NOT an additive operation. An existing object's state is NOT carried forward
+     * into the new version. The only files that are included in the new version are the files that are present in the
+     * supplied directory. However, files are still deduped against files present in prior versions.
      *
      * <p>This method should only be used when writing new or fully composed objects.
      *
@@ -57,14 +57,14 @@ public interface OcflRepository {
      * will be lost. This operation is more efficient but less safe than the default copy.
      *
      * @param objectVersionId the id to store the object under. If set to a specific version, then the update will only occur
-     *                 if this version matches the head object version in the repository.
+     *                 if the specified version matches the head object version in the repository.
      * @param path the path to the object content
-     * @param commitInfo information about the changes to the object. Can be null.
+     * @param versionInfo information about the changes to the object. Can be null.
      * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      * @return The objectVersionId and version of the new object version
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, CommitInfo commitInfo, OcflOption... ocflOptions);
+    ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... ocflOptions);
 
     /**
      * Updates an existing object OR create a new object by selectively adding, removing, moving files within the object,
@@ -75,14 +75,14 @@ public interface OcflRepository {
      * be rejected. If the request specifies the HEAD version, then no version check will be preformed.
      *
      * @param objectVersionId the id of the object. If set to a specific version, then the update will only occur
-     *                 if this version matches the head object version in the repository.
-     * @param commitInfo information about the changes to the object. Can be null.
+     *                 if the specified version matches the head object version in the repository.
+     * @param versionInfo information about the changes to the object. Can be null.
      * @param objectUpdater code block within which updates to an object may be made
      * @return The objectVersionId and version of the new object version
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectVersionId updateObject(ObjectVersionId objectVersionId, CommitInfo commitInfo, Consumer<OcflObjectUpdater> objectUpdater);
+    ObjectVersionId updateObject(ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
     /**
      * Returns the entire contents of the object at the specified version. The outputPath MUST NOT exist, but its parent
@@ -158,7 +158,7 @@ public interface OcflRepository {
     Stream<String> listObjectIds();
 
     /**
-     * Shutsdown any resources the OcflRepository may have open, such as ExecutorServices. Once closed, additional requests
+     * Closes any resources the OcflRepository may have open, such as ExecutorServices. Once closed, additional requests
      * will be rejected. Calling this method is optional, and it is more efficient to just let the shutdown hooks take care
      * of closing the resources.
      */
