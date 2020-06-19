@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.core.storage;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.OcflVersion;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
@@ -142,6 +143,15 @@ public interface OcflStorage {
      * @param objectId the id of the object to purge the mutable HEAD of
      */
     void purgeMutableHead(String objectId);
+
+    /**
+     * Sets the head object version to the specified version by reinstating that version's inventory into the object
+     * root, and purging all intermediary versions.
+     *
+     * @param inventory the deserialized object inventory
+     * @param versionId the id of the version to rollback to
+     */
+    void rollbackToVersion(Inventory inventory, VersionId versionId);
 
     /**
      * Returns true if an object with the specified id exists in the repository.

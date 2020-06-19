@@ -142,7 +142,20 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         ensureOpen();
 
         delegate.purgeObject(objectId);
+        // TODO should this be applied on failure?
         objectDetailsDb.deleteObjectDetails(objectId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void rollbackToVersion(Inventory inventory, VersionId versionId) {
+        ensureOpen();
+
+        delegate.rollbackToVersion(inventory, versionId);
+        // TODO should this be applied on failure?
+        objectDetailsDb.deleteObjectDetails(inventory.getId());
     }
 
     /**
@@ -163,6 +176,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         ensureOpen();
 
         delegate.purgeMutableHead(objectId);
+        // TODO should this be applied on failure?
         objectDetailsDb.deleteObjectDetails(objectId);
     }
 

@@ -53,12 +53,12 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseObjectDetailsDatabase.class);
 
-    private DataSource dataSource;
-    private boolean storeInventory;
-    private long waitMillis;
+    private final DataSource dataSource;
+    private final boolean storeInventory;
+    private final long waitMillis;
 
-    private String lockFailCode;
-    private String duplicateKeyCode;
+    private final String lockFailCode;
+    private final String duplicateKeyCode;
 
     public BaseObjectDetailsDatabase(DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit,
                                      String lockFailCode, String duplicateKeyCode) {

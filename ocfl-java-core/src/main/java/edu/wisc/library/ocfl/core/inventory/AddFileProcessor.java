@@ -170,7 +170,7 @@ public class AddFileProcessor {
 
         if (options.contains(OcflOption.MOVE_SOURCE)) {
             // Cleanup empty dirs
-            FileUtil.safeDeletePath(sourcePath);
+            FileUtil.safeDeleteDirectory(sourcePath);
         }
 
         return results;

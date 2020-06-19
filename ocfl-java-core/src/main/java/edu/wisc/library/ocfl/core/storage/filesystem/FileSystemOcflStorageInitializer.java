@@ -226,7 +226,7 @@ public class FileSystemOcflStorageInitializer {
             return layoutExtension;
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository at {}", repositoryRoot, e);
-            FileUtil.safeDeletePath(repositoryRoot);
+            FileUtil.safeDeleteDirectory(repositoryRoot);
             throw e;
         }
     }

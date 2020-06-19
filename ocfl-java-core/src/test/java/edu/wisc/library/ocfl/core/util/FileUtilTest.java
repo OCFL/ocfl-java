@@ -185,7 +185,7 @@ public class FileUtilTest {
             assertThat(dstRoot.resolve("a/b/file1").toFile(), anExistingFile());
             assertThat(dstRoot.resolve("a/c/d").toFile(), anExistingDirectory());
         } finally {
-            FileUtil.safeDeletePath(Paths.get("target/test/FileUtilTest"));
+            FileUtil.safeDeleteDirectory(Paths.get("target/test/FileUtilTest"));
         }
     }
 

@@ -183,6 +183,8 @@ public interface OcflRepository {
      * <p>Use {@link #replicateVersionAsHead} instead if you want to roll an object back to a prior version but do not want to
      * delete intermediary versions.
      *
+     * <p>Using this method is NOT recommended unless necessary as it is inconsistent with the OCFL paradigm of version permanence.
+     *
      * @param objectVersionId the id of the object and version to rollback to
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */

@@ -114,7 +114,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
-            FileUtil.safeDeletePath(stagingDir);
+            FileUtil.safeDeleteDirectory(stagingDir);
         }
     }
 
@@ -139,7 +139,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
             try {
                 objectLock.doInWriteLock(inventory.getId(), () -> storage.commitMutableHead(inventory, newInventory, stagingDir));
             } finally {
-                FileUtil.safeDeletePath(stagingDir);
+                FileUtil.safeDeleteDirectory(stagingDir);
             }
         }
 
@@ -195,7 +195,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
             writeNewVersion(inventory, stagingDir);
             return inventory;
         } finally {
-            FileUtil.safeDeletePath(stagingDir);
+            FileUtil.safeDeleteDirectory(stagingDir);
         }
     }
 

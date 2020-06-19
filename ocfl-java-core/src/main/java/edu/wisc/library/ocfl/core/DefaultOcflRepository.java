@@ -174,7 +174,7 @@ public class DefaultOcflRepository implements OcflRepository {
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
-            FileUtil.safeDeletePath(stagingDir);
+            FileUtil.safeDeleteDirectory(stagingDir);
         }
     }
 
@@ -207,7 +207,7 @@ public class DefaultOcflRepository implements OcflRepository {
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
-            FileUtil.safeDeletePath(stagingDir);
+            FileUtil.safeDeleteDirectory(stagingDir);
         }
     }
 
@@ -370,7 +370,7 @@ public class DefaultOcflRepository implements OcflRepository {
             writeNewVersion(newInventory, stagingDir);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
-            FileUtil.safeDeletePath(stagingDir);
+            FileUtil.safeDeleteDirectory(stagingDir);
         }
     }
 
@@ -383,14 +383,18 @@ public class DefaultOcflRepository implements OcflRepository {
 
         Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
 
-        LOG.debug("Rollback to version <{}>", objectVersionId);
+        LOG.info("Rollback to version <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
         var versionId = requireVersion(objectVersionId, inventory);
 
-        // TODO Do not currently have a way to remove versions from inventories
-        // TODO Do not currently have a way to purge versions from storage
-        throw new UnsupportedOperationException("Not yet implemented");
+        if (versionId == inventory.getHead()) {
+            LOG.debug("Object {} cannot be rollback to version {} because it is already the head version.",
+                    objectVersionId.getObjectId(), versionId);
+            return;
+        }
+
+        objectLock.doInWriteLock(inventory.getId(), () -> storage.rollbackToVersion(inventory, versionId));
     }
 
     /**
@@ -456,7 +460,7 @@ public class DefaultOcflRepository implements OcflRepository {
         } catch (FileAlreadyExistsException e) {
             throw new UncheckedIOException(e);
         } finally {
-            FileUtil.safeDeletePath(stagingDir);
+            FileUtil.safeDeleteDirectory(stagingDir);
         }
     }
 

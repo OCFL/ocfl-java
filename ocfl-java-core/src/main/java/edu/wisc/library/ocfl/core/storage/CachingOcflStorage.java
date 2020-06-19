@@ -157,6 +157,20 @@ public class CachingOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void rollbackToVersion(Inventory inventory, VersionId versionId) {
+        ensureOpen();
+
+        try {
+            delegate.rollbackToVersion(inventory, versionId);
+        } finally {
+            inventoryCache.invalidate(inventory.getId());
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean containsObject(String objectId) {
         ensureOpen();
 

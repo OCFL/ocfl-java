@@ -151,7 +151,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
             return inventory;
         } finally {
-            FileUtil.safeDeletePath(tempDir);
+            FileUtil.safeDeleteDirectory(tempDir);
         }
     }
 
@@ -265,6 +265,45 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void rollbackToVersion(Inventory inventory, VersionId versionId) {
+        ensureOpen();
+
+        LOG.info("Rollback object <{}> to version {}", inventory.getId(), versionId);
+
+        var versionPath = objectVersionPath(inventory, versionId);
+
+        try {
+            copyInventoryToRoot(versionPath, inventory);
+        } catch (Exception e) {
+            try {
+                var previousVersionPath = objectVersionPath(inventory, inventory.getHead());
+                copyInventoryToRoot(previousVersionPath, inventory);
+            } catch (RuntimeException e1) {
+                LOG.error("Failed to rollback inventory at {}. Object must be fixed manually.",
+                        ObjectPaths.inventoryPath(inventory.getObjectRootPath()), e1);
+            }
+        }
+
+        try {
+            var currentVersion = inventory.getHead();
+
+            while (currentVersion.compareTo(versionId) > 0) {
+                LOG.info("Purging object {} version {}", inventory.getId(), currentVersion);
+                cloudClient.deletePath(objectVersionPath(inventory, currentVersion));
+                currentVersion = currentVersion.previousVersionId();
+            }
+
+            purgeMutableHead(inventory.getId());
+        } catch (Exception e) {
+            throw new CorruptObjectException(String.format("Object %s was corrupted while attempting to rollback to version %s. It must be manually remediated.",
+                    inventory.getId(), versionId), e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
         ensureOpen();
 
@@ -289,8 +328,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             try {
                 purgeMutableHead(newInventory.getId());
             } catch (RuntimeException e) {
-                LOG.error("Failed to cleanup mutable HEAD at {}. Must be deleted manually.",
-                        ObjectPaths.mutableHeadExtensionRoot(newInventory.getObjectRootPath()), e);
+                LOG.error("Failed to cleanup mutable HEAD of object {} at {}. It must be deleted manually.",
+                        newInventory.getId(), ObjectPaths.mutableHeadExtensionRoot(newInventory.getObjectRootPath()), e);
             }
         } catch (RuntimeException e) {
             cloudClient.safeDeleteObjects(objectKeys);

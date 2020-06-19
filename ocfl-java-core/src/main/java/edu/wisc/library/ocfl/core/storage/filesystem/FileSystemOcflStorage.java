@@ -273,21 +273,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
         var objectRootPath = objectRootPathFull(objectId);
 
-        if (Files.exists(objectRootPath)) {
-            try (var paths = Files.walk(objectRootPath)) {
-                paths.sorted(Comparator.reverseOrder())
-                        .forEach(f -> {
-                            try {
-                                Files.delete(f);
-                            } catch (IOException e) {
-                                throw new UncheckedIOException(String.format("Failed to delete file %s while purging object %s." +
-                                        " The purge failed the object may need to be deleted manually.", f, objectId), e);
-                            }
-                        });
-            } catch (IOException e) {
-                throw new UncheckedIOException(String.format("Failed to purge object %s at %s. The object may need to be deleted manually.",
-                        objectId, objectRootPath), e);
-            }
+        try {
+            FileUtil.deleteDirectory(objectRootPath);
+        } catch (Exception e) {
+            throw new CorruptObjectException(String.format("Failed to purge object %s at %s. The object may need to be deleted manually.",
+                    objectId, objectRootPath), e);
         }
 
         try {
@@ -295,6 +285,48 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         } catch (UncheckedIOException e) {
             LOG.error(String.format("Failed to cleanup all empty directories in path %s." +
                     " There may be empty directories remaining in the OCFL storage hierarchy.", objectRootPath));
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void rollbackToVersion(Inventory inventory, VersionId versionId) {
+        ensureOpen();
+
+        LOG.info("Rollback object <{}> to version {}", inventory.getId(), versionId);
+
+        var objectRootPath = objectRootPathFull(inventory.getId());
+        var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
+
+        var versionRoot = objectRoot.version(versionId);
+
+        try {
+            copyInventory(versionRoot, objectRoot);
+        } catch (Exception e) {
+            try {
+                copyInventory(objectRoot.headVersion(), objectRoot);
+            } catch (Exception e1) {
+                LOG.error("Failed to rollback inventory at {}", objectRoot.inventoryFile(), e1);
+            }
+            throw e;
+        }
+
+        try {
+            var currentVersion = inventory.getHead();
+
+            while (currentVersion.compareTo(versionId) > 0) {
+                LOG.info("Purging object {} version {}", inventory.getId(), currentVersion);
+                var currentVersionPath = objectRoot.versionPath(currentVersion);
+                FileUtil.deleteDirectory(currentVersionPath);
+                currentVersion = currentVersion.previousVersionId();
+            }
+
+            FileUtil.deleteDirectory(objectRoot.mutableHeadExtensionPath());
+        } catch (Exception e) {
+            throw new CorruptObjectException(String.format("Object %s was corrupted while attempting to rollback to version %s. It must be manually remediated.",
+                    inventory.getId(), versionId), e);
         }
     }
 
@@ -344,11 +376,16 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
             deleteEmptyDirs(versionRoot.contentPath());
         } catch (RuntimeException e) {
-            FileUtil.safeDeletePath(versionRoot.path());
+            FileUtil.safeDeleteDirectory(versionRoot.path());
             throw e;
         }
 
-        FileUtil.safeDeletePath(objectRoot.mutableHeadExtensionPath());
+        try {
+            FileUtil.deleteDirectory(objectRoot.mutableHeadExtensionPath());
+        } catch (RuntimeException e) {
+            LOG.error("Failed to cleanup mutable HEAD of object {} at {}. It must be deleted manually.",
+                    newInventory.getId(), objectRoot.mutableHeadExtensionPath(), e);
+        }
     }
 
     /**
@@ -521,12 +558,12 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 versionContentCheck(inventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
                 copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
             } catch (RuntimeException e) {
-                FileUtil.safeDeletePath(versionRoot.path());
+                FileUtil.safeDeleteDirectory(versionRoot.path());
                 throw e;
             }
         } catch (RuntimeException e) {
             if (isFirstVersion && Files.notExists(objectRoot.inventoryFile())) {
-                FileUtil.safeDeletePath(objectRoot.path());
+                FileUtil.safeDeleteDirectory(objectRoot.path());
             }
             throw e;
         }
@@ -556,16 +593,16 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                     versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
                     copyInventory(stagingVersionRoot, versionRoot);
                 } catch (RuntimeException e) {
-                    FileUtil.safeDeletePath(revisionPath);
+                    FileUtil.safeDeleteDirectory(revisionPath);
                     throw e;
                 }
             } catch (RuntimeException e) {
-                FileUtil.safeDeletePath(revisionMarker);
+                FileUtil.safeDeleteDirectory(revisionMarker);
                 throw e;
             }
         } catch (RuntimeException e) {
             if (isNewMutableHead) {
-                FileUtil.safeDeletePath(versionRoot.path().getParent());
+                FileUtil.safeDeleteDirectory(versionRoot.path().getParent());
             }
             throw e;
         }
@@ -630,6 +667,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private void copyInventory(ObjectPaths.HasInventory source, ObjectPaths.HasInventory destination) {
         Failsafe.with(ioRetry).run(() -> {
+            LOG.debug("Copying {} to {}", source.inventoryFile(), destination.inventoryFile());
             UncheckedFiles.copy(source.inventoryFile(), destination.inventoryFile(), StandardCopyOption.REPLACE_EXISTING);
             UncheckedFiles.copy(source.inventorySidecar(), destination.inventorySidecar(), StandardCopyOption.REPLACE_EXISTING);
         });

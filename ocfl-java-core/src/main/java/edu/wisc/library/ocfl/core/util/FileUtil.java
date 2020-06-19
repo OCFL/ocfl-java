@@ -32,10 +32,25 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.*;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileVisitOption;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class FileUtil {
 
@@ -204,7 +219,7 @@ public final class FileUtil {
      *
      * @param path the path to delete
      */
-    public static void safeDeletePath(Path path) {
+    public static void safeDeleteDirectory(Path path) {
         if (Files.exists(path)) {
             try (var paths = Files.walk(path)) {
                 paths.sorted(Comparator.reverseOrder())
@@ -220,6 +235,37 @@ public final class FileUtil {
             } catch (IOException e) {
                 LOG.warn("Failed to delete directory: {}", path, e);
             }
+        }
+    }
+
+
+    /**
+     * Recursive delete that deletes everything under and including the specified directory. Failures deleting individual
+     * files are logged and a single exception is thrown at the end.
+     *
+     * @param directory the directory to delete
+     */
+    public static void deleteDirectory(Path directory) {
+        var hasErrors = new AtomicBoolean(false);
+
+        if (Files.exists(directory)) {
+            try (var paths = Files.walk(directory)) {
+                paths.sorted(Comparator.reverseOrder())
+                        .forEach(f -> {
+                            try {
+                                Files.delete(f);
+                            } catch (IOException e) {
+                                LOG.warn("Failed to delete file: {}", f, e);
+                                hasErrors.set(true);
+                            }
+                        });
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        if (hasErrors.get()) {
+            throw new RuntimeException(String.format("Failed to recursively delete directory %s. See logs for details.", directory));
         }
     }
 

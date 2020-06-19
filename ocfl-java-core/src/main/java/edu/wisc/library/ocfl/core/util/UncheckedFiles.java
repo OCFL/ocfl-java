@@ -30,6 +30,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 
 /**
  * This class is just a wrapper around {@link Files} that converts IOExceptions into UncheckedIOExceptions.
