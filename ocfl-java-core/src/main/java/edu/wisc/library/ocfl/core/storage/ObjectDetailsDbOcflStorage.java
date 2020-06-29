@@ -141,9 +141,11 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     public void purgeObject(String objectId) {
         ensureOpen();
 
-        delegate.purgeObject(objectId);
-        // TODO should this be applied on failure?
-        objectDetailsDb.deleteObjectDetails(objectId);
+        try {
+            delegate.purgeObject(objectId);
+        } finally {
+            safeDeleteDetails(objectId);
+        }
     }
 
     /**
@@ -153,9 +155,11 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     public void rollbackToVersion(Inventory inventory, VersionId versionId) {
         ensureOpen();
 
-        delegate.rollbackToVersion(inventory, versionId);
-        // TODO should this be applied on failure?
-        objectDetailsDb.deleteObjectDetails(inventory.getId());
+        try {
+            delegate.rollbackToVersion(inventory, versionId);
+        } finally {
+            safeDeleteDetails(inventory.getId());
+        }
     }
 
     /**
@@ -175,9 +179,11 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     public void purgeMutableHead(String objectId) {
         ensureOpen();
 
-        delegate.purgeMutableHead(objectId);
-        // TODO should this be applied on failure?
-        objectDetailsDb.deleteObjectDetails(objectId);
+        try {
+            delegate.purgeMutableHead(objectId);
+        } finally {
+            safeDeleteDetails(objectId);
+        }
     }
 
     /**
@@ -226,12 +232,17 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
             objectDetailsDb.updateObjectDetails(inventory, digest, inventoryPath, runnable);
         } catch (ObjectOutOfSyncException e) {
             // TODO it's possible that the ObjectDetails should be deleted on any SQLException
-            try {
-                objectDetailsDb.deleteObjectDetails(inventory.getId());
-            } catch (RuntimeException e1) {
-                LOG.warn("Failed to remove object details for object {} from DB", inventory.getId(), e1);
-            }
+            safeDeleteDetails(inventory.getId());
             throw e;
+        }
+    }
+
+    private void safeDeleteDetails(String objectId) {
+        try {
+            objectDetailsDb.deleteObjectDetails(objectId);
+        } catch (Exception e) {
+            LOG.error("Failed to delete object details for object {}. You may need to manually remove the record from the database.",
+                    objectId, e);
         }
     }
 
