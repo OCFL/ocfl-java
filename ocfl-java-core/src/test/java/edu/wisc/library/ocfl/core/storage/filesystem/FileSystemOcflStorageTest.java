@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
 
@@ -123,10 +124,8 @@ public class FileSystemOcflStorageTest {
 
     @Test
     public void shouldListObjectIdsWhenOnlyOne() {
-        var storage = FileSystemOcflStorage.builder()
-                .repositoryRoot(existingRepoRoot("repo-one-object"))
-                .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
+        copyExistingRepo("repo-one-object");
+        var storage = newStorage(false);
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -137,10 +136,8 @@ public class FileSystemOcflStorageTest {
 
     @Test
     public void shouldListObjectIdsWhenMultipleObjects() {
-        var storage = FileSystemOcflStorage.builder()
-                .repositoryRoot(existingRepoRoot("repo-multiple-objects"))
-                .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
+        copyExistingRepo("repo-multiple-objects");
+        var storage = newStorage(false);
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -151,10 +148,8 @@ public class FileSystemOcflStorageTest {
 
     @Test
     public void shouldListObjectIdsWhenOnlyNone() {
-        var storage = FileSystemOcflStorage.builder()
-                .repositoryRoot(existingRepoRoot("repo-no-objects"))
-                .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
+        copyExistingRepo("repo-no-objects");
+        var storage = newStorage(false);
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -184,8 +179,23 @@ public class FileSystemOcflStorageTest {
         return storage;
     }
 
-    private Path existingRepoRoot(String name) {
-        return Paths.get("src/test/resources/repos/" + name);
+    private void copyExistingRepo(String name) {
+        copyDir(Paths.get("src/test/resources/repos", name), repoDir);
+    }
+
+    private Path copyDir(Path source, Path target) {
+        try (var files = Files.walk(source)) {
+            files.forEach(f -> {
+                try {
+                    Files.copy(f, target.resolve(source.relativize(f)), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return target;
     }
 
 }
