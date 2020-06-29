@@ -69,7 +69,7 @@ public class S3MutableHeadITest extends MutableHeadITest {
                         .build())
                 .workDir(workDir)
                 .buildMutable();
-        ITestHelper.fixTime(repo, "2019-08-05T15:57:53.703314Z");
+        ITestHelper.fixTime(repo, "2019-08-05T15:57:53Z");
         return repo;
     }
 

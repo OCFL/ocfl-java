@@ -101,7 +101,7 @@ public class FileSystemOcflITest extends OcflITest {
                         .build())
                 .workDir(workDir)
                 .build();
-        fixTime(repo, "2019-08-05T15:57:53.703314Z");
+        fixTime(repo, "2019-08-05T15:57:53Z");
         return repo;
     }
 

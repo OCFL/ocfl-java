@@ -64,7 +64,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -521,9 +520,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     protected OffsetDateTime now() {
-        // OCFL spec has timestamps reported at second granularity. Unfortunately, it's difficult to make Jackson
-        // interact with ISO 8601 at anything other than nanosecond granularity.
-        return OffsetDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
+        return OffsetDateTime.now(clock);
     }
 
     protected void ensureOpen() {

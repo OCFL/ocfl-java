@@ -1365,6 +1365,27 @@ public abstract class OcflITest {
         });
     }
 
+    @Test
+    public void useFinerGrainTimestamp() {
+        var repoName = "timestamp";
+        var repo = defaultRepo(repoName);
+
+        var timestamp = "2020-06-29T13:40:53.703314Z";
+
+        ITestHelper.fixTime(repo, timestamp);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        var desc = repo.describeObject(objectId);
+
+        assertEquals(timestamp, desc.getHeadVersion().getCreated().toString());
+    }
+
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
         var stream = actual.getStream();
         var contents = TestHelper.inputToString(stream);
