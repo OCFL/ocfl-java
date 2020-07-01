@@ -246,7 +246,9 @@ public class FileSystemOcflStorageInitializer {
                 .setDescription(description);
         try {
             objectMapper.writeValue(ocflLayoutPath(repositoryRoot).toFile(), spec);
-            objectMapper.writeValue(layoutExtensionConfigPath(repositoryRoot, layoutConfig.getExtensionName()).toFile(), layoutConfig);
+            if (layoutConfig.hasParameters()) {
+                objectMapper.writeValue(layoutExtensionConfigPath(repositoryRoot, layoutConfig.getExtensionName()).toFile(), layoutConfig);
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -243,8 +243,10 @@ public class CloudOcflStorageInitializer {
                 .setDescription(description);
         try {
             keys.add(cloudClient.uploadBytes(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MIME_JSON).getPath());
-            keys.add(cloudClient.uploadBytes(layoutConfigFile(layoutConfig.getExtensionName()),
-                    objectMapper.writeValueAsBytes(layoutConfig), MIME_JSON).getPath());
+            if (layoutConfig.hasParameters()) {
+                keys.add(cloudClient.uploadBytes(layoutConfigFile(layoutConfig.getExtensionName()),
+                        objectMapper.writeValueAsBytes(layoutConfig), MIME_JSON).getPath());
+            }
             return keys;
         } catch (IOException e) {
             throw new UncheckedIOException(e);

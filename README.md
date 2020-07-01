@@ -86,8 +86,10 @@ it is critical that this directory is located on the same volume as the OCFL sto
 * **layoutConfig**: Configures the storage layout the OCFL repository uses. This is the method it uses to map object ids
 to directories under the OCFL storage root. The layout configuration must be set when creating new OCFL repositories, but is
 not required when opening an existing repository. Storage layouts must be defined in by an OCFL extension. Currently,
-the only implemented extension is `0003-hashed-n-tuple-trees`, which is configured using `HashedTruncatedNTupleConfig`.
-
+the following extensions are implemented:
+  * **0003-hashed-n-tuple-trees**: `HashedTruncatedNTupleConfig`
+  * **0006-flat-layout**: `FlatLayoutConfig`
+ 
 ### Optional Properties
 
 * **ocflConfig**: Sets the following default values that are used for creating new OCFL objects: version, digest algorithm,

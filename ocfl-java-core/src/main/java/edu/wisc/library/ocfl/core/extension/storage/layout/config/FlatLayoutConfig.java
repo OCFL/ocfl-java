@@ -22,26 +22,49 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.extension;
+package edu.wisc.library.ocfl.core.extension.storage.layout.config;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
+
+import java.util.Objects;
 
 /**
- * Represents deserialized extension configuration. Implementations MUST have a no-arg constructor that defaults all
- * fields to their defaults as defined in their OCFL extension spec.
+ * Configuration for the Flat Storage Layout extension.
+ *
+ * TODO Add link to spec when finalized
  */
-public interface OcflExtensionConfig {
+public class FlatLayoutConfig implements OcflExtensionConfig {
 
-    /**
-     * Returns the name of the extension the config is for.
-     *
-     * @return extension name
-     */
-    String getExtensionName();
+    @JsonIgnore
+    @Override
+    public String getExtensionName() {
+        return FlatLayoutExtension.EXTENSION_NAME;
+    }
 
-    /**
-     * Indicates if the extension defines parameters.
-     *
-     * @return true if the extension defines parameters; false otherwise
-     */
-    boolean hasParameters();
+    @JsonIgnore
+    @Override
+    public boolean hasParameters() {
+        return false;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        return o != null && getClass() == o.getClass();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getExtensionName());
+    }
+
+    @Override
+    public String toString() {
+        return "FlatLayoutConfig{" +
+                "extensionName=" + getExtensionName() +
+                '}';
+    }
 
 }

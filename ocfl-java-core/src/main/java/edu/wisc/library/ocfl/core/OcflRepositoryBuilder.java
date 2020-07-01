@@ -227,7 +227,7 @@ public class OcflRepositoryBuilder {
      * @see ContentPathConstraints
      */
     public OcflRepositoryBuilder contentPathConstraints(ContentPathConstraintProcessor contentPathConstraints) {
-        this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraints cannot be null");
+        this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraints, "contentPathConstraints cannot be null");
         return this;
     }
 
@@ -247,6 +247,7 @@ public class OcflRepositoryBuilder {
      * the configuration from an existing repository. If it is a new repository, then layout configuration MUST be supplied.
      *
      * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig
+     * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig
      *
      * @param layoutConfig storage layout configuration
      * @return builder

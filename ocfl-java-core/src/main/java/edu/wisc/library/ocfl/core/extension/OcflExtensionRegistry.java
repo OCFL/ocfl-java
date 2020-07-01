@@ -25,6 +25,7 @@
 package edu.wisc.library.ocfl.core.extension;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,8 @@ public final class OcflExtensionRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(OcflExtensionRegistry.class);
 
     private static final Map<String, Class<? extends OcflExtension>> REGISTRY = new HashMap<>(Map.of(
-            HashedTruncatedNTupleExtension.EXTENSION_NAME, HashedTruncatedNTupleExtension.class
+            HashedTruncatedNTupleExtension.EXTENSION_NAME, HashedTruncatedNTupleExtension.class,
+            FlatLayoutExtension.EXTENSION_NAME, FlatLayoutExtension.class
     ));
 
     private OcflExtensionRegistry() {

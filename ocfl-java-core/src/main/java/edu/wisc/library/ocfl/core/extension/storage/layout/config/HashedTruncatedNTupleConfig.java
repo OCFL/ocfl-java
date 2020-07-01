@@ -98,6 +98,12 @@ public class HashedTruncatedNTupleConfig implements OcflExtensionConfig {
         return HashedTruncatedNTupleExtension.EXTENSION_NAME;
     }
 
+    @JsonIgnore
+    @Override
+    public boolean hasParameters() {
+        return true;
+    }
+
     /**
      * @return the digest algorithm to use
      */
