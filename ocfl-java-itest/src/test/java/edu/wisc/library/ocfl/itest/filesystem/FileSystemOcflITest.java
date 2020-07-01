@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
@@ -14,6 +15,7 @@ import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -52,6 +54,22 @@ public class FileSystemOcflITest extends OcflITest {
             var objectIds = objectIdsStream.collect(Collectors.toList());
             assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
         }
+    }
+
+    // This test doesn't work with S3Mock because it double encodes
+    @Test
+    public void hashedIdLayoutLongEncoded() {
+        var repoName = "hashed-id-layout-2";
+        var repo = defaultRepo(repoName, new HashedTruncatedNTupleIdConfig());
+
+        var objectId = "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        verifyRepo(repoName);
     }
 
     @Test

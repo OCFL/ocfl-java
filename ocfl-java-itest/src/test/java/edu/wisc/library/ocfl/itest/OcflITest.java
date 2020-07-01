@@ -13,6 +13,7 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
@@ -1392,18 +1393,33 @@ public abstract class OcflITest {
         var repoName = "flat-layout";
         var repo = defaultRepo(repoName, new FlatLayoutConfig());
 
-        var objectId1 = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId1), defaultVersionInfo.setMessage("1"), updater -> {
-            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
-                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        var objectIds = List.of("o1", "object-2");
+
+        objectIds.forEach(objectId -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                        .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+            });
         });
 
-        var objectId2 = "object-2";
+        verifyRepo(repoName);
+    }
 
-        repo.updateObject(ObjectVersionId.head(objectId2), defaultVersionInfo.setMessage("1"), updater -> {
-            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
-                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+    @Test
+    public void hashedIdLayout() {
+        var repoName = "hashed-id-layout";
+        var repo = defaultRepo(repoName, new HashedTruncatedNTupleIdConfig());
+
+        var objectIds = List.of("o1",
+                "http://library.wisc.edu/123",
+                "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghija");
+
+        objectIds.forEach(objectId -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                        .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+            });
         });
 
         verifyRepo(repoName);

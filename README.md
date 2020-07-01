@@ -88,6 +88,7 @@ to directories under the OCFL storage root. The layout configuration must be set
 not required when opening an existing repository. Storage layouts must be defined in by an OCFL extension. Currently,
 the following extensions are implemented:
   * **0003-hashed-n-tuple-trees**: `HashedTruncatedNTupleConfig`
+  * **0005-hashed-n-tuple-id-layout**: `HashedTruncatedNTupleIdConfig`
   * **0006-flat-layout**: `FlatLayoutConfig`
  
 ### Optional Properties

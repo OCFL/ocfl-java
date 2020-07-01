@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.itest.s3;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleIdExtension;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -103,7 +104,10 @@ public class S3ITestHelper {
                 .build());
 
         return result.contents().stream().map(S3Object::key).filter(k -> {
-            return !(k.contains("ocfl_layout") || k.contains(HashedTruncatedNTupleExtension.EXTENSION_NAME));
+            return !(k.contains("ocfl_layout")
+                    // TODO remove when extensions finalized
+                    || k.contains(HashedTruncatedNTupleExtension.EXTENSION_NAME)
+                    || k.contains(HashedTruncatedNTupleIdExtension.EXTENSION_NAME));
         }).collect(Collectors.toList());
     }
 

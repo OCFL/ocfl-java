@@ -247,6 +247,7 @@ public class OcflRepositoryBuilder {
      * the configuration from an existing repository. If it is a new repository, then layout configuration MUST be supplied.
      *
      * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig
+     * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig
      * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig
      *
      * @param layoutConfig storage layout configuration

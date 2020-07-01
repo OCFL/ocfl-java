@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.DefaultOcflRepository;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleIdExtension;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
@@ -76,6 +77,7 @@ public final class ITestHelper {
                         || pStr.contains("deposit")
                         // TODO remove this once layout an extensions are finalized
                         || pStr.contains("ocfl_layout")
+                        || pStr.contains(HashedTruncatedNTupleIdExtension.EXTENSION_NAME)
                         || pStr.contains(HashedTruncatedNTupleExtension.EXTENSION_NAME));
             }).filter(Files::isRegularFile).forEach(allPaths::add);
         } catch (IOException e) {

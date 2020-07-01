@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.encode;
+package edu.wisc.library.ocfl.core.util;
 
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
@@ -70,7 +70,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 @Beta
 @GwtCompatible
-final class PercentEscaper extends UnicodeEscaper {
+public final class PercentEscaper extends UnicodeEscaper {
 
     // In some escapers spaces are escaped to '+'
     private static final char[] PLUS_SIGN = {'+'};
@@ -103,7 +103,7 @@ final class PercentEscaper extends UnicodeEscaper {
     private final int replacementsLength;
 
     // Builder added 02/03/2020
-    static class Builder {
+    public static class Builder {
         private char encodeStartChar;
         private String safeChars;
         private boolean plusForSpace;
@@ -117,37 +117,37 @@ final class PercentEscaper extends UnicodeEscaper {
             additionalMappings = new HashMap<>();
         }
 
-        Builder encodeStartChar(char c) {
+        public Builder encodeStartChar(char c) {
             this.encodeStartChar = c;
             return this;
         }
 
-        Builder safeChars(String safeChars) {
+        public Builder safeChars(String safeChars) {
             this.safeChars = safeChars;
             return this;
         }
 
-        Builder plusForSpace(boolean plusForSpace) {
+        public Builder plusForSpace(boolean plusForSpace) {
             this.plusForSpace = plusForSpace;
             return this;
         }
 
-        Builder useUppercase(boolean useUppercase) {
+        public Builder useUppercase(boolean useUppercase) {
             this.useUppercase = useUppercase;
             return this;
         }
 
-        Builder addEscape(char c, String replacement) {
+        public Builder addEscape(char c, String replacement) {
             this.additionalMappings.put(c, replacement);
             return this;
         }
 
-        PercentEscaper build() {
+        public PercentEscaper build() {
             return new PercentEscaper(safeChars, plusForSpace, useUppercase, additionalMappings, encodeStartChar);
         }
     }
 
-    static Builder builder() {
+    public static Builder builder() {
         return new Builder();
     }
 
