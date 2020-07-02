@@ -164,6 +164,7 @@ public final class ContentPathConstraints {
                         .pathConstraint(PathLengthConstraint.maxBytes(1024)) // Amazon & Google
                         .build())
                 .contentPathConstraintProcessor(PathConstraintProcessor.builder()
+                        .fileNameConstraint(PathLengthConstraint.maxBytes(255)) // Linux
                         .fileNameConstraint(PathLengthConstraint.maxChars(254)) // Azure
                         .fileNameConstraint(NO_WINDOWS_RESERVED_WORDS) // Windows
                         .fileNameConstraint(NO_SPACE_OR_PERIOD_AT_END) // Windows & Azure
