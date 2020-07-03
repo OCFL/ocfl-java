@@ -36,7 +36,7 @@ public final class LogicalPathMappers {
      * <ul>
      *     <li>ASCII characters codes: x0-x1f</li>
      *     <li>ASCII characters codes: x7f-xa0</li>
-     *     <li>Characters: <>:"\|?* </li>
+     *     <li>Characters: &lt;&gt;:"\|?* </li>
      * </ul>
      *
      * This should produce generally safe content paths, but they are not guaranteed safe.
@@ -107,7 +107,7 @@ public final class LogicalPathMappers {
      * <ul>
      *     <li>ASCII characters codes: x0-x1f</li>
      *     <li>ASCII characters codes: x7f-xa0</li>
-     *     <li>Characters: <>:"\|?* #[]</li>
+     *     <li>Characters: &lt;&gt;:"\|?* #[]</li>
      * </ul>
      *
      * This should produce generally safe content paths, but they are not guaranteed safe.
