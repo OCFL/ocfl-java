@@ -42,6 +42,7 @@ import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.DirectLogicalPathMapper;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
+import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.CachingOcflStorage;
 import edu.wisc.library.ocfl.core.storage.ObjectDetailsDbOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
@@ -88,7 +89,7 @@ public class OcflRepositoryBuilder {
                 .expireAfterAccess(Duration.ofMinutes(10))
                 .maximumSize(1_000).build());
         inventoryMapper = InventoryMapper.defaultMapper();
-        logicalPathMapper = new DirectLogicalPathMapper();
+        logicalPathMapper = LogicalPathMappers.directMapper();
         contentPathConstraintProcessor = ContentPathConstraints.none();
         digestThreadPoolSize = Runtime.getRuntime().availableProcessors();
         copyThreadPoolSize = digestThreadPoolSize * 2;
@@ -185,6 +186,8 @@ public class OcflRepositoryBuilder {
      * Overrides the default {@link DirectLogicalPathMapper}. {@link LogicalPathMapper}s are used to map logical paths
      * to content paths so that they can safely be written to disk. The default behaviour is to map logical paths to
      * content paths directly without any changes.
+     *
+     * @see edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers
      *
      * @param logicalPathMapper logical path mapper
      * @return builder

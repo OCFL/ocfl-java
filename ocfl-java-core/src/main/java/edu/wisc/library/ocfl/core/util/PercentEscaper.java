@@ -29,16 +29,15 @@ import com.google.common.annotations.GwtCompatible;
 import com.google.common.escape.UnicodeEscaper;
 import com.google.common.net.UrlEscapers;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * NOTICE: This class is copied from Guava 28.2-jre and modified to support lowercase hex encoding and additional replacement
- * mappings on 02/03/2020 by Peter Winckles. Additionally, it was modified to use other characters besides % to mark the
- * start of an encoding.
+ * NOTICE: This class is copied from Guava 28.2-jre and modified to support lowercase hex encoding and either encoding
+ * all characters not in a given set or encoding only the characters in a given set by Peter Winckles.
  *
  * <p>A {@code UnicodeEscaper} that escapes some set of Java characters using a UTF-8 based percent
  * encoding scheme. The set of safe characters (those which remain unescaped) can be specified on
@@ -81,6 +80,8 @@ public final class PercentEscaper extends UnicodeEscaper {
     // Modification 02/03/2020
     private static final char[] LOWER_HEX_DIGITS = "0123456789abcdef".toCharArray();
 
+    private final Behavior behavior;
+
     /** If true we should convert space to the {@code +} character. */
     private final boolean plusForSpace;
 
@@ -89,66 +90,144 @@ public final class PercentEscaper extends UnicodeEscaper {
      * should remain unmodified in the output. If {@code c >= safeOctets.length} then it should be
      * escaped.
      */
-    private final boolean[] safeOctets;
-
-    // Modification 02/03/2020
-    private final char encodeStartChar;
+    private final boolean[] octets;
 
     // Modification added 02/03/2020
     private final char[] hexDigits;
 
-    // Modification added 02/03/2020
-    private final char[][] replacements;
-    // Modification added 02/03/2020
-    private final int replacementsLength;
+    /**
+     * Creates a builder without any safe or unsafe characters set.
+     *
+     * @return builder
+     */
+    public static Builder builder() {
+        return new Builder(false);
+    }
+
+    /**
+     * Creates a builder with safe alpha numeric characters preconfigured.
+     *
+     * @return builder
+     */
+    public static Builder builderWithSafeAlphaNumeric() {
+        return new Builder(true);
+    }
 
     // Builder added 02/03/2020
     public static class Builder {
-        private char encodeStartChar;
-        private String safeChars;
-        private boolean plusForSpace;
-        private boolean useUppercase;
-        private Map<Character, String> additionalMappings;
+        private static final String ALPHA_NUMERIC_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-        Builder() {
-            this.encodeStartChar = '%';
-            plusForSpace = true;
-            useUppercase = true;
-            additionalMappings = new HashMap<>();
+        private boolean plusForSpace = false;
+        private boolean useUppercase = false;
+
+        private Behavior behavior = null;
+        private final Set<Character> charSet = new HashSet<>();
+
+        private Builder(boolean safeAlphaNumeric) {
+            if (safeAlphaNumeric) {
+                behavior = Behavior.ENCODE_NOT_IN_SET;
+                addToSet(ALPHA_NUMERIC_CHARS, charSet);
+            }
         }
 
-        public Builder encodeStartChar(char c) {
-            this.encodeStartChar = c;
+        private static void addToSet(String chars, Set<Character> charSet) {
+            chars.chars().forEach(c -> charSet.add((char)c));
+        }
+
+        private static void addRangeToSet(char start, char end, Set<Character> charSet) {
+            checkArgument(start < end, "The start char must come before the end char.");
+            for (var c = start; c <= end; c++) {
+                charSet.add(c);
+            }
+        }
+
+        /**
+         * Adds a range of characters to the set of characters that do not need to be encoded.
+         *
+         * @param start the first safe character in the range
+         * @param end the last safe character in the range
+         * @return this
+         */
+        public Builder addSafeCharRange(char start, char end) {
+            if (behavior == Behavior.ENCODE_SET) {
+                throw new IllegalArgumentException("Cannot add safe characters because the escaper is already configured with unsafe characters.");
+            }
+            behavior = Behavior.ENCODE_NOT_IN_SET;
+            addRangeToSet(start, end, charSet);
             return this;
         }
 
-        public Builder safeChars(String safeChars) {
-            this.safeChars = safeChars;
+        /**
+         * Adds each character in the string to the set of characters that do not need to be encoded.
+         *
+         * @param safeChars characters that do not need to be encoded
+         * @return this
+         */
+        public Builder addSafeChars(String safeChars) {
+            if (behavior == Behavior.ENCODE_SET) {
+                throw new IllegalArgumentException("Cannot add safe characters because the escaper is already configured with unsafe characters.");
+            }
+            behavior = Behavior.ENCODE_NOT_IN_SET;
+            addToSet(safeChars, charSet);
             return this;
         }
 
+        /**
+         * Adds a range of characters to the set of characters that need to be encoded.
+         *
+         * @param start the first unsafe character in the range
+         * @param end the last unsafe character in the range
+         * @return this
+         */
+        public Builder addUnsafeCharRange(char start, char end) {
+            if (behavior == Behavior.ENCODE_NOT_IN_SET) {
+                throw new IllegalArgumentException("Cannot add unsafe characters because the escaper is already configured with safe characters.");
+            }
+            behavior = Behavior.ENCODE_SET;
+            addRangeToSet(start, end, charSet);
+            return this;
+        }
+
+        /**
+         * Adds each character in the string to the set of characters that need to be encoded.
+         *
+         * @param unsafeChars characters that need to be encoded
+         * @return this
+         */
+        public Builder addUnsafeChars(String unsafeChars) {
+            if (behavior == Behavior.ENCODE_NOT_IN_SET) {
+                throw new IllegalArgumentException("Cannot add unsafe characters because the escaper is already configured with safe characters.");
+            }
+            behavior = Behavior.ENCODE_SET;
+            addToSet(unsafeChars, charSet);
+            return this;
+        }
+
+        /**
+         * @param plusForSpace true if ASCII space should be escaped to {@code +} rather than {@code %20}
+         * @return this
+         */
         public Builder plusForSpace(boolean plusForSpace) {
             this.plusForSpace = plusForSpace;
             return this;
         }
 
+        /**
+         * @param useUppercase true if hex characters should be upper case
+         * @return this
+         */
         public Builder useUppercase(boolean useUppercase) {
             this.useUppercase = useUppercase;
             return this;
         }
 
-        public Builder addEscape(char c, String replacement) {
-            this.additionalMappings.put(c, replacement);
-            return this;
-        }
-
         public PercentEscaper build() {
-            return new PercentEscaper(safeChars, plusForSpace, useUppercase, additionalMappings, encodeStartChar);
+            return new PercentEscaper(behavior, charSet, plusForSpace, useUppercase);
         }
     }
 
-    public static Builder builder() {
-        return new Builder();
+    private enum Behavior {
+        ENCODE_SET, ENCODE_NOT_IN_SET
     }
 
     /**
@@ -159,49 +238,35 @@ public final class PercentEscaper extends UnicodeEscaper {
      * character. This has the effect of creating an escaper which has no well defined inverse but it
      * can be useful when escaping additional characters.
      *
-     * @param safeChars a non null string specifying additional safe characters for this escaper (the
-     *     ranges 0..9, a..z and A..Z are always safe and should not be specified here)
-     * @param plusForSpace true if ASCII space should be escaped to {@code +} rather than {@code %20}
-     * @throws IllegalArgumentException if any of the parameters were invalid
-     */
-    public PercentEscaper(String safeChars, boolean plusForSpace) {
-        this(safeChars, plusForSpace, true, Collections.emptyMap(), '%');
-    }
-
-    /**
-     * Constructs a percent escaper with the specified safe characters and optional handling of the
-     * space character.
-     *
-     * <p>Not that it is allowed, but not necessarily desirable to specify {@code %} as a safe
-     * character. This has the effect of creating an escaper which has no well defined inverse but it
-     * can be useful when escaping additional characters.
-     *
-     * @param safeChars a non null string specifying additional safe characters for this escaper (the
-     *     ranges 0..9, a..z and A..Z are always safe and should not be specified here)
+     * @param behavior defines whether every character not in the charSet should be encoded
+     *                or only characters in the charSet should be encoded
+     * @param charSet the set of characters that should or should not be encoded
      * @param plusForSpace true if ASCII space should be escaped to {@code +} rather than {@code %20}
      * @param useUppercase true if hex characters should be upper case
-     * @param replacementMap map of characters that should be replaced rather than percent encoded
-     * @param encodeStartChar character to use to denote beginning of hex encoding, typically %
      * @throws IllegalArgumentException if any of the parameters were invalid
      */
-    private PercentEscaper(String safeChars, boolean plusForSpace, boolean useUppercase, Map<Character, String> replacementMap, char encodeStartChar) {
-        // TODO(dbeaumont): Switch to static factory methods for creation now that class is final.
-        // TODO(dbeaumont): Support escapers where alphanumeric chars are not safe.
-        checkNotNull(safeChars); // eager for GWT.
-        // Avoid any misunderstandings about the behavior of this escaper
-        if (safeChars.matches(".*[0-9A-Za-z].*")) {
-            throw new IllegalArgumentException(
-                    "Alphanumeric characters are always 'safe' and should not be explicitly specified");
-        }
-        safeChars += "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        // Avoid ambiguous parameters. Safe characters are never modified so if
-        // space is a safe character then setting plusForSpace is meaningless.
-        if (plusForSpace && safeChars.contains(" ")) {
-            throw new IllegalArgumentException(
-                    "plusForSpace cannot be specified when space is a 'safe' character");
-        }
+    private PercentEscaper(Behavior behavior, Set<Character> charSet,
+                           boolean plusForSpace, boolean useUppercase) {
+        checkNotNull(charSet); // eager for GWT.
+
+        this.behavior = checkNotNull(behavior);
         this.plusForSpace = plusForSpace;
-        this.safeOctets = createSafeOctets(safeChars);
+
+        var charSetCopy = new HashSet<>(charSet);
+
+        if (behavior == Behavior.ENCODE_SET) {
+            if (plusForSpace) {
+                charSetCopy.add(' ');
+            }
+            charSetCopy.add('%');
+        } else {
+            if (plusForSpace) {
+                charSetCopy.remove(' ');
+            }
+            charSetCopy.remove('%');
+        }
+
+        this.octets = createOctets(charSetCopy);
 
         // Following lines added on 02/03/2020
         if (useUppercase) {
@@ -209,39 +274,20 @@ public final class PercentEscaper extends UnicodeEscaper {
         } else {
             hexDigits = LOWER_HEX_DIGITS;
         }
-        checkNotNull(replacementMap);
-        this.replacements = createReplacementArray(replacementMap);
-        this.replacementsLength = replacements.length;
-        this.encodeStartChar = encodeStartChar;
-    }
-
-    // Modification 02/03/2020 -- copied from ArrayBasedCharEscaperMap
-    private static final char[][] EMPTY_REPLACEMENT_ARRAY = new char[0][0];
-    private static char[][] createReplacementArray(Map<Character, String> map) {
-        if (map.isEmpty()) {
-            return EMPTY_REPLACEMENT_ARRAY;
-        }
-        char max = Collections.max(map.keySet());
-        char[][] replacements = new char[max + 1][];
-        for (char c : map.keySet()) {
-            replacements[c] = map.get(c).toCharArray();
-        }
-        return replacements;
     }
 
     /**
      * Creates a boolean array with entries corresponding to the character values specified in
-     * safeChars set to true. The array is as small as is required to hold the given character
+     * charSet set to true. The array is as small as is required to hold the given character
      * information.
      */
-    private static boolean[] createSafeOctets(String safeChars) {
+    private static boolean[] createOctets(Set<Character> charSet) {
         int maxChar = -1;
-        char[] safeCharArray = safeChars.toCharArray();
-        for (char c : safeCharArray) {
+        for (char c : charSet) {
             maxChar = Math.max(c, maxChar);
         }
         boolean[] octets = new boolean[maxChar + 1];
-        for (char c : safeCharArray) {
+        for (char c : charSet) {
             octets[c] = true;
         }
         return octets;
@@ -256,7 +302,7 @@ public final class PercentEscaper extends UnicodeEscaper {
         checkNotNull(csq);
         for (; index < end; index++) {
             char c = csq.charAt(index);
-            if (c >= safeOctets.length || !safeOctets[c]) {
+            if (shouldEscapeChar(c)) {
                 break;
             }
         }
@@ -273,11 +319,16 @@ public final class PercentEscaper extends UnicodeEscaper {
         int slen = s.length();
         for (int index = 0; index < slen; index++) {
             char c = s.charAt(index);
-            if (c >= safeOctets.length || !safeOctets[c]) {
+            if (shouldEscapeChar(c)) {
                 return escapeSlow(s, index);
             }
         }
         return s;
+    }
+
+    private boolean shouldEscapeChar(char c) {
+        return (behavior == Behavior.ENCODE_NOT_IN_SET && (c >= octets.length || !octets[c]))
+                || (behavior == Behavior.ENCODE_SET && (c < octets.length && octets[c]));
     }
 
     /** Escapes the given Unicode code point in UTF-8. */
@@ -285,18 +336,15 @@ public final class PercentEscaper extends UnicodeEscaper {
     protected char[] escape(int cp) {
         // We should never get negative values here but if we do it will throw an
         // IndexOutOfBoundsException, so at least it will get spotted.
-        if (cp < safeOctets.length && safeOctets[cp]) {
+        if (!shouldEscapeChar((char) cp)) {
             return null;
         } else if (cp == ' ' && plusForSpace) {
             return PLUS_SIGN;
-        // Modification 02/03/2020
-        } else if (cp < replacementsLength && replacements[cp] != null) {
-            return replacements[cp];
         } else if (cp <= 0x7F) {
             // Single byte UTF-8 characters
             // Start with "%--" and fill in the blanks
             char[] dest = new char[3];
-            dest[0] = encodeStartChar;
+            dest[0] = '%';
             dest[2] = hexDigits[cp & 0xF];
             dest[1] = hexDigits[cp >>> 4];
             return dest;
@@ -304,8 +352,8 @@ public final class PercentEscaper extends UnicodeEscaper {
             // Two byte UTF-8 characters [cp >= 0x80 && cp <= 0x7ff]
             // Start with "%--%--" and fill in the blanks
             char[] dest = new char[6];
-            dest[0] = encodeStartChar;
-            dest[3] = encodeStartChar;
+            dest[0] = '%';
+            dest[3] = '%';
             dest[5] = hexDigits[cp & 0xF];
             cp >>>= 4;
             dest[4] = hexDigits[0x8 | (cp & 0x3)];
@@ -318,10 +366,10 @@ public final class PercentEscaper extends UnicodeEscaper {
             // Three byte UTF-8 characters [cp >= 0x800 && cp <= 0xffff]
             // Start with "%E-%--%--" and fill in the blanks
             char[] dest = new char[9];
-            dest[0] = encodeStartChar;
+            dest[0] = '%';
             dest[1] = 'E';
-            dest[3] = encodeStartChar;
-            dest[6] = encodeStartChar;
+            dest[3] = '%';
+            dest[6] = '%';
             dest[8] = hexDigits[cp & 0xF];
             cp >>>= 4;
             dest[7] = hexDigits[0x8 | (cp & 0x3)];
@@ -336,11 +384,11 @@ public final class PercentEscaper extends UnicodeEscaper {
             char[] dest = new char[12];
             // Four byte UTF-8 characters [cp >= 0xffff && cp <= 0x10ffff]
             // Start with "%F-%--%--%--" and fill in the blanks
-            dest[0] = encodeStartChar;
+            dest[0] = '%';
             dest[1] = 'F';
-            dest[3] = encodeStartChar;
-            dest[6] = encodeStartChar;
-            dest[9] = encodeStartChar;
+            dest[3] = '%';
+            dest[6] = '%';
+            dest[9] = '%';
             dest[11] = hexDigits[cp & 0xF];
             cp >>>= 4;
             dest[10] = hexDigits[0x8 | (cp & 0x3)];

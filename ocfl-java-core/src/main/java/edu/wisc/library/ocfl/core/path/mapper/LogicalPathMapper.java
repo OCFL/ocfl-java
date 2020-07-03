@@ -29,6 +29,8 @@ package edu.wisc.library.ocfl.core.path.mapper;
  * root directory, but rather partial content paths that are relative a version's content directory. The primary concern
  * here is transforming illegal characters and ensuring that the path is not too long, so that it can safely be written
  * to disk.
+ *
+ * @see LogicalPathMappers
  */
 public interface LogicalPathMapper {
 

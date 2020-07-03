@@ -7,7 +7,7 @@ import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
-import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 
@@ -57,10 +58,11 @@ public class S3OcflITest extends OcflITest {
     }
 
     @Override
-    protected OcflRepository defaultRepo(String name, OcflExtensionConfig layoutConfig) {
+    protected OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
         createBucket(name);
-        var repo = new OcflRepositoryBuilder()
-                .layoutConfig(layoutConfig)
+
+        var builder = new OcflRepositoryBuilder()
+                .layoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
                 .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
@@ -74,14 +76,17 @@ public class S3OcflITest extends OcflITest {
                                 .build())
                         .workDir(workDir)
                         .build())
-                .workDir(workDir)
-                .build();
+                .workDir(workDir);
+
+        consumer.accept(builder);
+
+        var repo = builder.build();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53Z");
         return repo;
     }
 
     @Override
-    protected OcflRepository existingRepo(String name, Path path, OcflExtensionConfig layoutConfig) {
+    protected OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer) {
         createBucket(name);
         FileUtil.findFiles(path).forEach(file -> {
             s3Client.putObject(PutObjectRequest.builder()
@@ -89,7 +94,7 @@ public class S3OcflITest extends OcflITest {
                     .key(FileUtil.pathToStringStandardSeparator(path.relativize(file)))
                     .build(), file);
         });
-        return defaultRepo(name, layoutConfig);
+        return defaultRepo(name, consumer);
     }
 
     @Override

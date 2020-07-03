@@ -4,7 +4,6 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
@@ -38,7 +38,7 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void listObjectsInRepo() {
         var repoName = "repo-list";
-        var repo = defaultRepo(repoName, new HashedTruncatedNTupleConfig());
+        var repo = defaultRepo(repoName);
 
         repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo, updater -> {
             updater.writeFile(inputStream("test1"), "test1.txt");
@@ -60,7 +60,7 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void hashedIdLayoutLongEncoded() {
         var repoName = "hashed-id-layout-2";
-        var repo = defaultRepo(repoName, new HashedTruncatedNTupleIdConfig());
+        var repo = defaultRepo(repoName, builder -> builder.layoutConfig(new HashedTruncatedNTupleIdConfig()));
 
         var objectId = "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ";
 
@@ -75,7 +75,7 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void purgeShouldRemoveEmptyParentDirs() throws IOException {
         var repoName = "purge-empty-dirs";
-        var repo = defaultRepo(repoName, new HashedTruncatedNTupleConfig());
+        var repo = defaultRepo(repoName);
 
         var objectId = "o3";
 
@@ -95,21 +95,21 @@ public class FileSystemOcflITest extends OcflITest {
     }
 
     @Override
-    protected OcflRepository defaultRepo(String name, OcflExtensionConfig layoutConfig) {
+    protected OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
         var repoDir = UncheckedFiles.createDirectories(repoDir(name));
-        return existingRepo(name, null, layoutConfig);
+        return existingRepo(name, null, consumer);
     }
 
     @Override
-    protected OcflRepository existingRepo(String name, Path path, OcflExtensionConfig layoutConfig) {
+    protected OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer) {
         var repoDir = repoDir(name);
 
         if (path != null) {
             TestHelper.copyDir(path, repoDir);
         }
 
-        var repo = new OcflRepositoryBuilder()
-                .layoutConfig(layoutConfig)
+        var builder = new OcflRepositoryBuilder()
+                .layoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .storage(FileSystemOcflStorage.builder()
@@ -117,8 +117,11 @@ public class FileSystemOcflITest extends OcflITest {
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .repositoryRoot(repoDir)
                         .build())
-                .workDir(workDir)
-                .build();
+                .workDir(workDir);
+
+        consumer.accept(builder);
+
+        var repo = builder.build();
         fixTime(repo, "2019-08-05T15:57:53Z");
         return repo;
     }

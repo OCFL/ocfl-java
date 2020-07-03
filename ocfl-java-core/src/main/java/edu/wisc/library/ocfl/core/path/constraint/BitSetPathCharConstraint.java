@@ -88,6 +88,7 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
     }
 
     private static BitSetPathCharConstraint build(boolean blockList, char start, char end) {
+        Enforce.expressionTrue(start < end, start, "The start char must come before the end char.");
         var charSet = new BitSet(256);
         for (var c = start; c <= end; c++) {
             charSet.set(c);

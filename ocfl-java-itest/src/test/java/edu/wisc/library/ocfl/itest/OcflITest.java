@@ -14,6 +14,8 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
+import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
@@ -32,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.*;
 import static edu.wisc.library.ocfl.test.TestHelper.copyDir;
@@ -73,16 +76,16 @@ public abstract class OcflITest {
     }
 
     protected OcflRepository defaultRepo(String name) {
-        return defaultRepo(name, new HashedTruncatedNTupleConfig());
+        return defaultRepo(name, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
     }
 
-    protected abstract OcflRepository defaultRepo(String name, OcflExtensionConfig layoutConfig);
+    protected abstract OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer);
 
     protected OcflRepository existingRepo(String name, Path path) {
-        return existingRepo(name, path, new HashedTruncatedNTupleConfig());
+        return existingRepo(name, path, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
     }
 
-    protected abstract OcflRepository existingRepo(String name, Path path, OcflExtensionConfig layoutConfig);
+    protected abstract OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer);
 
     protected abstract void verifyRepo(String name);
 
@@ -142,7 +145,7 @@ public abstract class OcflITest {
     @Test
     public void shouldNotFailWhenObjectIdLongerThan255Characters() {
         var repoName = "long-id";
-        var repo = defaultRepo(repoName, new HashedTruncatedNTupleConfig());
+        var repo = defaultRepo(repoName);
 
         var objectId = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" +
                 "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" +
@@ -1391,7 +1394,7 @@ public abstract class OcflITest {
     @Test
     public void flatLayoutWithValidIds() {
         var repoName = "flat-layout";
-        var repo = defaultRepo(repoName, new FlatLayoutConfig());
+        var repo = defaultRepo(repoName, builder -> builder.layoutConfig(new FlatLayoutConfig()));
 
 
         var objectIds = List.of("o1", "object-2");
@@ -1409,7 +1412,7 @@ public abstract class OcflITest {
     @Test
     public void hashedIdLayout() {
         var repoName = "hashed-id-layout";
-        var repo = defaultRepo(repoName, new HashedTruncatedNTupleIdConfig());
+        var repo = defaultRepo(repoName, builder -> builder.layoutConfig(new HashedTruncatedNTupleIdConfig()));
 
         var objectIds = List.of("o1",
                 "http://library.wisc.edu/123",
@@ -1423,6 +1426,31 @@ public abstract class OcflITest {
         });
 
         verifyRepo(repoName);
+    }
+
+    @Test
+    public void makeContentPathsWindowsSafe() throws IOException {
+        var repoName = "windows-safe";
+        var repo = defaultRepo(repoName, builder ->
+                builder.logicalPathMapper(LogicalPathMappers.percentEncodingWindowsMapper())
+                        .contentPathConstraints(ContentPathConstraints.windows()));
+
+        var logicalPath = "tést/<bad>:Path 1/\\|obj/?8*%id/#{something}/[0]/۞.txt";
+
+        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), logicalPath);
+        });
+
+        verifyRepo(repoName);
+
+        var object = repo.getObject(ObjectVersionId.head("o1"));
+
+        assertTrue(object.containsFile(logicalPath),
+                "expected object to contain logical path " + logicalPath);
+
+        try (var stream = object.getFile(logicalPath).getStream()) {
+            assertEquals("1", new String(stream.readAllBytes()));
+        }
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {

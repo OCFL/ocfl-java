@@ -47,9 +47,9 @@ public class HashedTruncatedNTupleIdExtension implements OcflStorageLayoutExtens
     private HashedTruncatedNTupleIdConfig config;
 
     public HashedTruncatedNTupleIdExtension() {
-        percentEscaper = PercentEscaper.builder()
+        percentEscaper = PercentEscaper.builderWithSafeAlphaNumeric()
+                .addSafeChars("-_")
                 .plusForSpace(false)
-                .safeChars("-_")
                 .useUppercase(false)
                 .build();
     }
