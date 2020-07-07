@@ -24,9 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout.config;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
@@ -41,42 +39,7 @@ import java.util.Objects;
  */
 public class HashedTruncatedNTupleConfig implements OcflExtensionConfig {
 
-    public enum CaseMapping {
-
-        TO_UPPER("toUpper"),
-        TO_LOWER("toLower");
-
-        private final String value;
-
-        CaseMapping(String value) {
-            this.value = value;
-        }
-
-        @JsonCreator
-        public static CaseMapping fromString(String value) {
-            for (CaseMapping caseMapping : values()) {
-                if (caseMapping.value.equals(value)) {
-                    return caseMapping;
-                }
-            }
-
-            throw new IllegalArgumentException("Unknown caseMapping: " + value);
-        }
-
-        @JsonValue
-        public String getValue() {
-            return value;
-        }
-
-        @Override
-        public String toString() {
-            return value;
-        }
-
-    }
-
     private DigestAlgorithm digestAlgorithm;
-    private CaseMapping caseMapping;
     private int tupleSize;
     private int numberOfTuples;
     private boolean shortObjectRoot;
@@ -86,7 +49,6 @@ public class HashedTruncatedNTupleConfig implements OcflExtensionConfig {
      */
     public HashedTruncatedNTupleConfig() {
         digestAlgorithm = DigestAlgorithm.sha256;
-        caseMapping = CaseMapping.TO_LOWER;
         tupleSize = 3;
         numberOfTuples = 3;
         shortObjectRoot = false;
@@ -119,24 +81,6 @@ public class HashedTruncatedNTupleConfig implements OcflExtensionConfig {
      */
     public HashedTruncatedNTupleConfig setDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        return this;
-    }
-
-    /**
-     * @return the case mapping to use
-     */
-    public CaseMapping getCaseMapping() {
-        return caseMapping;
-    }
-
-    /**
-     * Indicates the casing to use for the hex encoded digest
-     *
-     * @param caseMapping the case mapping
-     * @return this
-     */
-    public HashedTruncatedNTupleConfig setCaseMapping(CaseMapping caseMapping) {
-        this.caseMapping = Enforce.notNull(caseMapping, "caseMapping cannot be null");
         return this;
     }
 
@@ -204,20 +148,18 @@ public class HashedTruncatedNTupleConfig implements OcflExtensionConfig {
         return tupleSize == that.tupleSize &&
                 numberOfTuples == that.numberOfTuples &&
                 shortObjectRoot == that.shortObjectRoot &&
-                digestAlgorithm.equals(that.digestAlgorithm) &&
-                caseMapping == that.caseMapping;
+                digestAlgorithm.equals(that.digestAlgorithm);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(digestAlgorithm, caseMapping, tupleSize, numberOfTuples, shortObjectRoot);
+        return Objects.hash(digestAlgorithm, tupleSize, numberOfTuples, shortObjectRoot);
     }
 
     @Override
     public String toString() {
         return "HashedTruncatedNTupleConfig{" +
                 "digestAlgorithm=" + digestAlgorithm.getOcflName() +
-                ", caseMapping=" + caseMapping +
                 ", tupleSize=" + tupleSize +
                 ", numberOfTuples=" + numberOfTuples +
                 ", shortObjectRoot=" + shortObjectRoot +

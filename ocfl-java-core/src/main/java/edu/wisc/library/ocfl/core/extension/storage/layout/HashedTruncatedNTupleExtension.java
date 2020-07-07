@@ -89,7 +89,7 @@ public class HashedTruncatedNTupleExtension implements OcflStorageLayoutExtensio
             throw new IllegalStateException("This extension must be initialized before it can be used.");
         }
 
-        var digest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), objectId, useUpperCase());
+        var digest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), objectId, false);
 
         if (config.getTupleSize() == 0) {
             return digest;
@@ -115,10 +115,6 @@ public class HashedTruncatedNTupleExtension implements OcflStorageLayoutExtensio
         }
 
         return pathBuilder.toString();
-    }
-
-    private boolean useUpperCase() {
-        return config.getCaseMapping() == HashedTruncatedNTupleConfig.CaseMapping.TO_UPPER;
     }
 
     private static void validateConfig(HashedTruncatedNTupleConfig config) {

@@ -63,12 +63,6 @@ public class HashedTruncatedNTupleExtensionTest {
     }
 
     @Test
-    public void shouldMapIdWithUpperCase() {
-        ext.init(new HashedTruncatedNTupleConfig().setCaseMapping(HashedTruncatedNTupleConfig.CaseMapping.TO_UPPER));
-        assertMapping("ED7/558/5A6/ED75585A6E8DEEF3B3F620E5F6D0999908C09E92CAD5E112AA5EAC5507000D8B");
-    }
-
-    @Test
     public void shouldMapIdWithShortRoot() {
         ext.init(new HashedTruncatedNTupleConfig().setShortObjectRoot(true));
         assertMapping("ed7/558/5a6/e8deef3b3f620e5f6d0999908c09e92cad5e112aa5eac5507000d8b");
