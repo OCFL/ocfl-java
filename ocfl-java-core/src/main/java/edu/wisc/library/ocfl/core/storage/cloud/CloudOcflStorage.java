@@ -720,7 +720,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var actualDigest = DigestUtil.computeDigestHex(algorithm, inventoryPath);
 
         if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-            throw new FixityCheckException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
+            throw new CorruptObjectException(String.format("Invalid inventory file: %s. Expected %s digest: %s; Actual: %s",
                     inventoryPath, algorithm.getOcflName(), expectedDigest, actualDigest));
         }
 

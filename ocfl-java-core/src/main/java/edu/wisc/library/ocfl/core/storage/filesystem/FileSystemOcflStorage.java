@@ -477,6 +477,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             var inventory = inventoryMapper.read(objectRootPath, inventoryStream);
             inventoryStream.checkFixity();
             return inventory;
+        } catch (FixityCheckException e) {
+            throw new CorruptObjectException("Invalid inventory file at " + inventoryPath, e);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

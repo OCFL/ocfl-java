@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.itest;
 import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
@@ -735,7 +736,7 @@ public abstract class OcflITest {
         var repoDir = sourceRepoPath(repoName);
         var repo = existingRepo(repoName, repoDir);
 
-        assertThrows(FixityCheckException.class, () -> repo.describeObject("z1"));
+        assertThrows(CorruptObjectException.class, () -> repo.describeObject("z1"));
     }
 
     @Test
