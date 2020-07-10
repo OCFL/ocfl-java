@@ -703,7 +703,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     private void deleteMutableHeadFilesNotInManifest(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, ObjectPaths.VersionRoot versionRoot) {
         var files = FileUtil.findFiles(versionRoot.contentPath());
         files.forEach(file -> {
-            if (inventory.getFileId(objectRoot.path().relativize(file)) == null) {
+            if (inventory.getFileId(objectRoot.path().relativize(file)) == null
+                    && Files.exists(file)) {
                 try {
                     Files.delete(file);
                 } catch (IOException e) {
