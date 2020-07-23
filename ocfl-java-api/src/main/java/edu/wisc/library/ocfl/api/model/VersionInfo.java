@@ -26,6 +26,8 @@ package edu.wisc.library.ocfl.api.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 
+import java.time.OffsetDateTime;
+
 /**
  * Descriptive information about an object version.
  */
@@ -33,6 +35,7 @@ public class VersionInfo {
 
     private User user;
     private String message;
+    private OffsetDateTime created;
 
     public VersionInfo() {
         this.user = new User();
@@ -80,11 +83,32 @@ public class VersionInfo {
         return this;
     }
 
+    /**
+     * The timestamp when the version was created
+     *
+     * @return version creation timestamp
+     */
+    public OffsetDateTime getCreated() {
+        return created;
+    }
+
+    /**
+     * Sets the verison creation timestamp. If this value is not supplied, the current system time will be used instead.
+     *
+     * @param created version creation timestamp
+     * @return this
+     */
+    public VersionInfo setCreated(OffsetDateTime created) {
+        this.created = created;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "VersionInfo{" +
                 "user=" + user +
                 ", message='" + message + '\'' +
+                ", created=" + created +
                 '}';
     }
 

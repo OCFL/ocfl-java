@@ -132,7 +132,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         var inventory = requireInventory(ObjectVersionId.head(objectId));
 
         if (inventory.hasMutableHead()) {
-            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(), versionInfo);
+            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(versionInfo), versionInfo);
             var stagingDir = FileUtil.createObjectTempDir(workDir, objectId);
             writeInventory(newInventory, stagingDir);
 
@@ -188,7 +188,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
                             .versionInfo(new VersionInfo()
                                     .setMessage("Auto-generated empty object version.")
                                     .setUser("ocfl-java", "https://github.com/UW-Madison-Library/ocfl-java"))
-                            .created(now())
+                            .created(now(null))
                             .build())
                     .build();
 

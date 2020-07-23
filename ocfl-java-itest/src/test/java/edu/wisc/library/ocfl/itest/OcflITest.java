@@ -33,6 +33,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -1452,6 +1454,19 @@ public abstract class OcflITest {
         try (var stream = object.getFile(logicalPath).getStream()) {
             assertEquals("1", new String(stream.readAllBytes()));
         }
+    }
+
+    @Test
+    public void createVersionsWithCustomCreateDates() {
+        var repo = defaultRepo("custom-date");
+
+        var created = OffsetDateTime.now(ZoneOffset.UTC).minusWeeks(6);
+
+        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo.setCreated(created), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "test.txt");
+        });
+
+        assertEquals(created, repo.describeVersion(ObjectVersionId.head("o1")).getCreated());
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {

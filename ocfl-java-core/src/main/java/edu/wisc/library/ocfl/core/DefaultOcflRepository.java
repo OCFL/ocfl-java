@@ -359,7 +359,7 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureNoMutableHead(inventory);
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory, versionId);
-        var newInventory = inventoryUpdater.buildNewInventory(now(), versionInfo);
+        var newInventory = inventoryUpdater.buildNewInventory(now(versionInfo), versionInfo);
 
         var stagingDir = createStagingDir(objectVersionId.getObjectId());
         // content dir is not used but must exist
@@ -447,7 +447,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     protected Inventory buildNewInventory(InventoryUpdater inventoryUpdater, VersionInfo versionInfo) {
-        return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(), versionInfo));
+        return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(versionInfo), versionInfo));
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
@@ -519,7 +519,10 @@ public class DefaultOcflRepository implements OcflRepository {
         return responseMapper.mapVersion(inventory, versionId, version);
     }
 
-    protected OffsetDateTime now() {
+    protected OffsetDateTime now(VersionInfo versionInfo) {
+        if (versionInfo != null && versionInfo.getCreated() != null) {
+            return versionInfo.getCreated();
+        }
         return OffsetDateTime.now(clock);
     }
 
