@@ -1,9 +1,12 @@
 # OCFL Java
 
-This project is a work-in-progress Java implementation of the [OCFL draft spec](https://ocfl.io/draft/spec/).
+This project is a work-in-progress Java implementation of the [OCFL spec](https://ocfl.io).
 
 **Disclaimer**: This library is under active development, and the OCFL specification has not been finalized. I will be making
 breaking changes up until a 1.0.0 release. I do not recommend using this library in a production setting until then.
+
+Version 1.0.0 of the OCFL spec has been finalized. However, I am waiting until [storage layout extensions](https://github.com/OCFL/extensions)
+are formally defined before releasing version 1.0.0 of this library.  
 
 [![Build Status](https://travis-ci.com/UW-Madison-Library/ocfl-java.svg?branch=master)](https://travis-ci.com/UW-Madison-Library/ocfl-java)
 
