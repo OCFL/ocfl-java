@@ -53,6 +53,9 @@ public class ObjectVersionId {
      * @param versionId the OCFL version id of the version
      */
     public static ObjectVersionId version(String objectId, String versionId) {
+        if (versionId == null) {
+            return new ObjectVersionId(objectId, null);
+        }
         return new ObjectVersionId(objectId, VersionId.fromString(versionId));
     }
 
