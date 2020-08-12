@@ -67,13 +67,12 @@ public class ObjectVersionId {
     }
 
     private ObjectVersionId(String objectId) {
-        this.objectId = Enforce.notBlank(objectId, "objectId cannot be blank");
-        versionId = null;
+        this(objectId, null);
     }
 
     private ObjectVersionId(String objectId, VersionId versionId) {
         this.objectId = Enforce.notBlank(objectId, "objectId cannot be blank");
-        this.versionId = Enforce.notNull(versionId, "versionId cannot be null");
+        this.versionId = versionId;
     }
 
     /**

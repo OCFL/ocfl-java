@@ -135,7 +135,9 @@ public class ResponseMapper {
     }
 
     private VersionInfo versionInfo(Version version) {
-        var versionInfo = new VersionInfo().setMessage(version.getMessage());
+        var versionInfo = new VersionInfo()
+                .setMessage(version.getMessage())
+                .setCreated(version.getCreated());
 
         if (version.getUser() != null) {
             versionInfo.setUser(version.getUser().getName(), version.getUser().getAddress());
