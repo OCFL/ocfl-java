@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;

@@ -24,7 +24,7 @@
 
 package edu.wisc.library.ocfl.test.matcher;
 
-import edu.wisc.library.ocfl.api.OcflObjectVersion;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import org.hamcrest.Description;
 import org.hamcrest.Matchers;

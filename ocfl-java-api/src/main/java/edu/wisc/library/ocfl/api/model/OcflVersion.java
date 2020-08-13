@@ -22,9 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core;
-
-import edu.wisc.library.ocfl.core.model.InventoryType;
+package edu.wisc.library.ocfl.api.model;
 
 import java.util.Arrays;
 

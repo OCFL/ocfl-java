@@ -22,12 +22,8 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.api;
+package edu.wisc.library.ocfl.api.model;
 
-import edu.wisc.library.ocfl.api.model.VersionInfo;
-import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionDetails;
-import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;

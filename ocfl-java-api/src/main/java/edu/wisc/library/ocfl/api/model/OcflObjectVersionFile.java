@@ -22,8 +22,9 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.api;
+package edu.wisc.library.ocfl.api.model;
 
+import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileDetails;

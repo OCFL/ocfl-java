@@ -29,6 +29,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 
@@ -196,5 +197,12 @@ public interface OcflRepository {
      * of closing the resources.
      */
     void close();
+
+    /**
+     * Returns a copy of the OCFL configuration.
+     *
+     * @return copy of the OCFL configuration
+     */
+    OcflConfig config();
 
 }

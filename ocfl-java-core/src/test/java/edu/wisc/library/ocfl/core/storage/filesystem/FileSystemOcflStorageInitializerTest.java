@@ -2,7 +2,7 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.OcflVersion;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
 import edu.wisc.library.ocfl.core.test.ITestHelper;

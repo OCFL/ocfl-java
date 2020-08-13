@@ -3,7 +3,7 @@ package edu.wisc.library.ocfl.core.inventory;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
-import edu.wisc.library.ocfl.core.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.core.model.*;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;

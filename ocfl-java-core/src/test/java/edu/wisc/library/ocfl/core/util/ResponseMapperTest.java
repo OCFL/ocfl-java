@@ -3,7 +3,7 @@ package edu.wisc.library.ocfl.core.util;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.core.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import org.junit.jupiter.api.BeforeEach;

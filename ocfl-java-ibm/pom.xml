@@ -31,12 +31,12 @@
     <parent>
         <groupId>edu.wisc.library.ocfl</groupId>
         <artifactId>ocfl-java-parent</artifactId>
-        <version>0.0.4-SNAPSHOT</version>
+        <version>0.0.5-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>ocfl-java-ibm</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.5-SNAPSHOT</version>
 
     <name>OCFL Java IBM</name>
     <description>Java OCFL storage implementation that writes to IBM's Cloud Object Storage.</description>
@@ -78,7 +78,7 @@
         <dependency>
             <groupId>edu.wisc.library.ocfl</groupId>
             <artifactId>ocfl-java-core</artifactId>
-            <version>0.0.4-SNAPSHOT</version>
+            <version>0.0.5-SNAPSHOT</version>
         </dependency>
 
         <!-- IBM -->

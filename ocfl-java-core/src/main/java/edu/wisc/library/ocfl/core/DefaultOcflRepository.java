@@ -24,9 +24,8 @@
 
 package edu.wisc.library.ocfl.core;
 
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
-import edu.wisc.library.ocfl.api.OcflObjectVersion;
-import edu.wisc.library.ocfl.api.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
@@ -34,6 +33,8 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
@@ -419,6 +420,14 @@ public class DefaultOcflRepository implements OcflRepository {
         parallelProcess.shutdown();
         copyParallelProcess.shutdown();
         storage.close();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public OcflConfig config() {
+        return new OcflConfig(config);
     }
 
     protected Inventory loadInventory(ObjectVersionId objectId) {

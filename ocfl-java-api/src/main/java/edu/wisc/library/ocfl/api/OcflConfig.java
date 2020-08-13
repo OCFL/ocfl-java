@@ -22,9 +22,10 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core;
+package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.regex.Pattern;
@@ -42,6 +43,12 @@ public class OcflConfig {
         ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
         defaultDigestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
         defaultContentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
+    }
+
+    public OcflConfig(OcflConfig original) {
+        ocflVersion = original.ocflVersion;
+        defaultDigestAlgorithm = original.defaultDigestAlgorithm;
+        defaultContentDirectory = original.defaultContentDirectory;
     }
 
     /**
