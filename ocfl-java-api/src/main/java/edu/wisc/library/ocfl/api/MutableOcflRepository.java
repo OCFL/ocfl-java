@@ -26,8 +26,8 @@ package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 
 import java.util.function.Consumer;
 
@@ -90,8 +90,7 @@ public interface MutableOcflRepository extends OcflRepository {
      * Returns true if the object has staged changes (mutable HEAD).
      *
      * @param objectId the id of the object
-     * @return if the object has staged changes
-     * @throws NotFoundException when no object can be found for the specified objectId
+     * @return if the object has staged changes or does not exist
      */
     boolean hasStagedChanges(String objectId);
 

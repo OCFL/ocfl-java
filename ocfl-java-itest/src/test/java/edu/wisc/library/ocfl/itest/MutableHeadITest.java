@@ -303,4 +303,14 @@ public abstract class MutableHeadITest {
         verifyRepo(repoName);
     }
 
+    @Test
+    public void hasStagedChangesShouldReturnFalseWhenObjectDoesNotExist() {
+        var repoName = "mutable7";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        assertFalse(repo.hasStagedChanges(objectId));
+    }
+
 }

@@ -26,8 +26,8 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
-import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.inventory.MutableHeadInventoryCommitter;
@@ -170,8 +170,13 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
         LOG.debug("Check if object <{}> has staged changes", objectId);
 
-        var inventory = requireInventory(ObjectVersionId.head(objectId));
-        return inventory.hasMutableHead();
+        var inventory = loadInventory(ObjectVersionId.head(objectId));
+
+        if (inventory != null) {
+            return inventory.hasMutableHead();
+        }
+
+        return false;
     }
 
     private Inventory createAndPersistEmptyVersion(ObjectVersionId objectId) {
