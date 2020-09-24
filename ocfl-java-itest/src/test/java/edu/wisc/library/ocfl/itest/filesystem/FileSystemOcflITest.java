@@ -96,7 +96,7 @@ public class FileSystemOcflITest extends OcflITest {
 
     @Override
     protected OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
-        var repoDir = UncheckedFiles.createDirectories(repoDir(name));
+        UncheckedFiles.createDirectories(repoDir(name));
         return existingRepo(name, null, consumer);
     }
 

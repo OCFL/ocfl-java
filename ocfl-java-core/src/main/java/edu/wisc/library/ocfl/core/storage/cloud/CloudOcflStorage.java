@@ -25,16 +25,18 @@
 package edu.wisc.library.ocfl.core.storage.cloud;
 
 import at.favre.lib.bytes.Bytes;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
@@ -375,6 +377,50 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         LOG.debug("Object root path for object <{}>: {}", objectId, objectRootPath);
 
         return objectRootPath;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void exportVersion(ObjectVersionId objectVersionId, Path outputPath) {
+        ensureOpen();
+
+        Enforce.notNull(objectVersionId.getVersionId(), "versionId cannot be null");
+
+        var versionRootPath = FileUtil.pathJoinFailEmpty(objectRootPath(objectVersionId.getObjectId()),
+                objectVersionId.getVersionId().toString()) + "/";
+
+        var objects = cloudClient.list(versionRootPath).getObjects();
+
+        if (objects.isEmpty()) {
+            throw new NotFoundException(String.format("Object %s version %s was not found.",
+                    objectVersionId.getObjectId(), objectVersionId.getVersionId()));
+        }
+
+        LOG.debug("Copying <{}> to <{}>", versionRootPath, outputPath);
+
+        copyObjects(objects, outputPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void exportObject(String objectId, Path outputPath) {
+        ensureOpen();
+
+        var objectRootPath = objectRootPath(objectId) + "/";
+
+        var objects = cloudClient.list(objectRootPath).getObjects();
+
+        if (objects.isEmpty()) {
+            throw new NotFoundException(String.format("Object %s was not found.", objectId));
+        }
+
+        LOG.debug("Copying <{}> to <{}>", objectRootPath, outputPath);
+
+        copyObjects(objects, outputPath);
     }
 
     /**
@@ -739,6 +785,22 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
         var key = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
         return cloudClient.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN).getPath();
+    }
+
+    private void copyObjects(List<ListResult.ObjectListing> objects, Path outputPath) {
+        parallelProcess.collection(objects, object -> {
+            var key = object.getKey().getKey();
+            var relativePath = object.getKeySuffix();
+            var destination = outputPath.resolve(relativePath);
+
+            UncheckedFiles.createDirectories(destination.getParent());
+
+            try (var stream = cloudClient.downloadStream(key)) {
+                Files.copy(stream, destination);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
     }
 
 }

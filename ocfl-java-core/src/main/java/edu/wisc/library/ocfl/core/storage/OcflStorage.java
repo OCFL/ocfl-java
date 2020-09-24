@@ -26,9 +26,11 @@ package edu.wisc.library.ocfl.core.storage;
 
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
+import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -175,6 +177,33 @@ public interface OcflStorage {
      * @return stream of object ids
      */
     Stream<String> listObjectIds();
+
+    /**
+     * Copies a raw OCFL object version to the specified directory. For example, if you export version 2 of an object,
+     * then the entire contents of the object's v2 directory will be exported the output directory. This is primarily
+     * useful for backing up OCFL versions, as an isolated OCFL object version is not usable in and of itself.
+     *
+     * <p>The outputPath MUST NOT exist, but its parent MUST exist.
+     *
+     * <p>Mutable HEAD versions cannot be exported
+     *
+     * @param objectVersionId the id of the object and version to export
+     * @param outputPath the directory to write the exported version to, must NOT exist
+     * @throws NotFoundException when no object can be found for the specified objectVersionId
+     */
+    void exportVersion(ObjectVersionId objectVersionId, Path outputPath);
+
+    /**
+     * Copies a raw OCFL object to the specified directory. The output is a complete copy of everything that's contained
+     * in the object's root directory.
+     *
+     * <p>The outputPath MUST NOT exist, but its parent MUST exist.
+     *
+     * @param objectId the id of the object to export
+     * @param outputPath the directory to write the exported object to, must NOT exist
+     * @throws NotFoundException when no object can be found for the specified objectId
+     */
+    void exportObject(String objectId, Path outputPath);
 
     /**
      * Shutsdown any resources the OclfStorage may have open, such as ExecutorServices. Once closed, additional requests

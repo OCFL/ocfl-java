@@ -11,6 +11,7 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncate
 import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.MutableHeadITest;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -22,9 +23,11 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 
@@ -53,7 +56,7 @@ public class S3MutableHeadITest extends MutableHeadITest {
     }
 
     @Override
-    protected MutableOcflRepository defaultRepo(String name) {
+    protected MutableOcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
         createBucket(name);
         var repo = new OcflRepositoryBuilder()
                 .layoutConfig(new HashedTruncatedNTupleConfig())
@@ -71,6 +74,18 @@ public class S3MutableHeadITest extends MutableHeadITest {
                 .buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53Z");
         return repo;
+    }
+
+    @Override
+    protected MutableOcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer) {
+        createBucket(name);
+        FileUtil.findFiles(path).forEach(file -> {
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(name)
+                    .key(FileUtil.pathToStringStandardSeparator(path.relativize(file)))
+                    .build(), file);
+        });
+        return defaultRepo(name, consumer);
     }
 
     @Override

@@ -219,10 +219,7 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
-        Enforce.notNull(outputPath, "outputPath cannot be null");
-        Enforce.expressionTrue(Files.notExists(outputPath), outputPath, "outputPath must not exist");
-        Enforce.expressionTrue(Files.exists(outputPath.getParent()), outputPath, "outputPath parent must exist");
-        Enforce.expressionTrue(Files.isDirectory(outputPath.getParent()), outputPath, "outputPath parent must be a directory");
+        ensureOutputPath(outputPath);
 
         LOG.debug("Get object <{}> and copy to <{}>", objectVersionId, outputPath);
 
@@ -413,6 +410,44 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
+    public void exportVersion(ObjectVersionId objectVersionId, Path outputPath) {
+        ensureOpen();
+
+        Enforce.notNull(objectVersionId, "objectId cannot be null");
+        ensureOutputPath(outputPath);
+
+        var exportId = objectVersionId;
+
+        if (objectVersionId.isHead()) {
+            var inventory = requireInventory(objectVersionId);
+            var headVersion = inventory.getHead();
+            exportId = ObjectVersionId.version(objectVersionId.getObjectId(), headVersion);
+        }
+
+        LOG.debug("Export <{}> to <{}>", objectVersionId, outputPath);
+
+        storage.exportVersion(exportId, outputPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void exportObject(String objectId, Path outputPath) {
+        ensureOpen();
+
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+        ensureOutputPath(outputPath);
+
+        LOG.debug("Export <{}> to <{}>", objectId, outputPath);
+
+        objectLock.doInWriteLock(objectId, () -> storage.exportObject(objectId, outputPath));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void close() {
         LOG.debug("Close OCFL repository");
 
@@ -539,6 +574,13 @@ public class DefaultOcflRepository implements OcflRepository {
         if (closed) {
             throw new IllegalStateException(DefaultOcflRepository.class.getName() + " is closed.");
         }
+    }
+
+    private void ensureOutputPath(Path outputPath) {
+        Enforce.notNull(outputPath, "outputPath cannot be null");
+        Enforce.expressionTrue(Files.notExists(outputPath), outputPath, "outputPath must not exist");
+        Enforce.expressionTrue(Files.exists(outputPath.getParent()), outputPath, "outputPath parent must exist");
+        Enforce.expressionTrue(Files.isDirectory(outputPath.getParent()), outputPath, "outputPath parent must be a directory");
     }
 
     /**

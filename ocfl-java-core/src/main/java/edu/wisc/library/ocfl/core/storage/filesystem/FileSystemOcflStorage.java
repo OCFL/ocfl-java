@@ -24,15 +24,18 @@
 
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import com.google.common.io.MoreFiles;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
 import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
@@ -444,6 +447,51 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         LOG.debug("Object root path for object <{}>: {}", objectId, objectRootPath);
 
         return objectRootPath;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void exportVersion(ObjectVersionId objectVersionId, Path outputPath) {
+        ensureOpen();
+
+        Enforce.notNull(objectVersionId.getVersionId(), "versionId cannot be null");
+
+        var objectRootPath = objectRootPathFull(objectVersionId.getObjectId());
+
+        if (Files.notExists(objectRootPath)) {
+            throw new NotFoundException(String.format("Object %s was not found.", objectVersionId.getObjectId()));
+        }
+
+        var versionRoot = objectRootPath.resolve(objectVersionId.getVersionId().toString());
+
+        if (Files.notExists(versionRoot)) {
+            throw new NotFoundException(String.format("Object %s version %s was not found.",
+                    objectVersionId.getObjectId(), objectVersionId.getVersionId()));
+        }
+
+        LOG.debug("Copying <{}> to <{}>", versionRoot, outputPath);
+
+        FileUtil.recursiveCopy(versionRoot, outputPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void exportObject(String objectId, Path outputPath) {
+        ensureOpen();
+
+        var objectRootPath = objectRootPathFull(objectId);
+
+        if (Files.notExists(objectRootPath)) {
+            throw new NotFoundException(String.format("Object %s was not found.", objectId));
+        }
+
+        LOG.debug("Copying <{}> to <{}>", objectRootPath, outputPath);
+
+        FileUtil.recursiveCopy(objectRootPath, outputPath);
     }
 
     /**

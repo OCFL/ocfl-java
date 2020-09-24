@@ -1,6 +1,5 @@
 package edu.wisc.library.ocfl.itest;
 
-import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
@@ -9,7 +8,12 @@ import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
-import edu.wisc.library.ocfl.api.model.*;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.FileChangeType;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
+import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
@@ -38,14 +42,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static edu.wisc.library.ocfl.itest.ITestHelper.*;
+import static edu.wisc.library.ocfl.itest.ITestHelper.expectedOutputPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
 import static edu.wisc.library.ocfl.test.TestHelper.copyDir;
 import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
-import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.*;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.fileChange;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.fileDetails;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.objectVersion;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionDetails;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionFile;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionInfo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class OcflITest {
 
@@ -1466,6 +1483,109 @@ public abstract class OcflITest {
         });
 
         assertEquals(created, repo.describeVersion(ObjectVersionId.head("o1")).getCreated());
+    }
+
+    @Test
+    public void exportObjectWhenExistsWithSingleVersion() {
+        var repoName = "repo1";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1");
+
+        repo.exportObject("o1", output);
+
+        ITestHelper.verifyDirectoryContentsSame(
+                repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc"),
+                "o1",
+                output);
+    }
+
+    @Test
+    public void exportObjectWhenExistsWithMultipleVersion() {
+        var repoName = "repo3";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1");
+
+        repo.exportObject("o1", output);
+
+        ITestHelper.verifyDirectoryContentsSame(
+                repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc"),
+                "o1",
+                output);
+    }
+
+    @Test
+    public void failExportObjectWhenDoesNotExist() {
+        var repoName = "repo3";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o2");
+
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object o2", () -> {
+            repo.exportObject("o2", output);
+        });
+    }
+
+    @Test
+    public void exportObjectVersionWhenExists() {
+        var repoName = "repo3";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1v2");
+
+        repo.exportVersion(ObjectVersionId.version("o1", "v2"), output);
+
+        ITestHelper.verifyDirectoryContentsSame(
+                repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc/v2"),
+                "o1v2",
+                output);
+    }
+
+    @Test
+    public void exportObjectVersionWhenHeadRequested() {
+        var repoName = "repo3";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1-head");
+
+        repo.exportVersion(ObjectVersionId.head("o1"), output);
+
+        ITestHelper.verifyDirectoryContentsSame(
+                repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc/v3"),
+                "o1-head",
+                output);
+    }
+
+    @Test
+    public void failExportObjectVersionWhenObjectsExistsButNotVersion() {
+        var repoName = "repo3";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1-head");
+
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object o1 version v4", () -> {
+            repo.exportVersion(ObjectVersionId.version("o1", "v4"), output);
+        });
+    }
+
+    @Test
+    public void failExportObjectVersionWhenObjectsDoesNotExist() {
+        var repoName = "repo3";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1-head");
+
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object o2", () -> {
+            repo.exportVersion(ObjectVersionId.version("o2", "v1"), output);
+        });
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {

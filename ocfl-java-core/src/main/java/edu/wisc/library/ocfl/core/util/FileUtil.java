@@ -152,6 +152,33 @@ public final class FileUtil {
         }
     }
 
+    public static void recursiveCopy(Path src, Path dst, StandardCopyOption... copyOptions) {
+        try {
+            Files.createDirectories(dst);
+            Files.walkFileTree(src, Set.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<>() {
+                private Path dstPath(Path current) {
+                    return dst.resolve(src.relativize(current));
+                }
+
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    if (!dir.equals(src)) {
+                        Files.createDirectories(dstPath(dir));
+                    }
+                    return super.preVisitDirectory(dir, attrs);
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.copy(file, dstPath(file), copyOptions);
+                    return super.visitFile(file, attrs);
+                }
+            });
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public static void copyFileMakeParents(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
             Files.createDirectories(dst.getParent());

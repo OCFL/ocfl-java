@@ -1,10 +1,13 @@
 package edu.wisc.library.ocfl.itest;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
+import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.hamcrest.Matchers;
@@ -18,10 +21,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.function.Consumer;
 
+import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class MutableHeadITest {
 
@@ -30,6 +38,7 @@ public abstract class MutableHeadITest {
     @TempDir
     public Path tempRoot;
 
+    protected Path outputDir;
     protected Path reposDir;
     protected Path workDir;
 
@@ -37,6 +46,7 @@ public abstract class MutableHeadITest {
 
     @BeforeEach
     public void setup() throws IOException {
+        outputDir = Files.createDirectory(tempRoot.resolve("output"));
         reposDir = Files.createDirectory(tempRoot.resolve("repos"));
         workDir = Files.createDirectory(tempRoot.resolve("work"));
 
@@ -51,7 +61,17 @@ public abstract class MutableHeadITest {
         onAfter();
     }
 
-    protected abstract MutableOcflRepository defaultRepo(String name);
+    protected MutableOcflRepository defaultRepo(String name) {
+        return defaultRepo(name, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
+    }
+
+    protected abstract MutableOcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer);
+
+    protected MutableOcflRepository existingRepo(String name, Path path) {
+        return existingRepo(name, path, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
+    }
+
+    protected abstract MutableOcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer);
 
     protected abstract void verifyRepo(String name);
 
@@ -311,6 +331,61 @@ public abstract class MutableHeadITest {
         var objectId = "o1";
 
         assertFalse(repo.hasStagedChanges(objectId));
+    }
+
+    @Test
+    public void failExportObjectVersionWhenVersionIsMutableHead() {
+        var repoName = "mutable5";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1-head");
+
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object o1 version v2", () -> {
+            repo.exportVersion(ObjectVersionId.version("o1", "v2"), output);
+        });
+    }
+
+    @Test
+    public void exportObjectVersionWhenObjectHasMutableHead() {
+        var repoName = "mutable5";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1v1");
+
+        repo.exportVersion(ObjectVersionId.version("o1", "v1"), output);
+
+        ITestHelper.verifyDirectoryContentsSame(
+                repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc/v1"),
+                "o1v1",
+                output);
+    }
+
+    @Test
+    public void exportObjectWhenObjectHasMutableHead() {
+        var repoName = "mutable5";
+        var repoRoot = expectedRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        var output = outputPath(repoName, "o1");
+
+        repo.exportObject("o1", output);
+
+        ITestHelper.verifyDirectoryContentsSame(
+                repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc"),
+                "o1",
+                output);
+    }
+
+    private Path outputPath(String repoName, String path) {
+        try {
+            var output = outputDir.resolve(Paths.get(repoName, path));
+            Files.createDirectories(output.getParent());
+            return output;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
