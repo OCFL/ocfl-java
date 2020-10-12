@@ -86,9 +86,8 @@ public class OcflRepositoryBuilder {
         config = new OcflConfig();
         objectLock = new InMemoryObjectLock(10, TimeUnit.SECONDS);
         inventoryCache = new CaffeineCache<>(Caffeine.newBuilder()
-                .expireAfterWrite(Duration.ofMinutes(10))
                 .expireAfterAccess(Duration.ofMinutes(10))
-                .maximumSize(1_000).build());
+                .maximumSize(512).build());
         inventoryMapper = InventoryMapper.defaultMapper();
         logicalPathMapper = LogicalPathMappers.directMapper();
         contentPathConstraintProcessor = ContentPathConstraints.none();

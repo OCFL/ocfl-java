@@ -24,12 +24,12 @@
 
 package edu.wisc.library.ocfl.core.lock;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -39,9 +39,9 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class InMemoryObjectLock implements ObjectLock {
 
-    private Map<String, ReentrantLock> locks;
-    private long waitTime;
-    private TimeUnit timeUnit;
+    private final Cache<String, ReentrantLock> locks;
+    private final long waitTime;
+    private final TimeUnit timeUnit;
 
     /**
      * How long to wait when attempting to acquire a lock.
@@ -50,7 +50,11 @@ public class InMemoryObjectLock implements ObjectLock {
      * @param timeUnit unit of wait time
      */
     public InMemoryObjectLock(long waitTime, TimeUnit timeUnit) {
-        this.locks = new ConcurrentHashMap<>();
+        this(Caffeine.newBuilder().weakValues().build(), waitTime, timeUnit);
+    }
+
+    InMemoryObjectLock(Cache<String, ReentrantLock> locks, long waitTime, TimeUnit timeUnit) {
+        this.locks = Enforce.notNull(locks, "lock cache cannot be null");
         this.waitTime = Enforce.expressionTrue(waitTime >= 0, waitTime, "waitTime must be at least 0");
         this.timeUnit = Enforce.notNull(timeUnit, "timeUnit cannot be null");
     }
@@ -71,7 +75,7 @@ public class InMemoryObjectLock implements ObjectLock {
      */
     @Override
     public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
-        var lock = locks.computeIfAbsent(objectId, k -> new ReentrantLock());
+        var lock = locks.get(objectId, k -> new ReentrantLock());
         return doInLock(objectId, lock, doInLock);
     }
 
