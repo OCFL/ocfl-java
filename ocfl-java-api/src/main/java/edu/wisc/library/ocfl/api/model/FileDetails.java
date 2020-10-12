@@ -28,6 +28,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Encapsulates a filePath with all of its fixity information.
@@ -98,6 +99,21 @@ public class FileDetails {
                 "storageRelativePath='" + storageRelativePath + '\'' +
                 ", fixity=" + fixity +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FileDetails that = (FileDetails) o;
+        return Objects.equals(path, that.path) &&
+                Objects.equals(storageRelativePath, that.storageRelativePath) &&
+                Objects.equals(fixity, that.fixity);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(path, storageRelativePath, fixity);
     }
 
 }

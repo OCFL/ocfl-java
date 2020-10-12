@@ -29,6 +29,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -123,6 +124,22 @@ public class Version {
                 ", user=" + user +
                 ", state=" + stateBiMap +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Version version = (Version) o;
+        return created.equals(version.created) &&
+                Objects.equals(message, version.message) &&
+                Objects.equals(user, version.user) &&
+                stateBiMap.equals(version.stateBiMap);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(created, message, user, stateBiMap);
     }
 
 }

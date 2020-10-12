@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.api.model;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 /**
  * Descriptive information about an object version.
@@ -110,6 +111,21 @@ public class VersionInfo {
                 ", message='" + message + '\'' +
                 ", created=" + created +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VersionInfo that = (VersionInfo) o;
+        return user.equals(that.user) &&
+                Objects.equals(message, that.message) &&
+                Objects.equals(created, that.created);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(user, message, created);
     }
 
 }

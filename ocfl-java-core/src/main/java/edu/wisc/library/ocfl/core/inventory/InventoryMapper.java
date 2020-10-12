@@ -43,7 +43,7 @@ import java.nio.file.Path;
  */
 public class InventoryMapper {
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     /**
      * Creates an InventoryMapper that will pretty print JSON files. This should be used when you value human readability

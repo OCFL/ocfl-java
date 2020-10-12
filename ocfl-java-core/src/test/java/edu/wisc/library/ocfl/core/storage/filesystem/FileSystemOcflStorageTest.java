@@ -161,7 +161,7 @@ public class FileSystemOcflStorageTest {
     private InventoryBuilder inventoryBuilder() {
         return Inventory.builder()
                 .id("o1")
-                .type(OcflConstants.DEFAULT_OCFL_VERSION.getInventoryType())
+                    .type(OcflConstants.DEFAULT_OCFL_VERSION.getInventoryType())
                 .digestAlgorithm(DigestAlgorithm.sha512)
                 .objectRootPath(FileUtil.pathToStringStandardSeparator(repoDir.resolve("o1")));
     }

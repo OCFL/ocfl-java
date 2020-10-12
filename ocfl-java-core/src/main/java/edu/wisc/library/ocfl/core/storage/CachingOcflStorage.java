@@ -212,11 +212,24 @@ public class CachingOcflStorage extends AbstractOcflStorage {
        delegate.exportVersion(objectVersionId, outputPath);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void exportObject(String objectId, Path outputPath) {
         ensureOpen();
 
         delegate.exportObject(objectId, outputPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void importObject(String objectId, Path objectPath) {
+        ensureOpen();
+
+        delegate.importObject(objectId, objectPath);
     }
 
     /**

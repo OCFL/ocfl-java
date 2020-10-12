@@ -31,17 +31,15 @@ import java.util.Arrays;
  */
 public enum OcflVersion {
 
-    OCFL_1_0("1.0", InventoryType.OCFL_1_0);
+    OCFL_1_0("1.0");
 
     private static final String OCFL_PREFIX = "ocfl_";
     private static final String OBJECT_PREFIX = "ocfl_object_";
 
     private final String versionString;
-    private final InventoryType inventoryType;
 
-    OcflVersion(String versionString, InventoryType inventoryType) {
+    OcflVersion(String versionString) {
         this.versionString = versionString;
-        this.inventoryType = inventoryType;
     }
 
     /**
@@ -62,7 +60,12 @@ public enum OcflVersion {
      * @return the InventoryType as specified in an object's inventory file
      */
     public InventoryType getInventoryType() {
-        return inventoryType;
+        switch (versionString) {
+            case "1.0":
+                return InventoryType.OCFL_1_0;
+            default:
+                throw new IllegalStateException("Unmapped version " + versionString);
+        }
     }
 
     @Override

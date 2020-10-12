@@ -52,7 +52,7 @@ public class RevisionId implements Comparable<RevisionId> {
         }
 
         var numPart = value.substring(1);
-        return new RevisionId(Long.valueOf(numPart));
+        return new RevisionId(Long.parseLong(numPart));
     }
 
     public RevisionId(long revisionNumber) {

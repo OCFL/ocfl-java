@@ -62,6 +62,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -379,7 +380,7 @@ public class OcflS3Client implements CloudClient {
     @Override
     public String downloadString(String srcPath) {
         try (var stream = downloadStream(srcPath)) {
-            return new String(stream.readAllBytes());
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

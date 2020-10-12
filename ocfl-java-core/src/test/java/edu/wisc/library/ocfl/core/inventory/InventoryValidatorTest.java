@@ -5,6 +5,7 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.core.model.*;
+import edu.wisc.library.ocfl.core.validation.InventoryValidator;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,24 +26,24 @@ public class InventoryValidatorTest {
     @Test
     public void failWhenHeadV0() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "HEAD version must be greater than v0", () -> {
-            InventoryValidator.validate(stubBuilder.head(new VersionId(0)).build());
+            InventoryValidator.validateShallow(stubBuilder.head(new VersionId(0)).build());
         });
     }
 
     @Test
     public void failWhenContentDirHasSlashes() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot contain", () -> {
-            InventoryValidator.validate(stubBuilder.contentDirectory("path/dir").build());
+            InventoryValidator.validateShallow(stubBuilder.contentDirectory("path/dir").build());
         });
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot contain", () -> {
-            InventoryValidator.validate(stubBuilder.contentDirectory("path\\dir").build());
+            InventoryValidator.validateShallow(stubBuilder.contentDirectory("path\\dir").build());
         });
     }
 
     @Test
     public void failWhenContentDirBlank() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot be blank", () -> {
-            InventoryValidator.validate(stubBuilder.contentDirectory("").build());
+            InventoryValidator.validateShallow(stubBuilder.contentDirectory("").build());
         });
     }
 
@@ -54,21 +55,21 @@ public class InventoryValidatorTest {
         fixityMap.put(DigestAlgorithm.md5, fixity);
 
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Fixity entry md5 => {md5_123 => contentPath} does not have a corresponding entry in the manifest block.", () -> {
-            InventoryValidator.validate(stubBuilder.fixityBiMap(fixityMap).build());
+            InventoryValidator.validateDeep(stubBuilder.fixityBiMap(fixityMap).build());
         });
     }
 
     @Test
     public void failWhenVersionsEmpty() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Versions cannot be empty", () -> {
-            InventoryValidator.validate(stubBuilder.build());
+            InventoryValidator.validateShallow(stubBuilder.build());
         });
     }
 
     @Test
     public void failWhenUserNameBlank() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "User name in version v1 cannot be blank", () -> {
-            InventoryValidator.validate(stubBuilder
+            InventoryValidator.validateShallow(stubBuilder
                     .head(new VersionId(0))
                     .addHeadVersion(Version.builder()
                             .created(OffsetDateTime.now())
@@ -80,7 +81,7 @@ public class InventoryValidatorTest {
     @Test
     public void failWhenMissingVersion() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Version v1 is missing", () -> {
-            InventoryValidator.validate(stubBuilder
+            InventoryValidator.validateShallow(stubBuilder
                     .head(new VersionId(1))
                     .addHeadVersion(Version.builder()
                             .created(OffsetDateTime.now())
@@ -91,7 +92,7 @@ public class InventoryValidatorTest {
     @Test
     public void failWhenFileNotReferencedInManifest() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Version state entry 1 => [file1] in version v1 does not have a corresponding entry in the manifest block.", () -> {
-            InventoryValidator.validate(stubBuilder
+            InventoryValidator.validateShallow(stubBuilder
                     .head(new VersionId(0))
                     .addHeadVersion(Version.builder()
                             .created(OffsetDateTime.now())
@@ -103,7 +104,7 @@ public class InventoryValidatorTest {
     @Test
     public void failWhenHeadVersionNotLatestVersion() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "HEAD must be the latest version. Expected: v2; Was: v1", () -> {
-            InventoryValidator.validate(stubBuilder
+            InventoryValidator.validateShallow(stubBuilder
                     .head(new VersionId(0))
                     .addHeadVersion(Version.builder()
                             .created(OffsetDateTime.now())

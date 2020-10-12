@@ -25,14 +25,19 @@
 package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflConstants;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Collectors;
 
 /**
  * Centralizes common OCFL path locations
@@ -83,6 +88,66 @@ public final class ObjectPaths {
      */
     public static String inventorySidecarPath(String directory, Inventory inventory) {
         return FileUtil.pathJoinFailEmpty(directory, OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName());
+    }
+
+    /**
+     * Path to an inventory sidecar file within the given directory
+     *
+     * @param directory parent directory of an inventory file
+     * @return path to inventory sidecar
+     */
+    public static Path findInventorySidecarPath(Path directory) {
+        return findSidecarPathInternal(directory, OcflConstants.INVENTORY_FILE + ".");
+    }
+
+    /**
+     * Path to the saved sidecar file within the mutable head extension
+     *
+     * @param directory parent directory of an inventory file
+     * @return path to the saved root inventory sidecar
+     */
+    public static Path findMutableHeadRootInventorySidecarPath(Path directory) {
+        return findSidecarPathInternal(directory, "root-" + OcflConstants.INVENTORY_FILE + ".");
+    }
+
+    /**
+     * Path to the logs directory within an object
+     *
+     * @param objectRoot object root directory
+     * @return path to logs
+     */
+    public static Path logsPath(Path objectRoot) {
+        return objectRoot.resolve(OcflConstants.LOGS_DIR);
+    }
+
+    /**
+     * Path to the logs directory within an object
+     *
+     * @param objectRoot object root directory
+     * @return path to logs
+     */
+    public static String logsPath(String objectRoot) {
+        return FileUtil.pathJoinFailEmpty(objectRoot, OcflConstants.LOGS_DIR);
+    }
+
+    /**
+     * Path to the extensions directory within an object
+     *
+     * @param objectRoot object root directory
+     * @return path to extensions
+     */
+    public static Path extensionsPath(Path objectRoot) {
+        return objectRoot.resolve(OcflConstants.EXTENSIONS_DIR);
+    }
+
+    /**
+     * Path to the extensions directory within an object
+     *
+     * @param objectRoot object root directory
+     * @return path to extensions
+     */
+    public static String extensionsPath(String objectRoot) {
+        return FileUtil.pathJoinFailEmpty(objectRoot, OcflConstants.EXTENSIONS_DIR);
     }
 
     /**
@@ -214,6 +279,23 @@ public final class ObjectPaths {
         return new VersionRoot(inventory, location);
     }
 
+    private static Path findSidecarPathInternal(Path directory, String prefix) {
+        try (var files = Files.list(directory)) {
+            var sidecars = files
+                    .filter(file -> file.getFileName().toString().startsWith(prefix))
+                    .collect(Collectors.toList());
+
+            if (sidecars.size() != 1) {
+                throw new CorruptObjectException(String.format("Expected there to be one inventory sidecar file in %s, but found %s.",
+                        directory, sidecars.size()));
+            }
+
+            return sidecars.get(0);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public interface HasInventory {
         Path inventoryFile();
         Path inventorySidecar();
@@ -224,8 +306,8 @@ public final class ObjectPaths {
      */
     public static class ObjectRoot implements HasInventory {
 
-        private Inventory inventory;
-        private Path path;
+        private final Inventory inventory;
+        private final Path path;
 
         private Path inventoryFile;
         private Path inventorySidecar;
@@ -330,8 +412,8 @@ public final class ObjectPaths {
      */
     public static class VersionRoot implements HasInventory {
 
-        private Inventory inventory;
-        private Path path;
+        private final Inventory inventory;
+        private final Path path;
 
         private Path inventoryFile;
         private Path inventorySidecar;
@@ -389,8 +471,8 @@ public final class ObjectPaths {
      */
     public static class ContentRoot {
 
-        private Inventory inventory;
-        private Path path;
+        private final Inventory inventory;
+        private final Path path;
 
         private ContentRoot(Inventory inventory, Path path) {
             this.inventory = inventory;

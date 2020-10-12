@@ -22,20 +22,24 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.inventory;
+package edu.wisc.library.ocfl.core.validation;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.User;
 import edu.wisc.library.ocfl.core.model.Version;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Validates that an {@link Inventory} meets the minimum requirements to be serialized as valid OCFL inventory.
@@ -51,12 +55,13 @@ public final class InventoryValidator {
 
     /**
      * Validates that an {@link Inventory} meets the minimum requirements to be serialized as valid OCFL inventory.
+     * Only the HEAD version is validated.
      *
      * @param inventory the inventory to validate
      * @return the same inventory
      * @throws InvalidInventoryException when validation fails
      */
-    public static Inventory validate(Inventory inventory) {
+    public static Inventory validateShallow(Inventory inventory) {
         Enforce.notNull(inventory, "inventory cannot be null");
 
         notBlank(inventory.getId(), "Object ID cannot be blank");
@@ -66,17 +71,92 @@ public final class InventoryValidator {
         validateDigestAlgorithm(inventory.getDigestAlgorithm());
         validateContentDirectory(inventory.getContentDirectory());
 
-        validateFixity(inventory);
         notNull(inventory.getManifest(), "Manifest cannot be null");
-        validateVersions(inventory);
+        validateVersions(inventory, false);
 
         return inventory;
+    }
+
+    /**
+     * Validates the entire {@link Inventory}. This is VERY SLOW.
+     *
+     * @param inventory the inventory to validate
+     * @return the same inventory
+     * @throws InvalidInventoryException when validation fails
+     */
+    public static Inventory validateDeep(Inventory inventory) {
+        Enforce.notNull(inventory, "inventory cannot be null");
+
+        notBlank(inventory.getId(), "Object ID cannot be blank");
+        notNull(inventory.getType(), "Type cannot be null");
+        notNull(inventory.getHead(), "HEAD cannot be null");
+        isTrue(!inventory.getHead().equals(VERSION_ZERO), "HEAD version must be greater than v0");
+        validateDigestAlgorithm(inventory.getDigestAlgorithm());
+        validateContentDirectory(inventory.getContentDirectory());
+        validateVersionNumbers(inventory);
+
+        validateFixity(inventory);
+        notNull(inventory.getManifest(), "Manifest cannot be null");
+        validateVersions(inventory, true);
+        validateManifest(inventory);
+
+        return inventory;
+    }
+
+    /**
+     * Validates that the two inventories contain the same version states, excluding the version in the current
+     * that is not in the previous.
+     *
+     * @param currentInventory current inventory
+     * @param previousInventory inventory immediately prior to the current inventory
+     */
+    public static void validateVersionStates(Inventory currentInventory, Inventory previousInventory) {
+        var current = previousInventory.getHead();
+        var currentVersions = currentInventory.getVersions().keySet().stream()
+                .collect(Collectors.toMap(Function.identity(), Function.identity()));
+        var previousVersions = previousInventory.getVersions().keySet().stream()
+                .collect(Collectors.toMap(Function.identity(), Function.identity()));
+
+        while (!VersionId.V1.equals(current)) {
+            validateVersionNumber(currentInventory.getId(), currentVersions.get(current), previousVersions.get(current));
+            var currentState = currentInventory.getVersion(current).getState();
+            var previousState = previousInventory.getVersion(current).getState();
+            if (!Objects.equals(currentState, previousState)) {
+                throw new InvalidInventoryException(String.format("In object %s versions %s and %s define a different state for version %s.",
+                        currentInventory.getId(), currentInventory.getHead(), previousInventory.getHead(), current));
+            }
+            current = current.previousVersionId();
+        }
+    }
+
+    /**
+     * Validates that the currentInventory is a valid next inventory state from the previousInventory. The must have
+     * the same id, type, digestAlgorithm, and contentDirectory values. Additionally, the currentInventory must be
+     * one version later than the previous, and all of the versions they have in common must be identical.
+     *
+     * @param currentInventory current inventory
+     * @param previousInventory inventory immediately prior to the current inventory
+     */
+    public static void validateCompatibleInventories(Inventory currentInventory, Inventory previousInventory) {
+        areEqual(currentInventory.getId(), previousInventory.getId(),
+                String.format("Object IDs are not the same. Existing: %s; New: %s",
+                        previousInventory.getId(), currentInventory.getId()));
+        areEqual(currentInventory.getType(), previousInventory.getType(),
+                String.format("Inventory types are not the same. Existing: %s; New: %s",
+                        previousInventory.getType().getId(), currentInventory.getType().getId()));
+        areEqual(currentInventory.getDigestAlgorithm(), previousInventory.getDigestAlgorithm(),
+                String.format("Inventory digest algorithms are not the same. Existing: %s; New: %s",
+                        previousInventory.getDigestAlgorithm().getOcflName(), currentInventory.getDigestAlgorithm().getOcflName()));
+        areEqual(currentInventory.getContentDirectory(), previousInventory.getContentDirectory(),
+                String.format("Inventory content directories are not the same. Existing: %s; New: %s",
+                        previousInventory.getContentDirectory(), currentInventory.getContentDirectory()));
+        validateVersionNumber(currentInventory.getId(), currentInventory.getHead(), previousInventory.nextVersionId());
+        validateVersionStates(currentInventory, previousInventory);
     }
 
     private static void validateFixity(Inventory inventory) {
         var fixityMap = inventory.getFixity();
 
-        // TODO this may be very slow as well...
         if (fixityMap != null) {
             fixityMap.forEach((algorithm, map) -> {
                 map.forEach((digest, contentPaths) -> {
@@ -91,7 +171,7 @@ public final class InventoryValidator {
         }
     }
 
-    private static void validateVersions(Inventory inventory) {
+    private static void validateVersions(Inventory inventory, boolean allVersions) {
         var versionMap = inventory.getVersions();
         notEmpty(versionMap, "Versions cannot be empty");
 
@@ -104,9 +184,13 @@ public final class InventoryValidator {
         isTrue(inventory.getHead().equals(expectedHead), String.format("HEAD must be the latest version. Expected: %s; Was: %s",
                 expectedHead, inventory.getHead()));
 
-        // TODO only doing a complete validation on the most recent version because validating all of the versions
-        //      can be very slow when there are a lot of files and versions
-        validateVersion(inventory, versionMap.get(expectedHead), expectedHead);
+        if (!allVersions) {
+            validateVersion(inventory, versionMap.get(expectedHead), expectedHead);
+        } else {
+            versionMap.forEach((versionId, version) -> {
+                validateVersion(inventory, version, versionId);
+            });
+        }
     }
 
     private static void validateVersion(Inventory inventory, Version version, VersionId versionId) {
@@ -122,6 +206,19 @@ public final class InventoryValidator {
             notNull(inventory.getContentPath(digest),
                     String.format("Version state entry %s => %s in version %s does not have a corresponding entry in the manifest block.",
                             digest, logicalPaths, versionId));
+        });
+    }
+
+    private static void validateManifest(Inventory inventory) {
+        var stateFileIds = inventory.getVersions().values().stream()
+                .flatMap(v -> v.getState().keySet().stream())
+                .collect(Collectors.toSet());
+
+        inventory.getManifest().keySet().forEach(fileId -> {
+            if (!stateFileIds.contains(fileId)) {
+                throw new CorruptObjectException(String.format("Object %s's manifest contains an entry for %s, but it is not referenced in any version's state.",
+                        inventory.getId(), fileId));
+            }
         });
     }
 
@@ -143,6 +240,24 @@ public final class InventoryValidator {
     private static void validateUser(User user, VersionId versionId) {
         if (user != null) {
             notBlank(user.getName(), String.format("User name in version %s cannot be blank", versionId));
+        }
+    }
+
+    private static void validateVersionNumbers(Inventory inventory) {
+        var expectedPadding = inventory.getHead().getZeroPaddingWidth();
+
+        inventory.getVersions().keySet().forEach(versionNumber -> {
+            if (versionNumber.getZeroPaddingWidth() != expectedPadding) {
+                throw new InvalidInventoryException(String.format("%s is not zero-padded correctly. Expected: %s; Actual: %s",
+                        versionNumber, expectedPadding, versionNumber.getZeroPaddingWidth()));
+            }
+        });
+    }
+
+    private static void validateVersionNumber(String objectId, VersionId currentVersion, VersionId previousVersion) {
+        if (!Objects.equals(currentVersion.toString(), previousVersion.toString())) {
+            throw new InvalidInventoryException(String.format("Object %s's version number formatting differs. Existing: %s; New: %s",
+                    objectId, previousVersion, currentVersion));
         }
     }
 
@@ -172,6 +287,12 @@ public final class InventoryValidator {
 
     private static void isTrue(boolean test, String message) {
         if (!test) {
+            throw new InvalidInventoryException(message);
+        }
+    }
+
+    private static <T> void areEqual(T left, T right, String message) {
+        if (!Objects.equals(left, right)) {
             throw new InvalidInventoryException(message);
         }
     }

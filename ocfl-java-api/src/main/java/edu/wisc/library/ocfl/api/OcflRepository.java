@@ -217,6 +217,30 @@ public interface OcflRepository {
     void exportObject(String objectId, Path outputPath);
 
     /**
+     * Imports the OCFL object version at the specified path into the repository. In order to successfully import the
+     * version the following conditions must be met:
+     * <ul>
+     *     <li>The import version must be valid</li>
+     *     <li>The import version must be the next sequential version of the current version of the object in the repository</li>
+     *     <li>The version history of in the import version must be identical to the existing version history</li>
+     *     <li>Inventory level properties such as digest algorithm and type cannot change</li>
+     * </ul>
+     *
+     * @param versionPath path to the OCFL object version to import on disk
+     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     */
+    void importVersion(Path versionPath, OcflOption... ocflOptions);
+
+    /**
+     * Imports an entire OCFL object into the repository. The object cannot already exist in the repository, and the
+     * object must be valid. The object is validated extensively as part of the import process.
+     *
+     * @param objectPath path to the OCFL object to import on disk
+     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     */
+    void importObject(Path objectPath, OcflOption... ocflOptions);
+
+    /**
      * Closes any resources the OcflRepository may have open, such as ExecutorServices. Once closed, additional requests
      * will be rejected. Calling this method is optional, and it is more efficient to just let the shutdown hooks take care
      * of closing the resources.

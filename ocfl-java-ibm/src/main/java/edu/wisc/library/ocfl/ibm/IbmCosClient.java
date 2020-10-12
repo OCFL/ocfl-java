@@ -48,6 +48,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -267,7 +268,7 @@ public class IbmCosClient implements CloudClient {
      */
     public String downloadString(String srcPath) {
         try (var stream = downloadStream(srcPath)) {
-            return new String(stream.readAllBytes());
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

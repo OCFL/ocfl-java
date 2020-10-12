@@ -206,6 +206,14 @@ public interface OcflStorage {
     void exportObject(String objectId, Path outputPath);
 
     /**
+     * Moves an entire OCFL object into the repository. This object cannot already exist.
+     *
+     * @param objectId the id of the object to import
+     * @param objectPath the directory that contains the object to import
+     */
+    void importObject(String objectId, Path objectPath);
+
+    /**
      * Shutsdown any resources the OclfStorage may have open, such as ExecutorServices. Once closed, additional requests
      * will be rejected. Calling this method is optional, and it is more efficient to just let the shutdown hooks take care
      * of closing the resources.

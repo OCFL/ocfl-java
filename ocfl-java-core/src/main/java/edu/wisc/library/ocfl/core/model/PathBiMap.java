@@ -26,7 +26,14 @@ package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * BiDirection map implementation that focuses on OCFL structures. FileIds are digest values and are case insensitive.
@@ -34,8 +41,8 @@ import java.util.*;
  */
 public class PathBiMap {
 
-    private Map<String, Set<String>> fileIdToPaths;
-    private Map<String, String> pathToFileId;
+    private final Map<String, Set<String>> fileIdToPaths;
+    private final Map<String, String> pathToFileId;
 
     /**
      * Constructs a new PathBiMap from an existing map of fileIds to paths.
@@ -175,6 +182,19 @@ public class PathBiMap {
         return "PathBiMap{" +
                 "fileIdToPaths=" + fileIdToPaths +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PathBiMap pathBiMap = (PathBiMap) o;
+        return pathToFileId.equals(pathBiMap.pathToFileId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(pathToFileId);
     }
 
 }

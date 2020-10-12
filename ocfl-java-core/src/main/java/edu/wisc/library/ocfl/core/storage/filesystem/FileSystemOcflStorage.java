@@ -24,7 +24,6 @@
 
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
-import com.google.common.io.MoreFiles;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
@@ -82,7 +81,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     private final PathConstraintProcessor logicalPathConstraints;
 
     private final Path repositoryRoot;
-    private final SidecarMapper sidecarMapper;
     private final FileSystemOcflStorageInitializer initializer;
     private final ParallelProcess parallelProcess;
 
@@ -128,7 +126,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
-        this.sidecarMapper = new SidecarMapper();
         this.ioRetry = new RetryPolicy<Void>()
                 .handle(UncheckedIOException.class, IOException.class)
                 .withBackoff(50, 200, ChronoUnit.MILLIS, 1.5)
@@ -498,6 +495,34 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void importObject(String objectId, Path objectPath) {
+        ensureOpen();
+
+        var objectRootPath = objectRootPathFull(objectId);
+
+        LOG.debug("Importing <{}> to <{}>", objectId, objectRootPath);
+
+        UncheckedFiles.createDirectories(objectRootPath.getParent());
+
+        try {
+            FileUtil.moveDirectory(objectPath, objectRootPath);
+        } catch (FileAlreadyExistsException e) {
+            throw new ObjectOutOfSyncException(String.format("Cannot import object %s because the object already exists.",
+                    objectId));
+        } catch (RuntimeException e) {
+            try {
+                purgeObject(objectId);
+            } catch (RuntimeException e1) {
+                LOG.error("Failed to rollback object {} import", objectId, e1);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     protected void doInitialize(OcflExtensionConfig layoutConfig) {
         this.storageLayoutExtension = this.initializer.initializeStorage(repositoryRoot, ocflVersion, layoutConfig);
     }
@@ -545,9 +570,9 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private FixityCheckInputStream inventoryVerifyingInputStream(Path inventoryPath) throws IOException {
-        var sidecarPath = findInventorySidecar(inventoryPath.getParent());
-        var expectedDigest = sidecarMapper.readSidecar(sidecarPath);
-        var algorithm = sidecarMapper.getDigestAlgorithmFromSidecar(FileUtil.pathToStringStandardSeparator(sidecarPath));
+        var sidecarPath = ObjectPaths.findInventorySidecarPath(inventoryPath.getParent());
+        var expectedDigest = SidecarMapper.readSidecar(sidecarPath);
+        var algorithm = SidecarMapper.getDigestAlgorithmFromSidecar(FileUtil.pathToStringStandardSeparator(sidecarPath));
 
         return new FixityCheckInputStream(Files.newInputStream(inventoryPath), algorithm, expectedDigest);
     }
@@ -564,27 +589,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 return null;
             }
             return result.get();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private Path findInventorySidecar(Path objectRootPath) {
-        return findGenericInventorySidecar(objectRootPath, OcflConstants.INVENTORY_FILE + ".");
-    }
-
-    private Path findGenericInventorySidecar(Path path, String prefix) {
-        try (var files = Files.list(path)) {
-            var sidecars = files
-                    .filter(file -> file.getFileName().toString().startsWith(prefix))
-                    .collect(Collectors.toList());
-
-            if (sidecars.size() != 1) {
-                throw new CorruptObjectException(String.format("Expected there to be one inventory sidecar file in %s, but found %s.",
-                        path, sidecars.size()));
-            }
-
-            return sidecars.get(0);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -613,7 +617,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             }
         } catch (RuntimeException e) {
             if (isFirstVersion && Files.notExists(objectRoot.inventoryFile())) {
-                FileUtil.safeDeleteDirectory(objectRoot.path());
+                try {
+                    purgeObject(inventory.getId());
+                } catch (RuntimeException e1) {
+                    LOG.error("Failed to rollback object {} creation", inventory.getId(), e1);
+                }
             }
             throw e;
         }
@@ -822,8 +830,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     private void ensureRootObjectHasNotChanged(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
         var savedSidecarPath = ObjectPaths.inventorySidecarPath(objectRoot.mutableHeadExtensionPath(), inventory);
         if (Files.exists(savedSidecarPath)) {
-            var expectedDigest = sidecarMapper.readSidecar(savedSidecarPath);
-            var actualDigest = sidecarMapper.readSidecar(objectRoot.inventorySidecar());
+            var expectedDigest = SidecarMapper.readSidecar(savedSidecarPath);
+            var actualDigest = SidecarMapper.readSidecar(objectRoot.inventorySidecar());
 
             if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                 throw new ObjectOutOfSyncException(
@@ -833,11 +841,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private void ensureRootObjectHasNotChanged(String objectId, Path objectRootPath) {
-        var savedSidecarPath = findGenericInventorySidecar(objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH), "root-" + OcflConstants.INVENTORY_FILE + ".");
+        var savedSidecarPath = ObjectPaths.findMutableHeadRootInventorySidecarPath(objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH));
         if (Files.exists(savedSidecarPath)) {
-            var rootSidecarPath = findInventorySidecar(objectRootPath);
-            var expectedDigest = sidecarMapper.readSidecar(savedSidecarPath);
-            var actualDigest = sidecarMapper.readSidecar(rootSidecarPath);
+            var rootSidecarPath = ObjectPaths.findInventorySidecarPath(objectRootPath);
+            var expectedDigest = SidecarMapper.readSidecar(savedSidecarPath);
+            var actualDigest = SidecarMapper.readSidecar(rootSidecarPath);
 
             if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                 throw new ObjectOutOfSyncException(

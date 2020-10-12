@@ -25,6 +25,7 @@
 package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum InventoryType {
@@ -33,13 +34,23 @@ public enum InventoryType {
 
     private final String id;
 
-    private InventoryType(String id) {
+    InventoryType(String id) {
         this.id = id;
     }
 
     @JsonValue
     public String getId() {
         return id;
+    }
+
+    @JsonIgnore
+    public OcflVersion getOcflVersion() {
+        switch (id) {
+            case "https://ocfl.io/1.0/spec/#inventory":
+                return OcflVersion.OCFL_1_0;
+            default:
+                throw new IllegalStateException("Unmapped inventory type " + id);
+        }
     }
 
     @JsonCreator

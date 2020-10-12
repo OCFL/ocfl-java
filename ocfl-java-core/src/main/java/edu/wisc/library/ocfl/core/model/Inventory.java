@@ -30,16 +30,23 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import edu.wisc.library.ocfl.api.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.api.OcflConfig;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * OCFL inventory object. It is intended to be used to encode and decode inventories. Inventories are immutable. Creating
@@ -160,7 +167,7 @@ public class Inventory {
 
         this.mutableHead = mutableHead;
         this.revisionId = revisionId;
-        this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be null");
+        this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
     }
 
     /**
@@ -470,6 +477,29 @@ public class Inventory {
                 ", revisionId=" + revisionId +
                 ", objectRootPath=" + objectRootPath +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Inventory inventory = (Inventory) o;
+        return mutableHead == inventory.mutableHead &&
+                id.equals(inventory.id) &&
+                type == inventory.type &&
+                digestAlgorithm.equals(inventory.digestAlgorithm) &&
+                head.equals(inventory.head) &&
+                Objects.equals(contentDirectory, inventory.contentDirectory) &&
+                fixityBiMap.equals(inventory.fixityBiMap) &&
+                manifestBiMap.equals(inventory.manifestBiMap) &&
+                versions.equals(inventory.versions) &&
+                Objects.equals(revisionId, inventory.revisionId) &&
+                objectRootPath.equals(inventory.objectRootPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, type, digestAlgorithm, head, contentDirectory, fixityBiMap, manifestBiMap, versions, revisionId, mutableHead, objectRootPath);
     }
 
     /**

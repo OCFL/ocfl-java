@@ -65,7 +65,7 @@ public class VersionId implements Comparable<VersionId> {
             padding = numPart.length();
         }
 
-        return new VersionId(Long.valueOf(numPart), padding);
+        return new VersionId(Long.parseLong(numPart), padding);
     }
 
     /**
@@ -119,6 +119,10 @@ public class VersionId implements Comparable<VersionId> {
             throw new IllegalStateException("Cannot decrement version number. Current version " + toString() + " is the lowest possible.");
         }
         return new VersionId(versionNumber - 1, zeroPaddingWidth);
+    }
+
+    public int getZeroPaddingWidth() {
+        return zeroPaddingWidth;
     }
 
     @Override

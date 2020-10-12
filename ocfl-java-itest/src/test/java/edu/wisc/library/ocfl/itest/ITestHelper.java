@@ -14,7 +14,10 @@ import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 import edu.wisc.library.ocfl.test.TestHelper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -129,6 +132,10 @@ public final class ITestHelper {
 
     public static PrettyPrinter prettyPrinter() {
         return new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("  ", "\n"));
+    }
+
+    public static InputStream streamString(String value) {
+        return new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
     }
 
 }

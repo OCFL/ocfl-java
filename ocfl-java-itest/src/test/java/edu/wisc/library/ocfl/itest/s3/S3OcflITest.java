@@ -22,6 +22,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,20 +38,19 @@ public class S3OcflITest extends OcflITest {
     private final S3Client s3Client = S3_MOCK.createS3ClientV2();
 
     private S3ITestHelper s3Helper;
-    private ComboPooledDataSource dataSource;
+    private List<DataSource> dataSources;
     private Set<String> createdBuckets = new HashSet<>();
 
     @Override
     protected void onBefore() {
         s3Helper = new S3ITestHelper(s3Client);
-        dataSource = new ComboPooledDataSource();
-        dataSource.setJdbcUrl("jdbc:h2:mem:test");
+        dataSources = new ArrayList<>();
     }
 
     @Override
     protected void onAfter() {
-        truncateObjectDetails(dataSource);
         deleteBuckets();
+        dataSources.forEach(this::truncateObjectDetails);
     }
 
     public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() {
@@ -60,6 +60,7 @@ public class S3OcflITest extends OcflITest {
     @Override
     protected OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
         createBucket(name);
+        var dataSource = createDataSource(name);
 
         var builder = new OcflRepositoryBuilder()
                 .layoutConfig(new HashedTruncatedNTupleConfig())
@@ -127,6 +128,13 @@ public class S3OcflITest extends OcflITest {
         createdBuckets.forEach(bucket -> {
             s3Helper.deleteBucket(bucket);
         });
+    }
+
+    private DataSource createDataSource(String repoName) {
+        var dataSource = new ComboPooledDataSource();
+        dataSource.setJdbcUrl("jdbc:h2:mem:" + repoName);
+        dataSources.add(dataSource);
+        return dataSource;
     }
 
 }

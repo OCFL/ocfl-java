@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.api.model;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Details the current state of an object and all of its versions.
@@ -120,6 +121,22 @@ public class ObjectDetails {
                 ", digestAlgorithm='" + digestAlgorithm + '\'' +
                 ", versions=" + versions +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ObjectDetails that = (ObjectDetails) o;
+        return Objects.equals(id, that.id) &&
+                Objects.equals(headVersionId, that.headVersionId) &&
+                Objects.equals(digestAlgorithm, that.digestAlgorithm) &&
+                Objects.equals(versions, that.versions);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, headVersionId, digestAlgorithm, versions);
     }
 
 }

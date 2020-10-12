@@ -49,16 +49,16 @@ import java.util.Set;
  */
 public class InventoryUpdater {
 
-    private Inventory inventory;
+    private final Inventory inventory;
 
-    private String objectId;
-    private boolean mutableHead;
+    private final String objectId;
+    private final boolean mutableHead;
 
-    private InventoryBuilder inventoryBuilder;
-    private VersionBuilder versionBuilder;
+    private final InventoryBuilder inventoryBuilder;
+    private final VersionBuilder versionBuilder;
 
-    private ContentPathMapper contentPathMapper;
-    private PathConstraintProcessor logicalPathConstraints;
+    private final ContentPathMapper contentPathMapper;
+    private final PathConstraintProcessor logicalPathConstraints;
 
     public static Builder builder() {
         return new Builder();
@@ -414,9 +414,9 @@ public class InventoryUpdater {
      */
     public static class AddFileResult {
 
-        private boolean isNew;
-        private String contentPath;
-        private String pathUnderContentDir;
+        private final boolean isNew;
+        private final String contentPath;
+        private final String pathUnderContentDir;
 
         private AddFileResult(String contentPath, String pathUnderContentDir) {
             this.isNew = contentPath != null;
@@ -456,8 +456,8 @@ public class InventoryUpdater {
      */
     public static class RemoveFileResult {
 
-        private String contentPath;
-        private String pathUnderContentDir;
+        private final String contentPath;
+        private final String pathUnderContentDir;
 
         private RemoveFileResult(String contentPath, String pathUnderContentDir) {
             this.contentPath = contentPath;

@@ -54,12 +54,10 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
 
     private final ObjectDetailsDatabase objectDetailsDb;
     private final OcflStorage delegate;
-    private final SidecarMapper sidecarMapper;
 
     public ObjectDetailsDbOcflStorage(ObjectDetailsDatabase objectDetailsDb, OcflStorage delegate) {
         this.objectDetailsDb = Enforce.notNull(objectDetailsDb, "objectDetailsDb cannot be null");
         this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
-        this.sidecarMapper = new SidecarMapper();
     }
 
     /**
@@ -241,6 +239,16 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void importObject(String objectId, Path objectPath) {
+       ensureOpen();
+
+       delegate.importObject(objectId, objectPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void close() {
         delegate.close();
     }
@@ -248,7 +256,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     private void updateDetails(Inventory inventory, Path stagingDir, Runnable runnable) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
         var sidecarPath = ObjectPaths.inventorySidecarPath(stagingDir, inventory);
-        var digest = sidecarMapper.readSidecar(sidecarPath);
+        var digest = SidecarMapper.readSidecar(sidecarPath);
         try {
             objectDetailsDb.updateObjectDetails(inventory, digest, inventoryPath, runnable);
         } catch (ObjectOutOfSyncException e) {

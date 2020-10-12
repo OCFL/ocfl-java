@@ -30,6 +30,7 @@ import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
+import edu.wisc.library.ocfl.core.validation.InventoryValidator;
 
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
@@ -83,7 +84,7 @@ public final class MutableHeadInventoryCommitter {
             }
         });
 
-        return InventoryValidator.validate(inventoryBuilder
+        return InventoryValidator.validateShallow(inventoryBuilder
                 .putVersion(original.getHead(), versionBuilder.build())
                 .build());
     }

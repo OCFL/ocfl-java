@@ -28,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Details about a specific version of an object
@@ -161,6 +162,23 @@ public class VersionDetails {
                 ", mutable=" + mutable +
                 ", fileMap=" + fileMap +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VersionDetails that = (VersionDetails) o;
+        return mutable == that.mutable &&
+                Objects.equals(objectVersionId, that.objectVersionId) &&
+                Objects.equals(created, that.created) &&
+                Objects.equals(versionInfo, that.versionInfo) &&
+                Objects.equals(fileMap, that.fileMap);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(objectVersionId, created, versionInfo, mutable, fileMap);
     }
 
 }

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -46,6 +47,7 @@ import static edu.wisc.library.ocfl.itest.ITestHelper.expectedOutputPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
 import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
 import static edu.wisc.library.ocfl.test.TestHelper.copyDir;
 import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
@@ -1586,6 +1588,250 @@ public abstract class OcflITest {
         OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object o2", () -> {
             repo.exportVersion(ObjectVersionId.version("o2", "v1"), output);
         });
+    }
+
+    @Test
+    public void failObjectImportWhenRepoAlreadyContainsObject() {
+        var repoName1 = "repo1";
+        var repoRoot1 = expectedRepoPath(repoName1);
+        var repo1 = existingRepo(repoName1, repoRoot1);
+
+        var output = outputPath(repoName1, "o1");
+
+        repo1.exportObject("o1", output);
+
+        var repoName2 = "repo3";
+        var repoRoot2 = expectedRepoPath(repoName2);
+        var repo2 = existingRepo(repoName2, repoRoot2);
+
+        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "object already exists", () -> {
+            repo2.importObject(output);
+        });
+    }
+
+    @Test
+    public void importObjectWhenDoesNotAlreadyExist() {
+        var objectId = "o1";
+        var repoName1 = "repo1";
+        var repoRoot1 = expectedRepoPath(repoName1);
+        var repo1 = existingRepo(repoName1, repoRoot1);
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportObject(objectId, output);
+
+        var repoName2 = "repo4";
+        var repoRoot2 = expectedRepoPath(repoName2);
+        var repo2 = existingRepo(repoName2, repoRoot2);
+
+        repo2.importObject(output);
+
+        assertTrue(repo2.containsObject(objectId));
+        assertEquals(repo1.describeObject(objectId), repo2.describeObject(objectId));
+    }
+
+    @Test
+    public void importObjectWhenDoesNotAlreadyExistAndMoveOperation() {
+        var objectId = "o1";
+        var repoName1 = "repo1";
+        var repoRoot1 = expectedRepoPath(repoName1);
+        var repo1 = existingRepo(repoName1, repoRoot1);
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportObject(objectId, output);
+
+        var repoName2 = "repo4";
+        var repoRoot2 = expectedRepoPath(repoName2);
+        var repo2 = existingRepo(repoName2, repoRoot2);
+
+        repo2.importObject(output, OcflOption.MOVE_SOURCE);
+
+        assertTrue(repo2.containsObject(objectId));
+        assertEquals(repo1.describeObject(objectId), repo2.describeObject(objectId));
+    }
+
+    @Test
+    public void rejectImportObjectWhenObjectFailsValidation() {
+        // TODO
+    }
+
+    @Test
+    public void rejectImportObjectWhenObjectMissingInventory() throws IOException {
+        var objectId = "o1";
+        var repoName1 = "repo1";
+        var repoRoot1 = expectedRepoPath(repoName1);
+        var repo1 = existingRepo(repoName1, repoRoot1);
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportObject(objectId, output);
+
+        var repoName2 = "repo4";
+        var repoRoot2 = expectedRepoPath(repoName2);
+        var repo2 = existingRepo(repoName2, repoRoot2);
+
+        Files.delete(output.resolve("inventory.json"));
+
+        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "inventory.json", () -> {
+            repo2.importObject(output, OcflOption.MOVE_SOURCE);
+        });
+    }
+
+    @Test
+    public void importVersionWhenObjectExistsAndIsNextVersion() {
+        var objectId = "o1";
+
+        var repoName1 = "import-version-1";
+        var repo1 = defaultRepo(repoName1);
+        var repo2 = defaultRepo("import-version-2");
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+        repo2.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3.txt");
+            updater.removeFile("file1.txt");
+        });
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportVersion(ObjectVersionId.version(objectId, "v2"), output);
+
+        repo2.importVersion(output);
+
+        assertEquals("v2", repo2.describeObject(objectId).getHeadVersionId().toString());
+        assertEquals(repo1.describeObject(objectId), repo2.describeObject(objectId));
+    }
+
+    @Test
+    public void importVersionWhenObjectDoesNotExistAndIsFirstVersion() {
+        var objectId = "o1";
+
+        var repoName1 = "import-version-1";
+        var repo1 = defaultRepo(repoName1);
+        var repo2 = defaultRepo("import-version-2");
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3.txt");
+            updater.removeFile("file1.txt");
+        });
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportVersion(ObjectVersionId.version(objectId, "v1"), output);
+
+        repo2.importVersion(output);
+
+        assertEquals("v1", repo2.describeObject(objectId).getHeadVersionId().toString());
+        assertEquals(repo1.describeVersion(ObjectVersionId.version(objectId, "v1")),
+                repo2.describeVersion(ObjectVersionId.version(objectId, "v1")));
+    }
+
+    @Test
+    public void rejectImportVersionWhenObjectExistsAndNotNextVersion() {
+        var objectId = "o1";
+
+        var repoName1 = "import-version-1";
+        var repo1 = defaultRepo(repoName1);
+        var repo2 = defaultRepo("import-version-2");
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+        repo2.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3.txt");
+            updater.removeFile("file1.txt");
+        });
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportVersion(ObjectVersionId.version(objectId, "v1"), output);
+
+        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "must be the next sequential version", () -> {
+            repo2.importVersion(output);
+        });
+    }
+
+    @Test
+    public void rejectImportVersionWhenObjectDoesNotExistAndNotFirstVersion() {
+        var objectId = "o1";
+
+        var repoName1 = "import-version-1";
+        var repo1 = defaultRepo(repoName1);
+        var repo2 = defaultRepo("import-version-2");
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3.txt");
+            updater.removeFile("file1.txt");
+        });
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportVersion(ObjectVersionId.version(objectId, "v2"), output);
+
+        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "must be the next sequential version", () -> {
+            repo2.importVersion(output);
+        });
+    }
+
+    @Test
+    public void rejectImportVersionWhenVersionMissingInventory() throws IOException {
+        var objectId = "o1";
+
+        var repoName1 = "import-version-1";
+        var repo1 = defaultRepo(repoName1);
+        var repo2 = defaultRepo("import-version-2");
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+        repo2.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3.txt");
+            updater.removeFile("file1.txt");
+        });
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportVersion(ObjectVersionId.version(objectId, "v2"), output);
+
+        Files.delete(output.resolve("inventory.json"));
+
+        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "inventory.json", () -> {
+            repo2.importVersion(output);
+        });
+    }
+
+    @Test
+    public void rejectImportVersionWhenVersionInvalid() {
+        // TODO
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {

@@ -44,7 +44,6 @@ import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.AddFileProcessor;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
-import edu.wisc.library.ocfl.core.inventory.InventoryValidator;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -56,6 +55,8 @@ import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
+import edu.wisc.library.ocfl.core.validation.InventoryValidator;
+import edu.wisc.library.ocfl.core.validation.ObjectValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -82,9 +85,9 @@ public class DefaultOcflRepository implements OcflRepository {
 
     protected final OcflStorage storage;
     protected final InventoryMapper inventoryMapper;
-    protected final SidecarMapper sidecarMapper;
     protected final Path workDir;
     protected final ObjectLock objectLock;
+    protected final ObjectValidator objectValidator;
     protected final ResponseMapper responseMapper;
     protected final InventoryUpdater.Builder inventoryUpdaterBuilder;
     protected final AddFileProcessor.Builder addFileProcessorBuilder;
@@ -132,7 +135,7 @@ public class DefaultOcflRepository implements OcflRepository {
                         .logicalPathMapper(logicalPathMapper)
                         .contentPathConstraintProcessor(contentPathConstraintProcessor));
 
-        sidecarMapper = new SidecarMapper();
+        objectValidator = new ObjectValidator(inventoryMapper);
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
 
@@ -448,6 +451,69 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
+    public void importVersion(Path versionPath, OcflOption... ocflOptions) {
+        ensureOpen();
+
+        Enforce.notNull(versionPath, "versionPath cannot be null");
+        Enforce.expressionTrue(Files.exists(versionPath), versionPath, "versionPath must exist");
+        Enforce.expressionTrue(Files.isDirectory(versionPath), versionPath, "versionPath must be a directory");
+
+        var importInventory = createImportVersionInventory(versionPath);
+
+        InventoryValidator.validateShallow(importInventory);
+        objectValidator.validateVersion(versionPath, importInventory);
+
+        // TODO Existing bug: What if a version is removed immediately before a new version is added that is based on the new removed version?
+
+        var stagingDir = createStagingDir(importInventory.getId());
+
+        try {
+            importToStaging(versionPath, stagingDir, ocflOptions);
+            objectLock.doInWriteLock(importInventory.getId(), () -> storage.storeNewVersion(importInventory, stagingDir));
+        } finally {
+            FileUtil.safeDeleteDirectory(stagingDir);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void importObject(Path objectPath, OcflOption... ocflOptions) {
+        ensureOpen();
+
+        Enforce.notNull(objectPath, "objectPath cannot be null");
+        Enforce.expressionTrue(Files.exists(objectPath), objectPath, "objectPath must exist");
+        Enforce.expressionTrue(Files.isDirectory(objectPath), objectPath, "objectPath must be a directory");
+
+        var inventoryPath = ObjectPaths.inventoryPath(objectPath);
+
+        Enforce.expressionTrue(Files.exists(inventoryPath), inventoryPath, "inventory.json must exist");
+
+        var inventory = inventoryMapper.read(objectPath.toString(), inventoryPath);
+        var objectId = inventory.getId();
+
+        if (containsObject(objectId)) {
+            throw new IllegalStateException(String.format("Cannot import object at %s because an object already exists with ID %s.",
+                    objectPath, objectId));
+        }
+
+        objectValidator.validateObject(objectPath, inventory);
+
+        var stagingDir = createStagingDir(objectId);
+
+        try {
+            importToStaging(objectPath, stagingDir, ocflOptions);
+            objectLock.doInWriteLock(objectId, () -> storage.importObject(objectId, stagingDir));
+        } finally {
+            FileUtil.safeDeleteDirectory(stagingDir);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void close() {
         LOG.debug("Close OCFL repository");
 
@@ -491,7 +557,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     protected Inventory buildNewInventory(InventoryUpdater inventoryUpdater, VersionInfo versionInfo) {
-        return InventoryValidator.validate(inventoryUpdater.buildNewInventory(now(versionInfo), versionInfo));
+        return InventoryValidator.validateShallow(inventoryUpdater.buildNewInventory(now(versionInfo), versionInfo));
     }
 
     private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
@@ -516,7 +582,58 @@ public class DefaultOcflRepository implements OcflRepository {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
         inventoryMapper.write(inventoryPath, inventory);
         String inventoryDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), inventoryPath);
-        sidecarMapper.writeSidecar(inventory, inventoryDigest, stagingDir);
+        SidecarMapper.writeSidecar(inventory, inventoryDigest, stagingDir);
+    }
+
+    private Inventory createImportVersionInventory(Path versionPath) {
+        var inventoryPath = ObjectPaths.inventoryPath(versionPath);
+
+        Enforce.expressionTrue(Files.exists(inventoryPath), inventoryPath, "inventory.json must exist");
+
+        var importInventory = inventoryMapper.read(versionPath.toString(), inventoryPath);
+        var objectId = importInventory.getId();
+
+        var existingInventory = loadInventory(ObjectVersionId.head(objectId));
+
+        ensureNoMutableHead(existingInventory);
+
+        if (existingInventory == null) {
+            if (!VersionId.V1.equals(importInventory.getHead())) {
+                throw new IllegalStateException(String.format("Cannot import object %s version %s from source %s." +
+                                " The import version must be the next sequential version, and the object doest not currently exist.",
+                        objectId, importInventory.getHead(), versionPath));
+            }
+        } else {
+            if (!existingInventory.getHead().nextVersionId().equals(importInventory.getHead())) {
+                throw new IllegalStateException(String.format("Cannot import object %s version %s from source %s." +
+                                " The import version must be the next sequential version, and the current version is %s.",
+                        objectId, importInventory.getHead(), versionPath, existingInventory.getHead()));
+            }
+
+            InventoryValidator.validateCompatibleInventories(importInventory, existingInventory);
+        }
+
+        var objectRootPath = storage.objectRootPath(objectId);
+        return Inventory.builder(importInventory)
+                .objectRootPath(objectRootPath)
+                .build();
+    }
+
+    private void importToStaging(Path source, Path stagingDir, OcflOption... ocflOptions) {
+        var options = new HashSet<>(Arrays.asList(ocflOptions));
+
+        if (options.contains(OcflOption.MOVE_SOURCE)) {
+            // Delete the staging directory so that the move operation works
+            UncheckedFiles.delete(stagingDir);
+            try {
+                FileUtil.moveDirectory(source, stagingDir);
+            } catch (FileAlreadyExistsException e) {
+                throw new UncheckedIOException(e);
+            }
+        } else {
+            // TODO do we care about parallelizing this?
+            FileUtil.recursiveCopy(source, stagingDir);
+        }
     }
 
     protected void enforceObjectVersionForUpdate(ObjectVersionId objectId, Inventory inventory) {

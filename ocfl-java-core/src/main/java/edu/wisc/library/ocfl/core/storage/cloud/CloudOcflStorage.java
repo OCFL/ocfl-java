@@ -427,6 +427,23 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public void importObject(String objectId, Path objectPath) {
+        var objectRootPath = objectRootPath(objectId);
+
+        if (!cloudClient.listDirectory(objectRootPath).getObjects().isEmpty()) {
+            throw new ObjectOutOfSyncException(String.format("Cannot import object %s because the object already exists.",
+                    objectId));
+        }
+
+        LOG.debug("Importing <{}> to <{}>", objectId, objectRootPath);
+
+        storeFilesInCloud(objectPath, objectRootPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     protected void doInitialize(OcflExtensionConfig layoutConfig) {
         this.storageLayoutExtension = this.initializer.initializeStorage(ocflVersion, layoutConfig);
     }
@@ -521,6 +538,27 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                 }
 
                 var key = inventory.storagePath(fileId);
+                objectKeys.add(key);
+                cloudClient.uploadFile(file, key);
+            });
+        } catch (RuntimeException e) {
+            cloudClient.safeDeleteObjects(objectKeys);
+            throw e;
+        }
+
+        return objectKeys;
+    }
+
+    private List<String> storeFilesInCloud(Path source, String destination) {
+        var objectKeys = Collections.synchronizedList(new ArrayList<String>());
+
+        // TODO this is not great for objects with a lot of files
+        var files = FileUtil.findFiles(source);
+
+        try {
+            parallelProcess.collection(files, file -> {
+                var relative = FileUtil.pathToStringStandardSeparator(source.relativize(file));
+                var key = FileUtil.pathJoinFailEmpty(destination, relative);
                 objectKeys.add(key);
                 cloudClient.uploadFile(file, key);
             });
