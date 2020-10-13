@@ -46,4 +46,9 @@ public class NoOpCache<K, V> implements Cache<K, V> {
         // no op
     }
 
+    @Override
+    public boolean contains(K key) {
+        return false;
+    }
+
 }

@@ -175,6 +175,10 @@ public class CachingOcflStorage extends AbstractOcflStorage {
     public boolean containsObject(String objectId) {
         ensureOpen();
 
+        if (inventoryCache.contains(objectId)) {
+            return true;
+        }
+
         return delegate.containsObject(objectId);
     }
 

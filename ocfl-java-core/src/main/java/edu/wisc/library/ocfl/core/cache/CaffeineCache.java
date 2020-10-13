@@ -65,4 +65,12 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         cache.invalidate(key);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean contains(K key) {
+        return cache.asMap().containsKey(key);
+    }
+
 }

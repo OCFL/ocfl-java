@@ -62,4 +62,12 @@ public interface Cache<K,V> {
      */
     void invalidate(K key);
 
+    /**
+     * Returns true if the cache contains the specified key
+     *
+     * @param key key
+     * @return true if the cache contains the key
+     */
+    boolean contains(K key);
+
 }
