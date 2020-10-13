@@ -24,21 +24,37 @@
 
 package edu.wisc.library.ocfl.aws;
 
-import at.favre.lib.bytes.Bytes;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
-import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartCopyRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.utils.http.SdkHttpUtils;
 
 import java.io.IOException;
@@ -74,10 +90,10 @@ public class OcflS3Client implements CloudClient {
     private static final int PARTS_INCREMENT = 100;
 
     // TODO experiment with performance with async client
-    private S3Client s3Client;
-    private String bucket;
-    private String repoPrefix;
-    private CloudObjectKey.Builder keyBuilder;
+    private final S3Client s3Client;
+    private final String bucket;
+    private final String repoPrefix;
+    private final CloudObjectKey.Builder keyBuilder;
 
     /**
      * Used to create a new OcflS3Client instance.
@@ -166,16 +182,9 @@ public class OcflS3Client implements CloudClient {
         } else {
             LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
-            if (md5digest == null) {
-                md5digest = DigestUtil.computeDigest(DigestAlgorithm.md5, srcPath);
-            }
-
-            var md5Base64 = Bytes.wrap(md5digest).encodeBase64();
-
             s3Client.putObject(PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(dstKey.getKey())
-                    .contentMD5(md5Base64)
                     .contentLength(fileSize)
                     .build(), srcPath);
         }
@@ -203,14 +212,11 @@ public class OcflS3Client implements CloudClient {
                 while (channel.read(buffer) > 0) {
                     buffer.flip();
 
-                    var digest = DigestUtil.computeDigest(DigestAlgorithm.md5, buffer);
-
                     var partResponse = s3Client.uploadPart(UploadPartRequest.builder()
                             .bucket(bucket)
                             .key(dstKey.getKey())
                             .uploadId(uploadId)
                             .partNumber(i)
-                            .contentMD5(Bytes.wrap(digest).encodeBase64())
                             // TODO entire part is in memory. stream part to file first?
                             .build(), RequestBody.fromByteBuffer(buffer));
 

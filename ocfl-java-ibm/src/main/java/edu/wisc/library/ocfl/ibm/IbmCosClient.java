@@ -24,18 +24,22 @@
 
 package edu.wisc.library.ocfl.ibm;
 
-import at.favre.lib.bytes.Bytes;
 import com.ibm.cloud.objectstorage.SdkClientException;
 import com.ibm.cloud.objectstorage.services.s3.AmazonS3;
-import com.ibm.cloud.objectstorage.services.s3.model.*;
+import com.ibm.cloud.objectstorage.services.s3.model.AmazonS3Exception;
+import com.ibm.cloud.objectstorage.services.s3.model.DeleteObjectsRequest;
+import com.ibm.cloud.objectstorage.services.s3.model.GetObjectRequest;
+import com.ibm.cloud.objectstorage.services.s3.model.HeadBucketRequest;
+import com.ibm.cloud.objectstorage.services.s3.model.ListObjectsV2Request;
+import com.ibm.cloud.objectstorage.services.s3.model.ListObjectsV2Result;
+import com.ibm.cloud.objectstorage.services.s3.model.ObjectMetadata;
+import com.ibm.cloud.objectstorage.services.s3.model.PutObjectRequest;
 import com.ibm.cloud.objectstorage.services.s3.transfer.TransferManager;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
-import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,11 +72,11 @@ public class IbmCosClient implements CloudClient {
     private static final int MAX_PART_BYTES = 100 * MB;
 
     // TODO experiment with performance with async client
-    private AmazonS3 s3Client;
-    private TransferManager transferManager;
-    private String bucket;
-    private String repoPrefix;
-    private CloudObjectKey.Builder keyBuilder;
+    private final AmazonS3 s3Client;
+    private final TransferManager transferManager;
+    private final String bucket;
+    private final String repoPrefix;
+    private final CloudObjectKey.Builder keyBuilder;
 
     /**
      * Used to create a new IbmCosClient instance.
@@ -159,14 +163,7 @@ public class IbmCosClient implements CloudClient {
             throw new IllegalArgumentException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
         }
 
-        if (md5digest == null) {
-            md5digest = DigestUtil.computeDigest(DigestAlgorithm.md5, srcPath);
-        }
-
-        var md5Base64 = Bytes.wrap(md5digest).encodeBase64();
-
         var metadata = new ObjectMetadata();
-        metadata.setContentMD5(md5Base64);
 
         var request = new PutObjectRequest(bucket, dstKey.getKey(), srcPath.toFile()).withMetadata(metadata);
 

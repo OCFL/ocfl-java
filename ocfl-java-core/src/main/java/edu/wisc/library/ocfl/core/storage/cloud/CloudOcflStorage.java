@@ -520,10 +520,9 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                     throw new IllegalStateException(String.format("Staged file %s does not exist", file));
                 }
 
-                byte[] md5bytes = md5bytes(inventory, contentPath);
                 var key = inventory.storagePath(fileId);
                 objectKeys.add(key);
-                cloudClient.uploadFile(file, key, md5bytes);
+                cloudClient.uploadFile(file, key);
             });
         } catch (RuntimeException e) {
             cloudClient.safeDeleteObjects(objectKeys);
