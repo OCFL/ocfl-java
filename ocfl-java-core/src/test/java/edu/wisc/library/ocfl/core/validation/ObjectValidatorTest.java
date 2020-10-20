@@ -208,7 +208,11 @@ public class ObjectValidatorTest {
     }
 
     private String replaceSlashes(String value) {
-        return value.replaceAll("/", File.separator);
+        var replacement = File.separator;
+        if (replacement.equals("\\")) {
+            replacement = "\\\\";
+        }
+        return value.replaceAll("/", replacement);
     }
 
 }
