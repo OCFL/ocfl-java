@@ -1652,8 +1652,25 @@ public abstract class OcflITest {
     }
 
     @Test
-    public void rejectImportObjectWhenObjectFailsValidation() {
-        // TODO
+    public void rejectImportObjectWhenObjectFailsValidation() throws IOException {
+        var objectId = "o1";
+        var repoName1 = "repo1";
+        var repoRoot1 = expectedRepoPath(repoName1);
+        var repo1 = existingRepo(repoName1, repoRoot1);
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportObject(objectId, output);
+
+        var repoName2 = "repo4";
+        var repoRoot2 = expectedRepoPath(repoName2);
+        var repo2 = existingRepo(repoName2, repoRoot2);
+
+        Files.delete(output.resolve("v1/content/file1"));
+
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "v1/content/file1", () -> {
+            repo2.importObject(output, OcflOption.MOVE_SOURCE);
+        });
     }
 
     @Test
@@ -1830,8 +1847,36 @@ public abstract class OcflITest {
     }
 
     @Test
-    public void rejectImportVersionWhenVersionInvalid() {
-        // TODO
+    public void rejectImportVersionWhenVersionInvalid() throws IOException {
+        var objectId = "o1";
+
+        var repoName1 = "import-version-1";
+        var repo1 = defaultRepo(repoName1);
+        var repo2 = defaultRepo("import-version-2");
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+        repo2.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        repo1.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3.txt");
+            updater.removeFile("file1.txt");
+        });
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportVersion(ObjectVersionId.version(objectId, "v2"), output);
+
+        Files.delete(output.resolve("content/file3.txt"));
+
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "v2/content/file3.txt", () -> {
+            repo2.importVersion(output);
+        });
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {

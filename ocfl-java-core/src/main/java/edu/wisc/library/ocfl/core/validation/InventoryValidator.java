@@ -117,13 +117,16 @@ public final class InventoryValidator {
         var previousVersions = previousInventory.getVersions().keySet().stream()
                 .collect(Collectors.toMap(Function.identity(), Function.identity()));
 
-        while (!VersionId.V1.equals(current)) {
+        while (true) {
             validateVersionNumber(currentInventory.getId(), currentVersions.get(current), previousVersions.get(current));
             var currentState = currentInventory.getVersion(current).getState();
             var previousState = previousInventory.getVersion(current).getState();
             if (!Objects.equals(currentState, previousState)) {
-                throw new InvalidInventoryException(String.format("In object %s versions %s and %s define a different state for version %s.",
+                throw new InvalidInventoryException(String.format("In object %s the inventories in version %s and %s define a different state for version %s.",
                         currentInventory.getId(), currentInventory.getHead(), previousInventory.getHead(), current));
+            }
+            if (VersionId.V1.equals(current)) {
+                break;
             }
             current = current.previousVersionId();
         }
@@ -150,7 +153,11 @@ public final class InventoryValidator {
         areEqual(currentInventory.getContentDirectory(), previousInventory.getContentDirectory(),
                 String.format("Inventory content directories are not the same. Existing: %s; New: %s",
                         previousInventory.getContentDirectory(), currentInventory.getContentDirectory()));
-        validateVersionNumber(currentInventory.getId(), currentInventory.getHead(), previousInventory.nextVersionId());
+        if (!Objects.equals(currentInventory.getHead(), previousInventory.nextVersionId())) {
+            throw new InvalidInventoryException(String.format(
+                    "The new HEAD inventory version must be the next sequential version number. Existing: %s; New: %s",
+                    previousInventory.getHead(), currentInventory.getHead()));
+        }
         validateVersionStates(currentInventory, previousInventory);
     }
 
