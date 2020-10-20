@@ -25,55 +25,55 @@ public class ObjectValidatorTest {
     @Test
     public void failWhenNamasteFileDoesNotExist() {
         validateObject("no-namaste",
-                "Expected file src/test/resources/validation/object/no-namaste/0=ocfl_object_1.0 to exist, but it does not.");
+                replaceSlashes("Expected file src/test/resources/validation/object/no-namaste/0=ocfl_object_1.0 to exist, but it does not."));
     }
 
     @Test
     public void failWhenMissingRootSidecar() {
         validateObject("no-root-sidecar",
-                "Expected there to be one inventory sidecar file in src/test/resources/validation/object/no-root-sidecar, but found 0.");
+                replaceSlashes("Expected there to be one inventory sidecar file in src/test/resources/validation/object/no-root-sidecar, but found 0."));
     }
 
     @Test
     public void failWhenRootInventoryDigestDoesNotMatchExpectation() {
         validateObject("invalid-root-inventory",
-                "Inventory file at src/test/resources/validation/object/invalid-root-inventory/inventory.json does not match expected sha512 digest: Expected ab0fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc; Actual 570fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc");
+                replaceSlashes("Inventory file at src/test/resources/validation/object/invalid-root-inventory/inventory.json does not match expected sha512 digest: Expected ab0fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc; Actual 570fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc"));
     }
 
     @Test
     public void failWhenVersionInventoryMissing() {
         validateObject("no-version-inventory",
-                "Expected file src/test/resources/validation/object/no-version-inventory/v1/inventory.json to exist, but it does not.");
+                replaceSlashes("Expected file src/test/resources/validation/object/no-version-inventory/v1/inventory.json to exist, but it does not."));
     }
 
     @Test
     public void failWhenVersionSidecarMissing() {
         validateObject("no-version-sidecar",
-                "Expected there to be one inventory sidecar file in src/test/resources/validation/object/no-version-sidecar/v1, but found 0.");
+                replaceSlashes("Expected there to be one inventory sidecar file in src/test/resources/validation/object/no-version-sidecar/v1, but found 0."));
     }
 
     @Test
     public void failWhenVersionInventoryDigestDoesNotMatchExpectation() {
         validateObject("invalid-version-inventory",
-                "Inventory file at src/test/resources/validation/object/invalid-version-inventory/v1/inventory.json does not match expected sha512 digest: Expected 12cbceab0da055d8bab0862462fb3f712d94e4c3eb40dedd7368f8e3a28d63f5620e2c3bf6936fda2ee4dffb10f6c0df86827727a732fc97b590734382344cd4; Actual ebcbceab0da055d8bab0862462fb3f712d94e4c3eb40dedd7368f8e3a28d63f5620e2c3bf6936fda2ee4dffb10f6c0df86827727a732fc97b590734382344cd4");
+                replaceSlashes("Inventory file at src/test/resources/validation/object/invalid-version-inventory/v1/inventory.json does not match expected sha512 digest: Expected 12cbceab0da055d8bab0862462fb3f712d94e4c3eb40dedd7368f8e3a28d63f5620e2c3bf6936fda2ee4dffb10f6c0df86827727a732fc97b590734382344cd4; Actual ebcbceab0da055d8bab0862462fb3f712d94e4c3eb40dedd7368f8e3a28d63f5620e2c3bf6936fda2ee4dffb10f6c0df86827727a732fc97b590734382344cd4"));
     }
 
     @Test
     public void failWhenVersionRootContainsUnexpectedFile() {
         validateObject("version-root-unexpected-file",
-                "Version contains an illegal file at src/test/resources/validation/object/version-root-unexpected-file/v1/bad-file");
+                replaceSlashes("Version contains an illegal file at src/test/resources/validation/object/version-root-unexpected-file/v1/bad-file"));
     }
 
     @Test
     public void failWhenUnexpectedFileInRoot() {
         validateObject("object-root-unexpected-file",
-                "Object o1 contains an invalid file: src/test/resources/validation/object/object-root-unexpected-file/bad-file");
+                replaceSlashes("Object o1 contains an invalid file: src/test/resources/validation/object/object-root-unexpected-file/bad-file"));
     }
 
     @Test
     public void failWhenUnexpectedVersionInRoot() {
         validateObject("object-root-unexpected-version",
-                "Object o1 contains an invalid file: src/test/resources/validation/object/object-root-unexpected-version/v3");
+                replaceSlashes("Object o1 contains an invalid file: src/test/resources/validation/object/object-root-unexpected-version/v3"));
     }
 
     @Test
@@ -91,13 +91,13 @@ public class ObjectValidatorTest {
     @Test
     public void failWhenFileOnDiskNotFoundInManifest() {
         validateObject("file-missing-in-manifest",
-                "Object o1 contains an unexpected file: src/test/resources/validation/object/file-missing-in-manifest/v1/content/bonus-file");
+                replaceSlashes("Object o1 contains an unexpected file: src/test/resources/validation/object/file-missing-in-manifest/v1/content/bonus-file"));
     }
 
     @Test
     public void failWhenFileOnDiskDoesNotMatchPathInManifest() {
         validateObject("file-mismatch",
-                "File src/test/resources/validation/object/file-mismatch/v1/content/file2 has unexpected sha512 digest value 96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e.");
+                replaceSlashes("File src/test/resources/validation/object/file-mismatch/v1/content/file2 has unexpected sha512 digest value 96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e."));
     }
 
     @Test
@@ -109,7 +109,7 @@ public class ObjectValidatorTest {
     @Test
     public void failWhenVersionNumberPaddingDifferent() {
         validateObject("padding-mismatch",
-                "Expected version v1 but was v0001 in src/test/resources/validation/object/padding-mismatch/v1/inventory.json.");
+                replaceSlashes("Expected version v1 but was v0001 in src/test/resources/validation/object/padding-mismatch/v1/inventory.json."));
     }
 
     @Test
@@ -134,31 +134,31 @@ public class ObjectValidatorTest {
     @Test
     public void failVersionWhenSidecarMissing() {
         validateVersion("missing-sidecar",
-                "Expected there to be one inventory sidecar file in src/test/resources/validation/version/missing-sidecar, but found 0.");
+                replaceSlashes("Expected there to be one inventory sidecar file in src/test/resources/validation/version/missing-sidecar, but found 0."));
     }
 
     @Test
     public void failVersionWhenInventoryDigestWrong() {
         validateVersion("inventory-digest-wrong",
-                "Inventory file at src/test/resources/validation/version/inventory-digest-wrong/inventory.json does not match expected sha512 digest: Expected ab0fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc; Actual 570fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc");
+                replaceSlashes("Inventory file at src/test/resources/validation/version/inventory-digest-wrong/inventory.json does not match expected sha512 digest: Expected ab0fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc; Actual 570fbc38aff2a52b53d07a069082d4a16fca6f1796430bfb260facba06d242f5b336009801023f9f0d21b88b4ab609604e516594fa4cc0c554af566e87b936fc"));
     }
 
     @Test
     public void failVersionWhenContainsIllegalFiles() {
         validateVersion("illegal-files",
-                "Version contains an illegal file at src/test/resources/validation/version/illegal-files/bad-file");
+                replaceSlashes("Version contains an illegal file at src/test/resources/validation/version/illegal-files/bad-file"));
     }
 
     @Test
     public void failVersionWhenContentContainsUnexpectedFile() {
         validateVersion("illegal-content-files",
-                "Object o1 contains an unexpected file: src/test/resources/validation/version/illegal-content-files/content/bad-file");
+                replaceSlashes("Object o1 contains an unexpected file: src/test/resources/validation/version/illegal-content-files/content/bad-file"));
     }
 
     @Test
     public void failVersionWhenContentFileDigestDoesNotMatch() {
         validateVersion("content-digest-mismatch",
-                "File src/test/resources/validation/version/content-digest-mismatch/content/file1 has unexpected sha512 digest value. Expected: aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc; Actual: 9d0d50239dc4de7bf863f296376cc9d6d6904e5867f7f79a86451c7b13dda0e8e702141141c109852c79e9bc738a32e6f1a81a035efb0b45c830a721095f63b9.");
+                replaceSlashes("File src/test/resources/validation/version/content-digest-mismatch/content/file1 has unexpected sha512 digest value. Expected: aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc; Actual: 9d0d50239dc4de7bf863f296376cc9d6d6904e5867f7f79a86451c7b13dda0e8e702141141c109852c79e9bc738a32e6f1a81a035efb0b45c830a721095f63b9."));
     }
 
     @Test
@@ -190,7 +190,7 @@ public class ObjectValidatorTest {
     }
 
     private void validateObject(String name, String exceptionMessage) {
-        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, replaceSlashes(exceptionMessage), () -> {
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, exceptionMessage, () -> {
             validateObject(name);
         });
     }
@@ -202,7 +202,7 @@ public class ObjectValidatorTest {
     }
 
     private void validateVersion(String name, String exceptionMessage) {
-        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, replaceSlashes(exceptionMessage), () -> {
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, exceptionMessage, () -> {
             validateVersion(name);
         });
     }
