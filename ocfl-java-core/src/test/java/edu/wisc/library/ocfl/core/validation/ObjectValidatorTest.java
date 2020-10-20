@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.nio.file.Paths;
 
 public class ObjectValidatorTest {
@@ -189,7 +190,7 @@ public class ObjectValidatorTest {
     }
 
     private void validateObject(String name, String exceptionMessage) {
-        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, exceptionMessage, () -> {
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, replaceSlashes(exceptionMessage), () -> {
             validateObject(name);
         });
     }
@@ -201,9 +202,13 @@ public class ObjectValidatorTest {
     }
 
     private void validateVersion(String name, String exceptionMessage) {
-        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, exceptionMessage, () -> {
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, replaceSlashes(exceptionMessage), () -> {
             validateVersion(name);
         });
+    }
+
+    private String replaceSlashes(String value) {
+        return value.replaceAll("/", File.separator);
     }
 
 }

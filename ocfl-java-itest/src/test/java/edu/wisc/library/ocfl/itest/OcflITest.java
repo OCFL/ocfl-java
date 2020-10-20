@@ -1668,7 +1668,7 @@ public abstract class OcflITest {
 
         Files.delete(output.resolve("v1/content/file1"));
 
-        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "v1/content/file1", () -> {
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "file1", () -> {
             repo2.importObject(output, OcflOption.MOVE_SOURCE);
         });
     }
@@ -1874,7 +1874,7 @@ public abstract class OcflITest {
 
         Files.delete(output.resolve("content/file3.txt"));
 
-        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "v2/content/file3.txt", () -> {
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "file3.txt", () -> {
             repo2.importVersion(output);
         });
     }
