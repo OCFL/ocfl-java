@@ -72,7 +72,6 @@ public class IbmCosClient implements CloudClient {
     private static final long MAX_FILE_BYTES = 5 * TB;
     private static final int MAX_PART_BYTES = 100 * MB;
 
-    // TODO experiment with performance with async client
     private final AmazonS3 s3Client;
     private final TransferManager transferManager;
     private final String bucket;

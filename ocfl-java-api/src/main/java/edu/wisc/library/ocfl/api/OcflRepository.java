@@ -199,7 +199,7 @@ public interface OcflRepository {
      * <p>Mutable HEAD versions cannot be exported
      *
      * @param objectVersionId the id of the object and version to export
-     * @param outputPath the directory to write the exported version to, must NOT exist
+     * @param outputPath the directory to write the exported version to, if it does not exist it will be created
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
     void exportVersion(ObjectVersionId objectVersionId, Path outputPath);
@@ -211,7 +211,7 @@ public interface OcflRepository {
      * <p>The outputPath MUST NOT exist, but its parent MUST exist.
      *
      * @param objectId the id of the object to export
-     * @param outputPath the directory to write the exported object to, must NOT exist
+     * @param outputPath the directory to write the exported object to, if it does not exist it will be created
      * @throws NotFoundException when no object can be found for the specified objectId
      */
     void exportObject(String objectId, Path outputPath);

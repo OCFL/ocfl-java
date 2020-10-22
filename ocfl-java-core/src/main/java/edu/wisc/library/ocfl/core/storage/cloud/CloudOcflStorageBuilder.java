@@ -36,14 +36,12 @@ import java.nio.file.Path;
  */
 public class CloudOcflStorageBuilder {
 
-    private int threadPoolSize;
     private ObjectMapper objectMapper;
     private CloudClient cloudClient;
     private CloudOcflStorageInitializer initializer;
     private Path workDir;
 
     public CloudOcflStorageBuilder() {
-        this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.objectMapper = ObjectMappers.prettyPrintMapper();
     }
 
@@ -81,17 +79,6 @@ public class CloudOcflStorageBuilder {
     }
 
     /**
-     * Overrides the default thread pool size. Default: the number of available processors
-     *
-     * @param threadPoolSize thread pool size. Default: number of processors
-     * @return builder
-     */
-    public CloudOcflStorageBuilder threadPoolSize(int threadPoolSize) {
-        this.threadPoolSize = Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
-        return this;
-    }
-
-    /**
      * Overrides the default {@link CloudOcflStorageInitializer}. Normally, this does not need to be set.
      *
      * @param initializer the initializer
@@ -111,7 +98,7 @@ public class CloudOcflStorageBuilder {
             init = new CloudOcflStorageInitializer(cloudClient, objectMapper);
         }
 
-        return new CloudOcflStorage(cloudClient, threadPoolSize, workDir, init);
+        return new CloudOcflStorage(cloudClient, workDir, init);
     }
 
 }

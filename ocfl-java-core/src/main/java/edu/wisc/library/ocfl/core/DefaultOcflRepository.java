@@ -417,7 +417,7 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
-        ensureOutputPath(outputPath);
+        ensureExportPath(outputPath);
 
         var exportId = objectVersionId;
 
@@ -440,7 +440,7 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
-        ensureOutputPath(outputPath);
+        ensureExportPath(outputPath);
 
         LOG.debug("Export <{}> to <{}>", objectId, outputPath);
 
@@ -455,8 +455,6 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notNull(versionPath, "versionPath cannot be null");
-        Enforce.expressionTrue(Files.exists(versionPath), versionPath, "versionPath must exist");
-        Enforce.expressionTrue(Files.isDirectory(versionPath), versionPath, "versionPath must be a directory");
 
         var importInventory = createImportVersionInventory(versionPath);
 
@@ -483,8 +481,6 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notNull(objectPath, "objectPath cannot be null");
-        Enforce.expressionTrue(Files.exists(objectPath), objectPath, "objectPath must exist");
-        Enforce.expressionTrue(Files.isDirectory(objectPath), objectPath, "objectPath must be a directory");
 
         var inventoryPath = ObjectPaths.inventoryPath(objectPath);
 
@@ -698,6 +694,14 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.expressionTrue(Files.notExists(outputPath), outputPath, "outputPath must not exist");
         Enforce.expressionTrue(Files.exists(outputPath.getParent()), outputPath, "outputPath parent must exist");
         Enforce.expressionTrue(Files.isDirectory(outputPath.getParent()), outputPath, "outputPath parent must be a directory");
+    }
+
+    private void ensureExportPath(Path outputPath) {
+        Enforce.notNull(outputPath, "outputPath cannot be null");
+        if (Files.exists(outputPath)) {
+            Enforce.expressionTrue(Files.isDirectory(outputPath), outputPath, "outputPath must be a directory");
+        }
+        UncheckedFiles.createDirectories(outputPath);
     }
 
     /**

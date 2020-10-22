@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.itest;
 
+import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
@@ -9,6 +10,7 @@ import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Metrics;
@@ -169,6 +171,79 @@ public class LoadITest {
     }
 
     @Test
+    public void fsGetObjectModestFilesTest() throws InterruptedException {
+        var threadCount = 10;
+        var duration = Duration.ofMinutes(15);
+        var fileCount = 10;
+        var fileSize = 3 * MB;
+
+        var repo = createFsRepo();
+
+        runGetTest(repo, fileCount, fileSize, threadCount, duration, "fs");
+    }
+
+    @Test
+    public void s3GetObjectModestFilesTest() throws InterruptedException {
+        var threadCount = 10;
+        var duration = Duration.ofMinutes(15);
+        var fileCount = 10;
+        var fileSize = 3 * MB;
+
+        var repo = createS3Repo();
+
+        runGetTest(repo, fileCount, fileSize, threadCount, duration, "s3");
+        // TODO Don't forget to delete from S3!
+    }
+
+    @Test
+    public void s3MutableHeadCopyObjectModestFilesTest() throws InterruptedException {
+        var threadCount = 10;
+        var duration = Duration.ofMinutes(15);
+        var fileCount = 10;
+        var fileSize = 3 * MB;
+
+        var repo = createS3Repo();
+
+        System.out.println("Starting putTest");
+
+        System.out.println("Creating test object");
+        var objectPath = createTestObject(fileCount, fileSize);
+        System.out.println("Created test object: " + objectPath);
+
+        var versionInfo = new VersionInfo()
+                .setUser("Peter", "pwinckles@example.com")
+                .setMessage("Testing");
+
+        var timer = Metrics.timer("putObject",
+                "files", String.valueOf(fileCount),
+                "sizeBytes", String.valueOf(fileSize),
+                "threads", String.valueOf(threadCount),
+                "storage", "s3");
+
+        var threads = new ArrayList<Thread>(threadCount);
+
+        for (var i = 0; i < threadCount; i++) {
+            threads.add(createThread(duration, objectId -> {
+                repo.stageChanges(ObjectVersionId.head(objectId), versionInfo, updater -> {
+                    updater.addPath(objectPath);
+                });
+                timer.record(() -> {
+                    repo.commitStagedChanges(objectId, versionInfo);
+                });
+            }));
+        }
+
+        startThreads(threads);
+        System.out.println("Waiting for threads to complete...");
+        joinThreads(threads);
+
+        System.out.println("Finished. Waiting for metrics collection...");
+        TimeUnit.SECONDS.sleep(30);
+        System.out.println("Done");
+        // TODO Don't forget to delete from S3!
+    }
+
+    @Test
     public void s3WriteTest() throws InterruptedException {
         var threadCount = 10;
         var duration = Duration.ofMinutes(15);
@@ -253,6 +328,53 @@ public class LoadITest {
         System.out.println("Done");
     }
 
+    private void runGetTest(OcflRepository repo,
+                            int fileCount,
+                            long fileSize,
+                            int threadCount,
+                            Duration duration,
+                            String storageType) throws InterruptedException {
+        System.out.println("Starting getTest");
+
+        System.out.println("Creating test object");
+        var objectPath = createTestObject(fileCount, fileSize);
+        System.out.println("Created test object: " + objectPath);
+
+        var versionInfo = new VersionInfo()
+                .setUser("Peter", "pwinckles@example.com")
+                .setMessage("Testing");
+
+        var objectId = UUID.randomUUID().toString();
+
+        repo.putObject(ObjectVersionId.head(objectId), objectPath, versionInfo);
+
+        var timer = Metrics.timer("getObject",
+                "files", String.valueOf(fileCount),
+                "sizeBytes", String.valueOf(fileSize),
+                "threads", String.valueOf(threadCount),
+                "storage", storageType);
+
+        var threads = new ArrayList<Thread>(threadCount);
+
+        for (var i = 0; i < threadCount; i++) {
+            threads.add(createThread(duration, out -> {
+                var outDir = tempRoot.resolve(out);
+                timer.record(() -> {
+                    repo.getObject(ObjectVersionId.head(objectId), outDir);
+                });
+                FileUtil.safeDeleteDirectory(outDir);
+            }));
+        }
+
+        startThreads(threads);
+        System.out.println("Waiting for threads to complete...");
+        joinThreads(threads);
+
+        System.out.println("Finished. Waiting for metrics collection...");
+        TimeUnit.SECONDS.sleep(30);
+        System.out.println("Done");
+    }
+
     private Thread createThread(Duration duration, Consumer<String> test) {
         return new Thread() {
             private final String id = UUID.randomUUID().toString();
@@ -305,7 +427,7 @@ public class LoadITest {
                 .build();
     }
 
-    private OcflRepository createS3Repo() {
+    private MutableOcflRepository createS3Repo() {
         var s3Client = S3Client.builder()
                 .region(Region.US_EAST_2)
                 .httpClientBuilder(ApacheHttpClient.builder())
@@ -324,7 +446,7 @@ public class LoadITest {
                         .workDir(UncheckedFiles.createDirectories(tempRoot.resolve("temp")))
                         .build())
                 .workDir(UncheckedFiles.createDirectories(tempRoot.resolve("temp")))
-                .build();
+                .buildMutable();
     }
 
     private Path createTestObject(int fileCount, long fileSize) {

@@ -24,7 +24,6 @@
 
 package edu.wisc.library.ocfl.core.storage.cloud;
 
-import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
@@ -32,13 +31,10 @@ import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
-import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -67,7 +63,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -76,13 +71,6 @@ import java.util.stream.StreamSupport;
  * to integrate with different providers.
  */
 public class CloudOcflStorage extends AbstractOcflStorage {
-
-    /*
-    TODO Test resource contention with lots of files
-    TODO compare performance of async client vs thread pool
-    TODO Test problematic characters
-    TODO Test huge files
-     */
 
     private static final Logger LOG = LoggerFactory.getLogger(CloudOcflStorage.class);
 
@@ -95,7 +83,6 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private final CloudOcflStorageInitializer initializer;
     private OcflStorageLayoutExtension storageLayoutExtension;
-    private final ParallelProcess parallelProcess; // TODO performance test this vs async client
     private final CloudOcflFileRetriever.Builder fileRetrieverBuilder;
 
     /**
@@ -115,14 +102,11 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * @see CloudOcflStorageBuilder
      *
      * @param cloudClient the client to use to interface with cloud storage such as S3
-     * @param threadPoolSize The size of the object's thread pool, used when calculating digests
      * @param initializer initializes a new OCFL repo
      */
-    public CloudOcflStorage(CloudClient cloudClient, int threadPoolSize, Path workDir, CloudOcflStorageInitializer initializer) {
+    public CloudOcflStorage(CloudClient cloudClient, Path workDir, CloudOcflStorageInitializer initializer) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
-        Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
-        this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
@@ -164,7 +148,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public Stream<String> listObjectIds() {
         LOG.debug("List object ids");
 
-        return findOcflObjectRootDirs("").map(objectRoot -> {
+        return findOcflObjectRootDirs().map(objectRoot -> {
             var inventory = downloadInventory(objectRoot);
             return inventory.getId();
         });
@@ -223,9 +207,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var version = inventory.ensureVersion(versionId);
         var digestAlgorithm = inventory.getDigestAlgorithm();
 
-        parallelProcess.collection(version.getState().entrySet(), entry -> {
-            var id = entry.getKey();
-            var files = entry.getValue();
+        version.getState().forEach((id, files) -> {
             var srcPath = inventory.storagePath(id);
 
             for (var logicalPath : files) {
@@ -234,11 +216,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
                 UncheckedFiles.createDirectories(destination.getParent());
 
-                if (Thread.interrupted()) {
-                    break;
-                }
-
-                try (var stream = new FixityCheckInputStream(cloudClient.downloadStream(srcPath), digestAlgorithm, id)){
+                try (var stream = new FixityCheckInputStream(cloudClient.downloadStream(srcPath), digestAlgorithm, id)) {
                     Files.copy(stream, destination);
                     stream.checkFixity();
                 } catch (FixityCheckException e) {
@@ -454,7 +432,6 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     @Override
     public void close() {
         LOG.debug("Closing " + this.getClass().getName());
-        parallelProcess.shutdown();
     }
 
     private void storeNewImmutableVersion(Inventory inventory, Path stagingDir) {
@@ -521,14 +498,13 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         deleteMutableHeadFilesNotInManifest(inventory);
     }
 
-    // TODO performance test this vs async
     private List<String> storeContentInCloud(Inventory inventory, Path sourcePath) {
         var contentPrefix = contentPrefix(inventory);
         var fileIds = inventory.getFileIdsForMatchingFiles(contentPrefix);
         var objectKeys = Collections.synchronizedList(new ArrayList<String>());
 
         try {
-            parallelProcess.collection(fileIds, fileId -> {
+            fileIds.forEach(fileId -> {
                 var contentPath = inventory.ensureContentPath(fileId);
                 var contentPathNoVersion = contentPath.substring(contentPath.indexOf(inventory.resolveContentDirectory()));
                 var file = sourcePath.resolve(contentPathNoVersion);
@@ -552,30 +528,23 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private List<String> storeFilesInCloud(Path source, String destination) {
         var objectKeys = Collections.synchronizedList(new ArrayList<String>());
 
-        // TODO this is not great for objects with a lot of files
-        var files = FileUtil.findFiles(source);
-
-        try {
-            parallelProcess.collection(files, file -> {
+        try (var paths = Files.walk(source)) {
+            paths.filter(Files::isRegularFile).forEach(file -> {
                 var relative = FileUtil.pathToStringStandardSeparator(source.relativize(file));
                 var key = FileUtil.pathJoinFailEmpty(destination, relative);
                 objectKeys.add(key);
                 cloudClient.uploadFile(file, key);
             });
-        } catch (RuntimeException e) {
+        } catch (IOException | RuntimeException e) {
             cloudClient.safeDeleteObjects(objectKeys);
-            throw e;
+
+            if (e instanceof IOException) {
+                throw new UncheckedIOException((IOException) e);
+            }
+            throw (RuntimeException) e;
         }
 
         return objectKeys;
-    }
-
-    private byte[] md5bytes(Inventory inventory, String contentPath) {
-        var md5Hex = inventory.getFixityForContentPath(contentPath).get(DigestAlgorithm.md5);
-        if (md5Hex != null) {
-            return Bytes.parseHex(md5Hex).array();
-        }
-        return null;
     }
 
     private List<String> copyMutableVersionToImmutableVersion(Inventory oldInventory, Inventory newInventory) {
@@ -584,8 +553,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var objectKeys = Collections.synchronizedList(new ArrayList<String>());
 
         try {
-            // TODO this would likely benefit greatly from increased parallelization
-            parallelProcess.collection(fileIds, fileId -> {
+            // TODO the performance here DOES improve with increased parallelization -- perhaps add in the future
+            fileIds.forEach(fileId -> {
                 var srcPath = oldInventory.storagePath(fileId);
                 var dstPath = newInventory.storagePath(fileId);
                 objectKeys.add(dstPath);
@@ -737,8 +706,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         return inventory.getHead().toString();
     }
 
-    private Stream<String> findOcflObjectRootDirs(String start) {
-        var iterator = new CloudOcflObjectRootDirIterator(start, cloudClient);
+    private Stream<String> findOcflObjectRootDirs() {
+        var iterator = new CloudOcflObjectRootDirIterator("", cloudClient);
         try {
             var spliterator = Spliterators.spliteratorUnknownSize(iterator,
                     Spliterator.ORDERED | Spliterator.IMMUTABLE | Spliterator.DISTINCT);
@@ -825,7 +794,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     }
 
     private void copyObjects(List<ListResult.ObjectListing> objects, Path outputPath) {
-        parallelProcess.collection(objects, object -> {
+        objects.forEach(object -> {
             var key = object.getKey().getKey();
             var relativePath = object.getKeySuffix();
             var destination = outputPath.resolve(relativePath);
@@ -834,6 +803,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
             try (var stream = cloudClient.downloadStream(key)) {
                 Files.copy(stream, destination);
+                // TODO fixity check?
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

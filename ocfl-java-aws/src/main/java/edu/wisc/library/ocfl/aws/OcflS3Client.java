@@ -90,7 +90,6 @@ public class OcflS3Client implements CloudClient {
     private static final int PART_SIZE_INCREMENT = 10;
     private static final int PARTS_INCREMENT = 100;
 
-    // TODO experiment with performance with async client
     private final S3Client s3Client;
     private final String bucket;
     private final String repoPrefix;
@@ -193,7 +192,6 @@ public class OcflS3Client implements CloudClient {
         return dstKey;
     }
 
-    // TODO concurrency?
     // TODO reduce memory consumption?
     private void multipartUpload(Path srcPath, CloudObjectKey dstKey, long fileSize) {
         var partSize = determinePartSize(fileSize);
@@ -439,7 +437,7 @@ public class OcflS3Client implements CloudClient {
     public void deleteObjects(Collection<String> objectPaths) {
         if (!objectPaths.isEmpty()) {
             var objectKeys = objectPaths.stream()
-                    .map(key -> keyBuilder.buildFromPath(key))
+                    .map(keyBuilder::buildFromPath)
                     .collect(Collectors.toList());
 
             deleteObjectsInternal(objectKeys);
