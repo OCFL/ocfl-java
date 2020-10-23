@@ -66,19 +66,15 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
      * @param logicalPathMapper logical path mapper
      * @param contentPathConstraintProcessor content path constraint processor
      * @param config ocfl defaults configuration
-     * @param digestThreadPoolSize number of threads to use for computing digests
-     * @param copyThreadPoolSize number of threads to use for copying files
      */
     public DefaultMutableOcflRepository(OcflStorage storage, Path workDir,
                                         ObjectLock objectLock,
                                         InventoryMapper inventoryMapper,
                                         LogicalPathMapper logicalPathMapper,
                                         ContentPathConstraintProcessor contentPathConstraintProcessor,
-                                        OcflConfig config,
-                                        int digestThreadPoolSize, int copyThreadPoolSize) {
+                                        OcflConfig config) {
         super(storage, workDir, objectLock, inventoryMapper,
-                logicalPathMapper, contentPathConstraintProcessor, config,
-                digestThreadPoolSize, copyThreadPoolSize);
+                logicalPathMapper, contentPathConstraintProcessor, config);
     }
 
     /**

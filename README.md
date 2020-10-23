@@ -108,10 +108,6 @@ and `\` characters.
  logical paths are mapped directly to content paths without making any changes. See `LogicalPathMappers` for more pre-configured
  options, such as `LogicalPathMappers.percentEncodingWindowsMapper()`, which percent-encodes a handful of characters that
  are problematic on Windows.
-* **digestThreadPoolSize**: Sets the size of the thread pool that's used to calculate digests. By default, the thread pool
-size is equal to the number of available processors.
-* **copyThreadPoolSize**: Sets the size of the thread pool that's used for copying/moving files. By default, the thread pool
-size is equal to twice the number of available processors.
 * **inventoryCache**: By default, an in-memory [Caffeine](https://github.com/ben-manes/caffeine) cache is used to cache
 deserialized inventories.
 * **objectLock**: Set the lock implementation that's used to lock objects for writing. By default, it is an in-memory lock
@@ -135,8 +131,6 @@ client should be located on the same mount as the OCFL storage root.
 Use `FileSystemOcflStorage.builder()` to create and configure an `OcflStorage` instnace.
 
 * **repositoryRoot**: Required, path to the OCFL storage root directory.
-* **threadPoolSize**: Optional, sets the size of the storage impls thread pool. By default, the thread pool size is equal
-to the number of available processors.
 * **checkNewVersionFixity**: Optional, instructs the client to check the fixity of every file in new versions once the version
 is at rest. By default, this is disabled and it is unlikely to be worthwhile if the work directory and OCFL storage root are
 on the same mount, as recommended.
@@ -182,8 +176,6 @@ Use `CloudOcflStorage.builder()` to create and configure an `OcflStorage` instan
 
 * **cloudClient**: Required, sets the `CloudClient` implementation to use. For Amazon S3, use `OcflS3Client.builder()`.
 * **workDir**: Required, sets the location used to stage files as they're moved into and out of the cloud.
-* **threadPoolSize**: Optional, sets the size of the storage impls thread pool. By default, the thread pool size is equal
-to the number of available processors.
 
 **Example**
 

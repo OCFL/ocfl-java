@@ -35,8 +35,6 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
-import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
@@ -65,11 +63,10 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -82,7 +79,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private final Path repositoryRoot;
     private final FileSystemOcflStorageInitializer initializer;
-    private final ParallelProcess parallelProcess;
 
     private final boolean checkNewVersionFixity;
 
@@ -110,18 +106,16 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * @see FileSystemOcflStorageBuilder
      *
      * @param repositoryRoot OCFL repository root directory
-     * @param threadPoolSize The size of the object's thread pool, used when calculating digests
      * @param checkNewVersionFixity If a fixity check should be performed on the contents of a new version's
      *                              content directory after moving it into the object. In most cases, this should not be
      *                              required, especially if the OCFL client's work directory is on the same volume as the
      *                              storage root.
      * @param initializer initializes a new OCFL repo
      */
-    public FileSystemOcflStorage(Path repositoryRoot, int threadPoolSize, boolean checkNewVersionFixity,
+    public FileSystemOcflStorage(Path repositoryRoot,
+                                 boolean checkNewVersionFixity,
                                  FileSystemOcflStorageInitializer initializer) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
-        Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
-        this.parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(threadPoolSize)));
         this.checkNewVersionFixity = checkNewVersionFixity;
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
@@ -233,10 +227,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         var version = inventory.ensureVersion(versionId);
         var digestAlgorithm = inventory.getDigestAlgorithm().getJavaStandardName();
 
-        parallelProcess.collection(version.getState().entrySet(), entry -> {
-            var id = entry.getKey();
-            var files = entry.getValue();
-
+        version.getState().forEach((id, files) -> {
             var srcPath = objectRootPath.resolve(inventory.ensureContentPath(id));
 
             for (var logicalPath : files) {
@@ -244,10 +235,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 var destination = Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), logicalPath));
 
                 UncheckedFiles.createDirectories(destination.getParent());
-
-                if (Thread.interrupted()) {
-                    break;
-                }
 
                 try (var stream = new FixityCheckInputStream(Files.newInputStream(srcPath), digestAlgorithm, id)) {
                     Files.copy(stream, destination);
@@ -533,7 +520,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     @Override
     public void close() {
         LOG.debug("Closing " + this.getClass().getName());
-        parallelProcess.shutdown();
     }
 
     private Path objectRootPathFull(String objectId) {
@@ -772,32 +758,35 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private void versionContentCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath, boolean checkFixity) {
         var version = inventory.getHeadVersion();
-        var files = FileUtil.findFiles(contentPath);
         var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath));
 
-        var expected = ConcurrentHashMap.<String>newKeySet(fileIds.size());
+        var expected = new HashSet<String>(fileIds.size());
         expected.addAll(fileIds);
 
-        parallelProcess.collection(files, file -> {
-            var fileContentPath = FileUtil.pathToStringStandardSeparator(objectRoot.path().relativize(file));
-            var expectedDigest = inventory.getFileId(fileContentPath);
+        try (var paths = Files.walk(contentPath)) {
+            paths.filter(Files::isRegularFile).forEach(file -> {
+                var fileContentPath = FileUtil.pathToStringStandardSeparator(objectRoot.path().relativize(file));
+                var expectedDigest = inventory.getFileId(fileContentPath);
 
-            if (expectedDigest == null) {
-                throw new CorruptObjectException(String.format("File not listed in object %s manifest: %s",
-                        inventory.getId(), fileContentPath));
-            } else if (version.getPaths(expectedDigest) == null) {
-                throw new CorruptObjectException(String.format("File not found in object %s version %s state: %s",
-                        inventory.getId(), inventory.getHead(), fileContentPath));
-            } else if (checkFixity) {
-                var actualDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), file);
-                if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-                    throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                            file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
+                if (expectedDigest == null) {
+                    throw new CorruptObjectException(String.format("File not listed in object %s manifest: %s",
+                            inventory.getId(), fileContentPath));
+                } else if (version.getPaths(expectedDigest) == null) {
+                    throw new CorruptObjectException(String.format("File not found in object %s version %s state: %s",
+                            inventory.getId(), inventory.getHead(), fileContentPath));
+                } else if (checkFixity) {
+                    var actualDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), file);
+                    if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
+                        throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
+                                file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
+                    }
                 }
-            }
 
-            expected.remove(expectedDigest);
-        });
+                expected.remove(expectedDigest);
+            });
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
 
         if (!expected.isEmpty()) {
             var filePaths = expected.stream().map(inventory::getContentPath).collect(Collectors.toList());

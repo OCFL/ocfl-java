@@ -73,9 +73,6 @@ public class OcflRepositoryBuilder {
     private ContentPathConstraintProcessor contentPathConstraintProcessor;
     private ObjectDetailsDatabase objectDetailsDb;
 
-    private int digestThreadPoolSize;
-    private int copyThreadPoolSize;
-
     /**
      * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
      * build().
@@ -91,8 +88,6 @@ public class OcflRepositoryBuilder {
         inventoryMapper = InventoryMapper.defaultMapper();
         logicalPathMapper = LogicalPathMappers.directMapper();
         contentPathConstraintProcessor = ContentPathConstraints.none();
-        digestThreadPoolSize = Runtime.getRuntime().availableProcessors();
-        copyThreadPoolSize = digestThreadPoolSize * 2;
     }
 
     /**
@@ -262,28 +257,6 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Sets the size of the thread pool that's used to calculate digests. Default: the number of available processors.
-     *
-     * @param digestThreadPoolSize digest thread pool size
-     * @return builder
-     */
-    public OcflRepositoryBuilder digestThreadPoolSize(int digestThreadPoolSize) {
-        this.digestThreadPoolSize = Enforce.expressionTrue(digestThreadPoolSize > 0, digestThreadPoolSize, "digestThreadPoolSize must be greater than 0");
-        return this;
-    }
-
-    /**
-     * Sets the size of the thread pool that's used to move files around. Default: the number of available processors * 2.
-     *
-     * @param copyThreadPoolSize copy thread pool size
-     * @return builder
-     */
-    public OcflRepositoryBuilder copyThreadPoolSize(int copyThreadPoolSize) {
-        this.copyThreadPoolSize = Enforce.expressionTrue(copyThreadPoolSize > 0, copyThreadPoolSize, "copyThreadPoolSize must be greater than 0");
-        return this;
-    }
-
-    /**
      * Constructs an OCFL repository. Brand new repositories are initialized.
      *
      * @return OcflRepository
@@ -315,13 +288,13 @@ public class OcflRepositoryBuilder {
             return clazz.cast(new DefaultMutableOcflRepository(wrappedStorage, workDir,
                     objectLock, inventoryMapper,
                     logicalPathMapper, contentPathConstraintProcessor,
-                    config, digestThreadPoolSize, copyThreadPoolSize));
+                    config));
         }
 
         return clazz.cast(new DefaultOcflRepository(wrappedStorage, workDir,
                 objectLock, inventoryMapper,
                 logicalPathMapper, contentPathConstraintProcessor,
-                config, digestThreadPoolSize, copyThreadPoolSize));
+                config));
     }
 
     private OcflStorage cache(OcflStorage storage) {

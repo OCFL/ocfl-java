@@ -37,13 +37,11 @@ import java.nio.file.Path;
 public class FileSystemOcflStorageBuilder {
 
     private Path repositoryRoot;
-    private int threadPoolSize;
     private boolean checkNewVersionFixity;
     private ObjectMapper objectMapper;
     private FileSystemOcflStorageInitializer initializer;
 
     public FileSystemOcflStorageBuilder() {
-        this.threadPoolSize = Runtime.getRuntime().availableProcessors();
         this.checkNewVersionFixity = false;
         this.objectMapper = ObjectMappers.prettyPrintMapper();
     }
@@ -67,17 +65,6 @@ public class FileSystemOcflStorageBuilder {
      */
     public FileSystemOcflStorageBuilder objectMapper(ObjectMapper objectMapper) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
-        return this;
-    }
-
-    /**
-     * Overrides the default thread pool size. Default: the number of available processors
-     *
-     * @param threadPoolSize thread pool size. Default: number of processors
-     * @return builder
-     */
-    public FileSystemOcflStorageBuilder threadPoolSize(int threadPoolSize) {
-        this.threadPoolSize = Enforce.expressionTrue(threadPoolSize > 0, threadPoolSize, "threadPoolSize must be greater than 0");
         return this;
     }
 
@@ -116,7 +103,7 @@ public class FileSystemOcflStorageBuilder {
             init = new FileSystemOcflStorageInitializer(objectMapper);
         }
 
-        return new FileSystemOcflStorage(repositoryRoot, threadPoolSize, checkNewVersionFixity, init);
+        return new FileSystemOcflStorage(repositoryRoot, checkNewVersionFixity, init);
     }
 
 }

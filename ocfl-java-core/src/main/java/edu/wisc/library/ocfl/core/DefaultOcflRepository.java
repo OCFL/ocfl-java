@@ -39,8 +39,6 @@ import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.concurrent.ExecutorTerminator;
-import edu.wisc.library.ocfl.core.concurrent.ParallelProcess;
 import edu.wisc.library.ocfl.core.inventory.AddFileProcessor;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
@@ -68,7 +66,6 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -94,9 +91,6 @@ public class DefaultOcflRepository implements OcflRepository {
 
     protected final OcflConfig config;
 
-    private final ParallelProcess parallelProcess;
-    private final ParallelProcess copyParallelProcess;
-
     private Clock clock;
 
     private boolean closed = false;
@@ -111,24 +105,18 @@ public class DefaultOcflRepository implements OcflRepository {
      * @param logicalPathMapper logical path mapper
      * @param contentPathConstraintProcessor content path constraint processor
      * @param config ocfl defaults configuration
-     * @param digestThreadPoolSize number of threads to use for computing digests
-     * @param copyThreadPoolSize number of threads to use for copying files
      */
     public DefaultOcflRepository(OcflStorage storage, Path workDir,
                                  ObjectLock objectLock,
                                  InventoryMapper inventoryMapper,
                                  LogicalPathMapper logicalPathMapper,
                                  ContentPathConstraintProcessor contentPathConstraintProcessor,
-                                 OcflConfig config,
-                                 int digestThreadPoolSize, int copyThreadPoolSize) {
+                                 OcflConfig config) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         this.config = Enforce.notNull(config, "config cannot be null");
-
-        Enforce.expressionTrue(digestThreadPoolSize > 0, digestThreadPoolSize, "digestThreadPoolSize must be greater than 0");
-        Enforce.expressionTrue(copyThreadPoolSize > 0, copyThreadPoolSize, "copyThreadPoolSize must be greater than 0");
 
         inventoryUpdaterBuilder = InventoryUpdater.builder().contentPathMapperBuilder(
                 ContentPathMapper.builder()
@@ -139,12 +127,7 @@ public class DefaultOcflRepository implements OcflRepository {
         responseMapper = new ResponseMapper();
         clock = Clock.systemUTC();
 
-        parallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(digestThreadPoolSize)));
-        copyParallelProcess = new ParallelProcess(ExecutorTerminator.addShutdownHook(Executors.newFixedThreadPool(copyThreadPoolSize)));
-
-        addFileProcessorBuilder = AddFileProcessor.builder()
-                .parallelProcess(parallelProcess)
-                .copyParallelProcess(copyParallelProcess);
+        addFileProcessorBuilder = AddFileProcessor.builder();
     }
 
     /**
@@ -514,8 +497,6 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Close OCFL repository");
 
         closed = true;
-        parallelProcess.shutdown();
-        copyParallelProcess.shutdown();
         storage.close();
     }
 
