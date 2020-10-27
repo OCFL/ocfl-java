@@ -87,11 +87,6 @@
             <artifactId>ocfl-java-aws</artifactId>
             <version>0.0.6-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>edu.wisc.library.ocfl</groupId>
-            <artifactId>ocfl-java-ibm</artifactId>
-            <version>0.0.6-SNAPSHOT</version>
-        </dependency>
 
         <!-- Test -->
         <dependency>
