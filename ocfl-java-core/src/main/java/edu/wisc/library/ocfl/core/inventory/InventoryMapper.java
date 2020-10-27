@@ -90,29 +90,35 @@ public class InventoryMapper {
         }
     }
 
-    public Inventory read(String objectRootPath, Path path) {
-        return readInternal(false, null, objectRootPath, path);
+    public Inventory read(String objectRootPath, String digest, Path path) {
+        return readInternal(false, null, objectRootPath, digest, path);
     }
 
-    public Inventory read(String objectRootPath, InputStream inputStream) {
-        return readInternal(false, null, objectRootPath, inputStream);
+    public Inventory read(String objectRootPath, String digest, InputStream inputStream) {
+        return readInternal(false, null, objectRootPath, digest, inputStream);
     }
 
-    public Inventory readMutableHead(String objectRootPath, RevisionId revisionId, Path path) {
-        return readInternal(true, revisionId, objectRootPath, path);
+    public Inventory readMutableHead(String objectRootPath, String digest, RevisionId revisionId, Path path) {
+        return readInternal(true, revisionId, objectRootPath, digest, path);
     }
 
-    public Inventory readMutableHead(String objectRootPath, RevisionId revisionId, InputStream inputStream) {
-        return readInternal(true, revisionId, objectRootPath, inputStream);
+    public Inventory readMutableHead(String objectRootPath, String digest, RevisionId revisionId, InputStream inputStream) {
+        return readInternal(true, revisionId, objectRootPath, digest, inputStream);
     }
 
-    private Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, Path path) {
+    private Inventory readInternal(boolean mutableHead,
+                                   RevisionId revisionId,
+                                   String objectRootPath,
+                                   String digest,
+                                   Path path) {
+        Enforce.notBlank(digest, "digest cannot be blank");
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()
                             .addValue("revisionId", revisionId)
                             .addValue("mutableHead", mutableHead)
-                            .addValue("objectRootPath", objectRootPath))
+                            .addValue("objectRootPath", objectRootPath)
+                            .addValue("currentDigest", digest))
                     .forType(Inventory.class)
                     .readValue(path.toFile());
         } catch (IOException e) {
@@ -120,13 +126,19 @@ public class InventoryMapper {
         }
     }
 
-    private Inventory readInternal(boolean mutableHead, RevisionId revisionId, String objectRootPath, InputStream inputStream) {
+    private Inventory readInternal(boolean mutableHead,
+                                   RevisionId revisionId,
+                                   String objectRootPath,
+                                   String digest,
+                                   InputStream inputStream) {
+        Enforce.notBlank(digest, "digest cannot be blank");
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()
                             .addValue("revisionId", revisionId)
                             .addValue("mutableHead", mutableHead)
-                            .addValue("objectRootPath", objectRootPath))
+                            .addValue("objectRootPath", objectRootPath)
+                            .addValue("currentDigest", digest))
                     .forType(Inventory.class)
                     .readValue(inputStream);
         } catch (IOException e) {

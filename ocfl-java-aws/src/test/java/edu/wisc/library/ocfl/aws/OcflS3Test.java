@@ -180,7 +180,6 @@ public class OcflS3Test {
                 .contentPathConstraints(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()
                         .cloudClient(new OcflS3Client(s3Client, bucket, repoPrefix))
-                        .workDir(tempDir)
                         .build())
                 .workDir(tempDir)
                 .buildMutable();

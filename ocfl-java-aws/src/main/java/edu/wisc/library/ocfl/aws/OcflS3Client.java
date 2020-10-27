@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.aws;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
+import edu.wisc.library.ocfl.core.storage.cloud.HeadResult;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
@@ -381,6 +382,29 @@ public class OcflS3Client implements CloudClient {
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public HeadResult head(String path) {
+        var key = keyBuilder.buildFromPath(path);
+
+        try {
+            var s3Result = s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key.getKey())
+                    .build());
+
+            return new HeadResult()
+                    .setContentEncoding(s3Result.contentEncoding())
+                    .setContentLength(s3Result.contentLength())
+                    .setETag(s3Result.eTag())
+                    .setLastModified(s3Result.lastModified());
+        } catch (NoSuchKeyException e) {
+            throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", key, bucket), e);
         }
     }
 

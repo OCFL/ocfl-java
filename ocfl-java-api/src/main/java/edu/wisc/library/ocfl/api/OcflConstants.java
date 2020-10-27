@@ -39,8 +39,11 @@ public final class OcflConstants {
 
     public static final String OCFL_LAYOUT = "ocfl_layout.json";
     public static final String INVENTORY_FILE = "inventory.json";
+    public static final String INVENTORY_SIDECAR_PREFIX = INVENTORY_FILE + ".";
     public static final String LOGS_DIR = "logs";
     public static final String EXTENSIONS_DIR = "extensions";
+
+    public static final String OBJECT_NAMASTE_1_0 = "0=" + OcflVersion.OCFL_1_0.getOcflObjectVersion();
 
     public static final String DEFAULT_INITIAL_VERSION_ID = "v1";
     public static final String DEFAULT_CONTENT_DIRECTORY = "content";

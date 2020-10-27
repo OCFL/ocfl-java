@@ -25,10 +25,10 @@
 package edu.wisc.library.ocfl.core.inventory;
 
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.io.IOException;
@@ -52,10 +52,14 @@ public final class SidecarMapper {
         }
     }
 
-    public static String readSidecar(Path sidecarPath) {
+    public static String readDigest(Path sidecarPath) {
+        if (Files.notExists(sidecarPath)) {
+            throw new CorruptObjectException("Inventory sidecar does not exist at " + sidecarPath);
+        }
+
         try {
             var parts = Files.readString(sidecarPath).split("\\s");
-            if (parts.length == 0) {
+            if (parts.length != 2) {
                 throw new CorruptObjectException("Invalid inventory sidecar file: " + sidecarPath);
             }
             return parts[0];

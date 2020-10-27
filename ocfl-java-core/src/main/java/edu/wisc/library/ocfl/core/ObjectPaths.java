@@ -31,6 +31,7 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,6 +47,26 @@ public final class ObjectPaths {
 
     private ObjectPaths() {
 
+    }
+
+    /**
+     * Path to the object's namaste file.
+     *
+     * @param objectRoot path to the object root
+     * @return path to namaste file
+     */
+    public static Path objectNamastePath(Path objectRoot) {
+        return objectRoot.resolve(OcflConstants.OBJECT_NAMASTE_1_0);
+    }
+
+    /**
+     * Path to the object's namaste file.
+     *
+     * @param objectRoot path to the object root
+     * @return path to namaste file
+     */
+    public static String objectNamastePath(String objectRoot) {
+        return FileUtil.pathJoinFailEmpty(objectRoot, OcflConstants.OBJECT_NAMASTE_1_0);
     }
 
     /**
@@ -87,7 +108,7 @@ public final class ObjectPaths {
      * @return path to inventory sidecar
      */
     public static String inventorySidecarPath(String directory, Inventory inventory) {
-        return FileUtil.pathJoinFailEmpty(directory, OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName());
+        return FileUtil.pathJoinFailEmpty(directory, OcflConstants.INVENTORY_SIDECAR_PREFIX + inventory.getDigestAlgorithm().getOcflName());
     }
 
     /**
@@ -97,7 +118,7 @@ public final class ObjectPaths {
      * @return path to inventory sidecar
      */
     public static Path findInventorySidecarPath(Path directory) {
-        return findSidecarPathInternal(directory, OcflConstants.INVENTORY_FILE + ".");
+        return findSidecarPathInternal(directory, OcflConstants.INVENTORY_SIDECAR_PREFIX);
     }
 
     /**
@@ -107,7 +128,7 @@ public final class ObjectPaths {
      * @return path to the saved root inventory sidecar
      */
     public static Path findMutableHeadRootInventorySidecarPath(Path directory) {
-        return findSidecarPathInternal(directory, "root-" + OcflConstants.INVENTORY_FILE + ".");
+        return findSidecarPathInternal(directory, "root-" + OcflConstants.INVENTORY_SIDECAR_PREFIX);
     }
 
     /**

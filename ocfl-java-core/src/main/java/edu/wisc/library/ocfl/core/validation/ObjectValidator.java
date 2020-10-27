@@ -232,7 +232,8 @@ public class ObjectValidator {
         while (!VersionId.V1.equals(currentInventory.getHead())) {
             var previous = currentInventory.getHead().previousVersionId();
             var inventoryPath = ObjectPaths.inventoryPath(objectRoot.resolve(previous.toString()));
-            var previousInventory = inventoryMapper.read(inventory.getObjectRootPath(), inventoryPath);
+            // Don't care about a valid digest here
+            var previousInventory = inventoryMapper.read(inventory.getObjectRootPath(), "digest", inventoryPath);
 
             InventoryValidator.validateDeep(previousInventory);
             validateId(inventory, previousInventory);
@@ -267,7 +268,7 @@ public class ObjectValidator {
     }
 
     private void validateInventoryDigest(Path inventory, Path sidecar, DigestAlgorithm algorithm) {
-        var expected = SidecarMapper.readSidecar(sidecar);
+        var expected = SidecarMapper.readDigest(sidecar);
         var actual = DigestUtil.computeDigestHex(algorithm, inventory);
         if (!expected.equalsIgnoreCase(actual)) {
             throw new CorruptObjectException(String.format("Inventory file at %s does not match expected %s digest: Expected %s; Actual %s",

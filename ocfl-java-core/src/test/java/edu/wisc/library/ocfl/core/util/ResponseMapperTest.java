@@ -1,9 +1,9 @@
 package edu.wisc.library.ocfl.core.util;
 
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
-import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionInfo;
 import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.fileChange;
+import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionInfo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 
@@ -28,7 +28,7 @@ public class ResponseMapperTest {
 
     @Test
     public void shouldIncludeSingleChangeWhenFileAddedAndNotUpdated() {
-        var inventory = Inventory.builder(Inventory.stubInventory("o1", new OcflConfig(), "o1"))
+        var inventory = Inventory.stubInventory("o1", new OcflConfig(), "o1").buildFrom()
                 .addFileToManifest("i1", "v1/content/f1")
                 .addFileToManifest("i2", "v2/content/f2")
                 .addFileToManifest("i3", "v3/content/f3")
@@ -60,7 +60,7 @@ public class ResponseMapperTest {
 
     @Test
     public void shouldIncludeRemoveChangeWhenFileAddedAndRemoved() {
-        var inventory = Inventory.builder(Inventory.stubInventory("o1", new OcflConfig(), "o1"))
+        var inventory = Inventory.stubInventory("o1", new OcflConfig(), "o1").buildFrom()
                 .addFileToManifest("i1", "v1/content/f1")
                 .addFileToManifest("i2", "v2/content/f2")
                 .addFileToManifest("i3", "v3/content/f3")
@@ -106,7 +106,7 @@ public class ResponseMapperTest {
     }
     @Test
     public void shouldIncludeMultipleUpdatesWhenContentChangs() {
-        var inventory = Inventory.builder(Inventory.stubInventory("o1", new OcflConfig(), "o1"))
+        var inventory = Inventory.stubInventory("o1", new OcflConfig(), "o1").buildFrom()
                 .addFileToManifest("i1", "v1/content/f1")
                 .addFileToManifest("i2", "v2/content/f1")
                 .addFileToManifest("i3", "v3/content/f1")

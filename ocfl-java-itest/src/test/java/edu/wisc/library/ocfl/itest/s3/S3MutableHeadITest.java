@@ -68,7 +68,6 @@ public class S3MutableHeadITest extends MutableHeadITest {
                 .storage(CloudOcflStorage.builder()
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .cloudClient(new OcflS3Client(s3Client, name))
-                        .workDir(workDir)
                         .build())
                 .workDir(workDir)
                 .buildMutable();

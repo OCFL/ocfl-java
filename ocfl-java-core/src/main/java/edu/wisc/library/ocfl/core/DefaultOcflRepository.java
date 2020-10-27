@@ -444,8 +444,6 @@ public class DefaultOcflRepository implements OcflRepository {
         InventoryValidator.validateShallow(importInventory);
         objectValidator.validateVersion(versionPath, importInventory);
 
-        // TODO Existing bug: What if a version is removed immediately before a new version is added that is based on the new removed version?
-
         var stagingDir = createStagingDir(importInventory.getId());
 
         try {
@@ -465,11 +463,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         Enforce.notNull(objectPath, "objectPath cannot be null");
 
-        var inventoryPath = ObjectPaths.inventoryPath(objectPath);
-
-        Enforce.expressionTrue(Files.exists(inventoryPath), inventoryPath, "inventory.json must exist");
-
-        var inventory = inventoryMapper.read(objectPath.toString(), inventoryPath);
+        var inventory = parseInventoryForImport(objectPath);
         var objectId = inventory.getId();
 
         if (containsObject(objectId)) {
@@ -551,26 +545,25 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     protected void writeNewVersion(Inventory inventory, Path stagingDir) {
-        writeInventory(inventory, stagingDir);
-        objectLock.doInWriteLock(inventory.getId(), () -> storage.storeNewVersion(inventory, stagingDir));
+        var finalInventory = writeInventory(inventory, stagingDir);
+        objectLock.doInWriteLock(inventory.getId(), () -> storage.storeNewVersion(finalInventory, stagingDir));
     }
 
-    protected void writeInventory(Inventory inventory, Path stagingDir) {
+    protected Inventory writeInventory(Inventory inventory, Path stagingDir) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
         inventoryMapper.write(inventoryPath, inventory);
         String inventoryDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), inventoryPath);
         SidecarMapper.writeSidecar(inventory, inventoryDigest, stagingDir);
+
+        return inventory.buildFrom().currentDigest(inventoryDigest).build();
     }
 
     private Inventory createImportVersionInventory(Path versionPath) {
-        var inventoryPath = ObjectPaths.inventoryPath(versionPath);
-
-        Enforce.expressionTrue(Files.exists(inventoryPath), inventoryPath, "inventory.json must exist");
-
-        var importInventory = inventoryMapper.read(versionPath.toString(), inventoryPath);
+        var importInventory = parseInventoryForImport(versionPath);
         var objectId = importInventory.getId();
 
         var existingInventory = loadInventory(ObjectVersionId.head(objectId));
+        String existingDigest = null;
 
         ensureNoMutableHead(existingInventory);
 
@@ -588,12 +581,24 @@ public class DefaultOcflRepository implements OcflRepository {
             }
 
             InventoryValidator.validateCompatibleInventories(importInventory, existingInventory);
+            existingDigest = existingInventory.getCurrentDigest();
         }
 
         var objectRootPath = storage.objectRootPath(objectId);
-        return Inventory.builder(importInventory)
+        return importInventory.buildFrom()
                 .objectRootPath(objectRootPath)
+                .previousDigest(existingDigest)
                 .build();
+    }
+
+    private Inventory parseInventoryForImport(Path path) {
+        var inventoryPath = ObjectPaths.inventoryPath(path);
+        var sidecarPath = ObjectPaths.findInventorySidecarPath(path);
+
+        Enforce.expressionTrue(Files.exists(inventoryPath), inventoryPath, "inventory.json must exist");
+        Enforce.expressionTrue(Files.exists(sidecarPath), sidecarPath, "inventory sidecar must exist");
+
+        return inventoryMapper.read(path.toString(), SidecarMapper.readDigest(sidecarPath), inventoryPath);
     }
 
     private void importToStaging(Path source, Path stagingDir, OcflOption... ocflOptions) {
@@ -608,7 +613,6 @@ public class DefaultOcflRepository implements OcflRepository {
                 throw new UncheckedIOException(e);
             }
         } else {
-            // TODO do we care about parallelizing this?
             FileUtil.recursiveCopy(source, stagingDir);
         }
     }

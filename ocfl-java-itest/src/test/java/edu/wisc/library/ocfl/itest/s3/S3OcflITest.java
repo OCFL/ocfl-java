@@ -75,7 +75,6 @@ public class S3OcflITest extends OcflITest {
                                 .s3Client(s3Client)
                                 .bucket(name)
                                 .build())
-                        .workDir(workDir)
                         .build())
                 .workDir(workDir);
 

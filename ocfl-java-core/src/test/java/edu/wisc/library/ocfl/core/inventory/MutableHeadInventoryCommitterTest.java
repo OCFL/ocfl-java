@@ -1,10 +1,10 @@
 package edu.wisc.library.ocfl.core.inventory;
 
-import edu.wisc.library.ocfl.api.model.VersionInfo;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.model.Version;
@@ -12,7 +12,10 @@ import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class MutableHeadInventoryCommitterTest {
 
@@ -23,7 +26,7 @@ public class MutableHeadInventoryCommitterTest {
         var date3 = OffsetDateTime.now().minusDays(1);
         var now = OffsetDateTime.now();
 
-        var original = Inventory.builder(Inventory.stubInventory("o1", new OcflConfig(), "root"))
+        var original = Inventory.stubInventory("o1", new OcflConfig(), "root").buildFrom()
                 .addFileToManifest("f1", "v1/content/file1")
                 .addFileToManifest("f2", "v1/content/file2")
                 .addFileToManifest("f3", "v2/content/file3")

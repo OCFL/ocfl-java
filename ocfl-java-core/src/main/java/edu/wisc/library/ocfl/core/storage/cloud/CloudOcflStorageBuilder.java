@@ -28,8 +28,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
-import java.nio.file.Path;
-
 /**
  * Builder for constructing S3OcflStorage objects. It is configured with sensible defaults and can minimally be
  * used as {@code new S3OcflStorageBuilder().s3Client(s3Client).workDir(workDir).build(bucketName).}
@@ -39,7 +37,6 @@ public class CloudOcflStorageBuilder {
     private ObjectMapper objectMapper;
     private CloudClient cloudClient;
     private CloudOcflStorageInitializer initializer;
-    private Path workDir;
 
     public CloudOcflStorageBuilder() {
         this.objectMapper = ObjectMappers.prettyPrintMapper();
@@ -53,17 +50,6 @@ public class CloudOcflStorageBuilder {
      */
     public CloudOcflStorageBuilder cloudClient(CloudClient cloudClient) {
         this.cloudClient = cloudClient;
-        return this;
-    }
-
-    /**
-     * Set the directory to write temporary files to. This must be set prior to calling build().
-     *
-     * @param workDir the directory to write temporary files to.
-     * @return builder
-     */
-    public CloudOcflStorageBuilder workDir(Path workDir) {
-        this.workDir = workDir;
         return this;
     }
 
@@ -98,7 +84,7 @@ public class CloudOcflStorageBuilder {
             init = new CloudOcflStorageInitializer(cloudClient, objectMapper);
         }
 
-        return new CloudOcflStorage(cloudClient, workDir, init);
+        return new CloudOcflStorage(cloudClient, init);
     }
 
 }

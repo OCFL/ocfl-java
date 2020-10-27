@@ -253,6 +253,38 @@ public class OcflS3ClientTest {
         assertObjectsExist(bucket, repoPrefix, List.of("f1", "f2", "d1/f4", "d1/d2/f5"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"", "ocfl-repo-1"})
+    public void headWhenExists(String repoPrefix) throws IOException {
+        var bucket = createBucket();
+        var client = new OcflS3Client(awsS3Client, bucket, repoPrefix);
+
+        var key = "dir/sub/test.txt";
+
+        client.uploadFile(createFile("content"), key);
+
+        var result = client.head(key);
+
+        assertEquals(7, result.getContentLength());
+        assertEquals("\"9a0364b9e99bb480dd25e1f0284c8555\"", result.getETag());
+        assertNotNull(result.getLastModified());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "ocfl-repo-1"})
+    public void failHeadWhenDoesNotExist(String repoPrefix) throws IOException {
+        var bucket = createBucket();
+        var client = new OcflS3Client(awsS3Client, bucket, repoPrefix);
+
+        var key = "dir/sub/test.txt";
+
+        client.uploadFile(createFile("content"), key);
+
+        assertThrows(KeyNotFoundException.class, () -> {
+            client.head("bogus");
+        });
+    }
+
     private Path createFile(String content) {
         try {
             return Files.writeString(tempDir.resolve("temp-file-" + random.nextLong()), content);

@@ -1,12 +1,12 @@
 package edu.wisc.library.ocfl.core.inventory;
 
+import edu.wisc.library.ocfl.api.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
-import edu.wisc.library.ocfl.api.OcflConfig;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.test.OcflAsserts;
@@ -16,7 +16,11 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class InventoryUpdaterTest {
 
@@ -25,7 +29,7 @@ public class InventoryUpdaterTest {
 
     @BeforeEach
     public void setup() {
-        inventory = Inventory.builder(Inventory.stubInventory("id", new OcflConfig(), "root"))
+        inventory = Inventory.stubInventory("id", new OcflConfig(), "root").buildFrom()
                 .addFileToManifest("file1", "v1/content/file1p")
                 .addFileToManifest("file2", "v1/content/file2p")
                 .addHeadVersion(Version.builder()

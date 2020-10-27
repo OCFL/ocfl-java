@@ -94,6 +94,13 @@ public class Inventory {
     @JsonIgnore
     private final String objectRootPath;
 
+    @JsonIgnore
+    private final String previousDigest;
+
+    // This property is injected
+    @JsonIgnore
+    private final String currentDigest;
+
     /**
      * Creates a stub inventory that is useful when creating new objects. It should NOT be persisted.
      *
@@ -119,13 +126,6 @@ public class Inventory {
     }
 
     /**
-     * @return new {@link InventoryBuilder} that copies values from an existing inventory
-     */
-    public static InventoryBuilder builder(Inventory original) {
-        return new InventoryBuilder(original);
-    }
-
-    /**
      * Creates an inventory builder with values populated from a stub inventory
      *
      * @param id object id
@@ -134,7 +134,7 @@ public class Inventory {
      * @return inventory builder
      */
     public static InventoryBuilder builderFromStub(String id, OcflConfig config, String objectRootPath) {
-        return new InventoryBuilder(Inventory.stubInventory(id, config, objectRootPath));
+        return Inventory.stubInventory(id, config, objectRootPath).buildFrom();
     }
 
     /**
@@ -151,7 +151,9 @@ public class Inventory {
             Map<VersionId, Version> versions,
             boolean mutableHead,
             RevisionId revisionId,
-            String objectRootPath) {
+            String objectRootPath,
+            String previousDigest,
+            String currentDigest) {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
@@ -168,6 +170,8 @@ public class Inventory {
         this.mutableHead = mutableHead;
         this.revisionId = revisionId;
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
+        this.previousDigest = previousDigest;
+        this.currentDigest = currentDigest;
     }
 
     /**
@@ -191,6 +195,28 @@ public class Inventory {
         this.mutableHead = false;
         this.revisionId = null;
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be null");
+        this.previousDigest = null;
+        this.currentDigest = null;
+    }
+
+    /**
+     * Creates an inventory builder that copies all of the properties of this inventory.
+     *
+     * @return inventory builder
+     */
+    public InventoryBuilder buildFrom() {
+        return new InventoryBuilder(this);
+    }
+
+    /**
+     * Same as buildFrom except it moves the current digest to the previous digest and nulls the current digest.
+     *
+     * @return inventory builder
+     */
+    public InventoryBuilder buildNextVersionFrom() {
+        return buildFrom()
+                .previousDigest(getCurrentDigest())
+                .currentDigest(null);
     }
 
     private static Map<DigestAlgorithm, PathBiMap> createFixityBiMap(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
@@ -279,10 +305,7 @@ public class Inventory {
      * The name of the directory within a version directory that contains the object content. 'content' by default.
      */
     public String resolveContentDirectory() {
-        if (contentDirectory == null) {
-            return OcflConstants.DEFAULT_CONTENT_DIRECTORY;
-        }
-        return contentDirectory;
+        return Objects.requireNonNullElse(contentDirectory, OcflConstants.DEFAULT_CONTENT_DIRECTORY);
     }
 
     @JsonIgnore
@@ -420,6 +443,26 @@ public class Inventory {
     }
 
     /**
+     * Returns the digest in the previous version's sidecar file or null
+     *
+     * @return the digest of the previous version or null
+     */
+    @JsonIgnore
+    public String getPreviousDigest() {
+        return previousDigest;
+    }
+
+    /**
+     * Returns the digest of the this version or null if it's not known.
+     *
+     * @return the digest of this version or null
+     */
+    @JsonIgnore
+    public String getCurrentDigest() {
+        return currentDigest;
+    }
+
+    /**
      * Returns the next version id after the current HEAD version. If the object has a mutable HEAD, the current version
      * is returned.
      *
@@ -466,16 +509,18 @@ public class Inventory {
     public String toString() {
         return "Inventory{" +
                 "id='" + id + '\'' +
-                ", type='" + type + '\'' +
-                ", digestAlgorithm='" + digestAlgorithm + '\'' +
-                ", head='" + head + '\'' +
+                ", type=" + type +
+                ", digestAlgorithm=" + digestAlgorithm +
+                ", head=" + head +
                 ", contentDirectory='" + contentDirectory + '\'' +
-                ", fixity=" + fixityBiMap +
-                ", manifest=" + manifestBiMap +
+                ", fixityBiMap=" + fixityBiMap +
+                ", manifestBiMap=" + manifestBiMap +
                 ", versions=" + versions +
-                ", mutableHead=" + mutableHead +
                 ", revisionId=" + revisionId +
-                ", objectRootPath=" + objectRootPath +
+                ", mutableHead=" + mutableHead +
+                ", objectRootPath='" + objectRootPath + '\'' +
+                ", previousDigest='" + previousDigest + '\'' +
+                ", currentDigest='" + currentDigest + '\'' +
                 '}';
     }
 
@@ -494,12 +539,18 @@ public class Inventory {
                 manifestBiMap.equals(inventory.manifestBiMap) &&
                 versions.equals(inventory.versions) &&
                 Objects.equals(revisionId, inventory.revisionId) &&
-                objectRootPath.equals(inventory.objectRootPath);
+                objectRootPath.equals(inventory.objectRootPath) &&
+                Objects.equals(previousDigest, inventory.previousDigest) &&
+                Objects.equals(currentDigest, inventory.currentDigest);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, type, digestAlgorithm, head, contentDirectory, fixityBiMap, manifestBiMap, versions, revisionId, mutableHead, objectRootPath);
+        return Objects.hash(id, type, digestAlgorithm,
+                head, contentDirectory, fixityBiMap,
+                manifestBiMap, versions, revisionId,
+                mutableHead, objectRootPath, previousDigest,
+                currentDigest);
     }
 
     /**
@@ -519,6 +570,8 @@ public class Inventory {
         boolean mutableHead;
         RevisionId revisionId;
         String objectRootPath;
+        String previousDigest;
+        String currentDigest;
 
         public void withId(String id) {
             this.id = id;
@@ -567,9 +620,17 @@ public class Inventory {
             this.objectRootPath = objectRootPath;
         }
 
+        @JacksonInject("currentDigest")
+        public void withCurrentDigest(String currentDigest) {
+            this.currentDigest = currentDigest;
+        }
+
         public Inventory build() {
-            return new Inventory(id, type, digestAlgorithm, head, contentDirectory, fixity,
-                    manifest, versions, mutableHead, revisionId, objectRootPath);
+            return new Inventory(id, type, digestAlgorithm,
+                    head, contentDirectory, fixity,
+                    manifest, versions, mutableHead,
+                    revisionId, objectRootPath, previousDigest,
+                    currentDigest);
         }
 
     }

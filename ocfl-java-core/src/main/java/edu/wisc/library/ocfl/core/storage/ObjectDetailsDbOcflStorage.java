@@ -24,7 +24,6 @@
 
 package edu.wisc.library.ocfl.core.storage;
 
-import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
@@ -44,7 +43,6 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Path;
-import java.security.DigestOutputStream;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -85,12 +83,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
             var inventory = delegate.loadInventory(objectId);
 
             if (inventory != null) {
-                // TODO this means that objects that are not already in the db must be deserialized twice!
                 var baos = new ByteArrayOutputStream();
-                var stream = new DigestOutputStream(baos, inventory.getDigestAlgorithm().getMessageDigest());
-                inventoryMapper.write(stream, inventory);
-                var digest = Bytes.wrap(stream.getMessageDigest().digest()).encodeHex(false);
-                objectDetailsDb.addObjectDetails(inventory, digest, baos.toByteArray());
+                inventoryMapper.write(baos, inventory);
+                objectDetailsDb.addObjectDetails(inventory, inventory.getCurrentDigest(), baos.toByteArray());
             }
 
             return inventory;
@@ -256,7 +251,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     private void updateDetails(Inventory inventory, Path stagingDir, Runnable runnable) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
         var sidecarPath = ObjectPaths.inventorySidecarPath(stagingDir, inventory);
-        var digest = SidecarMapper.readSidecar(sidecarPath);
+        var digest = SidecarMapper.readDigest(sidecarPath);
         try {
             objectDetailsDb.updateObjectDetails(inventory, digest, inventoryPath, runnable);
         } catch (ObjectOutOfSyncException e) {
@@ -284,9 +279,10 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         }
 
         if (details.getRevisionId() == null) {
-            return inventoryMapper.read(details.getObjectRootPath(), new ByteArrayInputStream(details.getInventoryBytes()));
+            return inventoryMapper.read(details.getObjectRootPath(), details.getInventoryDigest(), new ByteArrayInputStream(details.getInventoryBytes()));
         } else {
-            return inventoryMapper.readMutableHead(details.getObjectRootPath(), details.getRevisionId(), new ByteArrayInputStream(details.getInventoryBytes()));
+            return inventoryMapper.readMutableHead(details.getObjectRootPath(), details.getInventoryDigest(),
+                    details.getRevisionId(), new ByteArrayInputStream(details.getInventoryBytes()));
         }
     }
 

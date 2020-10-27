@@ -9,7 +9,6 @@ import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.PathBiMap;
 import edu.wisc.library.ocfl.core.model.User;
 import edu.wisc.library.ocfl.core.model.Version;
-import edu.wisc.library.ocfl.core.validation.InventoryValidator;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.Test;
 
@@ -333,7 +332,7 @@ public class InventoryValidatorTest {
     }
 
     private InventoryBuilder builder(String id) {
-        return Inventory.builder(Inventory.stubInventory(id, new OcflConfig(), "root"));
+        return Inventory.stubInventory(id, new OcflConfig(), "root").buildFrom();
     }
 
 }

@@ -24,13 +24,13 @@
 
 package edu.wisc.library.ocfl.core.inventory;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionId;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
@@ -86,7 +86,7 @@ public class InventoryUpdater {
         public InventoryUpdater buildBlankState(Inventory inventory) {
             Enforce.notNull(inventory, "inventory cannot be null");
 
-            var inventoryBuilder = Inventory.builder(inventory);
+            var inventoryBuilder = inventory.buildNextVersionFrom();
             var versionBuilder = Version.builder();
 
             return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
@@ -102,7 +102,7 @@ public class InventoryUpdater {
         public InventoryUpdater buildCopyState(Inventory inventory) {
             Enforce.notNull(inventory, "inventory cannot be null");
 
-            var inventoryBuilder = Inventory.builder(inventory);
+            var inventoryBuilder = inventory.buildNextVersionFrom();
             VersionBuilder versionBuilder;
 
             if (inventory.getHeadVersion() != null) {
@@ -126,7 +126,7 @@ public class InventoryUpdater {
             Enforce.notNull(inventory, "inventory cannot be null");
             Enforce.notNull(versionId, "versionId cannot be null");
 
-            var inventoryBuilder = Inventory.builder(inventory);
+            var inventoryBuilder = inventory.buildNextVersionFrom();
             var versionBuilder = Version.builder(inventory.getVersion(versionId));
 
             return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
@@ -143,7 +143,7 @@ public class InventoryUpdater {
         public InventoryUpdater buildCopyStateMutable(Inventory inventory) {
             Enforce.notNull(inventory, "inventory cannot be null");
 
-            var inventoryBuilder = Inventory.builder(inventory).mutableHead(true);
+            var inventoryBuilder = inventory.buildNextVersionFrom().mutableHead(true);
             var versionBuilder = Version.builder(inventory.getHeadVersion());
 
             return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,

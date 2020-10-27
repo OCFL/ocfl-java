@@ -41,6 +41,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedOutputPath;
@@ -1877,6 +1880,48 @@ public abstract class OcflITest {
         OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "file3.txt", () -> {
             repo2.importVersion(output);
         });
+    }
+
+    @Test
+    public void rejectUpdateWhenConcurrentChangeToPreviousVersion() throws ExecutionException, InterruptedException {
+        var objectId = "o1";
+
+        var repoName = "concurrent-change";
+        var repo = defaultRepo(repoName);
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        var future = CompletableFuture.runAsync(() -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                try {
+                    TimeUnit.SECONDS.sleep(3);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                updater.writeFile(streamString("file3"), "file3.txt");
+            });
+        });
+
+        TimeUnit.MILLISECONDS.sleep(100);
+
+        repo.rollbackToVersion(ObjectVersionId.version(objectId, "v1"));
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file4"), "file4.txt");
+        });
+
+        OcflAsserts.assertThrowsWithMessage(ObjectOutOfSyncException.class,
+                "Cannot update object o1 because the update is out of sync with the current object state. The digest of the current inventory is ", () -> {
+                    try {
+                        future.get();
+                    } catch (ExecutionException e) {
+                        throw e.getCause();
+                    }
+            });
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {

@@ -131,10 +131,10 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         if (inventory.hasMutableHead()) {
             var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(versionInfo), versionInfo);
             var stagingDir = FileUtil.createObjectTempDir(workDir, objectId);
-            writeInventory(newInventory, stagingDir);
+            var finalInventory = writeInventory(newInventory, stagingDir);
 
             try {
-                objectLock.doInWriteLock(inventory.getId(), () -> storage.commitMutableHead(inventory, newInventory, stagingDir));
+                objectLock.doInWriteLock(inventory.getId(), () -> storage.commitMutableHead(inventory, finalInventory, stagingDir));
             } finally {
                 FileUtil.safeDeleteDirectory(stagingDir);
             }
@@ -184,8 +184,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         UncheckedFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
 
         try {
-            var inventoryBuilder = Inventory.builder(stubInventory);
-            var inventory = inventoryBuilder
+            var inventory = stubInventory.buildFrom()
                     .addHeadVersion(Version.builder()
                             .versionInfo(new VersionInfo()
                                     .setMessage("Auto-generated empty object version.")

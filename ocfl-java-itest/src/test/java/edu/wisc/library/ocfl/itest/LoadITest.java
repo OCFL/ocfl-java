@@ -443,7 +443,6 @@ public class LoadITest {
                                 .repoPrefix(prefix)
                                 .s3Client(s3Client)
                                 .build())
-                        .workDir(UncheckedFiles.createDirectories(tempRoot.resolve("temp")))
                         .build())
                 .workDir(UncheckedFiles.createDirectories(tempRoot.resolve("temp")))
                 .buildMutable();

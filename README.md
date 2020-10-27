@@ -175,7 +175,6 @@ every access. These issues will be addressed in the future.
 Use `CloudOcflStorage.builder()` to create and configure an `OcflStorage` instance.
 
 * **cloudClient**: Required, sets the `CloudClient` implementation to use. For Amazon S3, use `OcflS3Client.builder()`.
-* **workDir**: Required, sets the location used to stage files as they're moved into and out of the cloud.
 
 **Example**
 
@@ -191,7 +190,6 @@ var repo = new OcflRepositoryBuilder()
                         .bucket(name)
                         .repoPrefix(prefix)
                         .build())
-                .workDir(workDir)
                 .build())
         .workDir(workDir)
         .build();

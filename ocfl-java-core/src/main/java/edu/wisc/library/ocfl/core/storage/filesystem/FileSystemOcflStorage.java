@@ -163,7 +163,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         return findOcflObjectRootDirs(repositoryRoot).map(rootPath -> {
             var relativeRootStr = FileUtil.pathToStringStandardSeparator(repositoryRoot.relativize(rootPath));
             var inventoryPath = ObjectPaths.inventoryPath(rootPath);
-            var inventory = inventoryMapper.read(relativeRootStr, inventoryPath);
+            // Intentionally filling in a bad digest here because all we care about is the object's id
+            var inventory = inventoryMapper.read(relativeRootStr, "digest", inventoryPath);
             return inventory.getId();
         });
     }
@@ -412,7 +413,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public boolean containsObject(String objectId) {
         ensureOpen();
 
-        var exists = Files.exists(ObjectPaths.inventoryPath(objectRootPathFull(objectId)));
+        // TODO this ONLY WORKs for OCFL v1.0
+        var exists = Files.exists(ObjectPaths.objectNamastePath(objectRootPathFull(objectId)));
 
         LOG.debug("OCFL repository contains object <{}>: {}", objectId, exists);
 
@@ -533,7 +535,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         }
 
         try (var inventoryStream = inventoryVerifyingInputStream(inventoryPath)) {
-            var inventory = inventoryMapper.read(objectRootPath, inventoryStream);
+            var inventory = inventoryMapper.read(objectRootPath, inventoryStream.getExpectedDigestValue(), inventoryStream);
             inventoryStream.checkFixity();
             return inventory;
         } catch (FixityCheckException e) {
@@ -547,7 +549,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         var revisionId = identifyLatestRevision(objectRootPathAbsolute);
 
         try (var inventoryStream = inventoryVerifyingInputStream(inventoryPath)) {
-            var inventory = inventoryMapper.readMutableHead(objectRootPath, revisionId, inventoryStream);
+            var inventory = inventoryMapper.readMutableHead(objectRootPath, inventoryStream.getExpectedDigestValue(),
+                    revisionId, inventoryStream);
             inventoryStream.checkFixity();
             return inventory;
         } catch (IOException e) {
@@ -557,7 +560,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private FixityCheckInputStream inventoryVerifyingInputStream(Path inventoryPath) throws IOException {
         var sidecarPath = ObjectPaths.findInventorySidecarPath(inventoryPath.getParent());
-        var expectedDigest = SidecarMapper.readSidecar(sidecarPath);
+        var expectedDigest = SidecarMapper.readDigest(sidecarPath);
         var algorithm = SidecarMapper.getDigestAlgorithmFromSidecar(FileUtil.pathToStringStandardSeparator(sidecarPath));
 
         return new FixityCheckInputStream(Files.newInputStream(inventoryPath), algorithm, expectedDigest);
@@ -596,6 +599,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
             try {
                 versionContentCheck(inventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
+                verifyPriorInventory(inventory, objectRoot.inventorySidecar());
                 copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
             } catch (RuntimeException e) {
                 FileUtil.safeDeleteDirectory(versionRoot.path());
@@ -635,6 +639,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
                 try {
                     versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
+                    verifyPriorInventoryMutable(inventory, objectRoot, isNewMutableHead);
                     copyInventory(stagingVersionRoot, versionRoot);
                 } catch (RuntimeException e) {
                     FileUtil.safeDeleteDirectory(revisionPath);
@@ -756,6 +761,31 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         });
     }
 
+    private void verifyPriorInventoryMutable(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, boolean isNewMutableHead) {
+        Path sidecarPath;
+
+        if (isNewMutableHead) {
+            sidecarPath = objectRoot.inventorySidecar();
+        } else {
+            sidecarPath = objectRoot.mutableHeadVersion().inventorySidecar();
+        }
+
+        verifyPriorInventory(inventory, sidecarPath);
+    }
+
+    private void verifyPriorInventory(Inventory inventory, Path sidecarPath) {
+        if (inventory.getPreviousDigest() != null) {
+            var actualDigest = SidecarMapper.readDigest(sidecarPath);
+            if (!actualDigest.equalsIgnoreCase(inventory.getPreviousDigest())) {
+                throw new ObjectOutOfSyncException(String.format("Cannot update object %s because the update is out of sync with the current object state. " +
+                                "The digest of the current inventory is %s, but the digest %s was expected.",
+                        inventory.getId(), actualDigest, inventory.getPreviousDigest()));
+            }
+        } else if (!inventory.getHead().equals(VersionId.V1)) {
+            LOG.debug("Cannot verify prior inventory for object {} because its digest is unknown.", inventory.getId());
+        }
+    }
+
     private void versionContentCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath, boolean checkFixity) {
         var version = inventory.getHeadVersion();
         var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath));
@@ -819,8 +849,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     private void ensureRootObjectHasNotChanged(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
         var savedSidecarPath = ObjectPaths.inventorySidecarPath(objectRoot.mutableHeadExtensionPath(), inventory);
         if (Files.exists(savedSidecarPath)) {
-            var expectedDigest = SidecarMapper.readSidecar(savedSidecarPath);
-            var actualDigest = SidecarMapper.readSidecar(objectRoot.inventorySidecar());
+            var expectedDigest = SidecarMapper.readDigest(savedSidecarPath);
+            var actualDigest = SidecarMapper.readDigest(objectRoot.inventorySidecar());
 
             if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                 throw new ObjectOutOfSyncException(
@@ -833,8 +863,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         var savedSidecarPath = ObjectPaths.findMutableHeadRootInventorySidecarPath(objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH));
         if (Files.exists(savedSidecarPath)) {
             var rootSidecarPath = ObjectPaths.findInventorySidecarPath(objectRootPath);
-            var expectedDigest = SidecarMapper.readSidecar(savedSidecarPath);
-            var actualDigest = SidecarMapper.readSidecar(rootSidecarPath);
+            var expectedDigest = SidecarMapper.readDigest(savedSidecarPath);
+            var actualDigest = SidecarMapper.readDigest(rootSidecarPath);
 
             if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                 throw new ObjectOutOfSyncException(

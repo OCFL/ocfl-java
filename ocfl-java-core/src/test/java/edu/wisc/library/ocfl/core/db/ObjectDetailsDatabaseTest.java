@@ -1,9 +1,9 @@
 package edu.wisc.library.ocfl.core.db;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
-import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
@@ -26,7 +26,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ObjectDetailsDatabaseTest {
 
@@ -78,7 +82,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        inventory = Inventory.builder(inventory)
+        inventory = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -107,7 +111,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        inventory = Inventory.builder(inventory)
+        inventory = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -131,7 +135,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -198,7 +202,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -222,7 +226,7 @@ public class ObjectDetailsDatabaseTest {
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -250,7 +254,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .mutableHead(true)
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
@@ -284,7 +288,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .mutableHead(false)
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
@@ -314,7 +318,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -370,7 +374,7 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -408,7 +412,7 @@ public class ObjectDetailsDatabaseTest {
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
         var invPath = writeInventory(invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -476,7 +480,7 @@ public class ObjectDetailsDatabaseTest {
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
 
-        var inv2 = Inventory.builder(inventory)
+        var inv2 = inventory.buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")

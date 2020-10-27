@@ -117,6 +117,15 @@ public interface CloudClient {
     String downloadString(String srcPath);
 
     /**
+     * Heads the object at the specified path.
+     *
+     * @param path object key
+     * @return head details
+     * @throws KeyNotFoundException when path not found
+     */
+    HeadResult head(String path);
+
+    /**
      * Lists all of the keys under a prefix. No delimiter is used.
      *
      * @param prefix the key prefix

@@ -58,6 +58,9 @@ public class InventoryBuilder {
 
     private VersionId nextHeadVersion;
 
+    private String previousDigest;
+    private String currentDigest;
+
     public InventoryBuilder() {
         fixity = new HashMap<>();
         manifest = new PathBiMap();
@@ -84,6 +87,8 @@ public class InventoryBuilder {
         this.fixity = fixityToBiMap(original.getFixity());
         this.manifest = PathBiMap.fromFileIdMap(original.getManifest());
         this.versions = new HashMap<>(original.getVersions());
+        this.previousDigest = original.getPreviousDigest();
+        this.currentDigest = original.getCurrentDigest();
 
         this.nextHeadVersion = head.nextVersionId();
     }
@@ -294,13 +299,25 @@ public class InventoryBuilder {
         return this;
     }
 
+    public InventoryBuilder previousDigest(String previousDigest) {
+        this.previousDigest = previousDigest;
+        return this;
+    }
+
+    public InventoryBuilder currentDigest(String currentDigest) {
+        this.currentDigest = currentDigest;
+        return this;
+    }
+
     /**
      * @return a new Inventory
      */
     public Inventory build() {
-        return new Inventory(id, type, digestAlgorithm, head, contentDirectory,
-                fixityFromBiMap(), manifest.getFileIdToPaths(), versions, mutableHead, revisionId,
-                objectRootPath);
+        return new Inventory(id, type, digestAlgorithm,
+                head, contentDirectory, fixityFromBiMap(),
+                manifest.getFileIdToPaths(), versions, mutableHead,
+                revisionId, objectRootPath, previousDigest,
+                currentDigest);
     }
 
     /**

@@ -13,7 +13,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class InventoryMapperTest {
 
@@ -28,25 +31,29 @@ public class InventoryMapperTest {
     public void shouldRoundTripInventory() throws IOException {
         var original = readFile("simple-inventory.json");
         var objectRoot = "path/to/obj1";
-        var inventory = mapper.read(objectRoot, new ByteArrayInputStream(original.getBytes()));
+        var digest = "abc123";
+        var inventory = mapper.read(objectRoot, digest, new ByteArrayInputStream(original.getBytes()));
         assertFalse(inventory.hasMutableHead());
         assertNull(inventory.getRevisionId());
         var output = writeInventoryToString(inventory);
         assertEquals(original, output);
         assertEquals(objectRoot, inventory.getObjectRootPath());
+        assertEquals(digest, inventory.getCurrentDigest());
     }
 
     @Test
     public void shouldRoundTripMutableHeadInventory() throws IOException {
         var original = readFile("simple-inventory.json");
         var objectRoot = "path/to/obj2";
+        var digest = "def456";
         var revision = RevisionId.fromString("r2");
-        var inventory = mapper.readMutableHead(objectRoot, revision, new ByteArrayInputStream(original.getBytes()));
+        var inventory = mapper.readMutableHead(objectRoot, digest, revision, new ByteArrayInputStream(original.getBytes()));
         assertTrue(inventory.hasMutableHead());
         assertEquals(revision, inventory.getRevisionId());
         var output = writeInventoryToString(inventory);
         assertEquals(original, output);
         assertEquals(objectRoot, inventory.getObjectRootPath());
+        assertEquals(digest, inventory.getCurrentDigest());
     }
 
     private String readFile(String name) throws IOException {

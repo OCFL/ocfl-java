@@ -185,7 +185,7 @@ public class ObjectValidatorTest {
 
     private void validateObject(String name) {
         var objectPath = Paths.get("src/test/resources/validation/object", name);
-        var inventory = inventoryMapper.read(objectPath.toString(), ObjectPaths.inventoryPath(objectPath));
+        var inventory = inventoryMapper.read(objectPath.toString(), "digest", ObjectPaths.inventoryPath(objectPath));
         validator.validateObject(objectPath, inventory);
     }
 
@@ -197,7 +197,7 @@ public class ObjectValidatorTest {
 
     private void validateVersion(String name) {
         var versionPath = Paths.get("src/test/resources/validation/version", name);
-        var inventory = inventoryMapper.read(versionPath.toString(), ObjectPaths.inventoryPath(versionPath));
+        var inventory = inventoryMapper.read(versionPath.toString(), "digest", ObjectPaths.inventoryPath(versionPath));
         validator.validateVersion(versionPath, inventory);
     }
 
