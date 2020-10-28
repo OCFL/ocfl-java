@@ -52,7 +52,7 @@ public class User {
     }
 
     /**
-     * Name of the person who updated an object.
+     * @return the name of the person who updated an object.
      */
     @JsonGetter("name")
     public String getName() {
@@ -60,7 +60,7 @@ public class User {
     }
 
     /**
-     * Address of the person who updated an object.
+     * @return the address of the person who updated an object.
      */
     @JsonGetter("address")
     public String getAddress() {

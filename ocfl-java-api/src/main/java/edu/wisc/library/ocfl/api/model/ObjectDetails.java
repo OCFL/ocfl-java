@@ -52,7 +52,7 @@ public class ObjectDetails {
     }
 
     /**
-     * The object's id
+     * @return the object's id
      */
     public String getId() {
         return id;
@@ -78,7 +78,7 @@ public class ObjectDetails {
     }
 
     /**
-     * The digest algorithm used to identify files within the OCFL object
+     * @return the digest algorithm used to identify files within the OCFL object
      */
     public DigestAlgorithm getDigestAlgorithm() {
         return digestAlgorithm;

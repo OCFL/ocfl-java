@@ -76,7 +76,7 @@ public class CloudOcflStorageBuilder {
     }
 
     /**
-     * Builds a new {@link CloudOcflStorage} object
+     * @return a new {@link CloudOcflStorage} object
      */
     public CloudOcflStorage build() {
         var init = initializer;

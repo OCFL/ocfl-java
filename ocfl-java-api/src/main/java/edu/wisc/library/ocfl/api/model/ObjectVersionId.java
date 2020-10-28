@@ -41,6 +41,7 @@ public class ObjectVersionId {
      * Creates an ObjectId instance that points to the HEAD version of the object
      *
      * @param objectId the id of the object
+     * @return new ObjectVersionId
      */
     public static ObjectVersionId head(String objectId) {
         return new ObjectVersionId(objectId);
@@ -51,6 +52,7 @@ public class ObjectVersionId {
      *
      * @param objectId the id of the object
      * @param versionId the OCFL version id of the version
+     * @return new ObjectVersionId
      */
     public static ObjectVersionId version(String objectId, String versionId) {
         if (versionId == null) {
@@ -64,6 +66,7 @@ public class ObjectVersionId {
      *
      * @param objectId the id of the object
      * @param versionId the OCFL version id of the version
+     * @return new ObjectVersionId
      */
     public static ObjectVersionId version(String objectId, VersionId versionId) {
         return new ObjectVersionId(objectId, versionId);

@@ -74,6 +74,7 @@ public interface CloudClient {
      *
      * @param dstPath object path
      * @param bytes the object content
+     * @param contentType the content type of the data
      * @return object key
      */
     CloudObjectKey uploadBytes(String dstPath, byte[] bytes, String contentType);

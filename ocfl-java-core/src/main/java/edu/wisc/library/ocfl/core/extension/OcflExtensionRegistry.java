@@ -82,6 +82,7 @@ public final class OcflExtensionRegistry {
      * Returns a registered extension implementation, if one exists.
      *
      * @param extensionName the name of the extension to load
+     * @param <T> the extension class
      * @return the extension
      */
     public static <T extends OcflExtension> Optional<T> lookup(String extensionName) {

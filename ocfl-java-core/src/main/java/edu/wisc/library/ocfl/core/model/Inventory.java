@@ -139,6 +139,20 @@ public class Inventory {
 
     /**
      * @see InventoryBuilder
+     *
+     * @param id object id
+     * @param type OCFL inventory type
+     * @param digestAlgorithm digest algorithm
+     * @param head head version number
+     * @param contentDirectory content directory name
+     * @param fixity fixity block
+     * @param manifest manifest block
+     * @param versions versions block
+     * @param mutableHead if there is a mutable head
+     * @param revisionId current revision number
+     * @param objectRootPath object root path
+     * @param previousDigest digest of previous inventory
+     * @param currentDigest digest of this inventory
      */
     public Inventory(
             String id,
@@ -230,7 +244,7 @@ public class Inventory {
     }
 
     /**
-     * The algorithm used to compute the digests that are used as file identifiers. sha512 be default.
+     * @return the algorithm used to compute the digests that are used as file identifiers. sha512 be default.
      */
     @JsonGetter("digestAlgorithm")
     public DigestAlgorithm getDigestAlgorithm() {
@@ -238,7 +252,7 @@ public class Inventory {
     }
 
     /**
-     * The object's id
+     * @return the object's id
      */
     @JsonGetter("id")
     public String getId() {
@@ -246,7 +260,7 @@ public class Inventory {
     }
 
     /**
-     * The version of the most recent version of the object. This is in the format of "vX" where "X" is a positive integer.
+     * @return the version of the most recent version of the object. This is in the format of "vX" where "X" is a positive integer.
      */
     @JsonGetter("head")
     public VersionId getHead() {
@@ -254,7 +268,7 @@ public class Inventory {
     }
 
     /**
-     * The inventory's type and version.
+     * @return the inventory's type and version.
      */
     @JsonGetter("type")
     public InventoryType getType() {
@@ -262,7 +276,7 @@ public class Inventory {
     }
 
     /**
-     * Contains the fixity information for all of the files that are part of the object.
+     * @return fixity information for all of the files that are part of the object.
      */
     @JsonGetter("fixity")
     public Map<DigestAlgorithm, Map<String, Set<String>>> getFixity() {
@@ -278,6 +292,8 @@ public class Inventory {
     /**
      * A map of all of the files that are part of the object across all versions of the object. The map is keyed off file
      * digest and the value is the location of the file relative to the OCFL object root.
+     *
+     * @return manifest map
      */
     @JsonGetter("manifest")
     public Map<String, Set<String>> getManifest() {
@@ -287,6 +303,8 @@ public class Inventory {
     /**
      * A map of version identifiers to the object that describes the state of the object at that version. All versions of
      * the object are represented here.
+     *
+     * @return version states
      */
     @JsonGetter("versions")
     public Map<VersionId, Version> getVersions() {
@@ -295,6 +313,8 @@ public class Inventory {
 
     /**
      * Use {@code resolveContentDirectory()} instead
+     *
+     * @return the content directory
      */
     @JsonGetter("contentDirectory")
     public String getContentDirectory() {
@@ -303,16 +323,25 @@ public class Inventory {
 
     /**
      * The name of the directory within a version directory that contains the object content. 'content' by default.
+     *
+     * @return the content directory
      */
     public String resolveContentDirectory() {
         return Objects.requireNonNullElse(contentDirectory, OcflConstants.DEFAULT_CONTENT_DIRECTORY);
     }
 
+    /**
+     * @return the head version
+     */
     @JsonIgnore
     public Version getHeadVersion() {
         return versions.get(head);
     }
 
+    /**
+     * @param versionId version number to get
+     * @return the version or null if it doesn't exist
+     */
     public Version getVersion(VersionId versionId) {
         return versions.get(versionId);
     }
@@ -336,6 +365,9 @@ public class Inventory {
 
     /**
      * Helper method for checking if an object contains a file with the given digest id.
+     *
+     * @param fileId the file id
+     * @return true if the file is in the manfiest
      */
     public boolean manifestContainsFileId(String fileId) {
         return manifestBiMap.containsFileId(fileId);
@@ -343,6 +375,9 @@ public class Inventory {
 
     /**
      * Returns the digest that is used to identify the given path if it exists.
+     *
+     * @param path the content path
+     * @return the file id associated to the path or null
      */
     public String getFileId(String path) {
         return manifestBiMap.getFileId(path);
@@ -350,6 +385,9 @@ public class Inventory {
 
     /**
      * Returns the digest that is used to identify the given path if it exists.
+     *
+     * @param path the content path
+     * @return the file id associated to the path or null
      */
     public String getFileId(Path path) {
         return manifestBiMap.getFileId(FileUtil.pathToStringStandardSeparator(path));
@@ -357,6 +395,9 @@ public class Inventory {
 
     /**
      * Returns the set of paths that are identified by the given digest if they exist.
+     *
+     * @param fileId the file id
+     * @return the paths associated to the file id or an empty set
      */
     public Set<String> getContentPaths(String fileId) {
         return manifestBiMap.getPaths(fileId);
@@ -364,6 +405,9 @@ public class Inventory {
 
     /**
      * Returns the first path to a file that maps to the given digest
+     *
+     * @param fileId the file id
+     * @return path associated to the file id or null
      */
     public String getContentPath(String fileId) {
         var paths = manifestBiMap.getPaths(fileId);
@@ -400,6 +444,9 @@ public class Inventory {
 
     /**
      * Returns the set of file ids of files that have content paths that begin with the given prefix.
+     *
+     * @param path content path prefix
+     * @return file ids that begin with the given path
      */
     public Set<String> getFileIdsForMatchingFiles(Path path) {
         return getFileIdsForMatchingFiles(FileUtil.pathToStringStandardSeparator(path));
@@ -407,6 +454,9 @@ public class Inventory {
 
     /**
      * Returns the set of file ids of files that have content paths that begin with the given prefix.
+     *
+     * @param path content path prefix
+     * @return file ids that begin with the given path
      */
     public Set<String> getFileIdsForMatchingFiles(String path) {
         var pathStr = path + "/";
@@ -420,7 +470,9 @@ public class Inventory {
     }
 
     /**
-     * If there's an active mutable HEAD, its revision id is returned. Otherwise, null is returned.
+     * If there's an active mutable HEAD, its revision number is returned. Otherwise, null is returned.
+     *
+     * @return the current revision number or null
      */
     @JsonIgnore
     public RevisionId getRevisionId() {
@@ -429,13 +481,15 @@ public class Inventory {
 
     /**
      * Indicates if there's an active mutable HEAD
+     *
+     * @return true if there is a mutable HEAD
      */
     public boolean hasMutableHead() {
         return mutableHead;
     }
 
     /**
-     * The relative path from the storage root to the OCFL object directory
+     * @return the relative path from the storage root to the OCFL object directory
      */
     @JsonIgnore
     public String getObjectRootPath() {

@@ -24,7 +24,11 @@
 
 package edu.wisc.library.ocfl.core.model;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.time.OffsetDateTime;
@@ -62,6 +66,11 @@ public class Version {
 
     /**
      * @see VersionBuilder
+     *
+     * @param created timestamp the version was created
+     * @param message version message
+     * @param user user who created the version
+     * @param state version state
      */
     @JsonCreator
     public Version(
@@ -76,7 +85,7 @@ public class Version {
     }
 
     /**
-     * The timestamp when this version of the object was created.
+     * @return the timestamp when this version of the object was created.
      */
     @JsonGetter("created")
     public OffsetDateTime getCreated() {
@@ -84,7 +93,7 @@ public class Version {
     }
 
     /**
-     * A human readable message describing the version.
+     * @return a human readable message describing the version.
      */
     @JsonGetter("message")
     public String getMessage() {
@@ -92,7 +101,7 @@ public class Version {
     }
 
     /**
-     * The person who created this version of the object.
+     * @return the person who created this version of the object.
      */
     @JsonGetter("user")
     public User getUser() {
@@ -102,16 +111,30 @@ public class Version {
     /**
      * A map of all of the files that are part of this version of the object. The map is keyed on file digest ids, and the
      * values are paths that describe where the file is located in this specific version.
+     *
+     * @return version state
      */
     @JsonGetter("state")
     public Map<String, Set<String>> getState() {
         return stateBiMap.getFileIdToPaths();
     }
 
+    /**
+     * Returns the file id associated to the given logical path.
+     *
+     * @param path logical path
+     * @return associated file id
+     */
     public String getFileId(String path) {
         return stateBiMap.getFileId(path);
     }
 
+    /**
+     * Returns the logical paths associated with the given file id
+     *
+     * @param fileId file id
+     * @return associated logical paths
+     */
     public Set<String> getPaths(String fileId) {
         return stateBiMap.getPaths(fileId);
     }

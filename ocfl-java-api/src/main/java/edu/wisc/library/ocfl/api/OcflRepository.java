@@ -102,6 +102,7 @@ public interface OcflRepository {
      * the object.
      *
      * @param objectVersionId the id and version of an object to retrieve
+     * @return lazy-loading object version
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      */
     OcflObjectVersion getObject(ObjectVersionId objectVersionId);

@@ -67,7 +67,6 @@ public interface ObjectDetailsDatabase {
      * Removes ObjectDetails from the database.
      *
      * @param objectId the OCFL object id
-     * @param objectId the OCFL object id
      */
     void deleteObjectDetails(String objectId);
 
