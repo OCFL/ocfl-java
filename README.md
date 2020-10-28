@@ -29,7 +29,7 @@ After building the libraries locally, add the following to your project's POM:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-core</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.7-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -39,7 +39,7 @@ Add the following if you'd like to use Amazon S3 for the storage layer:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-aws</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.7-SNAPSHOT</version>
 </dependency>
 ```
 
