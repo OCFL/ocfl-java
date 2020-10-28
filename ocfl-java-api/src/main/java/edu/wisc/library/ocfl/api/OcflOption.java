@@ -24,6 +24,11 @@
 
 package edu.wisc.library.ocfl.api;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
 public enum OcflOption {
 
     /**
@@ -33,5 +38,41 @@ public enum OcflOption {
     /**
      * Instructs an update operation to move files into the repository instead of copying them.
      */
-    MOVE_SOURCE
+    MOVE_SOURCE,
+    /**
+     * Disables validations that ensure the integrity of OCFL objects
+     */
+    NO_VALIDATION;
+
+    /**
+     * Transforms a varargs of options into a set
+     *
+     * @param options options
+     * @return set of options
+     */
+    public static Set<OcflOption> toSet(OcflOption... options) {
+        return new HashSet<>(Arrays.asList(options));
+    }
+
+    /**
+     * Returns true if the set of options contains the specified option
+     *
+     * @param test the option to look for
+     * @param options the set of options
+     * @return true if the specified option is in the set
+     */
+    public static boolean contains(OcflOption test, OcflOption... options) {
+        if (options == null || options.length == 0) {
+            return false;
+        }
+
+        for (var option : options) {
+            if (option == test) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

@@ -863,7 +863,6 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
             try (var stream = cloudClient.downloadStream(key)) {
                 Files.copy(stream, destination);
-                // TODO fixity check?
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

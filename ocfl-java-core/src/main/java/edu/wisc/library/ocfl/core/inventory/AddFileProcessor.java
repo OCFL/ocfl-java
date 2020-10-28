@@ -39,9 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 /**
@@ -96,15 +94,15 @@ public class AddFileProcessor {
      *
      * @param sourcePath the file or directory to add
      * @param destinationPath the location to insert the file or directory at within the object
-     * @param ocflOptions options for how to move the files
+     * @param options options for how to move the files
      * @return a map of logical paths to their corresponding file within the stagingDir for newly added files
      */
-    public Map<String, Path> processPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions) {
+    public Map<String, Path> processPath(Path sourcePath, String destinationPath, OcflOption... options) {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
         var results = new HashMap<String, Path>();
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
+        var optionsSet = OcflOption.toSet(options);
 
         var destination = destinationPath(destinationPath, sourcePath);
 
@@ -113,14 +111,14 @@ public class AddFileProcessor {
                 var digest = DigestUtil.computeDigestHex(digestAlgorithm, file);
 
                 var logicalPath = logicalPath(sourcePath, file, destination);
-                var result = inventoryUpdater.addFile(digest, logicalPath, ocflOptions);
+                var result = inventoryUpdater.addFile(digest, logicalPath, options);
 
                 if (result.isNew()) {
                     results.put(logicalPath, stagingFullPath(result.getPathUnderContentDir()));
 
                     var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
 
-                    if (options.contains(OcflOption.MOVE_SOURCE)) {
+                    if (optionsSet.contains(OcflOption.MOVE_SOURCE)) {
                         LOG.debug("Moving file <{}> to <{}>", file, stagingFullPath);
                         FileUtil.moveFileMakeParents(file, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
                     } else {
@@ -133,7 +131,7 @@ public class AddFileProcessor {
             throw new UncheckedIOException(e);
         }
 
-        if (options.contains(OcflOption.MOVE_SOURCE)) {
+        if (optionsSet.contains(OcflOption.MOVE_SOURCE)) {
             // Cleanup empty dirs
             FileUtil.safeDeleteDirectory(sourcePath);
         }

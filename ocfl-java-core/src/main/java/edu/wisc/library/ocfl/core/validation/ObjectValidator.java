@@ -73,6 +73,7 @@ public class ObjectValidator {
         validateRootInventorySameAsHeadInventory(objectRoot, inventory);
         validateManifest(objectRoot, inventory);
         validateVersions(objectRoot, inventory);
+        // TODO is not thoroughly validating the mutable head
     }
 
     /**
@@ -99,10 +100,13 @@ public class ObjectValidator {
         expectedFiles.add(ObjectPaths.extensionsPath(objectRoot));
 
         inventory.getVersions().keySet().forEach(version -> {
-            var versionDir = validatePathExists(objectRoot.resolve(version.toString()));
-            validateInventory(versionDir);
-            validateVersionRoot(versionDir);
-            expectedFiles.add(versionDir);
+            // skip the mutable head version because it won't be in the root
+            if (!(inventory.hasMutableHead() && version.equals(inventory.getHead()))) {
+                var versionDir = validatePathExists(objectRoot.resolve(version.toString()));
+                validateInventory(versionDir);
+                validateVersionRoot(versionDir);
+                expectedFiles.add(versionDir);
+            }
         });
 
         try (var walk = Files.list(objectRoot)) {
@@ -144,20 +148,15 @@ public class ObjectValidator {
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     if (!(file.getParent().equals(objectRoot) || file.getParent().getParent().equals(objectRoot))) {
                         var digest = DigestUtil.computeDigestHex(algorithm, file);
-                        var contentPaths = inventory.getContentPaths(digest);
-                        if (contentPaths.isEmpty()) {
-                            throw new CorruptObjectException(String.format("Object %s contains an unexpected file: %s",
-                                    inventory.getId(), file));
-                        }
-                        for (var contentPath : contentPaths) {
-                            if (file.equals(objectRoot.resolve(contentPath))) {
-                                if (manifestCopy.get(digest).size() == 1) {
-                                    manifestCopy.remove(digest);
-                                } else {
-                                    manifestCopy.get(digest).remove(contentPath);
-                                }
-                                return FileVisitResult.CONTINUE;
+                        var contentPath = validateManifestFile(inventory, objectRoot, file, digest);
+
+                        if (contentPath != null) {
+                            if (manifestCopy.get(digest).size() == 1) {
+                                manifestCopy.remove(digest);
+                            } else {
+                                manifestCopy.get(digest).remove(contentPath);
                             }
+                            return FileVisitResult.CONTINUE;
                         }
 
                         throw new CorruptObjectException(String.format("File %s has unexpected %s digest value %s.",
@@ -167,6 +166,30 @@ public class ObjectValidator {
                     return FileVisitResult.CONTINUE;
                 }
             });
+
+            if (inventory.hasMutableHead()) {
+                var mutableContentDir = ObjectPaths.mutableHeadVersionPath(objectRoot).resolve(inventory.resolveContentDirectory());
+
+                if (Files.exists(mutableContentDir)) {
+                    try (var files = Files.walk(mutableContentDir)) {
+                        files.filter(Files::isRegularFile).forEach(file -> {
+                            var digest = DigestUtil.computeDigestHex(algorithm, file);
+                            var contentPath = validateManifestFile(inventory, objectRoot, file, digest);
+
+                            if (contentPath != null) {
+                                if (manifestCopy.get(digest).size() == 1) {
+                                    manifestCopy.remove(digest);
+                                } else {
+                                    manifestCopy.get(digest).remove(contentPath);
+                                }
+                            } else {
+                                throw new CorruptObjectException(String.format("File %s has unexpected %s digest value %s.",
+                                        file, algorithm.getOcflName(), digest));
+                            }
+                        });
+                    }
+                }
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -175,6 +198,20 @@ public class ObjectValidator {
             throw new CorruptObjectException(String.format("The following files are defined in object %s's manifest, but are not found on disk: %s",
                     inventory.getId(), manifestCopy));
         }
+    }
+
+    private String validateManifestFile(Inventory inventory, Path objectRoot, Path file, String digest) {
+        var contentPaths = inventory.getContentPaths(digest);
+        if (contentPaths.isEmpty()) {
+            throw new CorruptObjectException(String.format("Object %s contains an unexpected file: %s",
+                    inventory.getId(), file));
+        }
+        for (var contentPath : contentPaths) {
+            if (file.equals(objectRoot.resolve(contentPath))) {
+                return contentPath;
+            }
+        }
+        return null;
     }
 
     private void validateVersionFiles(Path versionRoot, Inventory inventory) {
@@ -333,12 +370,17 @@ public class ObjectValidator {
     }
 
     private void validateRootInventorySameAsHeadInventory(Path objectRoot, Inventory inventory) {
+        var rootVersion = inventory.getHead();
+        if (inventory.hasMutableHead()) {
+            rootVersion = rootVersion.previousVersionId();
+        }
+
         var rootDigest = content(ObjectPaths.findInventorySidecarPath(objectRoot));
-        var headDigest = content(ObjectPaths.findInventorySidecarPath(objectRoot.resolve(inventory.getHead().toString())));
+        var headDigest = content(ObjectPaths.findInventorySidecarPath(objectRoot.resolve(rootVersion.toString())));
         if (!rootDigest.equalsIgnoreCase(headDigest)) {
             throw new CorruptObjectException(
-                    String.format("The inventory file in the object root of object %s does not match the inventory in its HEAD version, %s",
-                            inventory.getId(), inventory.getHead()));
+                    String.format("The inventory file in the object root of object %s does not match the inventory in the version directory %s",
+                            inventory.getId(), rootVersion));
         }
     }
 

@@ -79,21 +79,21 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     }
 
     @Override
-    public OcflObjectUpdater addPath(Path sourcePath, OcflOption... ocflOptions) {
-        return addPath(sourcePath, "", ocflOptions);
+    public OcflObjectUpdater addPath(Path sourcePath, OcflOption... options) {
+        return addPath(sourcePath, "", options);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions) {
+    public OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... options) {
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
         LOG.debug("Add <{}> to object <{}> at logical path <{}>", sourcePath, inventory.getId(), destinationPath);
 
-        var newStagedFiles = addFileProcessor.processPath(sourcePath, destinationPath, ocflOptions);
+        var newStagedFiles = addFileProcessor.processPath(sourcePath, destinationPath, options);
         stagedFileMap.putAll(newStagedFiles);
 
         return this;
@@ -103,7 +103,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      * {@inheritDoc}
      */
     @Override
-    public OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions) {
+    public OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... options) {
         Enforce.notNull(input, "input cannot be null");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
@@ -119,7 +119,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         }
 
         var digest = Bytes.wrap(digestInput.getMessageDigest().digest()).encodeHex();
-        var result = inventoryUpdater.addFile(digest, destinationPath, ocflOptions);
+        var result = inventoryUpdater.addFile(digest, destinationPath, options);
 
         if (!result.isNew()) {
             LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", tempPath, digest);
@@ -153,13 +153,13 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      * {@inheritDoc}
      */
     @Override
-    public OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+    public OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... options) {
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
         LOG.debug("Rename file in object <{}> from <{}> to <{}>", inventory.getId(), sourcePath, destinationPath);
 
-        var results = inventoryUpdater.renameFile(sourcePath, destinationPath, ocflOptions);
+        var results = inventoryUpdater.renameFile(sourcePath, destinationPath, options);
         removeUnneededStagedFiles(results);
 
         return this;
@@ -169,14 +169,14 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      * {@inheritDoc}
      */
     @Override
-    public OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions) {
+    public OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... options) {
         Enforce.notNull(sourceVersionId, "sourceVersionId cannot be null");
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
         LOG.debug("Reinstate file at <{}> in object <{}> to <{}>", sourcePath, sourceVersionId, destinationPath);
 
-        var results = inventoryUpdater.reinstateFile(sourceVersionId, sourcePath, destinationPath, ocflOptions);
+        var results = inventoryUpdater.reinstateFile(sourceVersionId, sourcePath, destinationPath, options);
         removeUnneededStagedFiles(results);
 
         return this;

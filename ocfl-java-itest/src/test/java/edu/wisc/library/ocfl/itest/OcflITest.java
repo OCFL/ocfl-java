@@ -1529,7 +1529,7 @@ public abstract class OcflITest {
 
         var output = outputPath(repoName, "o2");
 
-        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object o2", () -> {
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object ObjectId{objectId='o2', versionId='null'} was not found.", () -> {
             repo.exportObject("o2", output);
         });
     }

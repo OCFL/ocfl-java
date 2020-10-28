@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.api;
 
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
@@ -63,11 +64,11 @@ public interface OcflRepository {
      *                 if the specified version matches the head object version in the repository.
      * @param path the path to the object content
      * @param versionInfo information about the changes to the object. Can be null.
-     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      * @return The objectId and version of the new object version
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... ocflOptions);
+    ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... options);
 
     /**
      * Updates an existing object OR create a new object by selectively adding, removing, moving files within the object,
@@ -195,15 +196,17 @@ public interface OcflRepository {
      * then the entire contents of the object's v2 directory will be exported the output directory. This is primarily
      * useful for backing up OCFL versions, as an isolated OCFL object version is not usable in and of itself.
      *
-     * <p>The outputPath MUST NOT exist, but its parent MUST exist.
-     *
      * <p>Mutable HEAD versions cannot be exported
+     *
+     * <p>This method WILL NOT cleanup files left in the output directory if it fails.
      *
      * @param objectVersionId the id of the object and version to export
      * @param outputPath the directory to write the exported version to, if it does not exist it will be created
+     * @param options optional config options. Use {@link OcflOption#NO_VALIDATION} to disable export validation.
      * @throws NotFoundException when no object can be found for the specified objectVersionId
+     * @throws CorruptObjectException when the exported version fails validation
      */
-    void exportVersion(ObjectVersionId objectVersionId, Path outputPath);
+    void exportVersion(ObjectVersionId objectVersionId, Path outputPath, OcflOption... options);
 
     /**
      * Copies a raw OCFL object to the specified directory. The output is a complete copy of everything that's contained
@@ -211,11 +214,15 @@ public interface OcflRepository {
      *
      * <p>The outputPath MUST NOT exist, but its parent MUST exist.
      *
+     * <p>This method WILL NOT cleanup files left in the output directory if it fails.
+     *
      * @param objectId the id of the object to export
      * @param outputPath the directory to write the exported object to, if it does not exist it will be created
+     * @param options optional config options. Use {@link OcflOption#NO_VALIDATION} to disable export validation.
      * @throws NotFoundException when no object can be found for the specified objectId
+     * @throws CorruptObjectException when the exported object fails validation
      */
-    void exportObject(String objectId, Path outputPath);
+    void exportObject(String objectId, Path outputPath, OcflOption... options);
 
     /**
      * Imports the OCFL object version at the specified path into the repository. In order to successfully import the
@@ -228,18 +235,20 @@ public interface OcflRepository {
      * </ul>
      *
      * @param versionPath path to the OCFL object version to import on disk
-     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     *                Use {@link OcflOption#NO_VALIDATION} to disable file validation, version inventory is still validated.
      */
-    void importVersion(Path versionPath, OcflOption... ocflOptions);
+    void importVersion(Path versionPath, OcflOption... options);
 
     /**
      * Imports an entire OCFL object into the repository. The object cannot already exist in the repository, and the
      * object must be valid. The object is validated extensively as part of the import process.
      *
      * @param objectPath path to the OCFL object to import on disk
-     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     *                Use {@link OcflOption#NO_VALIDATION} to disable file validation, root inventory is still validated.
      */
-    void importObject(Path objectPath, OcflOption... ocflOptions);
+    void importObject(Path objectPath, OcflOption... options);
 
     /**
      * Closes any resources the OcflRepository may have open, such as ExecutorServices. Once closed, additional requests

@@ -88,7 +88,7 @@ public class S3OcflITest extends OcflITest {
     @Override
     protected OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer) {
         createBucket(name);
-        FileUtil.findFiles(path).forEach(file -> {
+        FileUtil.findFiles(path).stream().filter(f -> !f.getFileName().toString().equals(".gitkeep")).forEach(file -> {
             s3Client.putObject(PutObjectRequest.builder()
                     .bucket(name)
                     .key(FileUtil.pathToStringStandardSeparator(path.relativize(file)))

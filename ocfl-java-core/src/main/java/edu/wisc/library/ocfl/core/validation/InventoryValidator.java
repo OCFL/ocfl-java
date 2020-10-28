@@ -263,7 +263,7 @@ public final class InventoryValidator {
 
     private static void validateVersionNumber(String objectId, VersionId currentVersion, VersionId previousVersion) {
         if (!Objects.equals(currentVersion.toString(), previousVersion.toString())) {
-            throw new InvalidInventoryException(String.format("Object %s's version number formatting differs. Existing: %s; New: %s",
+            throw new InvalidInventoryException(String.format("Object %s's version number formatting differs: %s vs %s",
                     objectId, previousVersion, currentVersion));
         }
     }

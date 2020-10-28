@@ -71,7 +71,7 @@ public final class TestHelper {
 
     public static Path copyDir(Path source, Path target) {
         try (var files = Files.walk(source)) {
-            files.forEach(f -> {
+            files.filter(f -> !f.getFileName().toString().equals(".gitkeep")).forEach(f -> {
                 try {
                     Files.copy(f, target.resolve(source.relativize(f)), StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {

@@ -40,7 +40,6 @@ import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -185,13 +184,13 @@ public class InventoryUpdater {
      *
      * @param fileId the file's digest
      * @param logicalPath the logical path to insert the file at within the object
-     * @param ocflOptions options
+     * @param options options
      * @return details about the file if it was added to the manifest
      */
-    public AddFileResult addFile(String fileId, String logicalPath, OcflOption... ocflOptions) {
+    public AddFileResult addFile(String fileId, String logicalPath, OcflOption... options) {
         logicalPathConstraints.apply(logicalPath);
 
-        overwriteProtection(logicalPath, ocflOptions);
+        overwriteProtection(logicalPath, options);
 
         if (versionBuilder.containsLogicalPath(logicalPath)) {
             var oldFileId = versionBuilder.removeLogicalPath(logicalPath);
@@ -279,10 +278,10 @@ public class InventoryUpdater {
      *
      * @param srcLogicalPath current logical path
      * @param dstLogicalPath new logical path
-     * @param ocflOptions options
+     * @param options options
      * @return files that were removed from the manifest
      */
-    public Set<RemoveFileResult> renameFile(String srcLogicalPath, String dstLogicalPath, OcflOption... ocflOptions) {
+    public Set<RemoveFileResult> renameFile(String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
         logicalPathConstraints.apply(dstLogicalPath);
 
         var srcDigest = versionBuilder.getFileId(srcLogicalPath);
@@ -292,7 +291,7 @@ public class InventoryUpdater {
                     objectId, srcLogicalPath));
         }
 
-        overwriteProtection(dstLogicalPath, ocflOptions);
+        overwriteProtection(dstLogicalPath, options);
 
         var dstFileId = versionBuilder.getFileId(dstLogicalPath);
 
@@ -311,10 +310,10 @@ public class InventoryUpdater {
      * @param sourceVersion the version id the source logical path corresponds to
      * @param srcLogicalPath the source logical path of the file to reinstate
      * @param dstLogicalPath the destination logical path to reinstate the file at
-     * @param ocflOptions options
+     * @param options options
      * @return files that were removed from the manifest
      */
-    public Set<RemoveFileResult> reinstateFile(VersionId sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... ocflOptions) {
+    public Set<RemoveFileResult> reinstateFile(VersionId sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
         logicalPathConstraints.apply(dstLogicalPath);
 
         var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);
@@ -324,7 +323,7 @@ public class InventoryUpdater {
                     objectId, sourceVersion, srcLogicalPath));
         }
 
-        overwriteProtection(dstLogicalPath, ocflOptions);
+        overwriteProtection(dstLogicalPath, options);
 
         var dstFileId = versionBuilder.getFileId(dstLogicalPath);
 
@@ -391,10 +390,8 @@ public class InventoryUpdater {
         return removePaths;
     }
 
-    private void overwriteProtection(String logicalPath, OcflOption... ocflOptions) {
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
-
-        if (versionBuilder.containsLogicalPath(logicalPath) && !options.contains(OcflOption.OVERWRITE)) {
+    private void overwriteProtection(String logicalPath, OcflOption... options) {
+        if (versionBuilder.containsLogicalPath(logicalPath) && !OcflOption.contains(OcflOption.OVERWRITE, options)) {
             throw new OverwriteException(String.format("There is already a file at %s in object %s. Use OcflOption.OVERWRITE to overwrite it.",
                     logicalPath, objectId));
         }

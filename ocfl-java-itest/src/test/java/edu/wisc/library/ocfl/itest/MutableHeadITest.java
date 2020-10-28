@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.itest;
 
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -381,6 +382,47 @@ public abstract class MutableHeadITest {
                 repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc"),
                 "o1",
                 output);
+    }
+
+    @Test
+    public void importObjectWhenWithMutableHead() {
+        var objectId = "o1";
+        var repoName1 = "mutable5";
+        var repoRoot1 = expectedRepoPath(repoName1);
+        var repo1 = existingRepo(repoName1, repoRoot1);
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportObject(objectId, output);
+
+        var repoName2 = "mutable-import";
+        var repo2 = defaultRepo(repoName2);
+
+        repo2.importObject(output);
+
+        assertTrue(repo2.containsObject(objectId));
+        assertEquals(repo1.describeObject(objectId), repo2.describeObject(objectId));
+    }
+
+    @Test
+    public void rejectImportObjectWhenWithMutableHeadWhenInvalidMutableHead() throws IOException {
+        var objectId = "o1";
+        var repoName1 = "mutable5";
+        var repoRoot1 = expectedRepoPath(repoName1);
+        var repo1 = existingRepo(repoName1, repoRoot1);
+
+        var output = outputPath(repoName1, objectId);
+
+        repo1.exportObject(objectId, output);
+
+        Files.delete(output.resolve("extensions/0004-mutable-head/head/content/r1/dir1/file3"));
+
+        var repoName2 = "mutable-import";
+        var repo2 = defaultRepo(repoName2);
+
+        OcflAsserts.assertThrowsWithMessage(CorruptObjectException.class, "mutable-head/head/content/r1/dir1/file3", () -> {
+            repo2.importObject(output);
+        });
     }
 
     @Test

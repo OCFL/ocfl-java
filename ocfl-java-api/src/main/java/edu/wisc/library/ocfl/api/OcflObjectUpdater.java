@@ -49,13 +49,13 @@ public interface OcflObjectUpdater {
      * To overwrite, specify {@link OcflOption#OVERWRITE}.
      *
      * @param sourcePath the local file or directory to add to the object
-     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      *                    Use {@link OcflOption#OVERWRITE} to overwrite existing files within an object
      * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
-    OcflObjectUpdater addPath(Path sourcePath, OcflOption... ocflOptions);
+    OcflObjectUpdater addPath(Path sourcePath, OcflOption... options);
 
     /**
      * Adds a file or directory to the object at the specified destinationPath. The destinationPath is the logical path
@@ -71,13 +71,13 @@ public interface OcflObjectUpdater {
      *
      * @param sourcePath the local file or directory to add to the object
      * @param destinationPath the logical path to store the sourcePath at within the object, an empty string indicates the object root
-     * @param ocflOptions optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      *                    Use {@link OcflOption#OVERWRITE} to overwrite existing files within an object
      * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
-    OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... ocflOptions);
+    OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... options);
 
     /**
      * Writes the contents of the InputStream to the object at the specified destinationPath. The destinationPath is the
@@ -91,14 +91,14 @@ public interface OcflObjectUpdater {
      *
      * @param input InputStream containing the content of a file to add to an object
      * @param destinationPath the logical path to store the file at within the object
-     * @param ocflOptions optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
+     * @param options optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
      *                    an object
      * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      * @throws FixityCheckException if the a FixityCheckInputStream is used and the digest does not match the expected value
      */
-    OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... ocflOptions);
+    OcflObjectUpdater writeFile(InputStream input, String destinationPath, OcflOption... options);
 
     /**
      * Removes a file from the object. An exception is not thrown if there is nothing at the path.
@@ -116,13 +116,13 @@ public interface OcflObjectUpdater {
      *
      * @param sourcePath the logical path to the file to be renamed
      * @param destinationPath the local path to rename the file to
-     * @param ocflOptions optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
+     * @param options optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
      *                    an object
      * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
-    OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... ocflOptions);
+    OcflObjectUpdater renameFile(String sourcePath, String destinationPath, OcflOption... options);
 
     /**
      * Reinstates a file that existed in any version of the object into the current version. This is useful when recovering
@@ -134,13 +134,13 @@ public interface OcflObjectUpdater {
      * @param sourceVersionId the version id of the version to reinstate the sourcePath from. Cannot be the current version
      * @param sourcePath the logical path to the file to be reinstated
      * @param destinationPath the logical path to reinstate the file to
-     * @param ocflOptions optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
+     * @param options optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
      *                    an object
      * @return this
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
-    OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... ocflOptions);
+    OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... options);
 
     /**
      * The state of the current version of the object is cleared so that it does not reference any files. No files are deleted.

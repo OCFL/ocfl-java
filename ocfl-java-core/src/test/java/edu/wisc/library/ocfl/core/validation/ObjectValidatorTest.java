@@ -79,7 +79,7 @@ public class ObjectValidatorTest {
     @Test
     public void failWhenRootInventoryNotSameAsHeadVersionInventory() {
         validateObject("object-root-inventory-head-mismatch",
-                "The inventory file in the object root of object o1 does not match the inventory in its HEAD version, v2");
+                "The inventory file in the object root of object o1 does not match the inventory in the version directory v2");
     }
 
     @Test

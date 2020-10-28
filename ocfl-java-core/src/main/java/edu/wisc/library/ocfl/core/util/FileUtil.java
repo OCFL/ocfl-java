@@ -47,7 +47,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -321,9 +320,8 @@ public final class FileUtil {
         return files;
     }
 
-    public static StandardCopyOption[] toCopyOptions(OcflOption... ocflOptions) {
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
-        if (options.contains(OcflOption.OVERWRITE)) {
+    public static StandardCopyOption[] toCopyOptions(OcflOption... options) {
+        if (OcflOption.contains(OcflOption.OVERWRITE, options)) {
             return new StandardCopyOption[] {StandardCopyOption.REPLACE_EXISTING};
         }
         return new StandardCopyOption[] {};

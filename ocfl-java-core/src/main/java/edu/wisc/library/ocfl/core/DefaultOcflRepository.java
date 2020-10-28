@@ -45,6 +45,7 @@ import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.model.RevisionId;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
@@ -64,8 +65,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -134,7 +133,7 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... ocflOptions) {
+    public ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... options) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
@@ -152,7 +151,7 @@ public class DefaultOcflRepository implements OcflRepository {
         var contentDir = createStagingContentDir(inventory, stagingDir);
 
         var fileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
-        fileProcessor.processPath(path, ocflOptions);
+        fileProcessor.processPath(path, options);
 
         var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
 
@@ -396,7 +395,7 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public void exportVersion(ObjectVersionId objectVersionId, Path outputPath) {
+    public void exportVersion(ObjectVersionId objectVersionId, Path outputPath, OcflOption... options) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
@@ -413,28 +412,38 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Export <{}> to <{}>", objectVersionId, outputPath);
 
         storage.exportVersion(exportId, outputPath);
+
+        if (!OcflOption.contains(OcflOption.NO_VALIDATION, options)) {
+            objectValidator.validateVersion(outputPath, parseInventoryForImport(outputPath, false));
+        }
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void exportObject(String objectId, Path outputPath) {
+    public void exportObject(String objectId, Path outputPath, OcflOption... options) {
         ensureOpen();
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
         ensureExportPath(outputPath);
 
+        var inventory = requireInventory(ObjectVersionId.head(objectId));
+
         LOG.debug("Export <{}> to <{}>", objectId, outputPath);
 
         objectLock.doInWriteLock(objectId, () -> storage.exportObject(objectId, outputPath));
+
+        if (!OcflOption.contains(OcflOption.NO_VALIDATION, options)) {
+            objectValidator.validateObject(outputPath, inventory);
+        }
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void importVersion(Path versionPath, OcflOption... ocflOptions) {
+    public void importVersion(Path versionPath, OcflOption... options) {
         ensureOpen();
 
         Enforce.notNull(versionPath, "versionPath cannot be null");
@@ -442,12 +451,14 @@ public class DefaultOcflRepository implements OcflRepository {
         var importInventory = createImportVersionInventory(versionPath);
 
         InventoryValidator.validateShallow(importInventory);
-        objectValidator.validateVersion(versionPath, importInventory);
+        if (!OcflOption.contains(OcflOption.NO_VALIDATION, options)) {
+            objectValidator.validateVersion(versionPath, importInventory);
+        }
 
         var stagingDir = createStagingDir(importInventory.getId());
 
         try {
-            importToStaging(versionPath, stagingDir, ocflOptions);
+            importToStaging(versionPath, stagingDir, options);
             objectLock.doInWriteLock(importInventory.getId(), () -> storage.storeNewVersion(importInventory, stagingDir));
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -458,12 +469,12 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public void importObject(Path objectPath, OcflOption... ocflOptions) {
+    public void importObject(Path objectPath, OcflOption... options) {
         ensureOpen();
 
         Enforce.notNull(objectPath, "objectPath cannot be null");
 
-        var inventory = parseInventoryForImport(objectPath);
+        var inventory = parseInventoryForImport(objectPath, true);
         var objectId = inventory.getId();
 
         if (containsObject(objectId)) {
@@ -471,12 +482,16 @@ public class DefaultOcflRepository implements OcflRepository {
                     objectPath, objectId));
         }
 
-        objectValidator.validateObject(objectPath, inventory);
+        if (OcflOption.contains(OcflOption.NO_VALIDATION, options)) {
+            InventoryValidator.validateDeep(inventory);
+        } else {
+            objectValidator.validateObject(objectPath, inventory);
+        }
 
         var stagingDir = createStagingDir(objectId);
 
         try {
-            importToStaging(objectPath, stagingDir, ocflOptions);
+            importToStaging(objectPath, stagingDir, options);
             objectLock.doInWriteLock(objectId, () -> storage.importObject(objectId, stagingDir));
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -559,7 +574,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     private Inventory createImportVersionInventory(Path versionPath) {
-        var importInventory = parseInventoryForImport(versionPath);
+        var importInventory = parseInventoryForImport(versionPath, false);
         var objectId = importInventory.getId();
 
         var existingInventory = loadInventory(ObjectVersionId.head(objectId));
@@ -591,20 +606,38 @@ public class DefaultOcflRepository implements OcflRepository {
                 .build();
     }
 
-    private Inventory parseInventoryForImport(Path path) {
-        var inventoryPath = ObjectPaths.inventoryPath(path);
-        var sidecarPath = ObjectPaths.findInventorySidecarPath(path);
+    private Inventory parseInventoryForImport(Path path, boolean lookForMutableHead) {
+        Path inventoryPath = null;
+        Path sidecarPath = null;
+        boolean hasMutableHead = false;
+
+        if (lookForMutableHead) {
+            var mutableInventory = ObjectPaths.mutableHeadInventoryPath(path);
+            if (Files.exists(mutableInventory)) {
+                inventoryPath = mutableInventory;
+                sidecarPath = ObjectPaths.findInventorySidecarPath(path);
+                hasMutableHead = true;
+            }
+        }
+
+        if (!hasMutableHead) {
+            inventoryPath = ObjectPaths.inventoryPath(path);
+            sidecarPath = ObjectPaths.findInventorySidecarPath(path);
+        }
 
         Enforce.expressionTrue(Files.exists(inventoryPath), inventoryPath, "inventory.json must exist");
         Enforce.expressionTrue(Files.exists(sidecarPath), sidecarPath, "inventory sidecar must exist");
 
-        return inventoryMapper.read(path.toString(), SidecarMapper.readDigest(sidecarPath), inventoryPath);
+        if (hasMutableHead) {
+            // TODO this is not technically the correct revision, but it should not cause a problem for now
+            return inventoryMapper.readMutableHead(path.toString(), SidecarMapper.readDigest(sidecarPath), RevisionId.R1, inventoryPath);
+        } else {
+            return inventoryMapper.read(path.toString(), SidecarMapper.readDigest(sidecarPath), inventoryPath);
+        }
     }
 
-    private void importToStaging(Path source, Path stagingDir, OcflOption... ocflOptions) {
-        var options = new HashSet<>(Arrays.asList(ocflOptions));
-
-        if (options.contains(OcflOption.MOVE_SOURCE)) {
+    private void importToStaging(Path source, Path stagingDir, OcflOption... options) {
+        if (OcflOption.contains(OcflOption.MOVE_SOURCE, options)) {
             // Delete the staging directory so that the move operation works
             UncheckedFiles.delete(stagingDir);
             try {

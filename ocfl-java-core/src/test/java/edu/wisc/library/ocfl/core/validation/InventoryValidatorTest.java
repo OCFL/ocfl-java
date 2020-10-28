@@ -137,7 +137,7 @@ public class InventoryValidatorTest {
                         .created(OffsetDateTime.now())
                         .build()).build();
 
-        OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Object o1's version number formatting differs. Existing: v001; New: v1", () -> {
+        OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Object o1's version number formatting differs: v001 vs v1", () -> {
             InventoryValidator.validateVersionStates(currentInventory, previousInventory);
         });
     }
