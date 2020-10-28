@@ -75,7 +75,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(CloudOcflStorage.class);
 
-    private static final String MIMETYPE_TEXT_PLAIN = "text/plain; charset=UTF-8";
+    private static final String MEDIA_TYPE_TEXT = "text/plain; charset=UTF-8";
+    private static final String MEDIA_TYPE_JSON = "application/json; charset=UTF-8";
 
     private final PathConstraintProcessor logicalPathConstraints;
 
@@ -580,9 +581,9 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private void storeMutableHeadInventoryInCloud(Inventory inventory, Path sourcePath) {
         cloudClient.uploadFile(ObjectPaths.inventoryPath(sourcePath),
-                ObjectPaths.mutableHeadInventoryPath(inventory.getObjectRootPath()));
+                ObjectPaths.mutableHeadInventoryPath(inventory.getObjectRootPath()), MEDIA_TYPE_JSON);
         cloudClient.uploadFile(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
-                ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory));
+                ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory), MEDIA_TYPE_TEXT);
     }
 
     private void storeInventoryInCloudWithRollback(Inventory inventory, Path sourcePath, String versionPath) {
@@ -591,8 +592,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var versionedInventoryPath = ObjectPaths.inventoryPath(versionPath);
         var versionedSidecarPath = ObjectPaths.inventorySidecarPath(versionPath, inventory);
 
-        cloudClient.uploadFile(srcInventoryPath, versionedInventoryPath);
-        cloudClient.uploadFile(srcSidecarPath, versionedSidecarPath);
+        cloudClient.uploadFile(srcInventoryPath, versionedInventoryPath, MEDIA_TYPE_JSON);
+        cloudClient.uploadFile(srcSidecarPath, versionedSidecarPath, MEDIA_TYPE_TEXT);
 
         try {
             copyInventoryToRoot(versionPath, inventory);
@@ -712,7 +713,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private String createRevisionMarker(Inventory inventory) {
         var revision = inventory.getRevisionId().toString();
         var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadRevisionsPath(inventory.getObjectRootPath()), revision);
-        return cloudClient.uploadBytes(revisionPath, revision.getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN).getPath();
+        return cloudClient.uploadBytes(revisionPath, revision.getBytes(StandardCharsets.UTF_8), MEDIA_TYPE_TEXT).getPath();
     }
 
     private RevisionId identifyLatestRevision(String objectRootPath) {
@@ -850,7 +851,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private String writeObjectNamasteFile(String objectRootPath) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
         var key = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
-        return cloudClient.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MIMETYPE_TEXT_PLAIN).getPath();
+        return cloudClient.uploadBytes(key, namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MEDIA_TYPE_TEXT).getPath();
     }
 
     private void copyObjects(List<ListResult.ObjectListing> objects, Path outputPath) {

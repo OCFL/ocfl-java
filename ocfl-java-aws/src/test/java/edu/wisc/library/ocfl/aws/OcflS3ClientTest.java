@@ -28,7 +28,11 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class OcflS3ClientTest {
 
@@ -109,14 +113,14 @@ public class OcflS3ClientTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "ocfl-repo-1"})
-    public void putWithDigest(String repoPrefix) {
+    public void putWithContentType(String repoPrefix) {
         var bucket = createBucket();
         var client = new OcflS3Client(awsS3Client, bucket, repoPrefix);
 
         var key = "blah/blah/blah.txt";
         var content = "yawn";
 
-        client.uploadFile(createFile(content), key, md5(content));
+        client.uploadFile(createFile(content), key, "text/plain; charset=utf-8");
 
         assertObjectsExist(bucket, repoPrefix, List.of(key));
 
@@ -255,7 +259,7 @@ public class OcflS3ClientTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "ocfl-repo-1"})
-    public void headWhenExists(String repoPrefix) throws IOException {
+    public void headWhenExists(String repoPrefix) {
         var bucket = createBucket();
         var client = new OcflS3Client(awsS3Client, bucket, repoPrefix);
 
@@ -272,7 +276,7 @@ public class OcflS3ClientTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "ocfl-repo-1"})
-    public void failHeadWhenDoesNotExist(String repoPrefix) throws IOException {
+    public void failHeadWhenDoesNotExist(String repoPrefix) {
         var bucket = createBucket();
         var client = new OcflS3Client(awsS3Client, bucket, repoPrefix);
 

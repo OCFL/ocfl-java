@@ -49,25 +49,22 @@ public interface CloudClient {
     String prefix();
     
     /**
-     * Uploads a file to the destination, and returns the object key. A md5 digest of the file is calculated prior to
-     * initiating the upload, and is used for transmission fixity.
+     * Uploads a file to the destination, and returns the object key.
      *
      * @param srcPath src file
      * @param dstPath object path
      * @return object key
      */
     CloudObjectKey uploadFile(Path srcPath, String dstPath);
-
     /**
-     * Uploads a file to the destination, and returns the object key. If the md5 digest is null, it is calculated prior to
-     * upload.
+     * Uploads a file to the destination, and returns the object key.
      *
      * @param srcPath src file
      * @param dstPath object path
-     * @param md5digest the md5 digest of the file to upload or null
+     * @param contentType the content type of the data
      * @return object key
      */
-    CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest);
+    CloudObjectKey uploadFile(Path srcPath, String dstPath, String contentType);
 
     /**
      * Uploads an object with byte content
@@ -109,7 +106,7 @@ public interface CloudClient {
     InputStream downloadStream(String srcPath);
 
     /**
-     * Downloads an object to a string.
+     * Downloads an object to a string. This assumes that the object is UTF-8 encoded.
      *
      * @param srcPath object key
      * @return string content of the object

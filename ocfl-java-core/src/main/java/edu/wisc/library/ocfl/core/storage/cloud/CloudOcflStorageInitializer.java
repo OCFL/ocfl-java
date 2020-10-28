@@ -56,8 +56,8 @@ public class CloudOcflStorageInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(CloudOcflStorageInitializer.class);
 
-    private static final String MIME_TEXT = "text/plain; charset=UTF-8";
-    private static final String MIME_JSON = "application/json";
+    private static final String MEDIA_TYPE_TEXT = "text/plain; charset=UTF-8";
+    private static final String MEDIA_TYPE_JSON = "application/json; charset=UTF-8";
     private static final String OBJECT_MARKER_PREFIX = "0=ocfl_object";
 
     private final CloudClient cloudClient;
@@ -233,7 +233,7 @@ public class CloudOcflStorageInitializer {
     private String writeNamasteFile(OcflVersion ocflVersion) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
         return cloudClient.uploadBytes(namasteFile.fileName(), namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
-                MIME_TEXT).getPath();
+                MEDIA_TYPE_TEXT).getPath();
     }
 
     private List<String> writeOcflLayout(OcflExtensionConfig layoutConfig, String description) {
@@ -242,10 +242,10 @@ public class CloudOcflStorageInitializer {
                 .setExtension(layoutConfig.getExtensionName())
                 .setDescription(description);
         try {
-            keys.add(cloudClient.uploadBytes(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MIME_JSON).getPath());
+            keys.add(cloudClient.uploadBytes(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MEDIA_TYPE_JSON).getPath());
             if (layoutConfig.hasParameters()) {
                 keys.add(cloudClient.uploadBytes(layoutConfigFile(layoutConfig.getExtensionName()),
-                        objectMapper.writeValueAsBytes(layoutConfig), MIME_JSON).getPath());
+                        objectMapper.writeValueAsBytes(layoutConfig), MEDIA_TYPE_JSON).getPath());
             }
             return keys;
         } catch (IOException e) {
@@ -314,7 +314,7 @@ public class CloudOcflStorageInitializer {
 
     private CloudObjectKey uploadStream(String remotePath, InputStream stream) {
         try {
-            return cloudClient.uploadBytes(remotePath, stream.readAllBytes(), MIME_TEXT);
+            return cloudClient.uploadBytes(remotePath, stream.readAllBytes(), MEDIA_TYPE_TEXT);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

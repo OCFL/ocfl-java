@@ -170,7 +170,7 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
-    public CloudObjectKey uploadFile(Path srcPath, String dstPath, byte[] md5digest) {
+    public CloudObjectKey uploadFile(Path srcPath, String dstPath, String contentType) {
         var fileSize = UncheckedFiles.size(srcPath);
         var dstKey = keyBuilder.buildFromPath(dstPath);
 
@@ -179,7 +179,7 @@ public class OcflS3Client implements CloudClient {
         }
 
         if (fileSize > MAX_PART_BYTES) {
-            multipartUpload(srcPath, dstKey, fileSize);
+            multipartUpload(srcPath, dstKey, fileSize, contentType);
         } else {
             LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
@@ -187,6 +187,7 @@ public class OcflS3Client implements CloudClient {
                     .bucket(bucket)
                     .key(dstKey.getKey())
                     .contentLength(fileSize)
+                    .contentType(contentType)
                     .build(), srcPath);
         }
 
@@ -194,13 +195,13 @@ public class OcflS3Client implements CloudClient {
     }
 
     // TODO reduce memory consumption?
-    private void multipartUpload(Path srcPath, CloudObjectKey dstKey, long fileSize) {
+    private void multipartUpload(Path srcPath, CloudObjectKey dstKey, long fileSize, String contentType) {
         var partSize = determinePartSize(fileSize);
 
         LOG.debug("Multipart upload of {} to bucket {} key {}. File size: {}; part size: {}", srcPath, bucket, dstKey,
                 fileSize, partSize);
 
-        var uploadId = beginMultipartUpload(dstKey);
+        var uploadId = beginMultipartUpload(dstKey, contentType);
 
         var completedParts = new ArrayList<CompletedPart>();
 
@@ -294,7 +295,7 @@ public class OcflS3Client implements CloudClient {
         LOG.debug("Multipart copy of {} to {} in bucket {}: File size {}; part size: {}", srcKey, dstKey, bucket,
                 fileSize, partSize);
 
-        var uploadId = beginMultipartUpload(dstKey);
+        var uploadId = beginMultipartUpload(dstKey, null);
 
         try {
             var completedParts = new ArrayList<CompletedPart>();
@@ -520,10 +521,11 @@ public class OcflS3Client implements CloudClient {
         }
     }
 
-    private String beginMultipartUpload(CloudObjectKey key) {
+    private String beginMultipartUpload(CloudObjectKey key, String contentType) {
         return s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                 .bucket(bucket)
                 .key(key.getKey())
+                .contentType(contentType)
                 .build()).uploadId();
     }
 
