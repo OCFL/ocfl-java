@@ -117,6 +117,34 @@ public class ObjectVersionId {
         return versionNum == null;
     }
 
+    /**
+     * Returns a new ObjectVersionId instance with an incremented version number. This may only be called if this
+     * instance has its version number set
+     *
+     * @return new ObjectVersionId with incremented version
+     * @throws IllegalStateException if the version number is not set
+     */
+    public ObjectVersionId nextVersion() {
+        if (versionNum == null) {
+            throw new IllegalStateException("Cannot resolve next version number because the current version number is not set.");
+        }
+        return ObjectVersionId.version(objectId, versionNum.nextVersionNum());
+    }
+
+    /**
+     * Returns a new ObjectVersionId instance with an decremented version number. This may only be called if this
+     * instance has its version number set
+     *
+     * @return new ObjectVersionId with decremented version
+     * @throws IllegalStateException if the version number is not set
+     */
+    public ObjectVersionId previousVersion() {
+        if (versionNum == null) {
+            throw new IllegalStateException("Cannot resolve previous version number because the current version number is not set.");
+        }
+        return ObjectVersionId.version(objectId, versionNum.previousVersionNum());
+    }
+
     @Override
     public String toString() {
         return "ObjectId{" +
