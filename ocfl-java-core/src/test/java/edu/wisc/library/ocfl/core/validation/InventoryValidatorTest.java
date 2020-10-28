@@ -3,7 +3,7 @@ package edu.wisc.library.ocfl.core.validation;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.PathBiMap;
@@ -28,13 +28,13 @@ public class InventoryValidatorTest {
     public void failWhenContentDirHasSlashes() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot contain", () -> {
             InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionId(1))
+                    .head(new VersionNum(1))
                     .contentDirectory("path/dir")
                     .build());
         });
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot contain", () -> {
             InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionId(1))
+                    .head(new VersionNum(1))
                     .contentDirectory("path\\dir")
                     .build());
         });
@@ -44,7 +44,7 @@ public class InventoryValidatorTest {
     public void failWhenContentDirBlank() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot be blank", () -> {
             InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionId(1))
+                    .head(new VersionNum(1))
                     .contentDirectory("")
                     .build());
         });
@@ -59,7 +59,7 @@ public class InventoryValidatorTest {
 
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Fixity entry md5 => {md5_123 => contentPath} does not have a corresponding entry in the manifest block.", () -> {
             InventoryValidator.validateDeep(defaultBuilder()
-                    .head(new VersionId(1))
+                    .head(new VersionNum(1))
                     .fixityBiMap(fixityMap)
                     .build());
         });
@@ -69,7 +69,7 @@ public class InventoryValidatorTest {
     public void failWhenVersionsEmpty() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Versions cannot be empty", () -> {
             InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionId(1))
+                    .head(new VersionNum(1))
                     .build());
         });
     }
@@ -89,7 +89,7 @@ public class InventoryValidatorTest {
     public void failWhenMissingVersion() {
         OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Version v1 is missing", () -> {
             InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionId(1))
+                    .head(new VersionNum(1))
                     .addHeadVersion(Version.builder()
                             .created(OffsetDateTime.now())
                             .build()).build());
@@ -117,7 +117,7 @@ public class InventoryValidatorTest {
                     .addHeadVersion(Version.builder()
                             .created(OffsetDateTime.now())
                             .build())
-                    .head(new VersionId(1)).build());
+                    .head(new VersionNum(1)).build());
         });
     }
 
@@ -132,7 +132,7 @@ public class InventoryValidatorTest {
                         .build()).build();
 
         var previousInventory = defaultBuilder()
-                .head(VersionId.fromString("v000"))
+                .head(VersionNum.fromString("v000"))
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .build()).build();
@@ -185,7 +185,7 @@ public class InventoryValidatorTest {
                         .build()).build();
 
         var previousInventory = defaultBuilder()
-                .head(new VersionId(0))
+                .head(new VersionNum(0))
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("abc123", "file1")

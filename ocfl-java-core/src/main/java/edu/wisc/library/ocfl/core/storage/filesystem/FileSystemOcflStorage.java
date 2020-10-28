@@ -32,14 +32,14 @@ import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
@@ -177,7 +177,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         ensureOpen();
 
         LOG.debug("Store new version of object <{}> version <{}> revision <{}> from staging directory <{}>",
-                inventory.getId(), inventory.getHead(), inventory.getRevisionId(), stagingDir);
+                inventory.getId(), inventory.getHead(), inventory.getRevisionNum(), stagingDir);
 
         var objectRootPath = objectRootPathFull(inventory.getId());
         var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
@@ -193,13 +193,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
+    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionNum versionNum) {
         ensureOpen();
 
-        LOG.debug("Get file streams for object <{}> version <{}>", inventory.getId(), versionId);
+        LOG.debug("Get file streams for object <{}> version <{}>", inventory.getId(), versionNum);
 
         var objectRootPath = objectRootPathFull(inventory.getId());
-        var version = inventory.ensureVersion(versionId);
+        var version = inventory.ensureVersion(versionNum);
         var algorithm = inventory.getDigestAlgorithm();
 
         var map = new HashMap<String, OcflFileRetriever>(version.getState().size());
@@ -219,13 +219,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
+    public void reconstructObjectVersion(Inventory inventory, VersionNum versionNum, Path stagingDir) {
         ensureOpen();
 
-        LOG.debug("Reconstruct object <{}> version <{}> in directory <{}>", inventory.getId(), versionId, stagingDir);
+        LOG.debug("Reconstruct object <{}> version <{}> in directory <{}>", inventory.getId(), versionNum, stagingDir);
 
         var objectRootPath = objectRootPathFull(inventory.getId());
-        var version = inventory.ensureVersion(versionId);
+        var version = inventory.ensureVersion(versionNum);
         var digestAlgorithm = inventory.getDigestAlgorithm().getJavaStandardName();
 
         version.getState().forEach((id, files) -> {
@@ -280,15 +280,15 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void rollbackToVersion(Inventory inventory, VersionId versionId) {
+    public void rollbackToVersion(Inventory inventory, VersionNum versionNum) {
         ensureOpen();
 
-        LOG.info("Rollback object <{}> to version {}", inventory.getId(), versionId);
+        LOG.info("Rollback object <{}> to version {}", inventory.getId(), versionNum);
 
         var objectRootPath = objectRootPathFull(inventory.getId());
         var objectRoot = ObjectPaths.objectRoot(inventory, objectRootPath);
 
-        var versionRoot = objectRoot.version(versionId);
+        var versionRoot = objectRoot.version(versionNum);
 
         try {
             copyInventory(versionRoot, objectRoot);
@@ -304,17 +304,17 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         try {
             var currentVersion = inventory.getHead();
 
-            while (currentVersion.compareTo(versionId) > 0) {
+            while (currentVersion.compareTo(versionNum) > 0) {
                 LOG.info("Purging object {} version {}", inventory.getId(), currentVersion);
                 var currentVersionPath = objectRoot.versionPath(currentVersion);
                 FileUtil.deleteDirectory(currentVersionPath);
-                currentVersion = currentVersion.previousVersionId();
+                currentVersion = currentVersion.previousVersionNum();
             }
 
             FileUtil.deleteDirectory(objectRoot.mutableHeadExtensionPath());
         } catch (Exception e) {
             throw new CorruptObjectException(String.format("Object %s was corrupted while attempting to rollback to version %s. It must be manually remediated.",
-                    inventory.getId(), versionId), e);
+                    inventory.getId(), versionNum), e);
         }
     }
 
@@ -442,7 +442,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     public void exportVersion(ObjectVersionId objectVersionId, Path outputPath) {
         ensureOpen();
 
-        Enforce.notNull(objectVersionId.getVersionId(), "versionId cannot be null");
+        Enforce.notNull(objectVersionId.getVersionNum(), "versionNum cannot be null");
 
         var objectRootPath = objectRootPathFull(objectVersionId.getObjectId());
 
@@ -450,11 +450,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw new NotFoundException(String.format("Object %s was not found.", objectVersionId.getObjectId()));
         }
 
-        var versionRoot = objectRootPath.resolve(objectVersionId.getVersionId().toString());
+        var versionRoot = objectRootPath.resolve(objectVersionId.getVersionNum().toString());
 
         if (Files.notExists(versionRoot)) {
             throw new NotFoundException(String.format("Object %s version %s was not found.",
-                    objectVersionId.getObjectId(), objectVersionId.getVersionId()));
+                    objectVersionId.getObjectId(), objectVersionId.getVersionNum()));
         }
 
         LOG.debug("Copying <{}> to <{}>", versionRoot, outputPath);
@@ -546,11 +546,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private Inventory parseMutableHeadInventory(String objectRootPath, Path objectRootPathAbsolute, Path inventoryPath) {
-        var revisionId = identifyLatestRevision(objectRootPathAbsolute);
+        var revisionNum = identifyLatestRevision(objectRootPathAbsolute);
 
         try (var inventoryStream = inventoryVerifyingInputStream(inventoryPath)) {
             var inventory = inventoryMapper.readMutableHead(objectRootPath, inventoryStream.getExpectedDigestValue(),
-                    revisionId, inventoryStream);
+                    revisionNum, inventoryStream);
             inventoryStream.checkFixity();
             return inventory;
         } catch (IOException e) {
@@ -566,13 +566,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         return new FixityCheckInputStream(Files.newInputStream(inventoryPath), algorithm, expectedDigest);
     }
 
-    private RevisionId identifyLatestRevision(Path objectRootPath) {
+    private RevisionNum identifyLatestRevision(Path objectRootPath) {
         var revisionsPath = ObjectPaths.mutableHeadRevisionsPath(objectRootPath);
         try (var files = Files.list(revisionsPath)) {
             var result = files.filter(Files::isRegularFile)
                     .map(Path::getFileName).map(Path::toString)
-                    .filter(RevisionId::isRevisionId)
-                    .map(RevisionId::fromString)
+                    .filter(RevisionNum::isRevisionNum)
+                    .map(RevisionNum::fromString)
                     .max(Comparator.naturalOrder());
             if (result.isEmpty()) {
                 return null;
@@ -681,7 +681,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private Path createRevisionMarker(Inventory inventory, Path revisionsPath) {
         UncheckedFiles.createDirectories(revisionsPath);
-        var revision = inventory.getRevisionId().toString();
+        var revision = inventory.getRevisionNum().toString();
         try {
             var revisionMarker = Files.createFile(revisionsPath.resolve(revision));
             return Files.writeString(revisionMarker, revision);
@@ -706,7 +706,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     }
 
     private boolean isFirstVersion(Inventory inventory) {
-        return VersionId.V1.equals(inventory.getHead());
+        return VersionNum.V1.equals(inventory.getHead());
     }
 
     private void setupNewObjectDirs(Path objectRootPath) {
@@ -728,7 +728,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         } catch (RuntimeException e) {
             if (!isFirstVersion(inventory)) {
                 try {
-                    var previousVersionRoot = objectRoot.version(inventory.getHead().previousVersionId());
+                    var previousVersionRoot = objectRoot.version(inventory.getHead().previousVersionNum());
                     copyInventory(previousVersionRoot, objectRoot);
                 } catch (RuntimeException e1) {
                     LOG.error("Failed to rollback inventory at {}", objectRoot.inventoryFile(), e1);
@@ -781,7 +781,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                                 "The digest of the current inventory is %s, but the digest %s was expected.",
                         inventory.getId(), actualDigest, inventory.getPreviousDigest()));
             }
-        } else if (!inventory.getHead().equals(VersionId.V1)) {
+        } else if (!inventory.getHead().equals(VersionNum.V1)) {
             LOG.debug("Cannot verify prior inventory for object {} because its digest is unknown.", inventory.getId());
         }
     }

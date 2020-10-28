@@ -30,7 +30,7 @@ import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.inventory.AddFileProcessor;
 import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
@@ -169,14 +169,14 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      * {@inheritDoc}
      */
     @Override
-    public OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... options) {
-        Enforce.notNull(sourceVersionId, "sourceVersionId cannot be null");
+    public OcflObjectUpdater reinstateFile(VersionNum sourceVersionNum, String sourcePath, String destinationPath, OcflOption... options) {
+        Enforce.notNull(sourceVersionNum, "sourceVersionNum cannot be null");
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
 
-        LOG.debug("Reinstate file at <{}> in object <{}> to <{}>", sourcePath, sourceVersionId, destinationPath);
+        LOG.debug("Reinstate file at <{}> in object <{}> to <{}>", sourcePath, sourceVersionNum, destinationPath);
 
-        var results = inventoryUpdater.reinstateFile(sourceVersionId, sourcePath, destinationPath, options);
+        var results = inventoryUpdater.reinstateFile(sourceVersionNum, sourcePath, destinationPath, options);
         removeUnneededStagedFiles(results);
 
         return this;

@@ -49,16 +49,16 @@ public class OcflMatchers {
         return new FileDetailsMatcher(filePath, storagePath, fixity);
     }
 
-    public static VersionDetailsMatcher versionDetails(String objectId, String versionId, VersionInfoMatcher versionInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
-        return new VersionDetailsMatcher(objectId, versionId, versionInfoMatcher, fileDetailsMatchers);
+    public static VersionDetailsMatcher versionDetails(String objectId, String versionNum, VersionInfoMatcher versionInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
+        return new VersionDetailsMatcher(objectId, versionNum, versionInfoMatcher, fileDetailsMatchers);
     }
 
     public static OcflObjectVersionFileMatcher versionFile(String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
         return new OcflObjectVersionFileMatcher(filePath, storagePath, content, fixity);
     }
 
-    public static OcflObjectVersionMatcher objectVersion(String objectId, String versionId, VersionInfoMatcher versionInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
-        return new OcflObjectVersionMatcher(objectId, versionId, versionInfoMatcher, fileMatchers);
+    public static OcflObjectVersionMatcher objectVersion(String objectId, String versionNum, VersionInfoMatcher versionInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
+        return new OcflObjectVersionMatcher(objectId, versionNum, versionInfoMatcher, fileMatchers);
     }
 
     public static FileChangeMatcher fileChange(FileChangeType changeType, ObjectVersionId objectVersionId, String filePath,

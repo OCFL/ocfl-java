@@ -29,13 +29,13 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import java.util.Objects;
 
 /**
- * Points to a specific version of an object, encapsulating an object identifier and version identifier. When HEAD
+ * Points to a specific version of an object, encapsulating an object identifier and version number. When HEAD
  * is specified, then it points to whatever the most recent version of the object is.
  */
 public class ObjectVersionId {
 
     private final String objectId;
-    private final VersionId versionId;
+    private final VersionNum versionNum;
 
     /**
      * Creates an ObjectId instance that points to the HEAD version of the object
@@ -51,34 +51,45 @@ public class ObjectVersionId {
      * Creates an ObjectId instance that points to a specific version of an object
      *
      * @param objectId the id of the object
-     * @param versionId the OCFL version id of the version
+     * @param versionNum the OCFL version num of the version
      * @return new ObjectVersionId
      */
-    public static ObjectVersionId version(String objectId, String versionId) {
-        if (versionId == null) {
+    public static ObjectVersionId version(String objectId, String versionNum) {
+        if (versionNum == null) {
             return new ObjectVersionId(objectId, null);
         }
-        return new ObjectVersionId(objectId, VersionId.fromString(versionId));
+        return new ObjectVersionId(objectId, VersionNum.fromString(versionNum));
     }
 
     /**
      * Creates an ObjectId instance that points to a specific version of an object
      *
      * @param objectId the id of the object
-     * @param versionId the OCFL version id of the version
+     * @param versionNum the OCFL version num of the version
      * @return new ObjectVersionId
      */
-    public static ObjectVersionId version(String objectId, VersionId versionId) {
-        return new ObjectVersionId(objectId, versionId);
+    public static ObjectVersionId version(String objectId, int versionNum) {
+        return new ObjectVersionId(objectId, VersionNum.fromInt(versionNum));
+    }
+
+    /**
+     * Creates an ObjectId instance that points to a specific version of an object
+     *
+     * @param objectId the id of the object
+     * @param versionNum the OCFL version number of the version
+     * @return new ObjectVersionId
+     */
+    public static ObjectVersionId version(String objectId, VersionNum versionNum) {
+        return new ObjectVersionId(objectId, versionNum);
     }
 
     private ObjectVersionId(String objectId) {
         this(objectId, null);
     }
 
-    private ObjectVersionId(String objectId, VersionId versionId) {
+    private ObjectVersionId(String objectId, VersionNum versionNum) {
         this.objectId = Enforce.notBlank(objectId, "objectId cannot be blank");
-        this.versionId = versionId;
+        this.versionNum = versionNum;
     }
 
     /**
@@ -91,28 +102,26 @@ public class ObjectVersionId {
     }
 
     /**
-     * The version id
+     * The version number
      *
-     * @return the versionId or null if no version is specified
+     * @return the version number or null if no version is specified
      */
-    public VersionId getVersionId() {
-        return versionId;
+    public VersionNum getVersionNum() {
+        return versionNum;
     }
 
     /**
-     * Returns true if versionId is NOT set
-     *
-     * @return true if the HEAD version is referenced
+     * @return true if no version number is set
      */
     public boolean isHead() {
-        return versionId == null;
+        return versionNum == null;
     }
 
     @Override
     public String toString() {
         return "ObjectId{" +
                 "objectId='" + objectId + '\'' +
-                ", versionId='" + versionId + '\'' +
+                ", versionNum='" + versionNum + '\'' +
                 '}';
     }
 
@@ -122,12 +131,12 @@ public class ObjectVersionId {
         if (o == null || getClass() != o.getClass()) return false;
         ObjectVersionId that = (ObjectVersionId) o;
         return objectId.equals(that.objectId) &&
-                versionId.equals(that.versionId);
+                versionNum.equals(that.versionNum);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(objectId, versionId);
+        return Objects.hash(objectId, versionNum);
     }
 
 }

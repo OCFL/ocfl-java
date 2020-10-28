@@ -28,7 +28,7 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
@@ -135,7 +135,7 @@ public class ObjectValidator {
                     if (excludeDirs.contains(dir)) {
                        return FileVisitResult.SKIP_SUBTREE;
                     } else if (dir.getParent().equals(objectRoot)) {
-                        var version = VersionId.fromString(dir.getFileName().toString());
+                        var version = VersionNum.fromString(dir.getFileName().toString());
                         if (version.compareTo(inventory.getHead()) > 0) {
                             return FileVisitResult.SKIP_SUBTREE;
                         }
@@ -266,8 +266,8 @@ public class ObjectValidator {
     private void validateVersions(Path objectRoot, Inventory inventory) {
         var currentInventory = inventory;
 
-        while (!VersionId.V1.equals(currentInventory.getHead())) {
-            var previous = currentInventory.getHead().previousVersionId();
+        while (!VersionNum.V1.equals(currentInventory.getHead())) {
+            var previous = currentInventory.getHead().previousVersionNum();
             var inventoryPath = ObjectPaths.inventoryPath(objectRoot.resolve(previous.toString()));
             // Don't care about a valid digest here
             var previousInventory = inventoryMapper.read(inventory.getObjectRootPath(), "digest", inventoryPath);
@@ -354,11 +354,11 @@ public class ObjectValidator {
                 }
             });
 
-            if (VersionId.V1.equals(current)) {
+            if (VersionNum.V1.equals(current)) {
                 break;
             }
 
-            current = current.previousVersionId();
+            current = current.previousVersionNum();
         }
     }
 
@@ -372,7 +372,7 @@ public class ObjectValidator {
     private void validateRootInventorySameAsHeadInventory(Path objectRoot, Inventory inventory) {
         var rootVersion = inventory.getHead();
         if (inventory.hasMutableHead()) {
-            rootVersion = rootVersion.previousVersionId();
+            rootVersion = rootVersion.previousVersionNum();
         }
 
         var rootDigest = content(ObjectPaths.findInventorySidecarPath(objectRoot));
@@ -392,7 +392,7 @@ public class ObjectValidator {
         }
     }
 
-    private void validateVersionNumber(VersionId expectedId, Inventory inventory, Path inventoryPath) {
+    private void validateVersionNumber(VersionNum expectedId, Inventory inventory, Path inventoryPath) {
         if (!Objects.equals(expectedId.toString(), inventory.getHead().toString())) {
             throw new CorruptObjectException(String.format("Expected version %s but was %s in %s.",
                     expectedId, inventory.getHead(), inventoryPath));
@@ -407,7 +407,7 @@ public class ObjectValidator {
         }
     }
 
-    private InvalidInventoryException versionMismatchException(Inventory currentInventory, Inventory previousInventory, VersionId current) {
+    private InvalidInventoryException versionMismatchException(Inventory currentInventory, Inventory previousInventory, VersionNum current) {
         return new InvalidInventoryException(String.format("In object %s the inventories in version %s and %s define a different state for version %s.",
                 currentInventory.getId(), currentInventory.getHead(), previousInventory.getHead(), current));
     }

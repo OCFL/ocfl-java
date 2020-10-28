@@ -34,7 +34,7 @@ import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
@@ -71,7 +71,7 @@ public class Inventory {
     private final String id;
     private final InventoryType type;
     private final DigestAlgorithm digestAlgorithm;
-    private final VersionId head;
+    private final VersionNum head;
     private final String contentDirectory;
 
     @JsonIgnore
@@ -80,11 +80,11 @@ public class Inventory {
     @JsonIgnore
     private final PathBiMap manifestBiMap;
 
-    private final Map<VersionId, Version> versions;
+    private final Map<VersionNum, Version> versions;
 
     // This property is injected
     @JsonIgnore
-    private final RevisionId revisionId;
+    private final RevisionNum revisionNum;
 
     // This property is injected
     @JsonIgnore
@@ -149,7 +149,7 @@ public class Inventory {
      * @param manifest manifest block
      * @param versions versions block
      * @param mutableHead if there is a mutable head
-     * @param revisionId current revision number
+     * @param revisionNum current revision number
      * @param objectRootPath object root path
      * @param previousDigest digest of previous inventory
      * @param currentDigest digest of this inventory
@@ -158,13 +158,13 @@ public class Inventory {
             String id,
             InventoryType type,
             DigestAlgorithm digestAlgorithm,
-            VersionId head,
+            VersionNum head,
             String contentDirectory,
             Map<DigestAlgorithm, Map<String, Set<String>>> fixity,
             Map<String, Set<String>> manifest,
-            Map<VersionId, Version> versions,
+            Map<VersionNum, Version> versions,
             boolean mutableHead,
-            RevisionId revisionId,
+            RevisionNum revisionNum,
             String objectRootPath,
             String previousDigest,
             String currentDigest) {
@@ -177,12 +177,12 @@ public class Inventory {
         this.contentDirectory = contentDirectory;
         this.fixityBiMap = createFixityBiMap(fixity);
         this.manifestBiMap = PathBiMap.fromFileIdMap(manifest);
-        var tree = new TreeMap<VersionId, Version>(Comparator.naturalOrder());
+        var tree = new TreeMap<VersionNum, Version>(Comparator.naturalOrder());
         tree.putAll(versions);
         this.versions = Collections.unmodifiableMap(tree);
 
         this.mutableHead = mutableHead;
-        this.revisionId = revisionId;
+        this.revisionNum = revisionNum;
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
         this.previousDigest = previousDigest;
         this.currentDigest = currentDigest;
@@ -200,14 +200,14 @@ public class Inventory {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        this.head = new VersionId(0);
+        this.head = new VersionNum(0);
         this.contentDirectory = contentDirectory;
         this.fixityBiMap = Collections.emptyMap();
         this.manifestBiMap = new PathBiMap();
         this.versions = Collections.emptyMap();
 
         this.mutableHead = false;
-        this.revisionId = null;
+        this.revisionNum = null;
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be null");
         this.previousDigest = null;
         this.currentDigest = null;
@@ -263,7 +263,7 @@ public class Inventory {
      * @return the version of the most recent version of the object. This is in the format of "vX" where "X" is a positive integer.
      */
     @JsonGetter("head")
-    public VersionId getHead() {
+    public VersionNum getHead() {
         return head;
     }
 
@@ -301,13 +301,13 @@ public class Inventory {
     }
 
     /**
-     * A map of version identifiers to the object that describes the state of the object at that version. All versions of
+     * A map of version number to the object that describes the state of the object at that version. All versions of
      * the object are represented here.
      *
      * @return version states
      */
     @JsonGetter("versions")
-    public Map<VersionId, Version> getVersions() {
+    public Map<VersionNum, Version> getVersions() {
         return versions;
     }
 
@@ -339,25 +339,25 @@ public class Inventory {
     }
 
     /**
-     * @param versionId version number to get
+     * @param versionNum version number to get
      * @return the version or null if it doesn't exist
      */
-    public Version getVersion(VersionId versionId) {
-        return versions.get(versionId);
+    public Version getVersion(VersionNum versionNum) {
+        return versions.get(versionNum);
     }
 
     /**
-     * Returns the Version that corresponds to the versionId. Throws an exception if the version does not exist.
+     * Returns the Version that corresponds to the version number. Throws an exception if the version does not exist.
      *
-     * @param versionId version id of the version to retrieve
+     * @param versionNum version number of the version to retrieve
      * @return the version
      * @throws IllegalStateException if the version does not exist
      */
-    public Version ensureVersion(VersionId versionId) {
-        var version = getVersion(versionId);
+    public Version ensureVersion(VersionNum versionNum) {
+        var version = getVersion(versionNum);
 
         if (version == null) {
-            throw new IllegalStateException(String.format("Object %s does not contain version %s", id, versionId));
+            throw new IllegalStateException(String.format("Object %s does not contain version %s", id, versionNum));
         }
 
         return version;
@@ -475,8 +475,8 @@ public class Inventory {
      * @return the current revision number or null
      */
     @JsonIgnore
-    public RevisionId getRevisionId() {
-        return revisionId;
+    public RevisionNum getRevisionNum() {
+        return revisionNum;
     }
 
     /**
@@ -517,28 +517,28 @@ public class Inventory {
     }
 
     /**
-     * Returns the next version id after the current HEAD version. If the object has a mutable HEAD, the current version
+     * Returns the next version number after the current HEAD version. If the object has a mutable HEAD, the current version
      * is returned.
      *
-     * @return the next version id
+     * @return the next version number
      */
-    public VersionId nextVersionId() {
+    public VersionNum nextVersionNum() {
         if (mutableHead) {
             return head;
         }
-        return head.nextVersionId();
+        return head.nextVersionNum();
     }
 
     /**
-     * Returns the next revision id. If the object doest not have a revision id, then a new revision is created.
+     * Returns the next revision number. If the object doest not have a revision number, then a new revision is created.
      *
-     * @return the next revision id
+     * @return the next revision number
      */
-    public RevisionId nextRevisionId() {
-        if (revisionId == null) {
-            return new RevisionId(1);
+    public RevisionNum nextRevisionNum() {
+        if (revisionNum == null) {
+            return new RevisionNum(1);
         }
-        return revisionId.nextRevisionId();
+        return revisionNum.nextRevisionNum();
     }
 
     /**
@@ -570,7 +570,7 @@ public class Inventory {
                 ", fixityBiMap=" + fixityBiMap +
                 ", manifestBiMap=" + manifestBiMap +
                 ", versions=" + versions +
-                ", revisionId=" + revisionId +
+                ", revisionNum=" + revisionNum +
                 ", mutableHead=" + mutableHead +
                 ", objectRootPath='" + objectRootPath + '\'' +
                 ", previousDigest='" + previousDigest + '\'' +
@@ -592,7 +592,7 @@ public class Inventory {
                 fixityBiMap.equals(inventory.fixityBiMap) &&
                 manifestBiMap.equals(inventory.manifestBiMap) &&
                 versions.equals(inventory.versions) &&
-                Objects.equals(revisionId, inventory.revisionId) &&
+                Objects.equals(revisionNum, inventory.revisionNum) &&
                 objectRootPath.equals(inventory.objectRootPath) &&
                 Objects.equals(previousDigest, inventory.previousDigest) &&
                 Objects.equals(currentDigest, inventory.currentDigest);
@@ -602,7 +602,7 @@ public class Inventory {
     public int hashCode() {
         return Objects.hash(id, type, digestAlgorithm,
                 head, contentDirectory, fixityBiMap,
-                manifestBiMap, versions, revisionId,
+                manifestBiMap, versions, revisionNum,
                 mutableHead, objectRootPath, previousDigest,
                 currentDigest);
     }
@@ -615,14 +615,14 @@ public class Inventory {
         String id;
         InventoryType type;
         DigestAlgorithm digestAlgorithm;
-        VersionId head;
+        VersionNum head;
         String contentDirectory;
         Map<DigestAlgorithm, Map<String, Set<String>>> fixity;
         Map<String, Set<String>> manifest;
-        Map<VersionId, Version> versions;
+        Map<VersionNum, Version> versions;
 
         boolean mutableHead;
-        RevisionId revisionId;
+        RevisionNum revisionNum;
         String objectRootPath;
         String previousDigest;
         String currentDigest;
@@ -639,7 +639,7 @@ public class Inventory {
             this.digestAlgorithm = digestAlgorithm;
         }
 
-        public void withHead(VersionId head) {
+        public void withHead(VersionNum head) {
             this.head = head;
         }
 
@@ -655,7 +655,7 @@ public class Inventory {
             this.manifest = manifest;
         }
 
-        public void withVersions(Map<VersionId, Version> versions) {
+        public void withVersions(Map<VersionNum, Version> versions) {
             this.versions = versions;
         }
 
@@ -664,9 +664,9 @@ public class Inventory {
             this.mutableHead = mutableHead;
         }
 
-        @JacksonInject("revisionId")
-        public void withRevisionId(RevisionId revisionId) {
-            this.revisionId = revisionId;
+        @JacksonInject("revisionNum")
+        public void withRevisionNum(RevisionNum revisionNum) {
+            this.revisionNum = revisionNum;
         }
 
         @JacksonInject("objectRootPath")
@@ -683,7 +683,7 @@ public class Inventory {
             return new Inventory(id, type, digestAlgorithm,
                     head, contentDirectory, fixity,
                     manifest, versions, mutableHead,
-                    revisionId, objectRootPath, previousDigest,
+                    revisionNum, objectRootPath, previousDigest,
                     currentDigest);
         }
 

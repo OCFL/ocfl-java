@@ -202,7 +202,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
 
     private Path resolveRevisionDir(Inventory inventory, Path parent) {
         var contentDir = resolveContentDir(inventory, parent);
-        var newRevision = inventory.nextRevisionId();
+        var newRevision = inventory.nextRevisionNum();
         return contentDir.resolve(newRevision.toString());
     }
 

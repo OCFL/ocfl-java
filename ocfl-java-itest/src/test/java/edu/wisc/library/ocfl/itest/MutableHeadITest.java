@@ -5,7 +5,7 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
@@ -121,7 +121,7 @@ public abstract class MutableHeadITest {
         var details = repo.describeObject(objectId);
 
         assertTrue(details.getHeadVersion().isMutable(), "HEAD isMutable");
-        assertFalse(details.getVersion(VersionId.fromString("v1")).isMutable(), "v1 isMutable");
+        assertFalse(details.getVersion(VersionNum.fromString("v1")).isMutable(), "v1 isMutable");
     }
 
     @Test
@@ -153,7 +153,7 @@ public abstract class MutableHeadITest {
         var details = repo.describeObject(objectId);
 
         assertTrue(details.getHeadVersion().isMutable(), "HEAD isMutable");
-        assertFalse(details.getVersion(VersionId.fromString("v1")).isMutable(), "v1 isMutable");
+        assertFalse(details.getVersion(VersionNum.fromString("v1")).isMutable(), "v1 isMutable");
     }
 
     @Test
@@ -468,7 +468,7 @@ public abstract class MutableHeadITest {
 
         var desc = repo.describeObject(objectId);
 
-        assertEquals("v2", desc.getHeadVersionId().toString());
+        assertEquals("v2", desc.getHeadVersionNum().toString());
         assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
         assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
     }
@@ -516,7 +516,7 @@ public abstract class MutableHeadITest {
 
         var desc = repo.describeObject(objectId);
 
-        assertEquals("v2", desc.getHeadVersionId().toString());
+        assertEquals("v2", desc.getHeadVersionNum().toString());
         assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
         assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
     }

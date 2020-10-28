@@ -69,12 +69,12 @@ public class FileChange {
     }
 
     /**
-     * The object's version id for the version the changed occurred in
+     * The object's version number for the version the changed occurred in
      *
-     * @return VersionId
+     * @return version number
      */
-    public VersionId getVersionId() {
-        return objectVersionId.getVersionId();
+    public VersionNum getVersionNum() {
+        return objectVersionId.getVersionNum();
     }
 
     /**

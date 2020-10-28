@@ -62,12 +62,12 @@ public class OcflObjectVersion {
     }
 
     /**
-     * The version id
+     * The version number
      *
-     * @return the VersionId
+     * @return the version number
      */
-    public VersionId getVersionId() {
-        return versionDetails.getVersionId();
+    public VersionNum getVersionNum() {
+        return versionDetails.getVersionNum();
     }
 
     /**

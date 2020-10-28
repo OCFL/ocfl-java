@@ -25,7 +25,7 @@
 package edu.wisc.library.ocfl.test.matcher;
 
 import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import org.hamcrest.Description;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
@@ -36,14 +36,14 @@ import java.util.Objects;
 
 public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion> {
 
-    private String objectId;
-    private VersionId versionId;
-    private VersionInfoMatcher versionInfoMatcher;
-    private Collection<OcflObjectVersionFileMatcher> fileMatchers;
+    private final String objectId;
+    private final VersionNum versionNum;
+    private final VersionInfoMatcher versionInfoMatcher;
+    private final Collection<OcflObjectVersionFileMatcher> fileMatchers;
 
-    OcflObjectVersionMatcher(String objectId, String versionId, VersionInfoMatcher versionInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
+    OcflObjectVersionMatcher(String objectId, String versionNum, VersionInfoMatcher versionInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
         this.objectId = objectId;
-        this.versionId = VersionId.fromString(versionId);
+        this.versionNum = VersionNum.fromString(versionNum);
         this.versionInfoMatcher = versionInfoMatcher;
         this.fileMatchers = Arrays.asList(fileMatchers);
     }
@@ -51,7 +51,7 @@ public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion>
     @Override
     protected boolean matchesSafely(OcflObjectVersion item) {
         return Objects.equals(objectId, item.getObjectId())
-                && Objects.equals(versionId, item.getVersionId())
+                && Objects.equals(versionNum, item.getVersionNum())
                 && versionInfoMatcher.matches(item.getVersionInfo())
                 // Hamcrest has some infuriating overloaded methods...
                 && Matchers.containsInAnyOrder((Collection) fileMatchers).matches(item.getFiles());
@@ -61,8 +61,8 @@ public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion>
     public void describeTo(Description description) {
         description.appendText("VersionDetails{objectId=")
                 .appendValue(objectId)
-                .appendText(", versionId=")
-                .appendValue(versionId)
+                .appendText(", versionNum=")
+                .appendValue(versionNum)
                 .appendText(", versionInfo=")
                 .appendDescriptionOf(versionInfoMatcher)
                 .appendText(", file=")

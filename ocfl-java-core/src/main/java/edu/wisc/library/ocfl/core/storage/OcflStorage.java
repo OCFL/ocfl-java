@@ -30,7 +30,7 @@ import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -97,10 +97,10 @@ public interface OcflStorage {
      * object relative file paths of all of the files in the specified version of the object.
      *
      * @param inventory the object's inventory
-     * @param versionId the id of the version to load
+     * @param versionNum the id of the version to load
      * @return a map of {@code OcflFileRetriever} objects keyed off the object relative file paths of all of the files in the object
      */
-    Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId);
+    Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionNum versionNum);
 
     /**
      * Reconstructs a complete object at the specified version in the stagingDir.
@@ -108,11 +108,11 @@ public interface OcflStorage {
      * <p>The fixity of every file must be checked after copying it to the stagingDir.
      *
      * @param inventory the deserialized object inventory
-     * @param versionId the id of the version to reconstruct
+     * @param versionNum the id of the version to reconstruct
      * @param stagingDir the location the reconstructed object should be assembled in
      * @throws FixityCheckException if one of the files fails its fixity check
      */
-    void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir);
+    void reconstructObjectVersion(Inventory inventory, VersionNum versionNum, Path stagingDir);
 
     /**
      * Permanently removes an object from the repository. Objects that have been purged are NOT recoverable. If an object
@@ -150,9 +150,9 @@ public interface OcflStorage {
      * root, and purging all intermediary versions.
      *
      * @param inventory the deserialized object inventory
-     * @param versionId the id of the version to rollback to
+     * @param versionNum the id of the version to rollback to
      */
-    void rollbackToVersion(Inventory inventory, VersionId versionId);
+    void rollbackToVersion(Inventory inventory, VersionNum versionNum);
 
     /**
      * Returns true if an object with the specified id exists in the repository.

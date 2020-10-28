@@ -6,7 +6,7 @@ import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.test.OcflAsserts;
@@ -170,7 +170,7 @@ public class InventoryUpdaterTest {
     public void shouldReinstateFileWhenSrcExistsAndDstNotExists() {
         var updater = builder.buildCopyState(inventory);
 
-        var results = updater.reinstateFile(VersionId.fromString("v1"), "file2p", "file3p");
+        var results = updater.reinstateFile(VersionNum.fromString("v1"), "file2p", "file3p");
 
         assertEquals(0, results.size());
     }
@@ -180,7 +180,7 @@ public class InventoryUpdaterTest {
         var updater = builder.buildCopyState(inventory);
 
         OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "does not contain a file at", () -> {
-            updater.reinstateFile(VersionId.fromString("v4"), "file2p", "file3p");
+            updater.reinstateFile(VersionNum.fromString("v4"), "file2p", "file3p");
         });
     }
 
@@ -189,7 +189,7 @@ public class InventoryUpdaterTest {
         var updater = builder.buildCopyState(inventory);
 
         OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "does not contain a file at", () -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "file4p", "file3p");
+            updater.reinstateFile(VersionNum.fromString("v1"), "file4p", "file3p");
         });
     }
 
@@ -198,7 +198,7 @@ public class InventoryUpdaterTest {
         var updater = builder.buildCopyState(inventory);
 
         OcflAsserts.assertThrowsWithMessage(OverwriteException.class, "There is already a file at", () -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "file2p", "file1p");
+            updater.reinstateFile(VersionNum.fromString("v1"), "file2p", "file1p");
         });
     }
 
@@ -207,7 +207,7 @@ public class InventoryUpdaterTest {
         var updater = builder.buildCopyState(inventory);
 
         updater.addFile("file3", "file3p");
-        var results = updater.reinstateFile(VersionId.fromString("v1"), "file2p", "file3p", OcflOption.OVERWRITE);
+        var results = updater.reinstateFile(VersionNum.fromString("v1"), "file2p", "file3p", OcflOption.OVERWRITE);
 
         assertEquals(1, results.size());
         assertRemoveResult("file3p", results.iterator().next());
@@ -231,7 +231,7 @@ public class InventoryUpdaterTest {
             updater.renameFile("path","./blah");
         });
         OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "invalid sequence", () -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "path","./blah");
+            updater.reinstateFile(VersionNum.fromString("v1"), "path","./blah");
         });
 
         assertDoesNotThrow(() -> {

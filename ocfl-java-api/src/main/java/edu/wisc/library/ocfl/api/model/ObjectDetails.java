@@ -34,9 +34,9 @@ import java.util.Objects;
 public class ObjectDetails {
 
     private String id;
-    private VersionId headVersionId;
+    private VersionNum headVersionNum;
     private DigestAlgorithm digestAlgorithm;
-    private Map<VersionId, VersionDetails> versions;
+    private Map<VersionNum, VersionDetails> versions;
 
     public ObjectDetails() {
         versions = new HashMap<>();
@@ -48,7 +48,7 @@ public class ObjectDetails {
      * @return VersionDetails for the object's HEAD version
      */
     public VersionDetails getHeadVersion() {
-        return versions.get(headVersionId);
+        return versions.get(headVersionNum);
     }
 
     /**
@@ -64,16 +64,16 @@ public class ObjectDetails {
     }
 
     /**
-     * The version id of the HEAD version of the object
+     * The version number of the HEAD version of the object
      *
-     * @return the version id of the object's HEAD version
+     * @return the version number of the object's HEAD version
      */
-    public VersionId getHeadVersionId() {
-        return headVersionId;
+    public VersionNum getHeadVersionNum() {
+        return headVersionNum;
     }
 
-    public ObjectDetails setHeadVersionId(VersionId headVersionId) {
-        this.headVersionId = headVersionId;
+    public ObjectDetails setHeadVersionNum(VersionNum headVersionNum) {
+        this.headVersionNum = headVersionNum;
         return this;
     }
 
@@ -90,25 +90,25 @@ public class ObjectDetails {
     }
 
     /**
-     * Map of version id to version details for all of the versions of the object.
+     * Map of version number to version details for all of the versions of the object.
      *
      * @return map of all of the object's versions
      */
-    public Map<VersionId, VersionDetails> getVersionMap() {
+    public Map<VersionNum, VersionDetails> getVersionMap() {
         return versions;
     }
 
     /**
-     * Returns the VersionDetails for the specified VersionId or null if the version does not exist
+     * Returns the VersionDetails for the specified version number or null if the version does not exist
      *
-     * @param versionId the version id of the version to retrieve
+     * @param versionNum the version number of the version to retrieve
      * @return version details or null
      */
-    public VersionDetails getVersion(VersionId versionId) {
-        return versions.get(versionId);
+    public VersionDetails getVersion(VersionNum versionNum) {
+        return versions.get(versionNum);
     }
 
-    public ObjectDetails setVersions(Map<VersionId, VersionDetails> versions) {
+    public ObjectDetails setVersions(Map<VersionNum, VersionDetails> versions) {
         this.versions = versions;
         return this;
     }
@@ -117,7 +117,7 @@ public class ObjectDetails {
     public String toString() {
         return "ObjectDetails{" +
                 "id='" + id + '\'' +
-                ", headVersionId='" + headVersionId + '\'' +
+                ", headVersionNum='" + headVersionNum + '\'' +
                 ", digestAlgorithm='" + digestAlgorithm + '\'' +
                 ", versions=" + versions +
                 '}';
@@ -129,14 +129,14 @@ public class ObjectDetails {
         if (o == null || getClass() != o.getClass()) return false;
         ObjectDetails that = (ObjectDetails) o;
         return Objects.equals(id, that.id) &&
-                Objects.equals(headVersionId, that.headVersionId) &&
+                Objects.equals(headVersionNum, that.headVersionNum) &&
                 Objects.equals(digestAlgorithm, that.digestAlgorithm) &&
                 Objects.equals(versions, that.versions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, headVersionId, digestAlgorithm, versions);
+        return Objects.hash(id, headVersionNum, digestAlgorithm, versions);
     }
 
 }

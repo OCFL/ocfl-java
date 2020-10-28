@@ -33,14 +33,14 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
@@ -159,7 +159,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         ensureOpen();
 
         LOG.debug("Store new version of object <{}> version <{}> revision <{}> from staging directory <{}>",
-                inventory.getId(), inventory.getHead(), inventory.getRevisionId(), stagingDir);
+                inventory.getId(), inventory.getHead(), inventory.getRevisionNum(), stagingDir);
 
         if (inventory.hasMutableHead()) {
             storeNewMutableHeadVersion(inventory, stagingDir);
@@ -172,12 +172,12 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
+    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionNum versionNum) {
         ensureOpen();
 
-        LOG.debug("Get file streams for object <{}> version <{}>", inventory.getId(), versionId);
+        LOG.debug("Get file streams for object <{}> version <{}>", inventory.getId(), versionNum);
 
-        var version = inventory.ensureVersion(versionId);
+        var version = inventory.ensureVersion(versionNum);
         var algorithm = inventory.getDigestAlgorithm();
 
         var map = new HashMap<String, OcflFileRetriever>(version.getState().size());
@@ -196,12 +196,12 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
+    public void reconstructObjectVersion(Inventory inventory, VersionNum versionNum, Path stagingDir) {
         ensureOpen();
 
-        LOG.debug("Reconstruct object <{}> version <{}> in directory <{}>", inventory.getId(), versionId, stagingDir);
+        LOG.debug("Reconstruct object <{}> version <{}> in directory <{}>", inventory.getId(), versionNum, stagingDir);
 
-        var version = inventory.ensureVersion(versionId);
+        var version = inventory.ensureVersion(versionNum);
         var digestAlgorithm = inventory.getDigestAlgorithm();
 
         version.getState().forEach((id, files) -> {
@@ -242,12 +242,12 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void rollbackToVersion(Inventory inventory, VersionId versionId) {
+    public void rollbackToVersion(Inventory inventory, VersionNum versionNum) {
         ensureOpen();
 
-        LOG.info("Rollback object <{}> to version {}", inventory.getId(), versionId);
+        LOG.info("Rollback object <{}> to version {}", inventory.getId(), versionNum);
 
-        var versionPath = objectVersionPath(inventory, versionId);
+        var versionPath = objectVersionPath(inventory, versionNum);
 
         try {
             copyInventoryToRoot(versionPath, inventory);
@@ -264,16 +264,16 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         try {
             var currentVersion = inventory.getHead();
 
-            while (currentVersion.compareTo(versionId) > 0) {
+            while (currentVersion.compareTo(versionNum) > 0) {
                 LOG.info("Purging object {} version {}", inventory.getId(), currentVersion);
                 cloudClient.deletePath(objectVersionPath(inventory, currentVersion));
-                currentVersion = currentVersion.previousVersionId();
+                currentVersion = currentVersion.previousVersionNum();
             }
 
             purgeMutableHead(inventory.getId());
         } catch (Exception e) {
             throw new CorruptObjectException(String.format("Object %s was corrupted while attempting to rollback to version %s. It must be manually remediated.",
-                    inventory.getId(), versionId), e);
+                    inventory.getId(), versionNum), e);
         }
     }
 
@@ -369,16 +369,16 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public void exportVersion(ObjectVersionId objectVersionId, Path outputPath) {
         ensureOpen();
 
-        Enforce.notNull(objectVersionId.getVersionId(), "versionId cannot be null");
+        Enforce.notNull(objectVersionId.getVersionNum(), "versionNum cannot be null");
 
         var versionRootPath = FileUtil.pathJoinFailEmpty(objectRootPath(objectVersionId.getObjectId()),
-                objectVersionId.getVersionId().toString()) + "/";
+                objectVersionId.getVersionNum().toString()) + "/";
 
         var objects = cloudClient.list(versionRootPath).getObjects();
 
         if (objects.isEmpty()) {
             throw new NotFoundException(String.format("Object %s version %s was not found.",
-                    objectVersionId.getObjectId(), objectVersionId.getVersionId()));
+                    objectVersionId.getObjectId(), objectVersionId.getVersionNum()));
         }
 
         LOG.debug("Copying <{}> to <{}>", versionRootPath, outputPath);
@@ -607,7 +607,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private void rollbackInventory(Inventory inventory) {
         if (!isFirstVersion(inventory)) {
             try {
-                var previousVersionPath = objectVersionPath(inventory, inventory.getHead().previousVersionId());
+                var previousVersionPath = objectVersionPath(inventory, inventory.getHead().previousVersionNum());
                 copyInventoryToRoot(previousVersionPath, inventory);
             } catch (RuntimeException e) {
                 LOG.error("Failed to rollback inventory at {}. Object must be fixed manually.",
@@ -650,7 +650,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                                 "The digest of the current inventory is %s, but the digest %s was expected.",
                         inventory.getId(), actualDigest, inventory.getPreviousDigest()));
             }
-        } else if (!inventory.getHead().equals(VersionId.V1)) {
+        } else if (!inventory.getHead().equals(VersionNum.V1)) {
             LOG.debug("Cannot verify prior inventory for object {} because its digest is unknown.", inventory.getId());
         }
     }
@@ -683,8 +683,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
         try (var stream = new FixityCheckInputStream(cloudClient.downloadStream(remotePath),
                 expectedDigest.getKey(), expectedDigest.getValue())) {
-            var revisionId = identifyLatestRevision(objectRootPath);
-            var inventory = inventoryMapper.readMutableHead(objectRootPath, expectedDigest.getValue(), revisionId, stream);
+            var revisionNum = identifyLatestRevision(objectRootPath);
+            var inventory = inventoryMapper.readMutableHead(objectRootPath, expectedDigest.getValue(), revisionNum, stream);
 
             try {
                 stream.checkFixity();
@@ -711,27 +711,27 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     }
 
     private String createRevisionMarker(Inventory inventory) {
-        var revision = inventory.getRevisionId().toString();
+        var revision = inventory.getRevisionNum().toString();
         var revisionPath = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadRevisionsPath(inventory.getObjectRootPath()), revision);
         return cloudClient.uploadBytes(revisionPath, revision.getBytes(StandardCharsets.UTF_8), MEDIA_TYPE_TEXT).getPath();
     }
 
-    private RevisionId identifyLatestRevision(String objectRootPath) {
+    private RevisionNum identifyLatestRevision(String objectRootPath) {
         var revisionsPath = ObjectPaths.mutableHeadRevisionsPath(objectRootPath);
         var revisions = cloudClient.listDirectory(revisionsPath);
 
-        RevisionId revisionId = null;
+        RevisionNum revisionNum = null;
 
         for (var revisionStr : revisions.getObjects()) {
-            var id = RevisionId.fromString(revisionStr.getKeySuffix());
-            if (revisionId == null) {
-                revisionId = id;
-            } else if (revisionId.compareTo(id) < 1) {
-                revisionId = id;
+            var id = RevisionNum.fromString(revisionStr.getKeySuffix());
+            if (revisionNum == null) {
+                revisionNum = id;
+            } else if (revisionNum.compareTo(id) < 1) {
+                revisionNum = id;
             }
         }
 
-        return revisionId;
+        return revisionNum;
     }
 
     private void deleteMutableHeadFilesNotInManifest(Inventory inventory) {
@@ -756,7 +756,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             return FileUtil.pathJoinFailEmpty(
                     OcflConstants.MUTABLE_HEAD_VERSION_PATH,
                     inventory.resolveContentDirectory(),
-                    inventory.getRevisionId().toString());
+                    inventory.getRevisionNum().toString());
         }
 
         return inventory.getHead().toString();
@@ -797,7 +797,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private void ensureRevisionDoesNotExist(Inventory inventory) {
         var latestRevision = identifyLatestRevision(inventory.getObjectRootPath());
-        if (latestRevision != null && latestRevision.compareTo(inventory.getRevisionId()) >= 0) {
+        if (latestRevision != null && latestRevision.compareTo(inventory.getRevisionNum()) >= 0) {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         }
@@ -840,8 +840,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private String objectVersionPath(Inventory inventory, VersionId versionId) {
-        return FileUtil.pathJoinFailEmpty(inventory.getObjectRootPath(), versionId.toString());
+    private String objectVersionPath(Inventory inventory, VersionNum versionNum) {
+        return FileUtil.pathJoinFailEmpty(inventory.getObjectRootPath(), versionNum.toString());
     }
 
     private boolean isFirstVersion(Inventory inventory) {

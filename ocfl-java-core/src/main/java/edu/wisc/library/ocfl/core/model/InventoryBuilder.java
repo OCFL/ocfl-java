@@ -26,7 +26,7 @@ package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.Collections;
@@ -39,24 +39,24 @@ import java.util.Set;
  */
 public class InventoryBuilder {
 
-    private static final VersionId INITIAL_VERSION = VersionId.V1;
-    private static final RevisionId INITIAL_REVISION = RevisionId.R1;
+    private static final VersionNum INITIAL_VERSION = VersionNum.V1;
+    private static final RevisionNum INITIAL_REVISION = RevisionNum.R1;
 
     private String id;
     private InventoryType type;
     private DigestAlgorithm digestAlgorithm;
-    private VersionId head;
+    private VersionNum head;
     private String contentDirectory;
 
     private boolean mutableHead;
-    private RevisionId revisionId;
+    private RevisionNum revisionNum;
     private String objectRootPath;
 
     private Map<DigestAlgorithm, PathBiMap> fixity;
     private PathBiMap manifest;
-    private Map<VersionId, Version> versions;
+    private Map<VersionNum, Version> versions;
 
-    private VersionId nextHeadVersion;
+    private VersionNum nextHeadVersion;
 
     private String previousDigest;
     private String currentDigest;
@@ -82,7 +82,7 @@ public class InventoryBuilder {
         this.head = original.getHead();
         this.contentDirectory = original.getContentDirectory();
         this.mutableHead = original.hasMutableHead();
-        this.revisionId = original.getRevisionId();
+        this.revisionNum = original.getRevisionNum();
         this.objectRootPath = original.getObjectRootPath();
         this.fixity = fixityToBiMap(original.getFixity());
         this.manifest = PathBiMap.fromFileIdMap(original.getManifest());
@@ -90,7 +90,7 @@ public class InventoryBuilder {
         this.previousDigest = original.getPreviousDigest();
         this.currentDigest = original.getCurrentDigest();
 
-        this.nextHeadVersion = head.nextVersionId();
+        this.nextHeadVersion = head.nextVersionNum();
     }
 
     private static Map<DigestAlgorithm, PathBiMap> fixityToBiMap(Map<DigestAlgorithm, Map<String, Set<String>>> originalFixity) {
@@ -104,7 +104,7 @@ public class InventoryBuilder {
     }
 
     /**
-     * Add the version as the new HEAD version. This assigns the version the next available versionId, unless it's mutable.
+     * Add the version as the new HEAD version. This assigns the version the next available version number, unless it's mutable.
      *
      * @param version the new version
      * @return builder
@@ -113,34 +113,34 @@ public class InventoryBuilder {
         Enforce.notNull(version, "version cannot be null");
 
         if (mutableHead) {
-            if (revisionId == null) {
-                revisionId = INITIAL_REVISION;
+            if (revisionNum == null) {
+                revisionNum = INITIAL_REVISION;
                 head = nextHeadVersion;
             } else {
-                revisionId = revisionId.nextRevisionId();
+                revisionNum = revisionNum.nextRevisionNum();
             }
             versions.put(head, version);
         } else {
             versions.put(nextHeadVersion, version);
             head = nextHeadVersion;
-            nextHeadVersion = nextHeadVersion.nextVersionId();
+            nextHeadVersion = nextHeadVersion.nextVersionNum();
         }
 
         return this;
     }
 
     /**
-     * Inserts a version at the specified versionId. This will OVERWRITE any version that is currently at that location.
+     * Inserts a version at the specified version number. This will OVERWRITE any version that is currently at that location.
      *
-     * @param versionId the id of the version
+     * @param versionNum the id of the version
      * @param version the version
      * @return builder
      */
-    public InventoryBuilder putVersion(VersionId versionId, Version version) {
-        Enforce.notNull(versionId, "versionId cannot be null");
+    public InventoryBuilder putVersion(VersionNum versionNum, Version version) {
+        Enforce.notNull(versionNum, "versionNum cannot be null");
         Enforce.notNull(version, "version cannot be null");
 
-        versions.put(versionId, version);
+        versions.put(versionNum, version);
         return this;
     }
 
@@ -248,9 +248,9 @@ public class InventoryBuilder {
         return this;
     }
 
-    public InventoryBuilder head(VersionId head) {
+    public InventoryBuilder head(VersionNum head) {
         this.head = Enforce.notNull(head, "head cannot be null");
-        this.nextHeadVersion = head.nextVersionId();
+        this.nextHeadVersion = head.nextVersionNum();
         return this;
     }
 
@@ -279,7 +279,7 @@ public class InventoryBuilder {
         return this;
     }
 
-    public InventoryBuilder versions(Map<VersionId, Version> versions) {
+    public InventoryBuilder versions(Map<VersionNum, Version> versions) {
         this.versions = Enforce.notNull(versions, "versions cannot be null");
         return this;
     }
@@ -289,8 +289,8 @@ public class InventoryBuilder {
         return this;
     }
 
-    public InventoryBuilder revisionId(RevisionId revisionId) {
-        this.revisionId = revisionId;
+    public InventoryBuilder revisionNum(RevisionNum revisionNum) {
+        this.revisionNum = revisionNum;
         return this;
     }
 
@@ -316,7 +316,7 @@ public class InventoryBuilder {
         return new Inventory(id, type, digestAlgorithm,
                 head, contentDirectory, fixityFromBiMap(),
                 manifest.getFileIdToPaths(), versions, mutableHead,
-                revisionId, objectRootPath, previousDigest,
+                revisionNum, objectRootPath, previousDigest,
                 currentDigest);
     }
 

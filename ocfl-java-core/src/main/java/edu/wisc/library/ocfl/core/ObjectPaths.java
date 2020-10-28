@@ -26,12 +26,11 @@ package edu.wisc.library.ocfl.core;
 
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -369,11 +368,11 @@ public final class ObjectPaths {
             return inventorySidecar;
         }
 
-        public Path versionPath(VersionId versionId) {
-            if (inventory.getHead().equals(versionId)) {
+        public Path versionPath(VersionNum versionNum) {
+            if (inventory.getHead().equals(versionNum)) {
                 return headVersionPath();
             }
-            return path.resolve(versionId.toString());
+            return path.resolve(versionNum.toString());
         }
 
         public Path headVersionPath() {
@@ -408,8 +407,8 @@ public final class ObjectPaths {
             return mutableHeadRevisionsPath;
         }
 
-        public VersionRoot version(VersionId versionId) {
-            return new VersionRoot(inventory, versionPath(versionId));
+        public VersionRoot version(VersionNum versionNum) {
+            return new VersionRoot(inventory, versionPath(versionNum));
         }
 
         public VersionRoot headVersion() {
@@ -508,15 +507,15 @@ public final class ObjectPaths {
             return path;
         }
 
-        public Path revisionPath(RevisionId revisionId) {
-            return path.resolve(revisionId.toString());
+        public Path revisionPath(RevisionNum revisionNum) {
+            return path.resolve(revisionNum.toString());
         }
 
         public Path headRevisionPath() {
-            if (inventory.getRevisionId() == null) {
+            if (inventory.getRevisionNum() == null) {
                 return null;
             }
-            return revisionPath(inventory.getRevisionId());
+            return revisionPath(inventory.getRevisionNum());
         }
 
     }

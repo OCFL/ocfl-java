@@ -28,7 +28,7 @@ import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
@@ -112,20 +112,20 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionId versionId) {
+    public Map<String, OcflFileRetriever> getObjectStreams(Inventory inventory, VersionNum versionNum) {
         ensureOpen();
 
-        return delegate.getObjectStreams(inventory, versionId);
+        return delegate.getObjectStreams(inventory, versionNum);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void reconstructObjectVersion(Inventory inventory, VersionId versionId, Path stagingDir) {
+    public void reconstructObjectVersion(Inventory inventory, VersionNum versionNum, Path stagingDir) {
         ensureOpen();
 
-        delegate.reconstructObjectVersion(inventory, versionId, stagingDir);
+        delegate.reconstructObjectVersion(inventory, versionNum, stagingDir);
     }
 
     /**
@@ -146,11 +146,11 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void rollbackToVersion(Inventory inventory, VersionId versionId) {
+    public void rollbackToVersion(Inventory inventory, VersionNum versionNum) {
         ensureOpen();
 
         try {
-            delegate.rollbackToVersion(inventory, versionId);
+            delegate.rollbackToVersion(inventory, versionNum);
         } finally {
             safeDeleteDetails(inventory.getId());
         }
@@ -278,11 +278,11 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
                     details.getDigestAlgorithm(), details.getInventoryDigest(), actualDigest));
         }
 
-        if (details.getRevisionId() == null) {
+        if (details.getRevisionNum() == null) {
             return inventoryMapper.read(details.getObjectRootPath(), details.getInventoryDigest(), new ByteArrayInputStream(details.getInventoryBytes()));
         } else {
             return inventoryMapper.readMutableHead(details.getObjectRootPath(), details.getInventoryDigest(),
-                    details.getRevisionId(), new ByteArrayInputStream(details.getInventoryBytes()));
+                    details.getRevisionNum(), new ByteArrayInputStream(details.getInventoryBytes()));
         }
     }
 

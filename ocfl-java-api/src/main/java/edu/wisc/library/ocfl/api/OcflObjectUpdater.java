@@ -27,7 +27,7 @@ package edu.wisc.library.ocfl.api;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -131,7 +131,7 @@ public interface OcflObjectUpdater {
      * Forward slashes MUST be used as filename separators in the path. It is important to keep this in mind on Windows
      * systems, where backslashes MUST be converted to forward slashes.
      *
-     * @param sourceVersionId the version id of the version to reinstate the sourcePath from. Cannot be the current version
+     * @param sourceVersionNum the version number of the version to reinstate the sourcePath from. Cannot be the current version
      * @param sourcePath the logical path to the file to be reinstated
      * @param destinationPath the logical path to reinstate the file to
      * @param options optional config options. Use {@link OcflOption#OVERWRITE} to overwrite existing files within
@@ -140,7 +140,7 @@ public interface OcflObjectUpdater {
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
-    OcflObjectUpdater reinstateFile(VersionId sourceVersionId, String sourcePath, String destinationPath, OcflOption... options);
+    OcflObjectUpdater reinstateFile(VersionNum sourceVersionNum, String sourcePath, String destinationPath, OcflOption... options);
 
     /**
      * The state of the current version of the object is cleared so that it does not reference any files. No files are deleted.

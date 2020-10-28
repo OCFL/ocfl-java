@@ -508,11 +508,11 @@ public class ObjectDetailsDatabaseTest {
 
     private void assertObjectDetails(Inventory inventory, String inventoryDigest, byte[] inventoryBytes, OcflObjectDetails details) {
         assertEquals(inventory.getId(), details.getObjectId());
-        assertEquals(inventory.getHead(), details.getVersionId());
+        assertEquals(inventory.getHead(), details.getVersionNum());
         assertEquals(inventoryDigest, details.getInventoryDigest());
         assertEquals(inventory.getObjectRootPath(), details.getObjectRootPath());
         assertEquals(inventory.getDigestAlgorithm(), details.getDigestAlgorithm());
-        assertEquals(inventory.getRevisionId(), details.getRevisionId());
+        assertEquals(inventory.getRevisionNum(), details.getRevisionNum());
         assertNotNull(details.getUpdateTimestamp());
         assertArrayEquals(inventoryBytes, details.getInventoryBytes());
     }

@@ -3,10 +3,10 @@ package edu.wisc.library.ocfl.core.inventory;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.model.Version;
 import org.junit.jupiter.api.Test;
 
@@ -54,14 +54,14 @@ public class MutableHeadInventoryCommitterTest {
                         .message("3")
                         .build())
                 .mutableHead(true)
-                .revisionId(RevisionId.fromString("r3"))
+                .revisionNum(RevisionNum.fromString("r3"))
                 .build();
 
 
         var newInventory = MutableHeadInventoryCommitter.commit(original, now, new VersionInfo().setMessage("commit"));
 
-        assertEquals(VersionId.fromString("v3"), newInventory.getHead());
-        assertNull(newInventory.getRevisionId(), "revisionId");
+        assertEquals(VersionNum.fromString("v3"), newInventory.getHead());
+        assertNull(newInventory.getRevisionNum(), "revisionNum");
         assertFalse(newInventory.hasMutableHead(), "mutableHead");
 
         assertEquals("v1/content/file1", newInventory.getContentPath("f1"));

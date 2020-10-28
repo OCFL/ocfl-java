@@ -12,7 +12,7 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
@@ -329,11 +329,11 @@ public abstract class OcflITest {
         var objectDetails = repo.describeObject(objectId);
 
         assertEquals(objectId, objectDetails.getId());
-        assertEquals(VersionId.fromString("v3"), objectDetails.getHeadVersionId());
+        assertEquals(VersionNum.fromString("v3"), objectDetails.getHeadVersionNum());
         assertEquals(DigestAlgorithm.sha512, objectDetails.getDigestAlgorithm());
         assertEquals(3, objectDetails.getVersionMap().size());
 
-        assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
+        assertThat(objectDetails.getVersion(VersionNum.fromString("v1")), versionDetails(objectId, "v1",
                 versionInfo(defaultVersionInfo.getUser(), "1"),
                 fileDetails("file1", O1_PATH + "/v1/content/file1", Map.of(
                         DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
@@ -343,7 +343,7 @@ public abstract class OcflITest {
                         DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad"))
         ));
 
-        assertThat(objectDetails.getVersion(VersionId.fromString("v2")), versionDetails(objectId, "v2",
+        assertThat(objectDetails.getVersion(VersionNum.fromString("v2")), versionDetails(objectId, "v2",
                 versionInfo(defaultVersionInfo.getUser(), "2"),
                 fileDetails("file1", O1_PATH + "/v2/content/file1", Map.of(
                         DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc",
@@ -356,7 +356,7 @@ public abstract class OcflITest {
                         DigestAlgorithm.md5, "72b6193fe19ec99c692eba5c798e6bdf"))
         ));
 
-        assertThat(objectDetails.getVersion(VersionId.fromString("v3")), versionDetails(objectId, "v3",
+        assertThat(objectDetails.getVersion(VersionNum.fromString("v3")), versionDetails(objectId, "v3",
                 versionInfo(defaultVersionInfo.getUser(), "3"),
                 fileDetails("file2", O1_PATH + "/v1/content/file2", Map.of(
                         DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
@@ -366,7 +366,7 @@ public abstract class OcflITest {
                         DigestAlgorithm.md5, "a0a8bfbf51b81caf7aa5be00f5e26669"))
         ));
 
-        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersion(VersionId.fromString("v3")));
+        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersion(VersionNum.fromString("v3")));
     }
 
     @Test
@@ -396,10 +396,10 @@ public abstract class OcflITest {
         var objectDetails = repo.describeObject(objectId);
 
         assertEquals(objectId, objectDetails.getId());
-        assertEquals(VersionId.fromString("v3"), objectDetails.getHeadVersionId());
+        assertEquals(VersionNum.fromString("v3"), objectDetails.getHeadVersionNum());
         assertEquals(3, objectDetails.getVersionMap().size());
 
-        assertThat(objectDetails.getVersion(VersionId.fromString("v1")), versionDetails(objectId, "v1",
+        assertThat(objectDetails.getVersion(VersionNum.fromString("v1")), versionDetails(objectId, "v1",
                 versionInfo(defaultVersionInfo.getUser(), "1"),
                 fileDetails("file1", O1_PATH + "/v1/content/file1", Map.of(
                         DigestAlgorithm.sha512, "96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd561fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e")),
@@ -407,7 +407,7 @@ public abstract class OcflITest {
                         DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6"))
         ));
 
-        assertThat(objectDetails.getVersion(VersionId.fromString("v2")), versionDetails(objectId, "v2",
+        assertThat(objectDetails.getVersion(VersionNum.fromString("v2")), versionDetails(objectId, "v2",
                 versionInfo(defaultVersionInfo.getUser(), "2"),
                 fileDetails("file1", O1_PATH + "/v2/content/file1", Map.of(
                         DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc")),
@@ -417,7 +417,7 @@ public abstract class OcflITest {
                         DigestAlgorithm.sha512, "cb6f4f7b3d3eef05d3d0327335071d14c120e065fa43364690fea47d456e146dd334d78d35f73926067d0bf46f122ea026508954b71e8e25c351ff75c993c2b2"))
         ));
 
-        assertThat(objectDetails.getVersion(VersionId.fromString("v3")), versionDetails(objectId, "v3",
+        assertThat(objectDetails.getVersion(VersionNum.fromString("v3")), versionDetails(objectId, "v3",
                 versionInfo(defaultVersionInfo.getUser(), "3"),
                 fileDetails("file2", O1_PATH + "/v1/content/file2", Map.of(
                         DigestAlgorithm.sha512, "4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6adb0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6")),
@@ -425,7 +425,7 @@ public abstract class OcflITest {
                         DigestAlgorithm.sha512, "aff2318b35d3fbc05670b834b9770fd418e4e1b4adc502e6875d598ab3072ca76667121dac04b694c47c71be80f6d259316c7bd0e19d40827cb3f27ee03aa2fc"))
         ));
 
-        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersion(VersionId.fromString("v3")));
+        assertSame(objectDetails.getHeadVersion(), objectDetails.getVersion(VersionNum.fromString("v3")));
     }
 
     @Test
@@ -527,7 +527,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -589,7 +589,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -933,7 +933,7 @@ public abstract class OcflITest {
             updater.removeFile("file3");
         });
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "file3", "file3");
+            updater.reinstateFile(VersionNum.fromString("v1"), "file3", "file3");
         });
 
         verifyRepo(repoName);
@@ -950,7 +950,7 @@ public abstract class OcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "file2", "file1");
+            updater.reinstateFile(VersionNum.fromString("v1"), "file2", "file1");
         });
 
         verifyRepo(repoName);
@@ -969,7 +969,7 @@ public abstract class OcflITest {
 
         assertThat(assertThrows(IllegalArgumentException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
-                updater.reinstateFile(VersionId.fromString("v3"), "file2", "file1");
+                updater.reinstateFile(VersionNum.fromString("v3"), "file2", "file1");
             });
         }).getMessage(), containsString("does not contain a file at"));
     }
@@ -987,7 +987,7 @@ public abstract class OcflITest {
 
         assertThrows(IllegalArgumentException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
-                updater.reinstateFile(VersionId.fromString("v1"), "file4", "file1");
+                updater.reinstateFile(VersionNum.fromString("v1"), "file4", "file1");
             });
         });
     }
@@ -1222,7 +1222,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -1249,7 +1249,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -1276,7 +1276,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -1303,7 +1303,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -1330,7 +1330,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -1357,7 +1357,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -1384,7 +1384,7 @@ public abstract class OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
-            updater.reinstateFile(VersionId.fromString("v1"), "f1", "f1")
+            updater.reinstateFile(VersionNum.fromString("v1"), "f1", "f1")
                     .writeFile(new ByteArrayInputStream("2.2".getBytes()), "f2", OcflOption.OVERWRITE);
         });
 
@@ -1529,7 +1529,7 @@ public abstract class OcflITest {
 
         var output = outputPath(repoName, "o2");
 
-        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object ObjectId{objectId='o2', versionId='null'} was not found.", () -> {
+        OcflAsserts.assertThrowsWithMessage(NotFoundException.class, "Object ObjectId{objectId='o2', versionNum='null'} was not found.", () -> {
             repo.exportObject("o2", output);
         });
     }
@@ -1725,7 +1725,7 @@ public abstract class OcflITest {
 
         repo2.importVersion(output);
 
-        assertEquals("v2", repo2.describeObject(objectId).getHeadVersionId().toString());
+        assertEquals("v2", repo2.describeObject(objectId).getHeadVersionNum().toString());
         assertEquals(repo1.describeObject(objectId), repo2.describeObject(objectId));
     }
 
@@ -1752,7 +1752,7 @@ public abstract class OcflITest {
 
         repo2.importVersion(output);
 
-        assertEquals("v1", repo2.describeObject(objectId).getHeadVersionId().toString());
+        assertEquals("v1", repo2.describeObject(objectId).getHeadVersionNum().toString());
         assertEquals(repo1.describeVersion(ObjectVersionId.version(objectId, "v1")),
                 repo2.describeVersion(ObjectVersionId.version(objectId, "v1")));
     }
@@ -1924,7 +1924,7 @@ public abstract class OcflITest {
 
         var desc = repo.describeObject(objectId);
 
-        assertEquals("v2", desc.getHeadVersionId().toString());
+        assertEquals("v2", desc.getHeadVersionNum().toString());
         assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
         assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
     }

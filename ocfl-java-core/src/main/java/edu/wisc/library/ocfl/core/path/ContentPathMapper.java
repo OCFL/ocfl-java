@@ -24,11 +24,11 @@
 
 package edu.wisc.library.ocfl.core.path;
 
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.DirectLogicalPathMapper;
@@ -43,8 +43,8 @@ public class ContentPathMapper {
 
     private final String objectRootPath;
     private final String contentDirectory;
-    private final VersionId versionId;
-    private final RevisionId revisionId;
+    private final VersionNum versionNum;
+    private final RevisionNum revisionNum;
 
     private final LogicalPathMapper logicalPathMapper;
     private final ContentPathConstraintProcessor contentPathConstraintProcessor;
@@ -77,26 +77,26 @@ public class ContentPathMapper {
             Enforce.notNull(inventory, "inventory cannot be null");
             return new ContentPathMapper(logicalPathMapper, contentPathConstraintProcessor,
                     inventory.getObjectRootPath(), inventory.resolveContentDirectory(),
-                    Enforce.notNull(inventory.nextVersionId(), "versionId cannot be null"), null);
+                    Enforce.notNull(inventory.nextVersionNum(), "versionNum cannot be null"), null);
         }
 
         public ContentPathMapper buildMutableVersion(Inventory inventory) {
             Enforce.notNull(inventory, "inventory cannot be null");
             return new ContentPathMapper(logicalPathMapper, contentPathConstraintProcessor,
                     inventory.getObjectRootPath(), inventory.resolveContentDirectory(),
-                    null, Enforce.notNull(inventory.nextRevisionId(), "revisionId cannot be null"));
+                    null, Enforce.notNull(inventory.nextRevisionNum(), "revisionNum cannot be null"));
         }
 
     }
 
     public ContentPathMapper(LogicalPathMapper logicalPathMapper, ContentPathConstraintProcessor contentPathConstraintProcessor,
-                             String objectRootPath, String contentDirectory, VersionId versionId, RevisionId revisionId) {
+                             String objectRootPath, String contentDirectory, VersionNum versionNum, RevisionNum revisionNum) {
         this.logicalPathMapper = Enforce.notNull(logicalPathMapper, "logicalPathMapper cannot be null");
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
         this.contentDirectory = Enforce.notBlank(contentDirectory, "contentDirectory cannot be blank");
-        this.versionId = versionId;
-        this.revisionId = revisionId;
+        this.versionNum = versionNum;
+        this.revisionNum = revisionNum;
     }
 
     /**
@@ -122,18 +122,18 @@ public class ContentPathMapper {
             return FileUtil.pathJoinFailEmpty(
                     OcflConstants.MUTABLE_HEAD_VERSION_PATH,
                     contentDirectory,
-                    revisionId.toString(),
+                    revisionNum.toString(),
                     contentPathPart);
         }
 
         return FileUtil.pathJoinFailEmpty(
-                versionId.toString(),
+                versionNum.toString(),
                 contentDirectory,
                 contentPathPart);
     }
 
     private boolean isMutableHead() {
-        return revisionId != null;
+        return revisionNum != null;
     }
 
 }

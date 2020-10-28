@@ -69,12 +69,12 @@ public class VersionDetails {
     }
 
     /**
-     * The version id
+     * The version number of this version
      *
-     * @return the VersionId
+     * @return the version number
      */
-    public VersionId getVersionId() {
-        return objectVersionId.getVersionId();
+    public VersionNum getVersionNum() {
+        return objectVersionId.getVersionNum();
     }
 
     /**

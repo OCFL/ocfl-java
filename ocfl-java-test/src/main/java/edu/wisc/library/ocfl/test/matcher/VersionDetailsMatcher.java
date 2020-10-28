@@ -26,7 +26,7 @@ package edu.wisc.library.ocfl.test.matcher;
 
 import edu.wisc.library.ocfl.api.model.FileDetails;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -38,14 +38,14 @@ import java.util.Objects;
 
 public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
 
-    private String objectId;
-    private VersionId versionId;
-    private VersionInfoMatcher versionInfoMatcher;
-    private Collection<Matcher<FileDetails>> fileDetailsMatchers;
+    private final String objectId;
+    private final VersionNum versionNum;
+    private final VersionInfoMatcher versionInfoMatcher;
+    private final Collection<Matcher<FileDetails>> fileDetailsMatchers;
 
-    VersionDetailsMatcher(String objectId, String versionId, VersionInfoMatcher versionInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
+    VersionDetailsMatcher(String objectId, String versionNum, VersionInfoMatcher versionInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
         this.objectId = objectId;
-        this.versionId = VersionId.fromString(versionId);
+        this.versionNum = VersionNum.fromString(versionNum);
         this.versionInfoMatcher = versionInfoMatcher;
         this.fileDetailsMatchers = Arrays.asList(fileDetailsMatchers);
     }
@@ -53,7 +53,7 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
     @Override
     protected boolean matchesSafely(VersionDetails item) {
         return Objects.equals(objectId, item.getObjectId())
-                && Objects.equals(versionId, item.getVersionId())
+                && Objects.equals(versionNum, item.getVersionNum())
                 && versionInfoMatcher.matches(item.getVersionInfo())
                 // Hamcrest has some infuriating overloaded methods...
                 && Matchers.containsInAnyOrder((Collection) fileDetailsMatchers).matches(item.getFiles());
@@ -63,8 +63,8 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
     public void describeTo(Description description) {
         description.appendText("VersionDetails{objectId=")
                 .appendValue(objectId)
-                .appendText(", versionId=")
-                .appendValue(versionId)
+                .appendText(", versionNum=")
+                .appendValue(versionNum)
                 .appendText(", versionInfo=")
                 .appendDescriptionOf(versionInfoMatcher)
                 .appendText(", fileDetails=")

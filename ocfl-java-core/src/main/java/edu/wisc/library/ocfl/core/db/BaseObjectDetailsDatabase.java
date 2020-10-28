@@ -27,10 +27,10 @@ package edu.wisc.library.ocfl.core.db;
 import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,9 +97,9 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                     if (rs.next()) {
                         details = new OcflObjectDetails()
                                 .setObjectId(rs.getString(1))
-                                .setVersionId(VersionId.fromString(rs.getString(2)))
+                                .setVersionNum(VersionNum.fromString(rs.getString(2)))
                                 .setObjectRootPath(rs.getString(3))
-                                .setRevisionId(revisionIdFromString(rs.getString(4)))
+                                .setRevisionNum(revisionNumFromString(rs.getString(4)))
                                 .setInventoryDigest(rs.getString(5))
                                 .setDigestAlgorithm(DigestAlgorithm.fromOcflName(rs.getString(6)))
                                 .setInventory(rs.getBytes(7))
@@ -205,9 +205,9 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
             try (var lockResult = lockStatement.executeQuery()) {
                 if (lockResult.next()) {
-                    var existingVersionId = VersionId.fromString(lockResult.getString(1));
-                    var existingRevisionId = revisionIdFromString(lockResult.getString(2));
-                    verifyObjectDetailsState(existingVersionId, existingRevisionId, inventory);
+                    var existingVersionNum = VersionNum.fromString(lockResult.getString(1));
+                    var existingRevisionNum = revisionNumFromString(lockResult.getString(2));
+                    verifyObjectDetailsState(existingVersionNum, existingRevisionNum, inventory);
 
                     executeUpdateDetails(connection, inventory, inventoryDigest, inventoryStream);
                 } else {
@@ -227,7 +227,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                 " WHERE object_id = ?")) {
             insertStatement.setString(1, inventory.getHead().toString());
             insertStatement.setString(2, inventory.getObjectRootPath());
-            insertStatement.setString(3, revisionIdStr(inventory.getRevisionId()));
+            insertStatement.setString(3, revisionNumStr(inventory.getRevisionNum()));
             insertStatement.setString(4, inventoryDigest);
             insertStatement.setString(5, inventory.getDigestAlgorithm().getOcflName());
             if (storeInventory) {
@@ -249,7 +249,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
             insertStatement.setString(1, inventory.getId());
             insertStatement.setString(2, inventory.getHead().toString());
             insertStatement.setString(3, inventory.getObjectRootPath());
-            insertStatement.setString(4, revisionIdStr(inventory.getRevisionId()));
+            insertStatement.setString(4, revisionNumStr(inventory.getRevisionNum()));
             insertStatement.setString(5, inventoryDigest);
             insertStatement.setString(6, inventory.getDigestAlgorithm().getOcflName());
             if (storeInventory) {
@@ -286,29 +286,29 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         }
     }
 
-    private String revisionIdStr(RevisionId revisionId) {
-        return revisionId == null ? null : revisionId.toString();
+    private String revisionNumStr(RevisionNum revisionNum) {
+        return revisionNum == null ? null : revisionNum.toString();
     }
 
-    private RevisionId revisionIdFromString(String revisionId) {
-        if (revisionId == null) {
+    private RevisionNum revisionNumFromString(String revisionNum) {
+        if (revisionNum == null) {
             return null;
         }
-        return RevisionId.fromString(revisionId);
+        return RevisionNum.fromString(revisionNum);
     }
 
-    private void verifyObjectDetailsState(VersionId existingVersionId, RevisionId existingRevisionId, Inventory inventory) {
-        if (existingRevisionId != null) {
-            if (!Objects.equals(existingVersionId, inventory.getHead())) {
+    private void verifyObjectDetailsState(VersionNum existingVersionNum, RevisionNum existingRevisionNum, Inventory inventory) {
+        if (existingRevisionNum != null) {
+            if (!Objects.equals(existingVersionNum, inventory.getHead())) {
                 throw outOfSyncException(inventory.getId());
-            } else if (inventory.getRevisionId() != null
-                    && !Objects.equals(existingRevisionId.nextRevisionId(), inventory.getRevisionId())) {
+            } else if (inventory.getRevisionNum() != null
+                    && !Objects.equals(existingRevisionNum.nextRevisionNum(), inventory.getRevisionNum())) {
                 throw outOfSyncException(inventory.getId());
             }
         } else {
-            if (!Objects.equals(existingVersionId.nextVersionId(), inventory.getHead())) {
+            if (!Objects.equals(existingVersionNum.nextVersionNum(), inventory.getHead())) {
                 throw outOfSyncException(inventory.getId());
-            } else if (inventory.getRevisionId() != null && !Objects.equals(RevisionId.R1, inventory.getRevisionId())) {
+            } else if (inventory.getRevisionNum() != null && !Objects.equals(RevisionNum.R1, inventory.getRevisionNum())) {
                 throw outOfSyncException(inventory.getId());
             }
         }

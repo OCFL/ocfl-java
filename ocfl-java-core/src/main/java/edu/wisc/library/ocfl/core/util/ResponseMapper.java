@@ -31,7 +31,7 @@ import edu.wisc.library.ocfl.api.model.FileDetails;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
@@ -53,22 +53,22 @@ public class ResponseMapper {
         var details = new ObjectDetails()
                 .setId(inventory.getId())
                 .setDigestAlgorithm(inventory.getDigestAlgorithm())
-                .setHeadVersionId(inventory.getHead());
+                .setHeadVersionNum(inventory.getHead());
 
         var versionMap = inventory.getVersions().entrySet().stream()
                 .map(entry -> mapVersion(inventory, entry.getKey(), entry.getValue()))
-                .collect(Collectors.toMap(VersionDetails::getVersionId, Function.identity()));
+                .collect(Collectors.toMap(VersionDetails::getVersionNum, Function.identity()));
 
         details.setVersions(versionMap);
 
         return details;
     }
 
-    public VersionDetails mapVersion(Inventory inventory, VersionId versionId, Version version) {
+    public VersionDetails mapVersion(Inventory inventory, VersionNum versionNum, Version version) {
         return new VersionDetails()
-                .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
+                .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionNum))
                 .setCreated(version.getCreated())
-                .setMutable(inventory.hasMutableHead() && inventory.getHead().equals(versionId))
+                .setMutable(inventory.hasMutableHead() && inventory.getHead().equals(versionNum))
                 .setFileMap(mapFileDetails(inventory, version))
                 .setVersionInfo(versionInfo(version));
     }
@@ -101,7 +101,7 @@ public class ResponseMapper {
         String lastFileId = null;
 
         for (var entry : inventory.getVersions().entrySet()) {
-            var versionId = entry.getKey();
+            var versionNum = entry.getKey();
             var version = entry.getValue();
             var fileId = version.getFileId(logicalPath);
 
@@ -113,7 +113,7 @@ public class ResponseMapper {
 
                 changes.add(new FileChange()
                         .setChangeType(FileChangeType.UPDATE)
-                        .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
+                        .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionNum))
                         .setPath(logicalPath)
                         .setTimestamp(version.getCreated())
                         .setVersionInfo(versionInfo(version))
@@ -123,7 +123,7 @@ public class ResponseMapper {
                 lastFileId = null;
                 changes.add(new FileChange()
                         .setChangeType(FileChangeType.REMOVE)
-                        .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionId))
+                        .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionNum))
                         .setPath(logicalPath)
                         .setTimestamp(version.getCreated())
                         .setVersionInfo(versionInfo(version))

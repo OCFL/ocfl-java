@@ -25,8 +25,8 @@
 package edu.wisc.library.ocfl.core.db;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 
 import java.time.LocalDateTime;
 
@@ -36,8 +36,8 @@ import java.time.LocalDateTime;
 public class OcflObjectDetails {
 
     private String objectId;
-    private VersionId versionId;
-    private RevisionId revisionId;
+    private VersionNum versionNum;
+    private RevisionNum revisionNum;
     private String objectRootPath;
     private String inventoryDigest;
     private DigestAlgorithm digestAlgorithm;
@@ -63,26 +63,26 @@ public class OcflObjectDetails {
      *
      * @return HEAD version of the object
      */
-    public VersionId getVersionId() {
-        return versionId;
+    public VersionNum getVersionNum() {
+        return versionNum;
     }
 
-    public OcflObjectDetails setVersionId(VersionId versionId) {
-        this.versionId = versionId;
+    public OcflObjectDetails setVersionNum(VersionNum versionNum) {
+        this.versionNum = versionNum;
         return this;
     }
 
     /**
      * The HEAD revision of the object. This will only be set if the mutable HEAD extension is used.
      *
-     * @return HEAD revision id
+     * @return HEAD revision number
      */
-    public RevisionId getRevisionId() {
-        return revisionId;
+    public RevisionNum getRevisionNum() {
+        return revisionNum;
     }
 
-    public OcflObjectDetails setRevisionId(RevisionId revisionId) {
-        this.revisionId = revisionId;
+    public OcflObjectDetails setRevisionNum(RevisionNum revisionNum) {
+        this.revisionNum = revisionNum;
         return this;
     }
 
@@ -160,8 +160,8 @@ public class OcflObjectDetails {
     public String toString() {
         return "OcflObjectDetails{" +
                 "objectId='" + objectId + '\'' +
-                ", versionId=" + versionId +
-                ", revisionId=" + revisionId +
+                ", versionNum=" + versionNum +
+                ", revisionNum=" + revisionNum +
                 ", objectRootPath='" + objectRootPath + '\'' +
                 ", inventoryDigest='" + inventoryDigest + '\'' +
                 ", digestAlgorithm=" + digestAlgorithm +

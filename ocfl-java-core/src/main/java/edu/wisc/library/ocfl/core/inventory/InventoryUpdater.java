@@ -28,7 +28,7 @@ import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -118,15 +118,15 @@ public class InventoryUpdater {
          * Constructs a new InventoryUpdater that copies over the state from a previous version.
          *
          * @param inventory the original inventory
-         * @param versionId the id over the version to copy
+         * @param versionNum the id over the version to copy
          * @return inventory updater
          */
-        public InventoryUpdater buildCopyState(Inventory inventory, VersionId versionId) {
+        public InventoryUpdater buildCopyState(Inventory inventory, VersionNum versionNum) {
             Enforce.notNull(inventory, "inventory cannot be null");
-            Enforce.notNull(versionId, "versionId cannot be null");
+            Enforce.notNull(versionNum, "versionNum cannot be null");
 
             var inventoryBuilder = inventory.buildNextVersionFrom();
-            var versionBuilder = Version.builder(inventory.getVersion(versionId));
+            var versionBuilder = Version.builder(inventory.getVersion(versionNum));
 
             return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
                     contentPathMapperBuilder.buildStandardVersion(inventory));
@@ -307,13 +307,13 @@ public class InventoryUpdater {
      * and {@link OcflOption#OVERWRITE} is specified, then the existing file is replaced. If the replaced file was originally
      * added in the current version, then it is also removed from the manifest.
      *
-     * @param sourceVersion the version id the source logical path corresponds to
+     * @param sourceVersion the version number the source logical path corresponds to
      * @param srcLogicalPath the source logical path of the file to reinstate
      * @param dstLogicalPath the destination logical path to reinstate the file at
      * @param options options
      * @return files that were removed from the manifest
      */
-    public Set<RemoveFileResult> reinstateFile(VersionId sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
+    public Set<RemoveFileResult> reinstateFile(VersionNum sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
         logicalPathConstraints.apply(dstLogicalPath);
 
         var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);
@@ -341,11 +341,11 @@ public class InventoryUpdater {
         state.forEach(this::removeFile);
     }
 
-    private String getDigestFromVersion(VersionId versionId, String logicalPath) {
+    private String getDigestFromVersion(VersionNum versionNum, String logicalPath) {
         String digest = null;
 
         if (inventory != null) {
-            var version = inventory.getVersion(versionId);
+            var version = inventory.getVersion(versionNum);
 
             if (version != null) {
                 digest = version.getFileId(logicalPath);
@@ -372,7 +372,7 @@ public class InventoryUpdater {
         if (mutableHead) {
             return removeFileFromManifest(fileId, OcflConstants.MUTABLE_HEAD_VERSION_PATH);
         } else {
-            return removeFileFromManifest(fileId, inventory.nextVersionId().toString() + "/");
+            return removeFileFromManifest(fileId, inventory.nextVersionNum().toString() + "/");
         }
     }
 

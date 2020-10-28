@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ObjectVersionIdTest {
+public class ObjectVersionNumTest {
 
     @Test
     public void shouldRejectBadVersions() {

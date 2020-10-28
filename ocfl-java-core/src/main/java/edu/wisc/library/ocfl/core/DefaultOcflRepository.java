@@ -36,7 +36,7 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
 import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.inventory.AddFileProcessor;
@@ -45,7 +45,7 @@ import edu.wisc.library.ocfl.core.inventory.InventoryUpdater;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
@@ -209,9 +209,9 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Get object <{}> and copy to <{}>", objectVersionId, outputPath);
 
         var inventory = requireInventory(objectVersionId);
-        var versionId = requireVersion(objectVersionId, inventory);
+        var versionNum = requireVersion(objectVersionId, inventory);
 
-        getObjectInternal(inventory, versionId, outputPath);
+        getObjectInternal(inventory, versionNum, outputPath);
     }
 
     /**
@@ -226,10 +226,10 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Get object <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
-        var versionId = requireVersion(objectVersionId, inventory);
+        var versionNum = requireVersion(objectVersionId, inventory);
 
-        var versionDetails = createVersionDetails(inventory, versionId);
-        var objectStreams = storage.getObjectStreams(inventory, versionId);
+        var versionDetails = createVersionDetails(inventory, versionNum);
+        var objectStreams = storage.getObjectStreams(inventory, versionNum);
 
         var files = versionDetails.getFiles().stream()
                 .map(file -> {
@@ -270,9 +270,9 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Describe version <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
-        var versionId = requireVersion(objectVersionId, inventory);
+        var versionNum = requireVersion(objectVersionId, inventory);
 
-        return createVersionDetails(inventory, versionId);
+        return createVersionDetails(inventory, versionNum);
     }
 
     /**
@@ -337,11 +337,11 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.debug("Replicate version <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
-        var versionId = requireVersion(objectVersionId, inventory);
+        var versionNum = requireVersion(objectVersionId, inventory);
 
         ensureNoMutableHead(inventory);
 
-        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory, versionId);
+        var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory, versionNum);
         var newInventory = inventoryUpdater.buildNewInventory(now(versionInfo), versionInfo);
 
         var stagingDir = createStagingDir(objectVersionId.getObjectId());
@@ -368,15 +368,15 @@ public class DefaultOcflRepository implements OcflRepository {
         LOG.info("Rollback to version <{}>", objectVersionId);
 
         var inventory = requireInventory(objectVersionId);
-        var versionId = requireVersion(objectVersionId, inventory);
+        var versionNum = requireVersion(objectVersionId, inventory);
 
-        if (versionId == inventory.getHead()) {
+        if (versionNum == inventory.getHead()) {
             LOG.debug("Object {} cannot be rollback to version {} because it is already the head version.",
-                    objectVersionId.getObjectId(), versionId);
+                    objectVersionId.getObjectId(), versionNum);
             return;
         }
 
-        objectLock.doInWriteLock(inventory.getId(), () -> storage.rollbackToVersion(inventory, versionId));
+        objectLock.doInWriteLock(inventory.getId(), () -> storage.rollbackToVersion(inventory, versionNum));
     }
 
     /**
@@ -546,11 +546,11 @@ public class DefaultOcflRepository implements OcflRepository {
         return InventoryValidator.validateShallow(inventoryUpdater.buildNewInventory(now(versionInfo), versionInfo));
     }
 
-    private void getObjectInternal(Inventory inventory, VersionId versionId, Path outputPath) {
+    private void getObjectInternal(Inventory inventory, VersionNum versionNum, Path outputPath) {
         var stagingDir = createStagingDir(inventory.getId());
 
         try {
-            storage.reconstructObjectVersion(inventory, versionId, stagingDir);
+            storage.reconstructObjectVersion(inventory, versionNum, stagingDir);
             FileUtil.moveDirectory(stagingDir, outputPath);
         } catch (FileAlreadyExistsException e) {
             throw new UncheckedIOException(e);
@@ -583,13 +583,13 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureNoMutableHead(existingInventory);
 
         if (existingInventory == null) {
-            if (!VersionId.V1.equals(importInventory.getHead())) {
+            if (!VersionNum.V1.equals(importInventory.getHead())) {
                 throw new IllegalStateException(String.format("Cannot import object %s version %s from source %s." +
                                 " The import version must be the next sequential version, and the object doest not currently exist.",
                         objectId, importInventory.getHead(), versionPath));
             }
         } else {
-            if (!existingInventory.getHead().nextVersionId().equals(importInventory.getHead())) {
+            if (!existingInventory.getHead().nextVersionNum().equals(importInventory.getHead())) {
                 throw new IllegalStateException(String.format("Cannot import object %s version %s from source %s." +
                                 " The import version must be the next sequential version, and the current version is %s.",
                         objectId, importInventory.getHead(), versionPath, existingInventory.getHead()));
@@ -630,7 +630,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
         if (hasMutableHead) {
             // TODO this is not technically the correct revision, but it should not cause a problem for now
-            return inventoryMapper.readMutableHead(path.toString(), SidecarMapper.readDigest(sidecarPath), RevisionId.R1, inventoryPath);
+            return inventoryMapper.readMutableHead(path.toString(), SidecarMapper.readDigest(sidecarPath), RevisionNum.R1, inventoryPath);
         } else {
             return inventoryMapper.read(path.toString(), SidecarMapper.readDigest(sidecarPath), inventoryPath);
         }
@@ -651,9 +651,9 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     protected void enforceObjectVersionForUpdate(ObjectVersionId objectId, Inventory inventory) {
-        if (!objectId.isHead() && !objectId.getVersionId().equals(inventory.getHead())) {
+        if (!objectId.isHead() && !objectId.getVersionNum().equals(inventory.getHead())) {
             throw new ObjectOutOfSyncException(String.format("Cannot update object %s because the HEAD version is %s, but version %s was specified.",
-                    objectId.getObjectId(), inventory.getHead(), objectId.getVersionId()));
+                    objectId.getObjectId(), inventory.getHead(), objectId.getVersionNum()));
         }
     }
 
@@ -664,17 +664,17 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    private VersionId requireVersion(ObjectVersionId objectId, Inventory inventory) {
+    private VersionNum requireVersion(ObjectVersionId objectId, Inventory inventory) {
         if (objectId.isHead()) {
             return inventory.getHead();
         }
 
-        if (inventory.getVersion(objectId.getVersionId()) == null) {
+        if (inventory.getVersion(objectId.getVersionNum()) == null) {
             throw new NotFoundException(String.format("Object %s version %s was not found.",
-                    objectId.getObjectId(), objectId.getVersionId()));
+                    objectId.getObjectId(), objectId.getVersionNum()));
         }
 
-        return objectId.getVersionId();
+        return objectId.getVersionNum();
     }
 
     protected Path createStagingDir(String objectId) {
@@ -689,9 +689,9 @@ public class DefaultOcflRepository implements OcflRepository {
         return parent.resolve(inventory.resolveContentDirectory());
     }
 
-    private VersionDetails createVersionDetails(Inventory inventory, VersionId versionId) {
-        var version = inventory.getVersion(versionId);
-        return responseMapper.mapVersion(inventory, versionId, version);
+    private VersionDetails createVersionDetails(Inventory inventory, VersionNum versionNum) {
+        var version = inventory.getVersion(versionNum);
+        return responseMapper.mapVersion(inventory, versionNum, version);
     }
 
     protected OffsetDateTime now(VersionInfo versionInfo) {

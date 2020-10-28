@@ -60,7 +60,7 @@ public final class MutableHeadInventoryCommitter {
 
         var inventoryBuilder = new InventoryBuilder(original)
                 .mutableHead(false)
-                .revisionId(null);
+                .revisionNum(null);
 
         var versionBuilder = new VersionBuilder(original.getHeadVersion())
                 .created(createdTimestamp)

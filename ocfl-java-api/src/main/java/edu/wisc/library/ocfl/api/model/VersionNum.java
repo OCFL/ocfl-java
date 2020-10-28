@@ -31,11 +31,11 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import java.util.regex.Pattern;
 
 /**
- * Represents an OCFL version identifier. It is able to handle zero-padded version ids.
+ * Represents an OCFL version number. It is able to handle zero-padded version numbers.
  */
-public class VersionId implements Comparable<VersionId> {
+public class VersionNum implements Comparable<VersionNum> {
 
-    public static final VersionId V1 = new VersionId(1);
+    public static final VersionNum V1 = new VersionNum(1);
 
     private static final Pattern VALID_VERSION = Pattern.compile("^v\\d+$");
 
@@ -45,16 +45,16 @@ public class VersionId implements Comparable<VersionId> {
     private final String stringValue;
 
     /**
-     * Creates a new VersionId from a version string in the format of "vN" where "N" is an integer greater than 0.
+     * Creates a new VersionNum from a version string in the format of "vN" where "N" is an integer greater than -1.
      * Zero-padded values are supported.
      *
      * @param value version string
-     * @return version id
+     * @return version number
      */
     @JsonCreator
-    public static VersionId fromString(String value) {
+    public static VersionNum fromString(String value) {
         if (!VALID_VERSION.matcher(value).matches()) {
-            throw new IllegalArgumentException("Invalid VersionId: " + value);
+            throw new IllegalArgumentException("Invalid VersionNum: " + value);
         }
 
         var numPart = value.substring(1);
@@ -65,25 +65,35 @@ public class VersionId implements Comparable<VersionId> {
             padding = numPart.length();
         }
 
-        return new VersionId(Long.parseLong(numPart), padding);
+        return new VersionNum(Long.parseLong(numPart), padding);
     }
 
     /**
-     * Creates a new VersionId. Zero-padding is not used.
+     * Creates a new VersionNum from an integer.
      *
-     * @param versionNumber the version number, must be greater than 0
+     * @param versionNumber the version number, must be greater than -1
+     * @return version number
      */
-    public VersionId(long versionNumber) {
+    public static VersionNum fromInt(int versionNumber) {
+        return new VersionNum(versionNumber);
+    }
+
+    /**
+     * Creates a new VersionNum. Zero-padding is not used.
+     *
+     * @param versionNumber the version number, must be greater than -1
+     */
+    public VersionNum(long versionNumber) {
         this(versionNumber, 0);
     }
 
     /**
-     * Creates a new VersionId
+     * Creates a new VersionNum
      *
-     * @param versionNumber the version number, must be greater than 0
+     * @param versionNumber the version number, must be greater than -1
      * @param zeroPaddingWidth the width of zero-padding, or 0 if the version is not zero-padded
      */
-    public VersionId(long versionNumber, int zeroPaddingWidth) {
+    public VersionNum(long versionNumber, int zeroPaddingWidth) {
         this.versionNumber = Enforce.expressionTrue(versionNumber >= 0, versionNumber, "versionNumber must be greater than or equal to 0");
         this.zeroPaddingWidth = Enforce.expressionTrue(zeroPaddingWidth >= 0, zeroPaddingWidth, "zeroPaddingWidth must be greater than or equal to 0");
 
@@ -101,24 +111,31 @@ public class VersionId implements Comparable<VersionId> {
     }
 
     /**
-     * @return a new version id with an incremented version number
+     * Returns a new VersionNum that is one more than this. If the version number is zero-padded, versions higher than
+     * the max number are now allowed.
+     *
+     * @return a new VersionNum with an incremented version number
+     * @throws IllegalStateException if the next version is higher than the max allowed value
      */
-    public VersionId nextVersionId() {
+    public VersionNum nextVersionNum() {
         var nextVersionNum = versionNumber + 1;
         if (nextVersionNum > maxVersion) {
             throw new IllegalStateException("Cannot increment version number. Current version " + toString() + " is the highest possible.");
         }
-        return new VersionId(nextVersionNum, zeroPaddingWidth);
+        return new VersionNum(nextVersionNum, zeroPaddingWidth);
     }
 
     /**
-     * @return a new version id with a decremented version number
+     * Returns a new VersionNum that is one less than this. Version numbers lower than 0 are not allowed.
+     *
+     * @return a new VersionNum with a decremented version number
+     * @throws IllegalStateException if the previous version is lower than 1
      */
-    public VersionId previousVersionId() {
+    public VersionNum previousVersionNum() {
         if (versionNumber == 1) {
             throw new IllegalStateException("Cannot decrement version number. Current version " + toString() + " is the lowest possible.");
         }
-        return new VersionId(versionNumber - 1, zeroPaddingWidth);
+        return new VersionNum(versionNumber - 1, zeroPaddingWidth);
     }
 
     public int getZeroPaddingWidth() {
@@ -129,8 +146,8 @@ public class VersionId implements Comparable<VersionId> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        VersionId versionId = (VersionId) o;
-        return versionNumber == versionId.versionNumber;
+        VersionNum versionNum = (VersionNum) o;
+        return versionNumber == versionNum.versionNumber;
     }
 
     @Override
@@ -145,7 +162,7 @@ public class VersionId implements Comparable<VersionId> {
     }
 
     @Override
-    public int compareTo(VersionId o) {
+    public int compareTo(VersionNum o) {
         return Long.compare(versionNumber, o.versionNumber);
     }
 

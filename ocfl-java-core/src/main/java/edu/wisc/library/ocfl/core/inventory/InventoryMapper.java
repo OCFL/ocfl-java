@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.io.IOException;
@@ -98,16 +98,16 @@ public class InventoryMapper {
         return readInternal(false, null, objectRootPath, digest, inputStream);
     }
 
-    public Inventory readMutableHead(String objectRootPath, String digest, RevisionId revisionId, Path path) {
-        return readInternal(true, revisionId, objectRootPath, digest, path);
+    public Inventory readMutableHead(String objectRootPath, String digest, RevisionNum revisionNum, Path path) {
+        return readInternal(true, revisionNum, objectRootPath, digest, path);
     }
 
-    public Inventory readMutableHead(String objectRootPath, String digest, RevisionId revisionId, InputStream inputStream) {
-        return readInternal(true, revisionId, objectRootPath, digest, inputStream);
+    public Inventory readMutableHead(String objectRootPath, String digest, RevisionNum revisionNum, InputStream inputStream) {
+        return readInternal(true, revisionNum, objectRootPath, digest, inputStream);
     }
 
     private Inventory readInternal(boolean mutableHead,
-                                   RevisionId revisionId,
+                                   RevisionNum revisionNum,
                                    String objectRootPath,
                                    String digest,
                                    Path path) {
@@ -115,7 +115,7 @@ public class InventoryMapper {
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()
-                            .addValue("revisionId", revisionId)
+                            .addValue("revisionNum", revisionNum)
                             .addValue("mutableHead", mutableHead)
                             .addValue("objectRootPath", objectRootPath)
                             .addValue("currentDigest", digest))
@@ -127,7 +127,7 @@ public class InventoryMapper {
     }
 
     private Inventory readInternal(boolean mutableHead,
-                                   RevisionId revisionId,
+                                   RevisionNum revisionNum,
                                    String objectRootPath,
                                    String digest,
                                    InputStream inputStream) {
@@ -135,7 +135,7 @@ public class InventoryMapper {
         try {
             return objectMapper.reader(
                     new InjectableValues.Std()
-                            .addValue("revisionId", revisionId)
+                            .addValue("revisionNum", revisionNum)
                             .addValue("mutableHead", mutableHead)
                             .addValue("objectRootPath", objectRootPath)
                             .addValue("currentDigest", digest))

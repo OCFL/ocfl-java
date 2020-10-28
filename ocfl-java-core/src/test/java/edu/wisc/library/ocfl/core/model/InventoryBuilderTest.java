@@ -2,7 +2,7 @@ package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ public class InventoryBuilderTest {
                 .id("id")
                 .type(InventoryType.OCFL_1_0)
                 .digestAlgorithm(DigestAlgorithm.sha512)
-                .head(VersionId.fromString("v1"))
+                .head(VersionNum.fromString("v1"))
                 .objectRootPath("root");
 
         this.versionBuilder = Version.builder().created(OffsetDateTime.now());
@@ -131,49 +131,49 @@ public class InventoryBuilderTest {
     @Test
     public void shouldAddHeadVersionWhenNotMutableAndV0() {
         var version = versionBuilder.build();
-        var inventory = builder.head(VersionId.fromString("v0"))
+        var inventory = builder.head(VersionNum.fromString("v0"))
                 .addHeadVersion(version)
                 .build();
 
-        assertEquals(VersionId.fromString("v1"), inventory.getHead());
+        assertEquals(VersionNum.fromString("v1"), inventory.getHead());
         assertSame(version, inventory.getHeadVersion());
     }
 
     @Test
     public void shouldAddHeadVersionWhenNotMutableAndV3() {
         var version = versionBuilder.build();
-        var inventory = builder.head(VersionId.fromString("v3"))
+        var inventory = builder.head(VersionNum.fromString("v3"))
                 .addHeadVersion(version)
                 .build();
 
-        assertEquals(VersionId.fromString("v4"), inventory.getHead());
+        assertEquals(VersionNum.fromString("v4"), inventory.getHead());
         assertSame(version, inventory.getHeadVersion());
     }
 
     @Test
     public void shouldAddHeadVersionWhenMutableAndV1NoRevisions() {
         var version = versionBuilder.build();
-        var inventory = builder.head(VersionId.fromString("v1"))
+        var inventory = builder.head(VersionNum.fromString("v1"))
                 .mutableHead(true)
                 .addHeadVersion(version)
                 .build();
 
-        assertEquals(VersionId.fromString("v2"), inventory.getHead());
-        assertEquals(RevisionId.fromString("r1"), inventory.getRevisionId());
+        assertEquals(VersionNum.fromString("v2"), inventory.getHead());
+        assertEquals(RevisionNum.fromString("r1"), inventory.getRevisionNum());
         assertSame(version, inventory.getHeadVersion());
     }
 
     @Test
     public void shouldAddHeadVersionWhenMutableAndV1R3() {
         var version = versionBuilder.build();
-        var inventory = builder.head(VersionId.fromString("v3"))
+        var inventory = builder.head(VersionNum.fromString("v3"))
                 .mutableHead(true)
-                .revisionId(RevisionId.fromString("r3"))
+                .revisionNum(RevisionNum.fromString("r3"))
                 .addHeadVersion(version)
                 .build();
 
-        assertEquals(VersionId.fromString("v3"), inventory.getHead());
-        assertEquals(RevisionId.fromString("r4"), inventory.getRevisionId());
+        assertEquals(VersionNum.fromString("v3"), inventory.getHead());
+        assertEquals(RevisionNum.fromString("r4"), inventory.getRevisionNum());
         assertSame(version, inventory.getHeadVersion());
     }
 

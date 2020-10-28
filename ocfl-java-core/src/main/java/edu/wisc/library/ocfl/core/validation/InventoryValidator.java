@@ -28,7 +28,7 @@ import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.VersionId;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.User;
@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  */
 public final class InventoryValidator {
 
-    private static final VersionId VERSION_ZERO = VersionId.fromString("v0");
+    private static final VersionNum VERSION_ZERO = VersionNum.fromString("v0");
     private static final Pattern CONTENT_DIR_PATTERN = Pattern.compile(".*[/\\\\].*");
 
     private InventoryValidator() {
@@ -125,10 +125,10 @@ public final class InventoryValidator {
                 throw new InvalidInventoryException(String.format("In object %s the inventories in version %s and %s define a different state for version %s.",
                         currentInventory.getId(), currentInventory.getHead(), previousInventory.getHead(), current));
             }
-            if (VersionId.V1.equals(current)) {
+            if (VersionNum.V1.equals(current)) {
                 break;
             }
-            current = current.previousVersionId();
+            current = current.previousVersionNum();
         }
     }
 
@@ -153,7 +153,7 @@ public final class InventoryValidator {
         areEqual(currentInventory.getContentDirectory(), previousInventory.getContentDirectory(),
                 String.format("Inventory content directories are not the same. Existing: %s; New: %s",
                         previousInventory.getContentDirectory(), currentInventory.getContentDirectory()));
-        if (!Objects.equals(currentInventory.getHead(), previousInventory.nextVersionId())) {
+        if (!Objects.equals(currentInventory.getHead(), previousInventory.nextVersionNum())) {
             throw new InvalidInventoryException(String.format(
                     "The new HEAD inventory version must be the next sequential version number. Existing: %s; New: %s",
                     previousInventory.getHead(), currentInventory.getHead()));
@@ -183,36 +183,36 @@ public final class InventoryValidator {
         notEmpty(versionMap, "Versions cannot be empty");
 
         for (var i = 1; i <= versionMap.size(); i++) {
-            var versionId = new VersionId(i);
-            notNull(versionMap.get(versionId), String.format("Version %s is missing", versionId));
+            var versionNum = new VersionNum(i);
+            notNull(versionMap.get(versionNum), String.format("Version %s is missing", versionNum));
         }
 
-        var expectedHead = new VersionId(versionMap.size());
+        var expectedHead = new VersionNum(versionMap.size());
         isTrue(inventory.getHead().equals(expectedHead), String.format("HEAD must be the latest version. Expected: %s; Was: %s",
                 expectedHead, inventory.getHead()));
 
         if (!allVersions) {
             validateVersion(inventory, versionMap.get(expectedHead), expectedHead);
         } else {
-            versionMap.forEach((versionId, version) -> {
-                validateVersion(inventory, version, versionId);
+            versionMap.forEach((versionNum, version) -> {
+                validateVersion(inventory, version, versionNum);
             });
         }
     }
 
-    private static void validateVersion(Inventory inventory, Version version, VersionId versionId) {
-        notNull(version, String.format("Version %s is missing", versionId));
-        notNull(version.getCreated(), String.format("Version created timestamp in version %s cannot be null", versionId));
-        validateUser(version.getUser(), versionId);
+    private static void validateVersion(Inventory inventory, Version version, VersionNum versionNum) {
+        notNull(version, String.format("Version %s is missing", versionNum));
+        notNull(version.getCreated(), String.format("Version created timestamp in version %s cannot be null", versionNum));
+        validateUser(version.getUser(), versionNum);
 
         var state = version.getState();
-        notNull(state, String.format("Version state in version %s cannot be null", versionId));
+        notNull(state, String.format("Version state in version %s cannot be null", versionNum));
 
         state.forEach((digest, logicalPaths) -> {
-            notEmpty(logicalPaths, String.format("Version state logical paths in version %s cannot be empty", versionId));
+            notEmpty(logicalPaths, String.format("Version state logical paths in version %s cannot be empty", versionNum));
             notNull(inventory.getContentPath(digest),
                     String.format("Version state entry %s => %s in version %s does not have a corresponding entry in the manifest block.",
-                            digest, logicalPaths, versionId));
+                            digest, logicalPaths, versionNum));
         });
     }
 
@@ -244,9 +244,9 @@ public final class InventoryValidator {
         }
     }
 
-    private static void validateUser(User user, VersionId versionId) {
+    private static void validateUser(User user, VersionNum versionNum) {
         if (user != null) {
-            notBlank(user.getName(), String.format("User name in version %s cannot be blank", versionId));
+            notBlank(user.getName(), String.format("User name in version %s cannot be blank", versionNum));
         }
     }
 
@@ -261,7 +261,7 @@ public final class InventoryValidator {
         });
     }
 
-    private static void validateVersionNumber(String objectId, VersionId currentVersion, VersionId previousVersion) {
+    private static void validateVersionNumber(String objectId, VersionNum currentVersion, VersionNum previousVersion) {
         if (!Objects.equals(currentVersion.toString(), previousVersion.toString())) {
             throw new InvalidInventoryException(String.format("Object %s's version number formatting differs: %s vs %s",
                     objectId, previousVersion, currentVersion));

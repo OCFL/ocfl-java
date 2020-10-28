@@ -1,7 +1,7 @@
 package edu.wisc.library.ocfl.core.inventory;
 
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.model.RevisionId;
+import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ public class InventoryMapperTest {
         var digest = "abc123";
         var inventory = mapper.read(objectRoot, digest, new ByteArrayInputStream(original.getBytes()));
         assertFalse(inventory.hasMutableHead());
-        assertNull(inventory.getRevisionId());
+        assertNull(inventory.getRevisionNum());
         var output = writeInventoryToString(inventory);
         assertEquals(original, output);
         assertEquals(objectRoot, inventory.getObjectRootPath());
@@ -46,10 +46,10 @@ public class InventoryMapperTest {
         var original = readFile("simple-inventory.json");
         var objectRoot = "path/to/obj2";
         var digest = "def456";
-        var revision = RevisionId.fromString("r2");
+        var revision = RevisionNum.fromString("r2");
         var inventory = mapper.readMutableHead(objectRoot, digest, revision, new ByteArrayInputStream(original.getBytes()));
         assertTrue(inventory.hasMutableHead());
-        assertEquals(revision, inventory.getRevisionId());
+        assertEquals(revision, inventory.getRevisionNum());
         var output = writeInventoryToString(inventory);
         assertEquals(original, output);
         assertEquals(objectRoot, inventory.getObjectRootPath());
