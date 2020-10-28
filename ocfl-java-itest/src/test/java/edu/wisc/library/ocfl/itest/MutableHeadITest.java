@@ -22,11 +22,16 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -376,6 +381,102 @@ public abstract class MutableHeadITest {
                 repoRoot.resolve("235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc"),
                 "o1",
                 output);
+    }
+
+    @Test
+    public void rejectUpdateWhenConcurrentChangeToPreviousVersionOfMutableHead() throws InterruptedException {
+        var objectId = "o1";
+
+        var repoName = "concurrent-change-mutable";
+        var repo = defaultRepo(repoName);
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+        });
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        var future = CompletableFuture.runAsync(() -> {
+            repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                try {
+                    TimeUnit.SECONDS.sleep(3);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                updater.writeFile(streamString("file3"), "file3.txt");
+            });
+        });
+
+        TimeUnit.MILLISECONDS.sleep(100);
+
+        repo.rollbackToVersion(ObjectVersionId.version(objectId, "v1"));
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file4"), "file4.txt");
+        });
+
+        OcflAsserts.assertThrowsWithMessage(ObjectOutOfSyncException.class,
+                "Cannot update object o1 because the update is out of sync with the current object state. The digest of the current inventory is ", () -> {
+                    try {
+                        future.get();
+                    } catch (ExecutionException e) {
+                        throw e.getCause();
+                    }
+                });
+
+        var desc = repo.describeObject(objectId);
+
+        assertEquals("v2", desc.getHeadVersionId().toString());
+        assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
+        assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
+    }
+
+    @Test
+    public void rejectUpdateWhenConcurrentChangeWhileCreatingMutableHead() throws InterruptedException {
+        var objectId = "o1";
+
+        var repoName = "concurrent-change-mutable-2";
+        var repo = defaultRepo(repoName);
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+
+        var future = CompletableFuture.runAsync(() -> {
+            repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                try {
+                    TimeUnit.SECONDS.sleep(3);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                updater.writeFile(streamString("file3"), "file3.txt");
+            });
+        });
+
+        TimeUnit.MILLISECONDS.sleep(100);
+
+        repo.rollbackToVersion(ObjectVersionId.version(objectId, "v1"));
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file4"), "file4.txt");
+        });
+
+        OcflAsserts.assertThrowsWithMessage(ObjectOutOfSyncException.class,
+                "Cannot update object o1 because the update is out of sync with the current object state. The digest of the current inventory is ", () -> {
+                    try {
+                        future.get();
+                    } catch (ExecutionException e) {
+                        throw e.getCause();
+                    }
+                });
+
+        var desc = repo.describeObject(objectId);
+
+        assertEquals("v2", desc.getHeadVersionId().toString());
+        assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
+        assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
     }
 
     private Path outputPath(String repoName, String path) {

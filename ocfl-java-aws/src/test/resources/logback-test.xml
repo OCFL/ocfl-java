@@ -8,9 +8,11 @@
         </encoder>
     </appender>
 
-    <logger name="edu.wisc.library" level="info"/>
+    <logger name="software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient" level="error"/>
+    <logger name="edu.wisc.library" level="warn"/>
+    <logger name="edu.wisc.library.ocfl.core.util.Timer" level="debug"/>
 
-    <root level="info">
+    <root level="warn">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

@@ -31,7 +31,6 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -1883,7 +1882,7 @@ public abstract class OcflITest {
     }
 
     @Test
-    public void rejectUpdateWhenConcurrentChangeToPreviousVersion() throws ExecutionException, InterruptedException {
+    public void rejectUpdateWhenConcurrentChangeToPreviousVersion() throws InterruptedException {
         var objectId = "o1";
 
         var repoName = "concurrent-change";
@@ -1922,6 +1921,12 @@ public abstract class OcflITest {
                         throw e.getCause();
                     }
             });
+
+        var desc = repo.describeObject(objectId);
+
+        assertEquals("v2", desc.getHeadVersionId().toString());
+        assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
+        assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
