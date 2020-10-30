@@ -192,6 +192,7 @@ public class InventoryUpdater {
         logicalPathConstraints.apply(logicalPath);
 
         overwriteProtection(logicalPath, options);
+        versionBuilder.validateNonConflictingPath(logicalPath);
 
         if (versionBuilder.containsLogicalPath(logicalPath)) {
             var oldFileId = versionBuilder.removeLogicalPath(logicalPath);
@@ -293,6 +294,7 @@ public class InventoryUpdater {
         }
 
         overwriteProtection(dstLogicalPath, options);
+        versionBuilder.validateNonConflictingPath(dstLogicalPath);
 
         var dstFileId = versionBuilder.getFileId(dstLogicalPath);
 
@@ -325,6 +327,7 @@ public class InventoryUpdater {
         }
 
         overwriteProtection(dstLogicalPath, options);
+        versionBuilder.validateNonConflictingPath(dstLogicalPath);
 
         var dstFileId = versionBuilder.getFileId(dstLogicalPath);
 

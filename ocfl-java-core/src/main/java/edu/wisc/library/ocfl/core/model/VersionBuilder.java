@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.model;
 
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
@@ -134,6 +135,27 @@ public class VersionBuilder {
     }
 
     /**
+     * Validates that the logical path does not conflict with any existing logical paths in this version. Paths conflict
+     * if one expects a path to be a directory and another expects it to be a file.
+     *
+     * @param logicalPath the logical path
+     * @throws OcflInputException if there is a conflict
+     */
+    public void validateNonConflictingPath(String logicalPath) {
+        var pathAsDir = logicalPath + "/";
+        state.getPathToFileId().keySet().forEach(existingPath -> {
+            if (existingPath.startsWith(pathAsDir)) {
+                throw conflictException(logicalPath, existingPath);
+            }
+
+            var existingAsDir = existingPath + "/";
+            if (logicalPath.startsWith(existingAsDir)) {
+                throw conflictException(logicalPath, existingPath);
+            }
+        });
+    }
+
+    /**
      * Retrieves all of the logical paths associated to the fileId or an empty set
      *
      * @param fileId the fileId
@@ -180,6 +202,11 @@ public class VersionBuilder {
      */
     public Map<String, String> getInvertedState() {
         return state.getPathToFileId();
+    }
+
+    private OcflInputException conflictException(String logicalPath, String existingPath) {
+        return new OcflInputException(String.format("The logical path %s conflicts with the existing path %s.",
+                logicalPath, existingPath));
     }
 
 }

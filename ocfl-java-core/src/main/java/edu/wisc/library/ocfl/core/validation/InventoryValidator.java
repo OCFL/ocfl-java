@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.validation;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -35,9 +34,12 @@ import edu.wisc.library.ocfl.core.model.User;
 import edu.wisc.library.ocfl.core.model.Version;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -64,14 +66,14 @@ public final class InventoryValidator {
     public static Inventory validateShallow(Inventory inventory) {
         Enforce.notNull(inventory, "inventory cannot be null");
 
-        notBlank(inventory.getId(), "Object ID cannot be blank");
-        notNull(inventory.getType(), "Type cannot be null");
-        notNull(inventory.getHead(), "HEAD cannot be null");
-        isTrue(!inventory.getHead().equals(VERSION_ZERO), "HEAD version must be greater than v0");
-        validateDigestAlgorithm(inventory.getDigestAlgorithm());
-        validateContentDirectory(inventory.getContentDirectory());
+        notBlank(inventory.getId(), () -> "Object ID cannot be blank");
+        notNull(inventory.getHead(), prefix(inventory, () -> "HEAD cannot be null"));
+        isTrue(!inventory.getHead().equals(VERSION_ZERO), prefix(inventory, () -> "HEAD version must be greater than v0"));
+        notNull(inventory.getType(), prefix(inventory, () -> "Type cannot be null"));
+        validateDigestAlgorithm(inventory);
+        validateContentDirectory(inventory);
 
-        notNull(inventory.getManifest(), "Manifest cannot be null");
+        notNull(inventory.getManifest(), prefix(inventory, () -> "Manifest cannot be null"));
         validateVersions(inventory, false);
 
         return inventory;
@@ -87,16 +89,16 @@ public final class InventoryValidator {
     public static Inventory validateDeep(Inventory inventory) {
         Enforce.notNull(inventory, "inventory cannot be null");
 
-        notBlank(inventory.getId(), "Object ID cannot be blank");
-        notNull(inventory.getType(), "Type cannot be null");
-        notNull(inventory.getHead(), "HEAD cannot be null");
-        isTrue(!inventory.getHead().equals(VERSION_ZERO), "HEAD version must be greater than v0");
-        validateDigestAlgorithm(inventory.getDigestAlgorithm());
-        validateContentDirectory(inventory.getContentDirectory());
+        notBlank(inventory.getId(), () -> "Object ID cannot be blank");
+        notNull(inventory.getHead(), prefix(inventory, () -> "HEAD cannot be null"));
+        isTrue(!inventory.getHead().equals(VERSION_ZERO), prefix(inventory, () -> "HEAD version must be greater than v0"));
+        notNull(inventory.getType(), prefix(inventory, () -> "Type cannot be null"));
+        validateDigestAlgorithm(inventory);
+        validateContentDirectory(inventory);
         validateVersionNumbers(inventory);
 
         validateFixity(inventory);
-        notNull(inventory.getManifest(), "Manifest cannot be null");
+        notNull(inventory.getManifest(), prefix(inventory, () -> "Manifest cannot be null"));
         validateVersions(inventory, true);
         validateManifest(inventory);
 
@@ -118,7 +120,7 @@ public final class InventoryValidator {
                 .collect(Collectors.toMap(Function.identity(), Function.identity()));
 
         while (true) {
-            validateVersionNumber(currentInventory.getId(), currentVersions.get(current), previousVersions.get(current));
+            validateVersionNumber(currentInventory, currentVersions.get(current), previousVersions.get(current));
             var currentState = currentInventory.getVersion(current).getState();
             var previousState = previousInventory.getVersion(current).getState();
             if (!Objects.equals(currentState, previousState)) {
@@ -142,16 +144,16 @@ public final class InventoryValidator {
      */
     public static void validateCompatibleInventories(Inventory currentInventory, Inventory previousInventory) {
         areEqual(currentInventory.getId(), previousInventory.getId(),
-                String.format("Object IDs are not the same. Existing: %s; New: %s",
+                () -> String.format("Object IDs are not the same. Existing: %s; New: %s",
                         previousInventory.getId(), currentInventory.getId()));
         areEqual(currentInventory.getType(), previousInventory.getType(),
-                String.format("Inventory types are not the same. Existing: %s; New: %s",
+                () -> String.format("Inventory types are not the same. Existing: %s; New: %s",
                         previousInventory.getType().getId(), currentInventory.getType().getId()));
         areEqual(currentInventory.getDigestAlgorithm(), previousInventory.getDigestAlgorithm(),
-                String.format("Inventory digest algorithms are not the same. Existing: %s; New: %s",
+                () -> String.format("Inventory digest algorithms are not the same. Existing: %s; New: %s",
                         previousInventory.getDigestAlgorithm().getOcflName(), currentInventory.getDigestAlgorithm().getOcflName()));
         areEqual(currentInventory.getContentDirectory(), previousInventory.getContentDirectory(),
-                String.format("Inventory content directories are not the same. Existing: %s; New: %s",
+                () -> String.format("Inventory content directories are not the same. Existing: %s; New: %s",
                         previousInventory.getContentDirectory(), currentInventory.getContentDirectory()));
         if (!Objects.equals(currentInventory.getHead(), previousInventory.nextVersionNum())) {
             throw new InvalidInventoryException(String.format(
@@ -167,11 +169,11 @@ public final class InventoryValidator {
         if (fixityMap != null) {
             fixityMap.forEach((algorithm, map) -> {
                 map.forEach((digest, contentPaths) -> {
-                    notEmpty(contentPaths, "Fixity content paths cannot be empty");
+                    notEmpty(contentPaths, prefix(inventory, () -> "Fixity content paths cannot be empty"));
                     contentPaths.forEach(contentPath -> {
                         notNull(inventory.getFileId(contentPath),
-                                String.format("Fixity entry %s => {%s => %s} does not have a corresponding entry in the manifest block.",
-                                        algorithm.getOcflName(), digest, contentPath));
+                                prefix(inventory, () -> String.format("Fixity entry %s => {%s => %s} does not have a corresponding entry in the manifest block.",
+                                        algorithm.getOcflName(), digest, contentPath)));
                     });
                 });
             });
@@ -180,16 +182,16 @@ public final class InventoryValidator {
 
     private static void validateVersions(Inventory inventory, boolean allVersions) {
         var versionMap = inventory.getVersions();
-        notEmpty(versionMap, "Versions cannot be empty");
+        notEmpty(versionMap, prefix(inventory, () -> "Versions cannot be empty"));
 
         for (var i = 1; i <= versionMap.size(); i++) {
             var versionNum = new VersionNum(i);
-            notNull(versionMap.get(versionNum), String.format("Version %s is missing", versionNum));
+            notNull(versionMap.get(versionNum), prefix(inventory, () -> String.format("Version %s is missing", versionNum)));
         }
 
         var expectedHead = new VersionNum(versionMap.size());
-        isTrue(inventory.getHead().equals(expectedHead), String.format("HEAD must be the latest version. Expected: %s; Was: %s",
-                expectedHead, inventory.getHead()));
+        isTrue(inventory.getHead().equals(expectedHead), prefix(inventory, () ->
+                String.format("HEAD must be the latest version. Expected: %s; Was: %s", expectedHead, inventory.getHead())));
 
         if (!allVersions) {
             validateVersion(inventory, versionMap.get(expectedHead), expectedHead);
@@ -201,18 +203,51 @@ public final class InventoryValidator {
     }
 
     private static void validateVersion(Inventory inventory, Version version, VersionNum versionNum) {
-        notNull(version, String.format("Version %s is missing", versionNum));
-        notNull(version.getCreated(), String.format("Version created timestamp in version %s cannot be null", versionNum));
-        validateUser(version.getUser(), versionNum);
+        notNull(version, prefix(inventory, () -> String.format("Version %s is missing",  versionNum)));
+        notNull(version.getCreated(), prefix(inventory, () -> String.format("Version created timestamp in version %s cannot be null", versionNum)));
+        validateUser(inventory, version.getUser(), versionNum);
 
         var state = version.getState();
-        notNull(state, String.format("Version state in version %s cannot be null", versionNum));
+        notNull(state, prefix(inventory, () -> String.format("Version state of version %s cannot be null",  versionNum)));
+
+        var directories = new HashSet<String>();
+        var files = new HashSet<String>();
 
         state.forEach((digest, logicalPaths) -> {
-            notEmpty(logicalPaths, String.format("Version state logical paths in version %s cannot be empty", versionNum));
+            notEmpty(logicalPaths, prefix(inventory, () -> String.format("Version state logical paths in version %s cannot be empty", versionNum)));
             notNull(inventory.getContentPath(digest),
-                    String.format("Version state entry %s => %s in version %s does not have a corresponding entry in the manifest block.",
-                            digest, logicalPaths, versionNum));
+                    prefix(inventory, () -> String.format("Version state entry %s => %s in version %s does not have a corresponding entry in the manifest block.",
+                            digest, logicalPaths, versionNum)));
+
+            logicalPaths.forEach(path -> {
+                files.add(path);
+                var parts = path.split("/");
+                for (int i = 0; i < parts.length - 1; i++) {
+                    var builder = new StringBuilder(parts[0]);
+                    for (int j = 1; j <= i; j++) {
+                        builder.append("/").append(parts[j]);
+                    }
+                    directories.add(builder.toString());
+                }
+            });
+        });
+
+        Set<String> iter;
+        Set<String> check;
+
+        if (files.size() > directories.size()) {
+            iter = directories;
+            check = files;
+        } else {
+            iter = files;
+            check = directories;
+        }
+
+        iter.forEach(path -> {
+            if (check.contains(path)) {
+                throw new InvalidInventoryException(prefix(inventory, () -> String.format("In version %s the logical path %s conflicts with another logical path.",
+                        versionNum, path)).get());
+            }
         });
     }
 
@@ -223,30 +258,32 @@ public final class InventoryValidator {
 
         inventory.getManifest().keySet().forEach(fileId -> {
             if (!stateFileIds.contains(fileId)) {
-                throw new CorruptObjectException(String.format("Object %s's manifest contains an entry for %s, but it is not referenced in any version's state.",
-                        inventory.getId(), fileId));
+                throw new CorruptObjectException(prefix(inventory, () -> String.format("Manifest contains an entry for %s, but it is not referenced in any version's state.",
+                        fileId)).get());
             }
         });
     }
 
-    private static void validateDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
-        notNull(digestAlgorithm, "Digest algorithm cannot be null");
+    private static void validateDigestAlgorithm(Inventory inventory) {
+        var digestAlgorithm = inventory.getDigestAlgorithm();
+        notNull(digestAlgorithm, prefix(inventory, () -> "Digest algorithm cannot be null"));
         isTrue(OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm),
-                String.format("Digest algorithm must be one of: %s; Found: %s",
-                        OcflConstants.ALLOWED_DIGEST_ALGORITHMS, digestAlgorithm));
+                prefix(inventory, () -> String.format("Digest algorithm must be one of: %s; Found: %s",
+                        OcflConstants.ALLOWED_DIGEST_ALGORITHMS, digestAlgorithm)));
     }
 
-    private static void validateContentDirectory(String contentDirectory) {
+    private static void validateContentDirectory(Inventory inventory) {
+        var contentDirectory = inventory.getContentDirectory();
         if (contentDirectory != null) {
-            notBlank(contentDirectory, "Content directory cannot be blank");
+            notBlank(contentDirectory, prefix(inventory, () -> "Content directory cannot be blank"));
             isTrue(!CONTENT_DIR_PATTERN.matcher(contentDirectory).matches(),
-                    "Content directory cannot contain / or \\. Found: " + contentDirectory);
+                    prefix(inventory, () -> "Content directory cannot contain / or \\. Found: " + contentDirectory));
         }
     }
 
-    private static void validateUser(User user, VersionNum versionNum) {
+    private static void validateUser(Inventory inventory, User user, VersionNum versionNum) {
         if (user != null) {
-            notBlank(user.getName(), String.format("User name in version %s cannot be blank", versionNum));
+            notBlank(user.getName(), prefix(inventory, () -> String.format("User name in version %s cannot be blank", versionNum)));
         }
     }
 
@@ -255,52 +292,58 @@ public final class InventoryValidator {
 
         inventory.getVersions().keySet().forEach(versionNumber -> {
             if (versionNumber.getZeroPaddingWidth() != expectedPadding) {
-                throw new InvalidInventoryException(String.format("%s is not zero-padded correctly. Expected: %s; Actual: %s",
-                        versionNumber, expectedPadding, versionNumber.getZeroPaddingWidth()));
+                throw new InvalidInventoryException(prefix(inventory, () -> String.format("%s is not zero-padded correctly. Expected: %s; Actual: %s",
+                        versionNumber, expectedPadding, versionNumber.getZeroPaddingWidth())).get());
             }
         });
     }
 
-    private static void validateVersionNumber(String objectId, VersionNum currentVersion, VersionNum previousVersion) {
+    private static void validateVersionNumber(Inventory inventory, VersionNum currentVersion, VersionNum previousVersion) {
         if (!Objects.equals(currentVersion.toString(), previousVersion.toString())) {
-            throw new InvalidInventoryException(String.format("Object %s's version number formatting differs: %s vs %s",
-                    objectId, previousVersion, currentVersion));
+            throw new InvalidInventoryException(prefix(inventory, () -> String.format("Version number formatting differs: %s vs %s",
+                    previousVersion, currentVersion)).get());
         }
     }
 
-    private static void notNull(Object object, String message) {
+    private static Supplier<String> prefix(Inventory inventory, Supplier<String> message) {
+        return () -> {
+            return String.format("Inventory %s %s: %s", inventory.getId(), inventory.getHead(), message.get());
+        };
+    }
+
+    private static void notNull(Object object, Supplier<String> messageSupplier) {
         if (object == null) {
-            throw new InvalidInventoryException(message);
+            throw new InvalidInventoryException(messageSupplier.get());
         }
     }
 
-    private static void notBlank(String value, String message) {
+    private static void notBlank(String value, Supplier<String> messageSupplier) {
         if (value == null || value.isBlank()) {
-            throw new InvalidInventoryException(message);
+            throw new InvalidInventoryException(messageSupplier.get());
         }
     }
 
-    private static void notEmpty(Collection<?> collection, String message) {
+    private static void notEmpty(Collection<?> collection, Supplier<String> messageSupplier) {
         if (collection == null || collection.isEmpty()) {
-            throw new InvalidInventoryException(message);
+            throw new InvalidInventoryException(messageSupplier.get());
         }
     }
 
-    private static void notEmpty(Map<?, ?> map, String message) {
+    private static void notEmpty(Map<?, ?> map, Supplier<String> messageSupplier) {
         if (map == null || map.isEmpty()) {
-            throw new InvalidInventoryException(message);
+            throw new InvalidInventoryException(messageSupplier.get());
         }
     }
 
-    private static void isTrue(boolean test, String message) {
+    private static void isTrue(boolean test, Supplier<String> messageSupplier) {
         if (!test) {
-            throw new InvalidInventoryException(message);
+            throw new InvalidInventoryException(messageSupplier.get());
         }
     }
 
-    private static <T> void areEqual(T left, T right, String message) {
+    private static <T> void areEqual(T left, T right, Supplier<String> messageSupplier) {
         if (!Objects.equals(left, right)) {
-            throw new InvalidInventoryException(message);
+            throw new InvalidInventoryException(messageSupplier.get());
         }
     }
 

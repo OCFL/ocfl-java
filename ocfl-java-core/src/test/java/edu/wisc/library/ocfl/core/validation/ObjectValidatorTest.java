@@ -183,6 +183,13 @@ public class ObjectValidatorTest {
         validateVersion("no-content");
     }
 
+    @Test
+    public void failVersionWhenHasPathConflict() {
+        OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "In version v1 the logical path file1 conflicts with another logical path.", () -> {
+            validateObject("path-conflict");
+        });
+    }
+
     private void validateObject(String name) {
         var objectPath = Paths.get("src/test/resources/validation/object", name);
         var inventory = inventoryMapper.read(objectPath.toString(), "digest", ObjectPaths.inventoryPath(objectPath));

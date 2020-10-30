@@ -924,6 +924,67 @@ public abstract class OcflITest {
     }
 
     @Test
+    public void rejectLogicalPathWhenAddConflicts() {
+        var repoName = "conflict";
+        var repo = defaultRepo(repoName);
+        var objectId = "o1";
+
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "The logical path file1/file2 conflicts with the existing path file1.", () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                updater.writeFile(streamString("file1"), "file1");
+                updater.writeFile(streamString("file2"), "file1/file2");
+            });
+        });
+
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "The logical path file1 conflicts with the existing path file1/file2.", () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                updater.writeFile(streamString("file2"), "file1/file2");
+                updater.writeFile(streamString("file1"), "file1");
+            });
+        });
+    }
+
+    @Test
+    public void rejectLogicalPathWhenRenameConflicts() {
+        var repoName = "conflict-2";
+        var repo = defaultRepo(repoName);
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1");
+            updater.writeFile(streamString("file2"), "file2");
+        });
+
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "The logical path file2/file1 conflicts with the existing path file2.", () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                updater.renameFile("file1", "file2/file1");
+            });
+        });
+    }
+
+    @Test
+    public void rejectLogicalPathWhenReinstateConflicts() {
+        var repoName = "conflict-2";
+        var repo = defaultRepo(repoName);
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1");
+            updater.writeFile(streamString("file2"), "file2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.removeFile("file1");
+        });
+
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "The logical path file2/file1 conflicts with the existing path file2.", () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                updater.reinstateFile(VersionNum.fromInt(1), "file1", "file2/file1");
+            });
+        });
+    }
+
+    @Test
     public void reinstateFileThatWasRemoved() {
         var repoName = "repo9";
         var repo = defaultRepo(repoName);
