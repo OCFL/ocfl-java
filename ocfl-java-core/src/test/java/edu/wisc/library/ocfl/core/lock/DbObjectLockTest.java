@@ -13,7 +13,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DbObjectLockTest {
 
@@ -29,7 +31,7 @@ public class DbObjectLockTest {
 //        dataSource.setUser("pwinckles");
 //        dataSource.setPassword("");
 
-        lock = new ObjectLockBuilder().waitTime(500, TimeUnit.MILLISECONDS).buildDbLock(dataSource);
+        lock = new ObjectLockBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
         executor = Executors.newFixedThreadPool(2);
 
         truncateObjectLock(dataSource);

@@ -38,6 +38,7 @@ public class ObjectDetailsDatabaseBuilder {
     private boolean storeInventory;
     private long waitTime;
     private TimeUnit timeUnit;
+    private DataSource dataSource;
 
     public ObjectDetailsDatabaseBuilder() {
         storeInventory = true;
@@ -70,13 +71,23 @@ public class ObjectDetailsDatabaseBuilder {
     }
 
     /**
+     * Sets the DataSource to use for the object details table. This is a required field.
+     *
+     * @param dataSource the DataSource
+     * @return builder
+     */
+    public ObjectDetailsDatabaseBuilder dataSource(DataSource dataSource) {
+        this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
+        return this;
+    }
+
+    /**
      * Constructs a new {@link ObjectDetailsDatabase} instance using the given dataSource. If the database does not
      * already contain an object details table, it attempts to create one.
      *
-     * @param dataSource the connection to the database
      * @return ObjectDetailsDatabase
      */
-    public ObjectDetailsDatabase build(DataSource dataSource) {
+    public ObjectDetailsDatabase build() {
         Enforce.notNull(dataSource, "dataSource cannot be null");
 
         var dbType = DbType.fromDataSource(dataSource);

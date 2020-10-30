@@ -50,7 +50,7 @@ public class ObjectDetailsDatabaseTest {
 //        dataSource.setUser("pwinckles");
 //        dataSource.setPassword("");
 
-        database = new ObjectDetailsDatabaseBuilder().build(dataSource);
+        database = new ObjectDetailsDatabaseBuilder().dataSource(dataSource).build();
         inventoryMapper = InventoryMapper.prettyPrintMapper();
         executor = Executors.newFixedThreadPool(2);
 
@@ -182,7 +182,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldNotStoreInventoryBytesWhenFeatureDisabled() {
-        database = new ObjectDetailsDatabaseBuilder().storeInventory(false).build(dataSource);
+        database = new ObjectDetailsDatabaseBuilder().storeInventory(false).dataSource(dataSource).build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -338,7 +338,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldFailWhenCannotAcquireLock() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).build(dataSource);
+        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -366,7 +366,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldFailDeleteWhenCannotAcquireLock() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).build(dataSource);
+        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -405,7 +405,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldFailWhenConcurrentUpdateAndNew() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).build(dataSource);
+        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -453,7 +453,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldSucceedWhenConcurrentAddAndSameDigest() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).build(dataSource);
+        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -473,8 +473,8 @@ public class ObjectDetailsDatabaseTest {
     }
 
     @Test
-    public void shouldFailWhenConcurrentAddAndDifferentDigest() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(1, TimeUnit.SECONDS).build(dataSource);
+    public void shouldFailWhenConcurrentAddAndDifferentDigest() {
+        database = new ObjectDetailsDatabaseBuilder().waitTime(1, TimeUnit.SECONDS).dataSource(dataSource).build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);

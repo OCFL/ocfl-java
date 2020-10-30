@@ -30,6 +30,7 @@ import edu.wisc.library.ocfl.core.db.DbType;
 import edu.wisc.library.ocfl.core.db.TableCreator;
 
 import javax.sql.DataSource;
+import javax.xml.crypto.Data;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -39,6 +40,7 @@ public class ObjectLockBuilder {
 
     private long waitTime;
     private TimeUnit timeUnit;
+    private DataSource dataSource;
 
     public ObjectLockBuilder() {
         waitTime = 10;
@@ -59,13 +61,31 @@ public class ObjectLockBuilder {
     }
 
     /**
-     * Constructs a new {@link ObjectLock} that used the provided dataSource. If the database does not already contain
-     * an object lock table, it attempts to create one.
+     * Sets the DataSource to use for DB based locking. This MUST be set in order to create a DB lock.
      *
-     * @param dataSource the connection to the database
-     * @return database object lock
+     * @param dataSource the DataSource to use
+     * @return builder
      */
-    public ObjectLock buildDbLock(DataSource dataSource) {
+    public ObjectLockBuilder dataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+        return this;
+    }
+
+    /**
+     * Constructs a new {@link ObjectLock}. If a DataSource was set, then a DB lock is created; otherwise, an in-memory
+     * lock is used.
+     *
+     * @return object lock
+     */
+    public ObjectLock build() {
+        if (dataSource == null) {
+            return buildMemLock();
+        }
+
+        return buildDbLock();
+    }
+
+    private ObjectLock buildDbLock() {
         Enforce.notNull(dataSource, "dataSource cannot be null");
 
         var dbType = DbType.fromDataSource(dataSource);
@@ -92,7 +112,7 @@ public class ObjectLockBuilder {
      *
      * @return in memory object lock
      */
-    public ObjectLock buildMemLock() {
+    private ObjectLock buildMemLock() {
         return new InMemoryObjectLock(waitTime, timeUnit);
     }
 

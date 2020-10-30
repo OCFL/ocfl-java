@@ -6,11 +6,8 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
-import edu.wisc.library.ocfl.core.lock.ObjectLockBuilder;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
@@ -65,11 +62,11 @@ public class S3OcflITest extends OcflITest {
         var builder = new OcflRepositoryBuilder()
                 .layoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
-                .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
-                .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
+                .objectLock(lock -> lock.dataSource(dataSource))
+                .objectDetailsDb(db -> db.dataSource(dataSource))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .storage(CloudOcflStorage.builder()
+                .cloudStorage(cloud -> cloud
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .cloudClient(OcflS3Client.builder()
                                 .s3Client(s3Client)

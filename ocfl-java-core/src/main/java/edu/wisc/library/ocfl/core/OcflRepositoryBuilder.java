@@ -47,11 +47,16 @@ import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.CachingOcflStorage;
 import edu.wisc.library.ocfl.core.storage.ObjectDetailsDbOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorageBuilder;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
@@ -102,6 +107,32 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Configures the repository to use file system based storage.
+     *
+     * @param configureStorage configure the storage settings
+     * @return builder
+     */
+    public OcflRepositoryBuilder fileSystemStorage(Consumer<FileSystemOcflStorageBuilder> configureStorage) {
+        var builder = FileSystemOcflStorage.builder();
+        configureStorage.accept(builder);
+        this.storage = builder.build();
+        return this;
+    }
+
+    /**
+     * Configures the repository to use Cloud based storage.
+     *
+     * @param configureStorage configure the storage settings
+     * @return builder
+     */
+    public OcflRepositoryBuilder cloudStorage(Consumer<CloudOcflStorageBuilder> configureStorage) {
+        var builder = CloudOcflStorage.builder();
+        configureStorage.accept(builder);
+        this.storage = builder.build();
+        return this;
+    }
+
+    /**
      * The temporary workspace the repository uses to assemble object versions. This directory cannot be located within
      * the OCFL storage root. Required.
      *
@@ -130,6 +161,21 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Configures the object lock that's used. The default is an {@link InMemoryObjectLock} instance that will wait 10 seconds
+     * for the lock before failing. Set the DataSource on the builder if you'd like to use a DB lock instead.
+     *
+     * @param configureLock use to configure the lock
+     * @return builder
+     * @see ObjectLockBuilder
+     */
+    public OcflRepositoryBuilder objectLock(Consumer<ObjectLockBuilder> configureLock) {
+        var builder = new ObjectLockBuilder();
+        configureLock.accept(builder);
+        this.objectLock = builder.build();
+        return this;
+    }
+
+    /**
      * Used to cache deserialized inventories. The default is an in memory {@link CaffeineCache} instance that has a maximum size
      * of 1,000 objects and an expiry of 10 minutes. Override to adjust the settings or change the cache implementation.
      *
@@ -152,6 +198,21 @@ public class OcflRepositoryBuilder {
      */
     public OcflRepositoryBuilder objectDetailsDb(ObjectDetailsDatabase objectDetailsDb) {
         this.objectDetailsDb = objectDetailsDb;
+        return this;
+    }
+
+    /**
+     * Used to store details about OCFL objects in the repository. This is primarily intended to be used when working
+     * with a cloud object store like S3.
+     *
+     * @param configureDb use to configure the object details db
+     * @return builder
+     * @see ObjectDetailsDatabaseBuilder
+     */
+    public OcflRepositoryBuilder objectDetailsDb(Consumer<ObjectDetailsDatabaseBuilder> configureDb) {
+        var builder = new ObjectDetailsDatabaseBuilder();
+        configureDb.accept(builder);
+        this.objectDetailsDb = builder.build();
         return this;
     }
 
@@ -232,11 +293,23 @@ public class OcflRepositoryBuilder {
     /**
      * Sets OCFL configuration options.
      *
-     * @param config ocfl config
+     * @param config OCFL config
      * @return builder
      */
     public OcflRepositoryBuilder ocflConfig(OcflConfig config) {
         this.config = Enforce.notNull(config, "config cannot be null");
+        return this;
+    }
+
+    /**
+     * Sets OCFL configuration options.
+     *
+     * @param configureConfig configures the OCFL config
+     * @return builder
+     */
+    public OcflRepositoryBuilder ocflConfig(Consumer<OcflConfig> configureConfig) {
+        this.config = new OcflConfig();
+        configureConfig.accept(this.config);
         return this;
     }
 

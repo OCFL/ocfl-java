@@ -4,7 +4,6 @@ import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.MutableHeadITest;
@@ -40,7 +39,7 @@ public class FileSystemMutableHeadITest extends MutableHeadITest {
                 .layoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .storage(FileSystemOcflStorage.builder()
+                .fileSystemStorage(storage -> storage
                         .checkNewVersionFixity(true)
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .repositoryRoot(repoDir)
