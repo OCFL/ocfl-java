@@ -24,9 +24,9 @@
 
 package edu.wisc.library.ocfl.test.matcher;
 
-import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;

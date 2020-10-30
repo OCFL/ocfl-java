@@ -24,9 +24,9 @@
 
 package edu.wisc.library.ocfl.core.path;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;

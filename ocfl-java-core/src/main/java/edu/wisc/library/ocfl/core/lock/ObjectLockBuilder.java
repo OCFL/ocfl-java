@@ -30,7 +30,6 @@ import edu.wisc.library.ocfl.core.db.DbType;
 import edu.wisc.library.ocfl.core.db.TableCreator;
 
 import javax.sql.DataSource;
-import javax.xml.crypto.Data;
 import java.util.concurrent.TimeUnit;
 
 /**

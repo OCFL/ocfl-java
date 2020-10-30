@@ -2,10 +2,10 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;

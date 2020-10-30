@@ -29,7 +29,6 @@ import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;

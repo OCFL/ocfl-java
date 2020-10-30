@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.api;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 public enum OcflOption {
