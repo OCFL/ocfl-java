@@ -2,10 +2,10 @@
 
 This project is a work-in-progress Java implementation of the [OCFL spec](https://ocfl.io).
 
-**Disclaimer**: This library is under active development, and the OCFL specification has not been finalized. I will be making
-breaking changes up until a 1.0.0 release. I do not recommend using this library in a production setting until then.
+**Disclaimer**: This library is still under active development,and I will be making breaking changes up until a 1.0.0 release.
+I do not recommend using it in a production setting until then.
 
-Version 1.0.0 of the OCFL spec has been finalized. However, I am waiting until [storage layout extensions](https://github.com/OCFL/extensions)
+Version 1.0 of the OCFL spec has been finalized. However, I am waiting until [storage layout extensions](https://github.com/OCFL/extensions)
 are formally defined before releasing version 1.0.0 of this library.  
 
 [![Build Status](https://travis-ci.com/UW-Madison-Library/ocfl-java.svg?branch=master)](https://travis-ci.com/UW-Madison-Library/ocfl-java)
@@ -51,7 +51,7 @@ var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL
 
 var repo = new OcflRepositoryBuilder()
         .layoutConfig(new HashedTruncatedNTupleConfig())
-        .storage(FileSystemOcflStorage.builder().repositoryRoot(repoDir).build())
+        .fileSystemStorage(storage -> storage.repositoryRoot(repoDir))
         .workDir(workDir)
         .build();
 
@@ -90,9 +90,9 @@ it is critical that this directory is located on the same volume as the OCFL sto
 to directories under the OCFL storage root. The layout configuration must be set when creating new OCFL repositories, but is
 not required when opening an existing repository. Storage layouts must be defined in by an OCFL extension. Currently,
 the following extensions are implemented:
+  * **0002-flat-direct-storage-layout**: `FlatLayoutConfig`
   * **0003-hashed-n-tuple-trees**: `HashedTruncatedNTupleConfig`
   * **0005-hashed-n-tuple-id-layout**: `HashedTruncatedNTupleIdConfig`
-  * **0006-flat-layout**: `FlatLayoutConfig`
  
 ### Optional Properties
 
@@ -140,9 +140,7 @@ on the same mount, as recommended.
 ```java
 var repo = new OcflRepositoryBuilder()
         .layoutConfig(new HashedTruncatedNTupleConfig())
-        .storage(FileSystemOcflStorage.builder()
-                .repositoryRoot(repoDir)
-                .build())
+        .fileSystemStorage(storage -> storage.repositoryRoot(repoDir))
         .workDir(workDir)
         .build();
 ```
@@ -166,9 +164,9 @@ to solve eventual consistency and concurrency issues. Use `OcflRepositoryBuilder
 to set this up. Currently, the only supported databases are PostgreSQL and H2. The `ocfl-java` client populates the object
 details database on demand. There is no need to pre-populate it, and it can safely be wiped anytime.
 
-Note, the Amazon S3 storage implementation is not optimized. It will likely not perform well on large files or objects
-with lots of files. Additionally, it does not cache any object files locally, requiring them to be retrieved from S3 on
-every access. These issues will be addressed in the future.
+Note, the Amazon S3 storage implementation is significantly slower than the file system implementation. It will likely not
+perform well on large files or objects with lots of files. Additionally, it does not cache any object files locally,
+requiring them to be retrieved from S3 on every access.
 
 ### Configuration
 
@@ -182,15 +180,14 @@ Use `CloudOcflStorage.builder()` to create and configure an `OcflStorage` instan
 var repo = new OcflRepositoryBuilder()
         .layoutConfig(new HashedTruncatedNTupleConfig())
         .contentPathConstraints(ContentPathConstraints.cloud())
-        .objectLock(new ObjectLockBuilder().buildDbLock(dataSource))
-        .objectDetailsDb(new ObjectDetailsDatabaseBuilder().build(dataSource))
-        .storage(CloudOcflStorage.builder()
+        .objectLock(lock -> lock.dataSource(dataSource))
+        .objectDetailsDb(db -> db.dataSource(dataSource))
+        .cloudStorage(storage -> storage
                 .cloudClient(OcflS3Client.builder()
                         .s3Client(s3Client)
                         .bucket(name)
                         .repoPrefix(prefix)
-                        .build())
-                .build())
+                        .build()))
         .workDir(workDir)
         .build();
 ```
@@ -219,7 +216,7 @@ to attempt to control inventory bloat:
 * Do not pretty print the inventory files (pretty printing is disabled by default)
 * Use `sha256` instead of `sha512` for inventory content addressing. `sha512` is the default and the spec recommended algorithm.
 On some systems, `sha512` is faster than `sha256`, however, it requires twice as much space to store. If you are concerned about
-space, you can change the algorithm by setting `OcflRepositoryBuilder.ocflConfig(new OcflConfig().setDefaultDigestAlgorithm(DigestAlgorithm.sha256))`.
+space, you can change the algorithm by setting `OcflRepositoryBuilder.ocflConfig(config -> config.setDefaultDigestAlgorithm(DigestAlgorithm.sha256))`.
 Note, this only changes the digest algorithm used for *new* OCFL objects. It is not possible to modify existing objects.
 
 ## APIs
@@ -243,6 +240,10 @@ at what point specific files were changed.
 * **containsObject**: Indicates whether the OCFL repository contains an object with the given id.
 * **purgeObject**: Permanently removes an object from the repository. The object is NOT recoverable.
 * **listObjectIds**: Returns a stream containing the ids of all of the objects in the repository. This API may be slow.
+* **exportVersion**: Copies the entire contents of an OCFL object version directory to a location outside of the repository.
+* **exportObject**: Copies the entire contents of an OCFL object directory to a location outside of the repository.
+* **importVersion**: Imports an OCFL object version into the repository.
+* **importObject**: Imports an entire OCFL object into the repository.
 * **close**: Closes the repository, releasing its resources.
 
 ### OcflObjectUpdater
@@ -269,6 +270,8 @@ a file, you must specify `OcflOption.OVERWRITE` in the operation.
 * **MOVE_SOURCE**: By default, `ocfl-java` copies source files into an internal staging directory where it builds the new
 object version before moving the version into the repository. Specifying `OcflOption.MOVE_SOURCE` instructs `ocfl-java`
 to move the source files into the staging directory instead of copying them.
+* **NO_VALIDATION**: By default, `ocfl-java` will run validations on objects and versions that are imported and exported
+from the repository. This flag instructs it not to do these validations.
 
 ## Extensions
 
@@ -284,9 +287,15 @@ BEFORE initializing your OCFL repository.
 
 The following is a list of currently supported storage layout extensions:
 
+* **0002-flat-direct-storage-layout**
+  * Configuration class: `FlatLayoutConfig`
+  * Implementation class: `FlatLayoutExtension`
 * **0003-hashed-n-tuple-trees**
   * Configuration class: `HashedTruncatedNTupleConfig`
   * Implementation class: `HashedTruncatedNTupleExtension`
+* **0005-hashed-n-tuple-id-layout**
+  * Configuration class: `HashedTruncatedNTupleIdConfig`
+  * Implementation class: `HashedTruncatedNTupleIdExtension`
 
 ### Mutable HEAD Extension
 
