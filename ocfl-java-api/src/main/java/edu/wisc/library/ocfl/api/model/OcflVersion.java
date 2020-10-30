@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
+
 import java.util.Arrays;
 
 /**
@@ -64,7 +66,7 @@ public enum OcflVersion {
             case "1.0":
                 return InventoryType.OCFL_1_0;
             default:
-                throw new IllegalStateException("Unmapped version " + versionString);
+                throw new OcflJavaException("Unmapped version " + versionString);
         }
     }
 
@@ -85,7 +87,7 @@ public enum OcflVersion {
                 return version;
             }
         }
-        throw new IllegalArgumentException(String.format("Unable to map string '%s' to a known OCFL version. Known versions: %s",
+        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL version. Known versions: %s",
                 ocflVersionString, Arrays.asList(values())));
     }
 

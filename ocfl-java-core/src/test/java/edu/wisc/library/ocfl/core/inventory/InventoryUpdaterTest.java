@@ -3,6 +3,8 @@ package edu.wisc.library.ocfl.core.inventory;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
@@ -139,7 +141,7 @@ public class InventoryUpdaterTest {
     public void shouldFailRenameWhenSrcDoesNotExist() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "path was not found in object", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "path was not found in object", () -> {
             updater.renameFile("file2p", "file3p");
         });
     }
@@ -179,7 +181,7 @@ public class InventoryUpdaterTest {
     public void shouldFailReinstateFileWhenSrcVersionNotExists() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "does not contain a file at", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "does not contain a file at", () -> {
             updater.reinstateFile(VersionNum.fromString("v4"), "file2p", "file3p");
         });
     }
@@ -188,7 +190,7 @@ public class InventoryUpdaterTest {
     public void shouldFailReinstateFileWhenSrcFileNotExists() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "does not contain a file at", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "does not contain a file at", () -> {
             updater.reinstateFile(VersionNum.fromString("v1"), "file4p", "file3p");
         });
     }

@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.aws;
 
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudObjectKey;
@@ -60,7 +62,6 @@ import software.amazon.awssdk.utils.http.SdkHttpUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -175,7 +176,7 @@ public class OcflS3Client implements CloudClient {
         var dstKey = keyBuilder.buildFromPath(dstPath);
 
         if (fileSize >= MAX_FILE_BYTES) {
-            throw new IllegalArgumentException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
+            throw new OcflInputException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
         }
 
         if (fileSize > MAX_PART_BYTES) {
@@ -230,7 +231,7 @@ public class OcflS3Client implements CloudClient {
                     i++;
                 }
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw new OcflIOException(e);
             }
 
             completeMultipartUpload(uploadId, dstKey, completedParts);
@@ -382,7 +383,7 @@ public class OcflS3Client implements CloudClient {
         try (var stream = downloadStream(srcPath)) {
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 

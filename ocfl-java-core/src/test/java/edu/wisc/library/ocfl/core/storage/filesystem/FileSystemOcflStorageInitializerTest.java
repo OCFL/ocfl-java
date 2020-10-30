@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
@@ -68,7 +69,7 @@ public class FileSystemOcflStorageInitializerTest {
     public void shouldFailWhenConfigOnDiskDoesNotMatch() {
         initializer.initializeStorage(tempRoot, OcflVersion.OCFL_1_0, new HashedTruncatedNTupleConfig());
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "Storage layout configuration does not match", () -> {
+        OcflAsserts.assertThrowsWithMessage(RepositoryConfigurationException.class, "Storage layout configuration does not match", () -> {
             initializer.initializeStorage(tempRoot, OcflVersion.OCFL_1_0, new HashedTruncatedNTupleConfig().setTupleSize(1));
         });
     }
@@ -130,7 +131,7 @@ public class FileSystemOcflStorageInitializerTest {
             updater.writeFile(new ByteArrayInputStream("blah".getBytes()), "file1");
         });
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "This layout does not match the layout of existing objects in the repository", () -> {
+        OcflAsserts.assertThrowsWithMessage(RepositoryConfigurationException.class, "This layout does not match the layout of existing objects in the repository", () -> {
             initializer.initializeStorage(repoDir, OcflVersion.OCFL_1_0, new HashedTruncatedNTupleConfig().setTupleSize(5));
         });
     }

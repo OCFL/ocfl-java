@@ -27,12 +27,12 @@ package edu.wisc.library.ocfl.core.inventory;
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,7 +48,7 @@ public final class SidecarMapper {
             var sidecarPath = ObjectPaths.inventorySidecarPath(dstDirectory, inventory);
             Files.writeString(sidecarPath, digest + "\t" + OcflConstants.INVENTORY_FILE);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -64,7 +64,7 @@ public final class SidecarMapper {
             }
             return parts[0];
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 

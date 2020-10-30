@@ -24,16 +24,17 @@
 
 package edu.wisc.library.ocfl.core.util;
 
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Comparator;
 
 /**
- * This class is just a wrapper around {@link Files} that converts IOExceptions into UncheckedIOExceptions.
+ * This class is just a wrapper around {@link Files} that converts IOExceptions into OcflIOExceptions.
  */
 public final class UncheckedFiles {
 
@@ -45,7 +46,7 @@ public final class UncheckedFiles {
         try {
             return Files.createDirectories(path);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -53,7 +54,7 @@ public final class UncheckedFiles {
         try {
             return Files.createDirectory(path);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -61,15 +62,15 @@ public final class UncheckedFiles {
         try {
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
     public static void copy(InputStream input, Path dst, StandardCopyOption... copyOptions) {
         try {
-            Files.copy(input, dst);
+            Files.copy(input, dst, copyOptions);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -77,7 +78,7 @@ public final class UncheckedFiles {
         try {
             Files.delete(path);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -85,7 +86,7 @@ public final class UncheckedFiles {
         try {
             return Files.size(path);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 

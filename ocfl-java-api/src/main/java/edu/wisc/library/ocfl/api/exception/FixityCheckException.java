@@ -27,7 +27,7 @@ package edu.wisc.library.ocfl.api.exception;
 /**
  * Indicates that a calculated digest does not match the expected digest
  */
-public class FixityCheckException extends RuntimeException {
+public class FixityCheckException extends OcflJavaException {
 
     public FixityCheckException() {
     }

@@ -28,7 +28,7 @@ package edu.wisc.library.ocfl.api.exception;
  * This exception indicates that there is something wrong with the underlying OCFL object, and it cannot be operated on
  * by the ocfl-java library.
  */
-public class CorruptObjectException extends RuntimeException {
+public class CorruptObjectException extends OcflJavaException {
 
     public CorruptObjectException() {
     }

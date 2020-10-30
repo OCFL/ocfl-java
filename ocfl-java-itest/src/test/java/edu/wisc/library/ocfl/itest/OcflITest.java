@@ -2,11 +2,16 @@ package edu.wisc.library.ocfl.itest;
 
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.exception.AlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
+import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
@@ -193,7 +198,7 @@ public abstract class OcflITest {
         var objectId = "o1";
         var sourcePathV1 = sourceObjectPath(objectId, "v1");
 
-        assertThat(assertThrows(IllegalStateException.class, () -> {
+        assertThat(assertThrows(OcflStateException.class, () -> {
             repo.putObject(ObjectVersionId.head(objectId), sourcePathV1.resolve("file1"), defaultVersionInfo);
         }).getMessage(), containsString("is closed"));
     }
@@ -450,7 +455,7 @@ public abstract class OcflITest {
 
         var objectId = "o1";
 
-        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "specified digest algorithm is not mapped to a Java name", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "specified digest algorithm is not mapped to a Java name", () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
                 updater.addPath(sourceObjectPath(objectId, "v1"))
                         .addFileFixity("file1", DigestAlgorithm.fromOcflName("bogus"), "bogus");
@@ -469,7 +474,7 @@ public abstract class OcflITest {
             updater.addPath(sourceObjectPath(objectId, "v1"));
         });
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "not newly added in the current block", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "not newly added in this update", () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
                 updater.clearVersionState().addPath(sourceObjectPath(objectId, "v2"))
                         .addFileFixity("file2", DigestAlgorithm.md5, "55c1824fcae2b1b51cef5037405fc1ad");
@@ -765,7 +770,7 @@ public abstract class OcflITest {
     public void failToInitRepoWhenObjectsStoredUsingDifferentLayout() {
         var repoName = "repo3";
         var repoDir = expectedRepoPath(repoName);
-        assertThrows(IllegalStateException.class, () -> {
+        assertThrows(RepositoryConfigurationException.class, () -> {
             new OcflRepositoryBuilder()
                     .layoutConfig(new HashedTruncatedNTupleConfig().setTupleSize(1))
                     .inventoryMapper(ITestHelper.testInventoryMapper())
@@ -790,7 +795,7 @@ public abstract class OcflITest {
         var repoDir = sourceRepoPath(repoName);
         var repo = existingRepo(repoName, repoDir);
 
-        assertThat(assertThrows(UncheckedIOException.class, () -> {
+        assertThat(assertThrows(OcflIOException.class, () -> {
             repo.getObject(ObjectVersionId.head("o1"));
         }).getMessage(), containsString("digestAlgorithm must be sha512 or sha256"));
     }
@@ -967,7 +972,7 @@ public abstract class OcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
-        assertThat(assertThrows(IllegalArgumentException.class, () -> {
+        assertThat(assertThrows(OcflInputException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
                 updater.reinstateFile(VersionNum.fromString("v3"), "file2", "file1");
             });
@@ -985,7 +990,7 @@ public abstract class OcflITest {
 
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV1, defaultVersionInfo);
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(OcflInputException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
                 updater.reinstateFile(VersionNum.fromString("v1"), "file4", "file1");
             });
@@ -1606,7 +1611,7 @@ public abstract class OcflITest {
         var repoRoot2 = expectedRepoPath(repoName2);
         var repo2 = existingRepo(repoName2, repoRoot2);
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "object already exists", () -> {
+        OcflAsserts.assertThrowsWithMessage(AlreadyExistsException.class, "object already exists", () -> {
             repo2.importObject(output);
         });
     }
@@ -1692,7 +1697,7 @@ public abstract class OcflITest {
 
         Files.delete(output.resolve("inventory.json"));
 
-        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "inventory.json", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "inventory.json", () -> {
             repo2.importObject(output, OcflOption.MOVE_SOURCE);
         });
     }
@@ -1783,7 +1788,7 @@ public abstract class OcflITest {
 
         repo1.exportVersion(ObjectVersionId.version(objectId, "v1"), output);
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "must be the next sequential version", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflStateException.class, "must be the next sequential version", () -> {
             repo2.importVersion(output);
         });
     }
@@ -1810,7 +1815,7 @@ public abstract class OcflITest {
 
         repo1.exportVersion(ObjectVersionId.version(objectId, "v2"), output);
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "must be the next sequential version", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflStateException.class, "The object doest not exist in the repository; therefore only v1 may be imported", () -> {
             repo2.importVersion(output);
         });
     }
@@ -1843,7 +1848,7 @@ public abstract class OcflITest {
 
         Files.delete(output.resolve("inventory.json"));
 
-        OcflAsserts.assertThrowsWithMessage(IllegalArgumentException.class, "inventory.json", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "inventory.json", () -> {
             repo2.importVersion(output);
         });
     }

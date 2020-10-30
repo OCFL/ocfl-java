@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.Objects;
@@ -122,11 +123,11 @@ public class ObjectVersionId {
      * instance has its version number set
      *
      * @return new ObjectVersionId with incremented version
-     * @throws IllegalStateException if the version number is not set
+     * @throws InvalidVersionException if the version number is not set or the version cannot be incremented
      */
     public ObjectVersionId nextVersion() {
         if (versionNum == null) {
-            throw new IllegalStateException("Cannot resolve next version number because the current version number is not set.");
+            throw new InvalidVersionException("Cannot resolve next version number because the current version number is not set.");
         }
         return ObjectVersionId.version(objectId, versionNum.nextVersionNum());
     }
@@ -136,11 +137,11 @@ public class ObjectVersionId {
      * instance has its version number set
      *
      * @return new ObjectVersionId with decremented version
-     * @throws IllegalStateException if the version number is not set
+     * @throws InvalidVersionException if the version number is not set or the version cannot be decremented
      */
     public ObjectVersionId previousVersion() {
         if (versionNum == null) {
-            throw new IllegalStateException("Cannot resolve previous version number because the current version number is not set.");
+            throw new InvalidVersionException("Cannot resolve previous version number because the current version number is not set.");
         }
         return ObjectVersionId.version(objectId, versionNum.previousVersionNum());
     }

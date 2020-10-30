@@ -25,12 +25,14 @@
 package edu.wisc.library.ocfl.core.storage.cloud;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.api.OcflConstants;
-import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflLayout;
@@ -41,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -114,9 +115,9 @@ public class CloudOcflStorageInitializer {
         }
 
         if (existingOcflVersion == null) {
-            throw new IllegalStateException("OCFL root is missing its root conformance declaration.");
+            throw new RepositoryConfigurationException("OCFL root is missing its namaste file, eg. 0=ocfl_1.0.");
         } else if (existingOcflVersion != ocflVersion) {
-            throw new IllegalStateException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
+            throw new RepositoryConfigurationException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
                     ocflVersion, existingOcflVersion));
         }
     }
@@ -126,7 +127,7 @@ public class CloudOcflStorageInitializer {
         var expectedConfig = readLayoutConfig(ocflLayout, layoutExtension.getExtensionConfigClass());
 
         if (layoutConfig != null && !layoutConfig.equals(expectedConfig)) {
-            throw new IllegalStateException(String.format("Storage layout configuration does not match. On disk: %s; Configured: %s",
+            throw new RepositoryConfigurationException(String.format("Storage layout configuration does not match. On disk: %s; Configured: %s",
                     expectedConfig, layoutConfig));
         }
 
@@ -136,7 +137,7 @@ public class CloudOcflStorageInitializer {
 
     private OcflStorageLayoutExtension validateLayoutByInspection(OcflExtensionConfig layoutConfig) {
         if (layoutConfig == null) {
-            throw new IllegalStateException(String.format(
+            throw new RepositoryConfigurationException(String.format(
                     "No storage layout configuration is defined in the OCFL repository in bucket %s. Layout must be configured programmatically.",
                     cloudClient.bucket()));
         }
@@ -150,7 +151,7 @@ public class CloudOcflStorageInitializer {
             var expectedPath = layoutExtension.mapObjectId(objectId);
 
             if (!expectedPath.equals(objectRoot)) {
-                throw new IllegalStateException(String.format(
+                throw new RepositoryConfigurationException(String.format(
                         "The OCFL client was configured to use the following layout: %s." +
                                 " This layout does not match the layout of existing objects in the repository." +
                                 " Found object %s stored at %s, but was expecting it to be stored at %s.",
@@ -193,7 +194,7 @@ public class CloudOcflStorageInitializer {
 
             return (String) id;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         } catch (KeyNotFoundException e) {
             // TODO if there's not root inventory should we look for the inventory in the latest version directory?
             throw new CorruptObjectException(String.format("Missing inventory at %s in bucket %s", inventoryPath, cloudClient.bucket()));
@@ -226,7 +227,7 @@ public class CloudOcflStorageInitializer {
         try (var ocflSpecStream = this.getClass().getClassLoader().getResourceAsStream(ocflSpecFile)) {
             return uploadStream(ocflSpecFile, ocflSpecStream).getPath();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -249,7 +250,7 @@ public class CloudOcflStorageInitializer {
             }
             return keys;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -271,7 +272,7 @@ public class CloudOcflStorageInitializer {
         } catch (KeyNotFoundException e) {
             return null;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -282,7 +283,7 @@ public class CloudOcflStorageInitializer {
             // No config found, create default config object
             return initClass(clazz);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -290,7 +291,7 @@ public class CloudOcflStorageInitializer {
         try {
             return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new RuntimeException(String.format("Failed to init OCFL storage layout extension configuration class %s", clazz), e);
+            throw new RepositoryConfigurationException(String.format("Failed to init OCFL storage layout extension configuration class %s", clazz), e);
         }
     }
 
@@ -302,13 +303,13 @@ public class CloudOcflStorageInitializer {
         try {
             return objectMapper.readValue(stream, clazz);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
     private void ensureBucketExists() {
         if (!cloudClient.bucketExists()) {
-            throw new IllegalStateException(String.format("Bucket %s does not exist or is not accessible.", cloudClient.bucket()));
+            throw new RepositoryConfigurationException(String.format("Bucket %s does not exist or is not accessible.", cloudClient.bucket()));
         }
     }
 
@@ -316,7 +317,7 @@ public class CloudOcflStorageInitializer {
         try {
             return cloudClient.uploadBytes(remotePath, stream.readAllBytes(), MEDIA_TYPE_TEXT);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 

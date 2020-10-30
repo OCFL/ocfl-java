@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.db;
 
+import edu.wisc.library.ocfl.api.exception.OcflDbException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.slf4j.Logger;
@@ -79,7 +80,7 @@ public class TableCreator {
                 }
             }
         } catch (SQLException | IOException e) {
-            throw new RuntimeException(e);
+            throw new OcflDbException(e);
         }
     }
 

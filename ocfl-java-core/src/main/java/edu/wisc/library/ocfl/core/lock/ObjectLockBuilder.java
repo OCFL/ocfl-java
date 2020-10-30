@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.lock;
 
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.db.DbType;
 import edu.wisc.library.ocfl.core.db.TableCreator;
@@ -78,7 +79,7 @@ public class ObjectLockBuilder {
                 lock = new H2ObjectLock(dataSource, waitTime, timeUnit);
                 break;
             default:
-                throw new IllegalStateException(String.format("Database type %s is not mapped to an ObjectLock implementation.", dbType));
+                throw new OcflJavaException(String.format("Database type %s is not mapped to an ObjectLock implementation.", dbType));
         }
 
         new TableCreator(dbType, dataSource).createObjectLockTable();

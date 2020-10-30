@@ -25,6 +25,7 @@
 package edu.wisc.library.ocfl.core.inventory;
 
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
@@ -128,7 +129,7 @@ public class AddFileProcessor {
                 }
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
 
         if (optionsSet.contains(OcflOption.MOVE_SOURCE)) {

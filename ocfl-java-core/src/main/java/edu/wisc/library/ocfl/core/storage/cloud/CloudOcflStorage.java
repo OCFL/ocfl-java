@@ -30,6 +30,8 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -220,7 +222,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                     throw new FixityCheckException(
                             String.format("File %s in object %s failed its fixity check.", logicalPath, inventory.getId()), e);
                 } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                    throw new OcflIOException(e);
                 }
             }
         });
@@ -521,7 +523,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
                 var file = sourcePath.resolve(contentPathNoVersion);
 
                 if (Files.notExists(file)) {
-                    throw new IllegalStateException(String.format("Staged file %s does not exist", file));
+                    throw new OcflStateException(String.format("Staged file %s does not exist", file));
                 }
 
                 var key = inventory.storagePath(fileId);
@@ -550,7 +552,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             cloudClient.safeDeleteObjects(objectKeys);
 
             if (e instanceof IOException) {
-                throw new UncheckedIOException((IOException) e);
+                throw new OcflIOException((IOException) e);
             }
             throw (RuntimeException) e;
         }
@@ -673,7 +675,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         } catch (KeyNotFoundException e) {
             throw new CorruptObjectException(String.format("Object %s is missing its root inventory", objectId), e);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -696,7 +698,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         } catch (KeyNotFoundException e) {
             throw new CorruptObjectException(String.format("Object %s is missing its mutable HEAD inventory", objectId), e);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -706,7 +708,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             // Intentionally filling in a bad digest here because all we care about is the object's id
             return inventoryMapper.read(objectRootPath, "digest", stream);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -777,8 +779,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private void ensureNoMutableHead(String objectId, String objectRootPath) {
         if (hasMutableHead(objectRootPath)) {
-            // TODO modeled exception?
-            throw new IllegalStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
+            throw new OcflStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
                     objectId));
         }
     }
@@ -865,7 +866,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             try (var stream = cloudClient.downloadStream(key)) {
                 Files.copy(stream, destination);
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw new OcflIOException(e);
             }
         });
     }

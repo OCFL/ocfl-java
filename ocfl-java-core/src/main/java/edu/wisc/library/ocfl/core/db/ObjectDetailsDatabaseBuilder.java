@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.db;
 
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import javax.sql.DataSource;
@@ -89,7 +90,7 @@ public class ObjectDetailsDatabaseBuilder {
                 database = new H2ObjectDetailsDatabase(dataSource, storeInventory, waitTime, timeUnit);
                 break;
             default:
-                throw new IllegalStateException(String.format("Database type %s is not mapped to an ObjectDetailsDatabase implementation.", dbType));
+                throw new OcflJavaException(String.format("Database type %s is not mapped to an ObjectDetailsDatabase implementation.", dbType));
         }
 
         new TableCreator(dbType, dataSource).createObjectDetailsTable();

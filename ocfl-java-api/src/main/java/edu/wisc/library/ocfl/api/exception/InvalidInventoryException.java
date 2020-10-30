@@ -27,7 +27,7 @@ package edu.wisc.library.ocfl.api.exception;
 /**
  * This exception indicates that there is something wrong with an object's inventory.
  */
-public class InvalidInventoryException extends RuntimeException {
+public class InvalidInventoryException extends OcflJavaException {
 
     public InvalidInventoryException() {
     }

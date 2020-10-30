@@ -25,23 +25,23 @@
 package edu.wisc.library.ocfl.api.exception;
 
 /**
- * Indicates that file already exists and could not be overwritten.
+ * Base exception class for ocfl-java exceptions
  */
-public class OverwriteException extends OcflJavaException {
+public class OcflJavaException extends RuntimeException {
 
-    public OverwriteException() {
+    public OcflJavaException() {
     }
 
-    public OverwriteException(String message) {
+    public OcflJavaException(String message) {
         super(message);
     }
 
-    public OverwriteException(String message, Throwable cause) {
+    public OcflJavaException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public OverwriteException(Throwable cause) {
-        super(cause);
+    public OcflJavaException(Throwable cause) {
+        super(cause.getMessage(), cause);
     }
 
 }

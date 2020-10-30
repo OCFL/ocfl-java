@@ -25,13 +25,13 @@
 package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileVisitOption;
@@ -109,7 +109,7 @@ public final class FileUtil {
         } catch (FileAlreadyExistsException e) {
             throw e;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
 
         try {
@@ -117,7 +117,7 @@ public final class FileUtil {
         } catch (FileAlreadyExistsException e) {
             throw e;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
 
         try {
@@ -147,7 +147,7 @@ public final class FileUtil {
                 }
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -174,7 +174,7 @@ public final class FileUtil {
                 }
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -183,7 +183,7 @@ public final class FileUtil {
             Files.createDirectories(dst.getParent());
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -192,7 +192,7 @@ public final class FileUtil {
             Files.createDirectories(dst.getParent());
             Files.move(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -207,7 +207,7 @@ public final class FileUtil {
                     .filter(f -> !f.equals(root))
                     .forEach(UncheckedFiles::delete);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -223,7 +223,7 @@ public final class FileUtil {
                     .filter(FileUtil::isDirEmpty)
                     .forEach(UncheckedFiles::delete);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -286,7 +286,7 @@ public final class FileUtil {
                             }
                         });
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw new OcflIOException(e);
             }
         }
 
@@ -299,7 +299,7 @@ public final class FileUtil {
         try (var stream = Files.newDirectoryStream(path)) {
             return !stream.iterator().hasNext();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -311,7 +311,7 @@ public final class FileUtil {
                 paths.filter(Files::isRegularFile)
                         .forEach(files::add);
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw new OcflIOException(e);
             }
         } else {
             files.add(path);

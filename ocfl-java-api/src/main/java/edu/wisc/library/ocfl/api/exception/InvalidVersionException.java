@@ -25,22 +25,22 @@
 package edu.wisc.library.ocfl.api.exception;
 
 /**
- * Indicates that file already exists and could not be overwritten.
+ * This exception indicates that a version number is invalid
  */
-public class OverwriteException extends OcflJavaException {
+public class InvalidVersionException extends OcflJavaException {
 
-    public OverwriteException() {
+    public InvalidVersionException() {
     }
 
-    public OverwriteException(String message) {
+    public InvalidVersionException(String message) {
         super(message);
     }
 
-    public OverwriteException(String message, Throwable cause) {
+    public InvalidVersionException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public OverwriteException(Throwable cause) {
+    public InvalidVersionException(Throwable cause) {
         super(cause);
     }
 

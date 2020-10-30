@@ -27,7 +27,7 @@ package edu.wisc.library.ocfl.api.exception;
 /**
  * Indicates when a path has failed a constraint check.
  */
-public class PathConstraintException extends RuntimeException {
+public class PathConstraintException extends OcflJavaException {
 
     public PathConstraintException() {
     }

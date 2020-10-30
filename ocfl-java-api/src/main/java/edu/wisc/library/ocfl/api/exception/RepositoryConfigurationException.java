@@ -25,22 +25,22 @@
 package edu.wisc.library.ocfl.api.exception;
 
 /**
- * Indicates that file already exists and could not be overwritten.
+ * This exception indicates that there is something wrong with the OCFL repository configuration
  */
-public class OverwriteException extends OcflJavaException {
+public class RepositoryConfigurationException extends OcflJavaException {
 
-    public OverwriteException() {
+    public RepositoryConfigurationException() {
     }
 
-    public OverwriteException(String message) {
+    public RepositoryConfigurationException(String message) {
         super(message);
     }
 
-    public OverwriteException(String message, Throwable cause) {
+    public RepositoryConfigurationException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public OverwriteException(Throwable cause) {
+    public RepositoryConfigurationException(Throwable cause) {
         super(cause);
     }
 

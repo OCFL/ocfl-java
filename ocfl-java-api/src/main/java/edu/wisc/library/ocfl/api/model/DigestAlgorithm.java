@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.api.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.security.MessageDigest;
@@ -135,7 +136,7 @@ public class DigestAlgorithm {
         try {
             return MessageDigest.getInstance(javaStandardName);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Failed to create message digest for: " + this, e);
+            throw new OcflJavaException("Failed to create message digest for: " + this, e);
         }
     }
 

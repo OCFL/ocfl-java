@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
@@ -60,7 +61,7 @@ public class FileSystemOcflStorageTest {
                 .repositoryRoot(repoDir)
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "must be initialized", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflStateException.class, "must be initialized", () -> {
             storage.loadInventory("o1");
         });
     }

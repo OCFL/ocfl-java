@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
@@ -79,7 +80,7 @@ public class HashedTruncatedNTupleIdExtension implements OcflStorageLayoutExtens
             Enforce.notNull(config, "configFile cannot be null");
 
             if (!(config instanceof HashedTruncatedNTupleIdConfig)) {
-                throw new IllegalStateException(String.format("This extension only supports %s configuration. Received: %s",
+                throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s",
                         getExtensionConfigClass(), config));
             }
 
@@ -101,7 +102,7 @@ public class HashedTruncatedNTupleIdExtension implements OcflStorageLayoutExtens
     @Override
     public String mapObjectId(String objectId) {
         if (config == null) {
-            throw new IllegalStateException("This extension must be initialized before it can be used.");
+            throw new OcflExtensionException("This extension must be initialized before it can be used.");
         }
 
         var digest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), objectId, false);
@@ -133,7 +134,7 @@ public class HashedTruncatedNTupleIdExtension implements OcflStorageLayoutExtens
         if (config != null) {
             if ((config.getTupleSize() == 0 || config.getNumberOfTuples() == 0)
                     && (config.getTupleSize() != 0 || config.getNumberOfTuples() != 0)) {
-                throw new IllegalStateException(String.format("If tupleSize (=%s) or numberOfTuples (=%s) is set to 0, then both must be 0.",
+                throw new OcflExtensionException(String.format("If tupleSize (=%s) or numberOfTuples (=%s) is set to 0, then both must be 0.",
                         config.getTupleSize(), config.getNumberOfTuples()));
             }
 
@@ -141,7 +142,7 @@ public class HashedTruncatedNTupleIdExtension implements OcflStorageLayoutExtens
             var testDigest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), "test");
 
             if (totalTupleChars > testDigest.length()) {
-                throw new IllegalStateException(String.format("The config tupleSize=%s and numberOfTuples=%s requires" +
+                throw new OcflExtensionException(String.format("The config tupleSize=%s and numberOfTuples=%s requires" +
                         " a minimum of %s characters, but %s digests only have %s characters.",
                         config.getTupleSize(), config.getNumberOfTuples(),
                         totalTupleChars, config.getDigestAlgorithm().getOcflName(), testDigest.length()));

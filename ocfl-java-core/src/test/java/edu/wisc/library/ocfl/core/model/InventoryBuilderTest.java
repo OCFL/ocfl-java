@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.model;
 
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -109,7 +110,7 @@ public class InventoryBuilderTest {
 
     @Test
     public void shouldNotAddFixityWhenFileNotInManifest() {
-        assertThat(assertThrows(IllegalStateException.class, () -> {
+        assertThat(assertThrows(OcflInputException.class, () -> {
             builder.addFixityForFile("path", DigestAlgorithm.md5, "md5_123");
         }).getMessage(), Matchers.containsString("Cannot add fixity information for"));
     }

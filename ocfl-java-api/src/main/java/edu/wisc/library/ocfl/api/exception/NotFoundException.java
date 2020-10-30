@@ -27,7 +27,7 @@ package edu.wisc.library.ocfl.api.exception;
 /**
  * Indicates that a resource was not found
  */
-public class NotFoundException extends RuntimeException {
+public class NotFoundException extends OcflJavaException {
 
     public NotFoundException() {
     }

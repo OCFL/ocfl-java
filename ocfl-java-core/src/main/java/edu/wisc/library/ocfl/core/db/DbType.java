@@ -24,6 +24,9 @@
 
 package edu.wisc.library.ocfl.core.db;
 
+import edu.wisc.library.ocfl.api.exception.OcflDbException;
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
+
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
@@ -51,9 +54,9 @@ public enum DbType {
                 }
             }
 
-            throw new IllegalArgumentException(String.format("%s is not mapped to a DbType.", productName));
+            throw new OcflJavaException(String.format("%s is not mapped to a DbType.", productName));
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new OcflDbException(e);
         }
     }
 

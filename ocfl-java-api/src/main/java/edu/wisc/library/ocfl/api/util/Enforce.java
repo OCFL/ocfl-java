@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.api.util;
 
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
+
 public final class Enforce {
 
     private Enforce() {
@@ -32,21 +34,21 @@ public final class Enforce {
 
     public static <T> T notNull(T object, String message) {
         if (object == null) {
-            throw new NullPointerException(message);
+            throw new OcflInputException(message);
         }
         return object;
     }
 
     public static String notBlank(String object, String message) {
         if (object == null || object.isBlank()) {
-            throw new IllegalArgumentException(message);
+            throw new OcflInputException(message);
         }
         return object;
     }
 
     public static <T> T expressionTrue(boolean expression, T object, String message) {
         if (!expression) {
-            throw new IllegalArgumentException(message);
+            throw new OcflInputException(message);
         }
         return object;
     }

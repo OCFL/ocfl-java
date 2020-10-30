@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.api.model;
 
+import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,12 +22,12 @@ public class VersionNumTest {
 
     @Test
     public void shouldFailWhenNoLeadingV() {
-        assertThrows(IllegalArgumentException.class, () -> VersionNum.fromString("1"));
+        assertThrows(InvalidVersionException.class, () -> VersionNum.fromString("1"));
     }
 
     @Test
     public void shouldFailWhenHasExtraChars() {
-        assertThrows(IllegalArgumentException.class, () -> VersionNum.fromString("v1.2"));
+        assertThrows(InvalidVersionException.class, () -> VersionNum.fromString("v1.2"));
     }
 
     @Test
@@ -64,13 +65,13 @@ public class VersionNumTest {
     @Test
     public void shouldFailDecrementWhenPreviousVersion0() {
         var versionNum = VersionNum.fromString("v1");
-        assertThrows(IllegalStateException.class, versionNum::previousVersionNum);
+        assertThrows(InvalidVersionException.class, versionNum::previousVersionNum);
     }
 
     @Test
     public void shouldFailIncrementWhenNextVersionIsIllegalPaddedNumber() {
         var versionNum = VersionNum.fromString("v09");
-        assertThrows(IllegalStateException.class, versionNum::nextVersionNum);
+        assertThrows(InvalidVersionException.class, versionNum::nextVersionNum);
     }
 
 }

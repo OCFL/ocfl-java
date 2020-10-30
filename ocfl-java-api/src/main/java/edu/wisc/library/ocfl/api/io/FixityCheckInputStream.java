@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.api.io;
 
 import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
@@ -115,7 +116,7 @@ public class FixityCheckInputStream extends DigestInputStream {
         try {
             return MessageDigest.getInstance(digestAlgorithm);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new OcflJavaException(e);
         }
     }
 

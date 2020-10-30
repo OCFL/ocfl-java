@@ -25,6 +25,8 @@
 package edu.wisc.library.ocfl.core.lock;
 
 import edu.wisc.library.ocfl.api.exception.LockException;
+import edu.wisc.library.ocfl.api.exception.OcflDbException;
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,10 +93,12 @@ public class PostgresObjectLock implements ObjectLock {
             } finally {
                 safeCleanup(connection);
             }
+        } catch (SQLException e) {
+            throw new OcflDbException(e);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new OcflJavaException(e);
         }
     }
 

@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.inventory;
 
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionNum;
@@ -34,7 +35,6 @@ import edu.wisc.library.ocfl.core.util.ObjectMappers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 
 /**
@@ -78,7 +78,7 @@ public class InventoryMapper {
         try {
             objectMapper.writeValue(destination.toFile(), inventory);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -86,7 +86,7 @@ public class InventoryMapper {
         try {
             objectMapper.writeValue(outputStream, inventory);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -122,7 +122,7 @@ public class InventoryMapper {
                     .forType(Inventory.class)
                     .readValue(path.toFile());
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -142,7 +142,7 @@ public class InventoryMapper {
                     .forType(Inventory.class)
                     .readValue(inputStream);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 

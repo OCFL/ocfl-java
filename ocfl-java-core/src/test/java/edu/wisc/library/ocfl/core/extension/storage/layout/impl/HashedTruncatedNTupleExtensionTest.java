@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout.impl;
 
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
@@ -82,24 +83,24 @@ public class HashedTruncatedNTupleExtensionTest {
 
     @Test
     public void shouldThrowExceptionWhenTupleSizeAndNumTuplesNotBoth0() {
-        assertThrowsWithMessage(IllegalStateException.class, "both must be 0", () -> {
+        assertThrowsWithMessage(OcflExtensionException.class, "both must be 0", () -> {
             ext.init(new HashedTruncatedNTupleConfig().setTupleSize(0));
         });
-        assertThrowsWithMessage(IllegalStateException.class, "both must be 0", () -> {
+        assertThrowsWithMessage(OcflExtensionException.class, "both must be 0", () -> {
             ext.init(new HashedTruncatedNTupleConfig().setNumberOfTuples(0));
         });
     }
 
     @Test
     public void shouldThrowExceptionWhenTupleSizeTimesNumTuplesGreaterThanTotalChars() {
-        assertThrowsWithMessage(IllegalStateException.class, "sha256 digests only have 64 characters", () -> {
+        assertThrowsWithMessage(OcflExtensionException.class, "sha256 digests only have 64 characters", () -> {
             ext.init(new HashedTruncatedNTupleConfig().setTupleSize(5).setNumberOfTuples(13));
         });
     }
 
     @Test
     public void shouldThrowExceptionWhenTupleSizeTimesNumTuplesEqualTotalCharsAndShortRootTrue() {
-        assertThrowsWithMessage(IllegalStateException.class, "shortObjectRoot cannot be set to true", () -> {
+        assertThrowsWithMessage(OcflExtensionException.class, "shortObjectRoot cannot be set to true", () -> {
             ext.init(new HashedTruncatedNTupleConfig().setTupleSize(4).setNumberOfTuples(16).setShortObjectRoot(true));
         });
     }

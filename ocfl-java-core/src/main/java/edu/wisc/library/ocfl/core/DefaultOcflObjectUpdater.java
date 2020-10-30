@@ -28,6 +28,7 @@ import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -211,12 +212,12 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             alreadyExists = false;
 
             if (!stagedFileMap.containsKey(logicalPath)) {
-                throw new IllegalStateException(
-                        String.format("%s was not newly added in the current block. Fixity information can only be added on new files.", logicalPath));
+                throw new OcflInputException(
+                        String.format("%s was not newly added in this update. Fixity information can only be added on new files.", logicalPath));
             }
 
             if (!algorithm.hasJavaStandardName()) {
-                throw new IllegalArgumentException("The specified digest algorithm is not mapped to a Java name: " + algorithm);
+                throw new OcflInputException("The specified digest algorithm is not mapped to a Java name: " + algorithm);
             }
 
             var file = stagedFileMap.get(logicalPath);

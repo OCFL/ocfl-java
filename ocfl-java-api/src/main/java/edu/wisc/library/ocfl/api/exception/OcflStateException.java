@@ -25,22 +25,22 @@
 package edu.wisc.library.ocfl.api.exception;
 
 /**
- * Indicates that file already exists and could not be overwritten.
+ * This is a generic exception that indicates that a state constraint was violated
  */
-public class OverwriteException extends OcflJavaException {
+public class OcflStateException extends OcflJavaException {
 
-    public OverwriteException() {
+    public OcflStateException() {
     }
 
-    public OverwriteException(String message) {
+    public OcflStateException(String message) {
         super(message);
     }
 
-    public OverwriteException(String message, Throwable cause) {
+    public OcflStateException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public OverwriteException(Throwable cause) {
+    public OcflStateException(Throwable cause) {
         super(cause);
     }
 

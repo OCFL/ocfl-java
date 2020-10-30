@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.core.lock;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.exception.LockException;
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.concurrent.Callable;
@@ -87,7 +88,7 @@ public class InMemoryObjectLock implements ObjectLock {
                 } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    throw new OcflJavaException(e);
                 } finally {
                     lock.unlock();
                 }

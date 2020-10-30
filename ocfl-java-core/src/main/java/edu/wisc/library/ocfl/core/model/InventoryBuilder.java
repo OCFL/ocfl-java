@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.model;
 
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -215,7 +216,7 @@ public class InventoryBuilder {
         Enforce.notBlank(value, "value cannot be blank");
 
         if (!manifest.containsPath(contentPath)) {
-            throw new IllegalStateException(
+            throw new OcflInputException(
                     String.format("Cannot add fixity information for content path %s because it is not present in the manifest.", contentPath));
         }
 

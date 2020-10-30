@@ -27,7 +27,7 @@ package edu.wisc.library.ocfl.api.exception;
 /**
  * Indicates that the current thread was unable to acquire a lock
  */
-public class LockException extends RuntimeException {
+public class LockException extends OcflJavaException {
 
     public LockException() {
     }

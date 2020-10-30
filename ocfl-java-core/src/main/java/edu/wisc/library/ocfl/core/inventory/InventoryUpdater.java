@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.inventory;
 
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -287,7 +288,7 @@ public class InventoryUpdater {
         var srcDigest = versionBuilder.getFileId(srcLogicalPath);
 
         if (srcDigest == null) {
-            throw new IllegalArgumentException(String.format("The following path was not found in object %s: %s",
+            throw new OcflInputException(String.format("The following path was not found in object %s: %s",
                     objectId, srcLogicalPath));
         }
 
@@ -319,7 +320,7 @@ public class InventoryUpdater {
         var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);
 
         if (srcDigest == null) {
-            throw new IllegalArgumentException(String.format("Object %s version %s does not contain a file at %s",
+            throw new OcflInputException(String.format("Object %s version %s does not contain a file at %s",
                     objectId, sourceVersion, srcLogicalPath));
         }
 

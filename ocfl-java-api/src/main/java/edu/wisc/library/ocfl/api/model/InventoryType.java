@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.api.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 
 public enum InventoryType {
 
@@ -49,7 +50,7 @@ public enum InventoryType {
             case "https://ocfl.io/1.0/spec/#inventory":
                 return OcflVersion.OCFL_1_0;
             default:
-                throw new IllegalStateException("Unmapped inventory type " + id);
+                throw new OcflJavaException("Unmapped inventory type " + id);
         }
     }
 
@@ -61,7 +62,7 @@ public enum InventoryType {
             }
         }
 
-        throw new IllegalArgumentException("Unknown InventoryType: " + value);
+        throw new OcflJavaException("Unknown InventoryType: " + value);
     }
 
 }

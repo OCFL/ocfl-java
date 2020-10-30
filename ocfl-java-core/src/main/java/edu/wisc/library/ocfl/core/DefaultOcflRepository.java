@@ -28,8 +28,11 @@ import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.exception.AlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -478,7 +481,7 @@ public class DefaultOcflRepository implements OcflRepository {
         var objectId = inventory.getId();
 
         if (containsObject(objectId)) {
-            throw new IllegalStateException(String.format("Cannot import object at %s because an object already exists with ID %s.",
+            throw new AlreadyExistsException(String.format("Cannot import object at %s because an object already exists with ID %s.",
                     objectPath, objectId));
         }
 
@@ -553,7 +556,7 @@ public class DefaultOcflRepository implements OcflRepository {
             storage.reconstructObjectVersion(inventory, versionNum, stagingDir);
             FileUtil.moveDirectory(stagingDir, outputPath);
         } catch (FileAlreadyExistsException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
         }
@@ -584,13 +587,13 @@ public class DefaultOcflRepository implements OcflRepository {
 
         if (existingInventory == null) {
             if (!VersionNum.V1.equals(importInventory.getHead())) {
-                throw new IllegalStateException(String.format("Cannot import object %s version %s from source %s." +
-                                " The import version must be the next sequential version, and the object doest not currently exist.",
+                throw new OcflStateException(String.format("Cannot import object %s version %s from source %s." +
+                                " The object doest not exist in the repository; therefore only v1 may be imported.",
                         objectId, importInventory.getHead(), versionPath));
             }
         } else {
             if (!existingInventory.getHead().nextVersionNum().equals(importInventory.getHead())) {
-                throw new IllegalStateException(String.format("Cannot import object %s version %s from source %s." +
+                throw new OcflStateException(String.format("Cannot import object %s version %s from source %s." +
                                 " The import version must be the next sequential version, and the current version is %s.",
                         objectId, importInventory.getHead(), versionPath, existingInventory.getHead()));
             }
@@ -643,7 +646,7 @@ public class DefaultOcflRepository implements OcflRepository {
             try {
                 FileUtil.moveDirectory(source, stagingDir);
             } catch (FileAlreadyExistsException e) {
-                throw new UncheckedIOException(e);
+                throw new OcflIOException(e);
             }
         } else {
             FileUtil.recursiveCopy(source, stagingDir);
@@ -659,7 +662,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private void ensureNoMutableHead(Inventory inventory) {
         if (inventory != null && inventory.hasMutableHead()) {
-            throw new IllegalStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
+            throw new OcflStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
                     inventory.getId()));
         }
     }
@@ -703,7 +706,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
     protected void ensureOpen() {
         if (closed) {
-            throw new IllegalStateException(DefaultOcflRepository.class.getName() + " is closed.");
+            throw new OcflStateException(DefaultOcflRepository.class.getName() + " is closed.");
         }
     }
 

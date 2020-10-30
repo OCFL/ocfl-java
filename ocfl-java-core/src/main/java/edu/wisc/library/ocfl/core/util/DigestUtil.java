@@ -25,10 +25,10 @@
 package edu.wisc.library.ocfl.core.util;
 
 import at.favre.lib.bytes.Bytes;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
@@ -63,7 +63,7 @@ public final class DigestUtil {
 
             return digest.digest();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 

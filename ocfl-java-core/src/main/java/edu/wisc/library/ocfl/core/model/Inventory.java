@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -351,13 +352,13 @@ public class Inventory {
      *
      * @param versionNum version number of the version to retrieve
      * @return the version
-     * @throws IllegalStateException if the version does not exist
+     * @throws NotFoundException if the version does not exist
      */
     public Version ensureVersion(VersionNum versionNum) {
         var version = getVersion(versionNum);
 
         if (version == null) {
-            throw new IllegalStateException(String.format("Object %s does not contain version %s", id, versionNum));
+            throw new NotFoundException(String.format("Object %s does not contain version %s", id, versionNum));
         }
 
         return version;
@@ -422,11 +423,11 @@ public class Inventory {
      *
      * @param fileId the fileId to lookup
      * @return the mapped content path
-     * @throws IllegalStateException if there is no mapping
+     * @throws NotFoundException if there is no mapping
      */
     public String ensureContentPath(String fileId) {
         if (!manifestContainsFileId(fileId)) {
-            throw new IllegalStateException(String.format("Missing manifest entry for %s in object %s.",
+            throw new NotFoundException(String.format("Missing manifest entry for %s in object %s.",
                     fileId, id));
         }
         return getContentPath(fileId);

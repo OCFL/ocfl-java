@@ -30,6 +30,8 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -241,7 +243,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                     Files.copy(stream, destination);
                     stream.checkFixity();
                 } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                    throw new OcflIOException(e);
                 } catch (FixityCheckException e) {
                     throw new FixityCheckException(
                             String.format("File %s in object %s failed its fixity check.", logicalPath, inventory.getId()), e);
@@ -268,11 +270,13 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                     objectId, objectRootPath), e);
         }
 
-        try {
-            FileUtil.deleteDirAndParentsIfEmpty(objectRootPath.getParent());
-        } catch (UncheckedIOException e) {
-            LOG.error(String.format("Failed to cleanup all empty directories in path %s." +
-                    " There may be empty directories remaining in the OCFL storage hierarchy.", objectRootPath));
+        if (Files.exists(objectRootPath.getParent())) {
+            try {
+                FileUtil.deleteDirAndParentsIfEmpty(objectRootPath.getParent());
+            } catch (OcflIOException e) {
+                LOG.error(String.format("Failed to cleanup all empty directories in path %s." +
+                        " There may be empty directories remaining in the OCFL storage hierarchy.", objectRootPath), e);
+            }
         }
     }
 
@@ -395,12 +399,12 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                             try {
                                 Files.delete(f);
                             } catch (IOException e) {
-                                throw new UncheckedIOException(String.format("Failed to delete file %s while purging mutable HEAD of object %s." +
+                                throw new OcflIOException(String.format("Failed to delete file %s while purging mutable HEAD of object %s." +
                                         " The purge failed and the mutable HEAD may need to be deleted manually.", f, objectId), e);
                             }
                         });
             } catch (IOException e) {
-                throw new UncheckedIOException(String.format("Failed to purge mutable HEAD of object %s at %s. The object may need to be deleted manually.",
+                throw new OcflIOException(String.format("Failed to purge mutable HEAD of object %s at %s. The object may need to be deleted manually.",
                         objectId, extensionRoot), e);
             }
         }
@@ -541,7 +545,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         } catch (FixityCheckException e) {
             throw new CorruptObjectException("Invalid inventory file at " + inventoryPath, e);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -554,7 +558,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             inventoryStream.checkFixity();
             return inventory;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -579,7 +583,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             }
             return result.get();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -675,7 +679,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -689,7 +693,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -701,7 +705,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             throw new ObjectOutOfSyncException(
                     String.format("Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.", inventory.getId()));
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -815,7 +819,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 expected.remove(expectedDigest);
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
 
         if (!expected.isEmpty()) {
@@ -840,8 +844,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private void ensureNoMutableHead(ObjectPaths.ObjectRoot objectRoot) {
         if (Files.exists(objectRoot.mutableHeadVersion().inventoryFile())) {
-            // TODO modeled exception?
-            throw new IllegalStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
+            throw new OcflStateException(String.format("Cannot create a new version of object %s because it has an active mutable HEAD.",
                     objectRoot.objectId()));
         }
     }

@@ -24,12 +24,17 @@
 
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 
 /**
@@ -47,7 +52,7 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
                 p -> p.getFileName().toString().startsWith(OCFL_OBJECT_MARKER_PREFIX))) {
             return objectMarkers.iterator().hasNext();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -58,15 +63,15 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
 
     private static class FileSystemDirectory implements Directory {
 
-        private DirectoryStream<Path> stream;
-        private Iterator<Path> children;
+        private final DirectoryStream<Path> stream;
+        private final Iterator<Path> children;
 
         FileSystemDirectory(String path) {
             try {
                 this.stream = Files.newDirectoryStream(Paths.get(path));
                 this.children = stream.iterator();
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw new OcflIOException(e);
             }
         }
 

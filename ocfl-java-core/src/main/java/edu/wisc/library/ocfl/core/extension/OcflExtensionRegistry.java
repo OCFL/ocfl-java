@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension;
 
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
@@ -40,7 +41,9 @@ import java.util.Optional;
  * with a default implementation:
  *
  * <ul>
+ *     <li>0002-flat-direct-storage-layout: {@link FlatLayoutExtension}</li>
  *     <li>0003-hashed-n-tuple-trees: {@link HashedTruncatedNTupleExtension}</li>
+ *     <li>0005-hashed-n-tuple-id-layout: {@link HashedTruncatedNTupleIdExtension}</li>
  * </ul>
  */
 public final class OcflExtensionRegistry {
@@ -97,7 +100,7 @@ public final class OcflExtensionRegistry {
         try {
             return (Optional<T>) Optional.of(extensionClass.getDeclaredConstructor().newInstance());
         } catch (Exception e) {
-            throw new RuntimeException(String.format("Failed to load extension %s class %s.",
+            throw new OcflExtensionException(String.format("Failed to load extension %s class %s.",
                     extensionName, extensionClass), e);
         }
     }

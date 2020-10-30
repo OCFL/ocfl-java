@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 
@@ -32,11 +33,11 @@ import java.nio.file.FileSystems;
 /**
  * Implementation of the Flat Storage Layout extension.
  *
- * TODO add link to spec when finalized
+ * @see <a href="https://ocfl.github.io/extensions/0002-flat-direct-storage-layout.html">https://ocfl.github.io/extensions/0002-flat-direct-storage-layout.html</a>
  */
 public class FlatLayoutExtension implements OcflStorageLayoutExtension {
 
-    public static final String EXTENSION_NAME = "0006-flat-layout";
+    public static final String EXTENSION_NAME = "0002-flat-direct-storage-layout";
 
     private final char pathSeparator;
 
@@ -77,8 +78,8 @@ public class FlatLayoutExtension implements OcflStorageLayoutExtension {
     @Override
     public String mapObjectId(String objectId) {
         if (objectId.indexOf(pathSeparator) != -1) {
-            throw new IllegalArgumentException(String.format("The object id <%s> is incompatible with layout extension" +
-                    " 0006-flat-layout because it contains the path separator character.", objectId));
+            throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
+                    "%s because it contains the path separator character.", objectId, EXTENSION_NAME));
         }
 
         return objectId;

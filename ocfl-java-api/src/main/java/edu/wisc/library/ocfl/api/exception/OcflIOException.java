@@ -24,24 +24,33 @@
 
 package edu.wisc.library.ocfl.api.exception;
 
+import java.io.IOException;
+
 /**
- * Indicates that file already exists and could not be overwritten.
+ * This exception is a wrapper around an IOException
  */
-public class OverwriteException extends OcflJavaException {
+public class OcflIOException extends OcflJavaException {
 
-    public OverwriteException() {
-    }
+    private IOException cause;
+    private boolean hasMessage = false;
 
-    public OverwriteException(String message) {
-        super(message);
-    }
-
-    public OverwriteException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public OverwriteException(Throwable cause) {
+    public OcflIOException(IOException cause) {
         super(cause);
+        this.cause = cause;
+    }
+
+    public OcflIOException(String message, IOException cause) {
+        super(message, cause);
+        this.cause = cause;
+        this.hasMessage = true;
+    }
+
+    @Override
+    public String getMessage() {
+        if (hasMessage) {
+            return super.getMessage();
+        }
+        return cause.getClass().getSimpleName() + ": " + cause.getMessage();
     }
 
 }

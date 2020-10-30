@@ -24,8 +24,9 @@
 
 package edu.wisc.library.ocfl.core.storage;
 
-import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
+import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 
@@ -76,11 +77,11 @@ public abstract class AbstractOcflStorage implements OcflStorage {
      */
     protected void ensureOpen() {
         if (closed) {
-            throw new IllegalStateException(this.getClass().getName() + " is closed.");
+            throw new OcflStateException(this.getClass().getName() + " is closed.");
         }
 
         if (!initialized) {
-            throw new IllegalStateException(this.getClass().getName() + " must be initialized before it can be used.");
+            throw new OcflStateException(this.getClass().getName() + " must be initialized before it can be used.");
         }
     }
 

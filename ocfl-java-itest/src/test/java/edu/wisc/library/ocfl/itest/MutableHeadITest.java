@@ -4,6 +4,7 @@ import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
@@ -238,7 +239,7 @@ public abstract class MutableHeadITest {
             updater.writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file3");
         });
 
-        assertThat(assertThrows(IllegalStateException.class, () -> {
+        assertThat(assertThrows(OcflStateException.class, () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("update"), updater -> {
                 updater.writeFile(new ByteArrayInputStream("file4" .getBytes()), "file4");
             });
@@ -297,7 +298,7 @@ public abstract class MutableHeadITest {
                     .writeFile(new ByteArrayInputStream("file3" .getBytes()), "dir1/file4");
         });
 
-        OcflAsserts.assertThrowsWithMessage(IllegalStateException.class, "has an active mutable HEAD", () -> {
+        OcflAsserts.assertThrowsWithMessage(OcflStateException.class, "has an active mutable HEAD", () -> {
             repo.replicateVersionAsHead(ObjectVersionId.version(objectId, "v1"), defaultVersionInfo.setMessage("replicate"));
         });
     }

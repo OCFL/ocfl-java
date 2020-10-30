@@ -26,6 +26,8 @@ package edu.wisc.library.ocfl.core.db;
 
 import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflDbException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -108,7 +110,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new OcflDbException(e);
         }
 
         return details;
@@ -148,7 +150,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         try (var inventoryStream = Files.newInputStream(inventoryFile)) {
             updateObjectDetailsInternal(inventory, inventoryDigest, inventoryStream, runnable);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -175,7 +177,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
             }
         } catch (SQLException e) {
             throwLockException(e, objectId);
-            throw new RuntimeException(e);
+            throw new OcflDbException(e);
         }
     }
 
@@ -195,7 +197,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                 safeEnableAutoCommit(connection);
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new OcflDbException(e);
         }
     }
 
@@ -282,7 +284,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new OcflDbException(e);
         }
     }
 

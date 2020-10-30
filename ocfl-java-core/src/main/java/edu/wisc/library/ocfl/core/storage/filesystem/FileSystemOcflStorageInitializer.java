@@ -25,12 +25,14 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.api.OcflConstants;
-import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflLayout;
@@ -42,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -127,9 +128,9 @@ public class FileSystemOcflStorageInitializer {
         }
 
         if (existingOcflVersion == null) {
-            throw new IllegalStateException("OCFL root is missing its root conformance declaration.");
+            throw new RepositoryConfigurationException("OCFL root is missing its namaste file, eg. 0=ocfl_1.0.");
         } else if (existingOcflVersion != ocflVersion) {
-            throw new IllegalStateException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
+            throw new RepositoryConfigurationException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
                     ocflVersion, existingOcflVersion));
         }
     }
@@ -139,7 +140,7 @@ public class FileSystemOcflStorageInitializer {
         var expectedConfig = readLayoutConfig(repositoryRoot, ocflLayout, layoutExtension.getExtensionConfigClass());
 
         if (layoutConfig != null && !layoutConfig.equals(expectedConfig)) {
-            throw new IllegalStateException(String.format("Storage layout configuration does not match. On disk: %s; Configured: %s",
+            throw new RepositoryConfigurationException(String.format("Storage layout configuration does not match. On disk: %s; Configured: %s",
                     expectedConfig, layoutConfig));
         }
 
@@ -149,7 +150,7 @@ public class FileSystemOcflStorageInitializer {
 
     private OcflStorageLayoutExtension validateLayoutByInspection(Path repositoryRoot, OcflExtensionConfig layoutConfig) {
         if (layoutConfig == null) {
-            throw new IllegalStateException(String.format(
+            throw new RepositoryConfigurationException(String.format(
                     "No storage layout configuration is defined in the OCFL repository at %s. Layout must be configured programmatically.",
                     repositoryRoot));
         }
@@ -163,7 +164,7 @@ public class FileSystemOcflStorageInitializer {
             var actualPath = repositoryRoot.relativize(objectRoot);
 
             if (!expectedPath.equals(actualPath)) {
-                throw new IllegalStateException(String.format(
+                throw new RepositoryConfigurationException(String.format(
                         "The OCFL client was configured to use the following layout: %s." +
                                 " This layout does not match the layout of existing objects in the repository." +
                                 " Found object %s stored at %s, but was expecting it to be stored at %s.",
@@ -190,7 +191,7 @@ public class FileSystemOcflStorageInitializer {
                 }
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
 
         return ref.get();
@@ -236,7 +237,7 @@ public class FileSystemOcflStorageInitializer {
         try (var ocflSpecStream = this.getClass().getClassLoader().getResourceAsStream(ocflSpecFile)) {
             Files.copy(ocflSpecStream, repositoryRoot.resolve(ocflSpecFile));
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -250,7 +251,7 @@ public class FileSystemOcflStorageInitializer {
                 objectMapper.writeValue(layoutExtensionConfigPath(repositoryRoot, layoutConfig.getExtensionName()).toFile(), layoutConfig);
             }
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -291,7 +292,7 @@ public class FileSystemOcflStorageInitializer {
         try {
             return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new RuntimeException(String.format("Failed to init OCFL storage layout extension configuration class %s", clazz), e);
+            throw new RepositoryConfigurationException(String.format("Failed to init OCFL storage layout extension configuration class %s", clazz), e);
         }
     }
 
@@ -299,7 +300,7 @@ public class FileSystemOcflStorageInitializer {
         try {
             return objectMapper.readValue(path.toFile(), clazz);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 

@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 import java.util.regex.Pattern;
@@ -54,7 +55,7 @@ public class VersionNum implements Comparable<VersionNum> {
     @JsonCreator
     public static VersionNum fromString(String value) {
         if (!VALID_VERSION.matcher(value).matches()) {
-            throw new IllegalArgumentException("Invalid VersionNum: " + value);
+            throw new InvalidVersionException("Invalid VersionNum: " + value);
         }
 
         var numPart = value.substring(1);
@@ -115,12 +116,12 @@ public class VersionNum implements Comparable<VersionNum> {
      * the max number are now allowed.
      *
      * @return a new VersionNum with an incremented version number
-     * @throws IllegalStateException if the next version is higher than the max allowed value
+     * @throws InvalidVersionException if the next version is higher than the max allowed value
      */
     public VersionNum nextVersionNum() {
         var nextVersionNum = versionNumber + 1;
         if (nextVersionNum > maxVersion) {
-            throw new IllegalStateException("Cannot increment version number. Current version " + toString() + " is the highest possible.");
+            throw new InvalidVersionException("Cannot increment version number. Current version " + toString() + " is the highest possible.");
         }
         return new VersionNum(nextVersionNum, zeroPaddingWidth);
     }
@@ -129,11 +130,11 @@ public class VersionNum implements Comparable<VersionNum> {
      * Returns a new VersionNum that is one less than this. Version numbers lower than 0 are not allowed.
      *
      * @return a new VersionNum with a decremented version number
-     * @throws IllegalStateException if the previous version is lower than 1
+     * @throws InvalidVersionException if the previous version is lower than 1
      */
     public VersionNum previousVersionNum() {
         if (versionNumber == 1) {
-            throw new IllegalStateException("Cannot decrement version number. Current version " + toString() + " is the lowest possible.");
+            throw new InvalidVersionException("Cannot decrement version number. Current version " + toString() + " is the lowest possible.");
         }
         return new VersionNum(versionNumber - 1, zeroPaddingWidth);
     }

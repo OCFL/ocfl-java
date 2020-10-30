@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout.impl;
 
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleIdExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
@@ -76,17 +77,17 @@ public class HashedTruncatedNTupleIdExtensionTest {
 
     @Test
     public void shouldThrowExceptionWhenTupleSizeAndNumTuplesNotBoth0() {
-        assertThrowsWithMessage(IllegalStateException.class, "both must be 0", () -> {
+        assertThrowsWithMessage(OcflExtensionException.class, "both must be 0", () -> {
             ext.init(new HashedTruncatedNTupleIdConfig().setTupleSize(0));
         });
-        assertThrowsWithMessage(IllegalStateException.class, "both must be 0", () -> {
+        assertThrowsWithMessage(OcflExtensionException.class, "both must be 0", () -> {
             ext.init(new HashedTruncatedNTupleIdConfig().setNumberOfTuples(0));
         });
     }
 
     @Test
     public void shouldThrowExceptionWhenTupleSizeTimesNumTuplesGreaterThanTotalChars() {
-        assertThrowsWithMessage(IllegalStateException.class, "sha256 digests only have 64 characters", () -> {
+        assertThrowsWithMessage(OcflExtensionException.class, "sha256 digests only have 64 characters", () -> {
             ext.init(new HashedTruncatedNTupleIdConfig().setTupleSize(5).setNumberOfTuples(13));
         });
     }

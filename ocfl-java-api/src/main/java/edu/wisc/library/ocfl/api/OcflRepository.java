@@ -24,9 +24,11 @@
 
 package edu.wisc.library.ocfl.api;
 
+import edu.wisc.library.ocfl.api.exception.AlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -237,6 +239,7 @@ public interface OcflRepository {
      * @param versionPath path to the OCFL object version to import on disk
      * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      *                Use {@link OcflOption#NO_VALIDATION} to disable file validation, version inventory is still validated.
+     * @throws OcflStateException if the version number of the import is not the next sequential version for the object
      */
     void importVersion(Path versionPath, OcflOption... options);
 
@@ -247,6 +250,7 @@ public interface OcflRepository {
      * @param objectPath path to the OCFL object to import on disk
      * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
      *                Use {@link OcflOption#NO_VALIDATION} to disable file validation, root inventory is still validated.
+     * @throws AlreadyExistsException if the object trying to be imported is already in the repository
      */
     void importObject(Path objectPath, OcflOption... options);
 

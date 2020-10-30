@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
+import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -115,7 +116,7 @@ public class ObjectValidator {
                         inventory.getId(), file));
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -191,7 +192,7 @@ public class ObjectValidator {
                 }
             }
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
 
         if (!manifestCopy.isEmpty()) {
@@ -253,7 +254,7 @@ public class ObjectValidator {
                     }
                 });
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw new OcflIOException(e);
             }
         }
 
@@ -325,7 +326,7 @@ public class ObjectValidator {
                 }
             });
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
@@ -403,7 +404,7 @@ public class ObjectValidator {
         try {
             return Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new OcflIOException(e);
         }
     }
 
