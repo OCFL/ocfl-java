@@ -10,26 +10,17 @@ are formally defined before releasing version 1.0.0 of this library.
 
 [![Build Status](https://travis-ci.com/UW-Madison-Library/ocfl-java.svg?branch=master)](https://travis-ci.com/UW-Madison-Library/ocfl-java)
 
-## Requirements and Installation
+## Requirements and Setup
 
 `ocfl-java` is a Java 11 project and at the minimum requires Java 11 to run.
 
-The `ocfl-java` libraries are not yet built to Maven central. Until they are, you'll need to build the
-libraries locally as follows:
-
-```bash
-$ git clone git@github.com:UW-Madison-Library/ocfl-java.git
-$ cd ocfl-java
-$ mvn install
-```
-
-After building the libraries locally, add the following to your project's POM:
+Add the following to your project's POM to pull in the library:
 
 ```xml
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-core</artifactId>
-    <version>0.0.7-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -39,7 +30,7 @@ Add the following if you'd like to use Amazon S3 for the storage layer:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-aws</artifactId>
-    <version>0.0.7-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
