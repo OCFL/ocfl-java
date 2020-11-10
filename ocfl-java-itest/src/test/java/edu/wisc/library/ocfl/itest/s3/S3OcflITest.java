@@ -60,7 +60,7 @@ public class S3OcflITest extends OcflITest {
         var dataSource = createDataSource(name);
 
         var builder = new OcflRepositoryBuilder()
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .objectLock(lock -> lock.dataSource(dataSource))
                 .objectDetailsDb(db -> db.dataSource(dataSource))

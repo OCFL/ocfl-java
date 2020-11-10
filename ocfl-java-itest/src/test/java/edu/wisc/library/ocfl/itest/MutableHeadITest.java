@@ -69,13 +69,13 @@ public abstract class MutableHeadITest {
     }
 
     protected MutableOcflRepository defaultRepo(String name) {
-        return defaultRepo(name, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
+        return defaultRepo(name, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
     }
 
     protected abstract MutableOcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer);
 
     protected MutableOcflRepository existingRepo(String name, Path path) {
-        return existingRepo(name, path, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
+        return existingRepo(name, path, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
     }
 
     protected abstract MutableOcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer);

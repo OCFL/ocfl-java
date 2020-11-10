@@ -103,13 +103,13 @@ public abstract class OcflITest {
     }
 
     protected OcflRepository defaultRepo(String name) {
-        return defaultRepo(name, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
+        return defaultRepo(name, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
     }
 
     protected abstract OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer);
 
     protected OcflRepository existingRepo(String name, Path path) {
-        return existingRepo(name, path, builder -> builder.layoutConfig(new HashedTruncatedNTupleConfig()));
+        return existingRepo(name, path, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
     }
 
     protected abstract OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer);
@@ -771,7 +771,7 @@ public abstract class OcflITest {
         var repoDir = expectedRepoPath(repoName);
         assertThrows(RepositoryConfigurationException.class, () -> {
             new OcflRepositoryBuilder()
-                    .layoutConfig(new HashedTruncatedNTupleConfig().setTupleSize(1))
+                    .defaultLayoutConfig(new HashedTruncatedNTupleConfig().setTupleSize(1))
                     .inventoryMapper(ITestHelper.testInventoryMapper())
                     .storage(FileSystemOcflStorage.builder().repositoryRoot(repoDir).build())
                     .workDir(repoDir.resolve("deposit"))
@@ -1482,7 +1482,7 @@ public abstract class OcflITest {
     @Test
     public void flatLayoutWithValidIds() {
         var repoName = "flat-layout";
-        var repo = defaultRepo(repoName, builder -> builder.layoutConfig(new FlatLayoutConfig()));
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new FlatLayoutConfig()));
 
 
         var objectIds = List.of("o1", "object-2");
@@ -1500,7 +1500,7 @@ public abstract class OcflITest {
     @Test
     public void hashedIdLayout() {
         var repoName = "hashed-id-layout";
-        var repo = defaultRepo(repoName, builder -> builder.layoutConfig(new HashedTruncatedNTupleIdConfig()));
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleIdConfig()));
 
         var objectIds = List.of("o1",
                 "http://library.wisc.edu/123",

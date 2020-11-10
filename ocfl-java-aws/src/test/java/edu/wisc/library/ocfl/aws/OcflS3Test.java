@@ -175,7 +175,7 @@ public class OcflS3Test {
 
     private MutableOcflRepository createRepo(S3Client s3Client, String bucket, String repoPrefix) {
         return new OcflRepositoryBuilder()
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .prettyPrintJson()
                 .contentPathConstraints(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()

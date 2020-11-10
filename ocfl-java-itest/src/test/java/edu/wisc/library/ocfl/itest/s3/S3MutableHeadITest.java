@@ -56,7 +56,7 @@ public class S3MutableHeadITest extends MutableHeadITest {
     protected MutableOcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
         createBucket(name);
         var repo = new OcflRepositoryBuilder()
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .objectLock(lock -> lock.dataSource(dataSource))
                 .objectDetailsDb(db -> db.dataSource(dataSource))

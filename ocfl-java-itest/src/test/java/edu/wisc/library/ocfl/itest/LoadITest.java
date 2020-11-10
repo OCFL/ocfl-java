@@ -418,7 +418,7 @@ public class LoadITest {
     private OcflRepository createFsRepo() {
         System.out.println("OCFL root: " + tempRoot.toString() + "/ocfl");
         return new OcflRepositoryBuilder()
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .storage(FileSystemOcflStorage.builder()
                         .repositoryRoot(UncheckedFiles.createDirectories(tempRoot.resolve("ocfl")))
@@ -435,7 +435,7 @@ public class LoadITest {
         var prefix = UUID.randomUUID().toString();
         // Note this is NOT using a db, which an S3 setup would normally use
         return new OcflRepositoryBuilder()
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .storage(CloudOcflStorage.builder()
                         .cloudClient(OcflS3Client.builder()

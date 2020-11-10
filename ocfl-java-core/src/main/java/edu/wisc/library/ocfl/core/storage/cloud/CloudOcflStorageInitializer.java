@@ -79,7 +79,7 @@ public class CloudOcflStorageInitializer {
         if (listRootObjects().isEmpty()) {
             layoutExtension = initNewRepo(ocflVersion, layoutConfig);
         } else {
-            layoutExtension = validateExistingRepo(ocflVersion, layoutConfig);
+            layoutExtension = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
         }
 
         LOG.info("OCFL repository is configured to use OCFL storage layout extension {} implemented by {}",
@@ -88,7 +88,7 @@ public class CloudOcflStorageInitializer {
         return layoutExtension;
     }
 
-    private OcflStorageLayoutExtension validateExistingRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    private OcflStorageLayoutExtension loadAndValidateExistingRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
         validateOcflVersion(ocflVersion);
 
         var ocflLayout = readOcflLayout();
@@ -98,9 +98,9 @@ public class CloudOcflStorageInitializer {
             return validateLayoutByInspection(layoutConfig);
         }
 
-        LOG.debug("OCFL layout extension: {}", ocflLayout.getExtension());
+        LOG.debug("Found specified OCFL layout extension: {}", ocflLayout.getExtension());
 
-        return validateLayoutByConfig(ocflLayout, layoutConfig);
+        return loadLayoutByConfig(ocflLayout);
     }
 
     private void validateOcflVersion(OcflVersion ocflVersion) {
@@ -122,15 +122,9 @@ public class CloudOcflStorageInitializer {
         }
     }
 
-    private OcflStorageLayoutExtension validateLayoutByConfig(OcflLayout ocflLayout, OcflExtensionConfig layoutConfig) {
+    private OcflStorageLayoutExtension loadLayoutByConfig(OcflLayout ocflLayout) {
         var layoutExtension = loadLayoutExtension(ocflLayout.getExtension());
         var expectedConfig = readLayoutConfig(ocflLayout, layoutExtension.getExtensionConfigClass());
-
-        if (layoutConfig != null && !layoutConfig.equals(expectedConfig)) {
-            throw new RepositoryConfigurationException(String.format("Storage layout configuration does not match. On disk: %s; Configured: %s",
-                    expectedConfig, layoutConfig));
-        }
-
         layoutExtension.init(expectedConfig);
         return layoutExtension;
     }

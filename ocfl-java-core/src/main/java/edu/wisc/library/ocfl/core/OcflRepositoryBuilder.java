@@ -68,7 +68,7 @@ public class OcflRepositoryBuilder {
 
     private OcflStorage storage;
     private OcflConfig config;
-    private OcflExtensionConfig layoutConfig;
+    private OcflExtensionConfig defaultLayoutConfig;
     private Path workDir;
 
     private ObjectLock objectLock;
@@ -314,18 +314,19 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Sets OCFL storage layout configuration. If no layout config is specified, the client will attempt to auto-detect
-     * the configuration from an existing repository. If it is a new repository, then layout configuration MUST be supplied.
+     * Sets the default OCFL storage layout configuration. A layout MUST be specified if the OCFL repository does not
+     * yet exist. If the repository does exist and it has a storage layout defined, then a layout does not need to
+     * be specified and, if it is specified here, it will be ignored.
      *
      * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig
      * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig
      * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig
      *
-     * @param layoutConfig storage layout configuration
+     * @param defaultLayoutConfig the default storage layout configuration
      * @return builder
      */
-    public OcflRepositoryBuilder layoutConfig(OcflExtensionConfig layoutConfig) {
-        this.layoutConfig = Enforce.notNull(layoutConfig, "layoutConfig cannot be null");
+    public OcflRepositoryBuilder defaultLayoutConfig(OcflExtensionConfig defaultLayoutConfig) {
+        this.defaultLayoutConfig = Enforce.notNull(defaultLayoutConfig, "defaultLayoutConfig cannot be null");
         return this;
     }
 
@@ -352,7 +353,7 @@ public class OcflRepositoryBuilder {
         Enforce.notNull(workDir, "workDir cannot be null");
 
         var wrappedStorage = cache(db(storage));
-        wrappedStorage.initializeStorage(config.getOcflVersion(), layoutConfig, inventoryMapper);
+        wrappedStorage.initializeStorage(config.getOcflVersion(), defaultLayoutConfig, inventoryMapper);
 
         Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");

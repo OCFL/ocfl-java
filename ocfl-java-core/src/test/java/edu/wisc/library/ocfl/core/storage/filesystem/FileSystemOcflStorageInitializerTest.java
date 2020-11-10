@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.io.FileMatchers.aFileNamed;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FileSystemOcflStorageInitializerTest {
 
@@ -66,12 +67,11 @@ public class FileSystemOcflStorageInitializerTest {
     }
 
     @Test
-    public void shouldFailWhenConfigOnDiskDoesNotMatch() {
-        initializer.initializeStorage(tempRoot, OcflVersion.OCFL_1_0, new HashedTruncatedNTupleConfig());
+    public void shouldIgnoreDefaultLayoutWhenRepoHasLayoutConfig() {
+        var layoutExt1 = initializer.initializeStorage(tempRoot, OcflVersion.OCFL_1_0, new HashedTruncatedNTupleConfig());
+        var layoutExt2 = initializer.initializeStorage(tempRoot, OcflVersion.OCFL_1_0, new HashedTruncatedNTupleConfig().setTupleSize(1));
 
-        OcflAsserts.assertThrowsWithMessage(RepositoryConfigurationException.class, "Storage layout configuration does not match", () -> {
-            initializer.initializeStorage(tempRoot, OcflVersion.OCFL_1_0, new HashedTruncatedNTupleConfig().setTupleSize(1));
-        });
+        assertEquals(layoutExt1.mapObjectId("test"), layoutExt2.mapObjectId("test"));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class FileSystemOcflStorageInitializerTest {
         var workDir = Files.createDirectories(tempRoot.resolve("work"));
         var repo = new OcflRepositoryBuilder()
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .storage(FileSystemOcflStorage.builder()
                         .repositoryRoot(repoDir)
                         .objectMapper(ITestHelper.prettyPrintMapper())
@@ -117,7 +117,7 @@ public class FileSystemOcflStorageInitializerTest {
         var workDir = Files.createDirectories(tempRoot.resolve("work"));
         var repo = new OcflRepositoryBuilder()
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .layoutConfig(new HashedTruncatedNTupleConfig().setTupleSize(2))
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig().setTupleSize(2))
                 .storage(FileSystemOcflStorage.builder()
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .repositoryRoot(repoDir).build())

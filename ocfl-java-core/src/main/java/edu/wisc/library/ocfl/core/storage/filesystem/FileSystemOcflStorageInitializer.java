@@ -77,7 +77,9 @@ public class FileSystemOcflStorageInitializer {
      * @param layoutConfig the storage layout configuration, if null the configuration will be loaded from disk
      * @return OCFL storage layout extension configured for the repo
      */
-    public OcflStorageLayoutExtension initializeStorage(Path repositoryRoot, OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    public OcflStorageLayoutExtension initializeStorage(Path repositoryRoot,
+                                                        OcflVersion ocflVersion,
+                                                        OcflExtensionConfig layoutConfig) {
         Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
 
@@ -93,7 +95,7 @@ public class FileSystemOcflStorageInitializer {
         if (!FileUtil.hasChildren(repositoryRoot)) {
             layoutExtension = initNewRepo(repositoryRoot, ocflVersion, layoutConfig);
         } else {
-            layoutExtension = validateExistingRepo(repositoryRoot, ocflVersion, layoutConfig);
+            layoutExtension = validateAndLoadExistingRepo(repositoryRoot, ocflVersion, layoutConfig);
         }
 
         LOG.info("OCFL repository is configured to use OCFL storage layout extension {} implemented by {}",
@@ -102,7 +104,9 @@ public class FileSystemOcflStorageInitializer {
         return layoutExtension;
     }
 
-    private OcflStorageLayoutExtension validateExistingRepo(Path repositoryRoot, OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    private OcflStorageLayoutExtension validateAndLoadExistingRepo(Path repositoryRoot,
+                                                                   OcflVersion ocflVersion,
+                                                                   OcflExtensionConfig layoutConfig) {
         validateOcflVersion(repositoryRoot, ocflVersion);
 
         var ocflLayout = readOcflLayout(repositoryRoot);
@@ -112,9 +116,9 @@ public class FileSystemOcflStorageInitializer {
             return validateLayoutByInspection(repositoryRoot, layoutConfig);
         }
 
-        LOG.debug("OCFL layout extension: {}", ocflLayout.getExtension());
+        LOG.debug("Found specified OCFL layout extension: {}", ocflLayout.getExtension());
 
-        return validateLayoutByConfig(repositoryRoot, ocflLayout, layoutConfig);
+        return loadLayoutFromConfig(repositoryRoot, ocflLayout);
     }
 
     private void validateOcflVersion(Path repositoryRoot, OcflVersion ocflVersion) {
@@ -135,15 +139,9 @@ public class FileSystemOcflStorageInitializer {
         }
     }
 
-    private OcflStorageLayoutExtension validateLayoutByConfig(Path repositoryRoot, OcflLayout ocflLayout, OcflExtensionConfig layoutConfig) {
+    private OcflStorageLayoutExtension loadLayoutFromConfig(Path repositoryRoot, OcflLayout ocflLayout) {
         var layoutExtension = loadLayoutExtension(ocflLayout.getExtension());
         var expectedConfig = readLayoutConfig(repositoryRoot, ocflLayout, layoutExtension.getExtensionConfigClass());
-
-        if (layoutConfig != null && !layoutConfig.equals(expectedConfig)) {
-            throw new RepositoryConfigurationException(String.format("Storage layout configuration does not match. On disk: %s; Configured: %s",
-                    expectedConfig, layoutConfig));
-        }
-
         layoutExtension.init(expectedConfig);
         return layoutExtension;
     }

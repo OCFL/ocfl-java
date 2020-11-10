@@ -59,7 +59,7 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void hashedIdLayoutLongEncoded() {
         var repoName = "hashed-id-layout-2";
-        var repo = defaultRepo(repoName, builder -> builder.layoutConfig(new HashedTruncatedNTupleIdConfig()));
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleIdConfig()));
 
         var objectId = "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ";
 
@@ -108,7 +108,7 @@ public class FileSystemOcflITest extends OcflITest {
         }
 
         var builder = new OcflRepositoryBuilder()
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .fileSystemStorage(storage -> storage

@@ -11,7 +11,7 @@ public class FileSystemBadReposITest extends BadReposITest {
 
     protected MutableOcflRepository defaultRepo(String name) {
         var repo = new OcflRepositoryBuilder()
-                .layoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .fileSystemStorage(storage -> storage

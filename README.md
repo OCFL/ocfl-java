@@ -41,7 +41,7 @@ var repoDir = Paths.get("ocfl-repo"); // This directory contains the OCFL storag
 var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL versions. It cannot be within the OCFL storage root.
 
 var repo = new OcflRepositoryBuilder()
-        .layoutConfig(new HashedTruncatedNTupleConfig())
+        .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
         .fileSystemStorage(storage -> storage.repositoryRoot(repoDir))
         .workDir(workDir)
         .build();
@@ -77,10 +77,10 @@ construct an OCFL repository that supports the mutable HEAD extension.
 or `CloudOcflStorage.builder()` to create the `OcflStorage` implementation.
 * **workDir**: Sets the path to the directory that is used to assemble OCFL versions. If you are using filesystem storage,
 it is critical that this directory is located on the same volume as the OCFL storage root.
-* **layoutConfig**: Configures the storage layout the OCFL repository uses. This is the method it uses to map object ids
-to directories under the OCFL storage root. The layout configuration must be set when creating new OCFL repositories, but is
-not required when opening an existing repository. Storage layouts must be defined in by an OCFL extension. Currently,
-the following extensions are implemented:
+* **defaultLayoutConfig**: Configures the default storage layout the OCFL repository uses. The storage layout is used to
+map OCFL object IDs to object root directories within the repository. The layout configuration must be set when creating
+new OCFL repositories, but is not required when opening an existing repository. Storage layouts must be defined in by an
+ OCFL extension. Currently, the following extensions are implemented:
   * **0002-flat-direct-storage-layout**: `FlatLayoutConfig`
   * **0003-hashed-n-tuple-trees**: `HashedTruncatedNTupleConfig`
   * **0005-hashed-n-tuple-id-layout**: `HashedTruncatedNTupleIdConfig`
@@ -130,7 +130,7 @@ on the same mount, as recommended.
 
 ```java
 var repo = new OcflRepositoryBuilder()
-        .layoutConfig(new HashedTruncatedNTupleConfig())
+        .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
         .fileSystemStorage(storage -> storage.repositoryRoot(repoDir))
         .workDir(workDir)
         .build();
@@ -169,7 +169,7 @@ Use `CloudOcflStorage.builder()` to create and configure an `OcflStorage` instan
 
 ```java
 var repo = new OcflRepositoryBuilder()
-        .layoutConfig(new HashedTruncatedNTupleConfig())
+        .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
         .contentPathConstraints(ContentPathConstraints.cloud())
         .objectLock(lock -> lock.dataSource(dataSource))
         .objectDetailsDb(db -> db.dataSource(dataSource))
