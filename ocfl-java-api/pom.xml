@@ -31,12 +31,12 @@
     <parent>
         <groupId>edu.wisc.library.ocfl</groupId>
         <artifactId>ocfl-java-parent</artifactId>
-        <version>0.1.1-SNAPSHOT</version>
+        <version>0.2.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>ocfl-java-api</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
 
     <name>OCFL Java API</name>
     <description>Java API for interacting with objects stored in OCFL.</description>
