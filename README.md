@@ -8,7 +8,7 @@ I do not recommend using it in a production setting until then.
 Version 1.0 of the OCFL spec has been finalized. However, I am waiting until [storage layout extensions](https://github.com/OCFL/extensions)
 are formally defined before releasing version 1.0.0 of this library.  
 
-[![Build Status](https://travis-ci.com/UW-Madison-Library/ocfl-java.svg?branch=master)](https://travis-ci.com/UW-Madison-Library/ocfl-java)
+![build](https://github.com/UW-Madison-Library/ocfl-java/workflows/Build/badge.svg)
 
 ## Requirements and Setup
 
