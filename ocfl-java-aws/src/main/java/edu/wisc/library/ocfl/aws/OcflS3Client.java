@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.aws;
 
+import com.google.common.annotations.VisibleForTesting;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -71,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -86,8 +88,10 @@ public class OcflS3Client implements CloudClient {
     private static final long TB = 1024 * GB;
 
     private static final long MAX_FILE_BYTES = 5 * TB;
+
     private static final int MAX_PART_BYTES = 100 * MB;
     private static final int PART_SIZE_BYTES = 10 * MB;
+
     private static final int MAX_PARTS = 100;
     private static final int PART_SIZE_INCREMENT = 10;
     private static final int PARTS_INCREMENT = 100;
@@ -96,6 +100,12 @@ public class OcflS3Client implements CloudClient {
     private final String bucket;
     private final String repoPrefix;
     private final CloudObjectKey.Builder keyBuilder;
+
+    private final BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
+    private final BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier;
+
+    private int maxPartBytes = MAX_PART_BYTES;
+    private int partSizeBytes = PART_SIZE_BYTES;
 
     /**
      * Used to create a new OcflS3Client instance.
@@ -113,7 +123,7 @@ public class OcflS3Client implements CloudClient {
      * @param bucket s3 bucket
      */
     public OcflS3Client(S3Client s3Client, String bucket) {
-        this(s3Client, bucket, "");
+        this(s3Client, bucket, null, null, null);
     }
 
     /**
@@ -122,12 +132,20 @@ public class OcflS3Client implements CloudClient {
      * @param s3Client aws sdk s3 client
      * @param bucket s3 bucket
      * @param prefix key prefix
+     * @param putObjectModifier hook for modifying putObject requests
+     * @param createMultipartModifier hook for modifying createMultipartUpload requests
      */
-    public OcflS3Client(S3Client s3Client, String bucket, String prefix) {
+    public OcflS3Client(S3Client s3Client,
+                        String bucket,
+                        String prefix,
+                        BiConsumer<String, PutObjectRequest.Builder> putObjectModifier,
+                        BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
         this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
         this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
-        this.repoPrefix = sanitizeRepoPrefix(Enforce.notNull(prefix, "prefix cannot be null"));
+        this.repoPrefix = sanitizeRepoPrefix(prefix == null ? "" : prefix);
         this.keyBuilder = CloudObjectKey.builder().prefix(repoPrefix);
+        this.putObjectModifier = putObjectModifier != null ? putObjectModifier : (k, b) -> {};
+        this.createMultipartModifier = createMultipartModifier != null ? createMultipartModifier : (k, b) -> {};
     }
 
     private static String sanitizeRepoPrefix(String repoPrefix) {
@@ -184,11 +202,15 @@ public class OcflS3Client implements CloudClient {
         } else {
             LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
-            s3Client.putObject(PutObjectRequest.builder()
+            var builder = PutObjectRequest.builder()
+                    .contentType(contentType);
+
+            putObjectModifier.accept(dstKey.getKey(), builder);
+
+            s3Client.putObject(builder
                     .bucket(bucket)
                     .key(dstKey.getKey())
                     .contentLength(fileSize)
-                    .contentType(contentType)
                     .build(), srcPath);
         }
 
@@ -249,10 +271,14 @@ public class OcflS3Client implements CloudClient {
         var dstKey = keyBuilder.buildFromPath(dstPath);
         LOG.debug("Writing string to bucket {} key {}", bucket, dstKey);
 
-        s3Client.putObject(PutObjectRequest.builder()
+        var builder = PutObjectRequest.builder()
+                .contentType(contentType);
+
+        putObjectModifier.accept(dstKey.getKey(), builder);
+
+        s3Client.putObject(builder
                 .bucket(bucket)
                 .key(dstKey.getKey())
-                .contentType(contentType)
                 .build(), RequestBody.fromBytes(bytes));
 
         return dstKey;
@@ -523,10 +549,14 @@ public class OcflS3Client implements CloudClient {
     }
 
     private String beginMultipartUpload(CloudObjectKey key, String contentType) {
-        return s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
+        var builder = CreateMultipartUploadRequest.builder()
+                .contentType(contentType);
+
+        createMultipartModifier.accept(key.getKey(), builder);
+
+        return s3Client.createMultipartUpload(builder
                 .bucket(bucket)
                 .key(key.getKey())
-                .contentType(contentType)
                 .build()).uploadId();
     }
 
@@ -598,10 +628,23 @@ public class OcflS3Client implements CloudClient {
                 .setDirectories(dirs);
     }
 
+    @VisibleForTesting
+    void setMaxPartBytes(int maxPartBytes) {
+        this.maxPartBytes = maxPartBytes;
+    }
+
+    @VisibleForTesting
+    void setPartSizeBytes(int partSizeBytes) {
+        this.partSizeBytes = partSizeBytes;
+    }
+
     public static class Builder {
         private S3Client s3Client;
         private String bucket;
         private String repoPrefix;
+
+        private BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
+        private BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier;
 
         /**
          * The AWS SDK s3 client. Required.
@@ -637,13 +680,42 @@ public class OcflS3Client implements CloudClient {
         }
 
         /**
+         * Provides a hook to modify putObject requests before they are executed. It is intended to be used to set
+         * object attributes such as tags.
+         * <p>
+         * The first argument is the object key the request is for, and the second is the request builder to apply
+         * changes to.
+         *
+         * @param putObjectModifier hook for modifying putObject requests
+         * @return builder
+         */
+        public Builder putObjectModifier(BiConsumer<String, PutObjectRequest.Builder> putObjectModifier) {
+            this.putObjectModifier = putObjectModifier;
+            return this;
+        }
+
+        /**
+         * Provides a hook to modify createMultipartUpload requests before they are executed. It is intended to be used
+         * to set object attributes such as tags.
+         * <p>
+         * The first argument is the object key the request is for, and the second is the request builder to apply
+         * changes to.
+         *
+         * @param createMultipartModifier hook for modifying createMultipartUpload requests
+         * @return builder
+         */
+        public Builder createMultipartModifier(BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
+            this.createMultipartModifier = createMultipartModifier;
+            return this;
+        }
+
+        /**
          * Constructs a new OcflS3Client. s3Client and bucket must be set.
          *
          * @return OcflS3Client
          */
         public OcflS3Client build() {
-            var prefix = repoPrefix == null ? "" : repoPrefix;
-            return new OcflS3Client(s3Client, bucket, prefix);
+            return new OcflS3Client(s3Client, bucket, repoPrefix, putObjectModifier, createMultipartModifier);
         }
     }
 

@@ -179,7 +179,11 @@ public class OcflS3Test {
                 .prettyPrintJson()
                 .contentPathConstraints(ContentPathConstraints.cloud())
                 .storage(CloudOcflStorage.builder()
-                        .cloudClient(new OcflS3Client(s3Client, bucket, repoPrefix))
+                        .cloudClient(OcflS3Client.builder()
+                                .s3Client(s3Client)
+                                .bucket(bucket)
+                                .repoPrefix(repoPrefix)
+                                .build())
                         .build())
                 .workDir(tempDir)
                 .buildMutable();
