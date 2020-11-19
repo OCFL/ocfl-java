@@ -42,6 +42,7 @@ public class ObjectDetailsDatabaseTest {
     @TempDir
     public Path tempDir;
 
+    private String tableName;
     private ComboPooledDataSource dataSource;
     private InventoryMapper inventoryMapper;
     private ExecutorService executor;
@@ -57,6 +58,7 @@ public class ObjectDetailsDatabaseTest {
 
     @AfterEach
     public void after() {
+        truncateObjectDetails();
         dataSource.close();
         executor.shutdown();
     }
@@ -64,6 +66,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldAddDetailsWhenDoNotExist(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -78,6 +81,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldUpdateDetailsWhenDetailsExist(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -103,6 +107,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldReturnNullWhenDetailsDoNotExist(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var details = database.retrieveObjectDetails("o1");
         assertNull(details);
@@ -111,6 +116,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldApplyUpdateWhenRunnableSucceeds(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -137,6 +143,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldRollbackDbChangesWhenRunnableFails(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -168,6 +175,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldDeleteDetailsWhenExist(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -187,6 +195,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldDoNothingWhenDeleteAndDetailsDoNotExist(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         database.deleteObjectDetails("o1");
         var details = database.retrieveObjectDetails("o1");
@@ -196,6 +205,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldNotStoreInventoryBytesWhenFeatureDisabled(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         database = new ObjectDetailsDatabaseBuilder().storeInventory(false).dataSource(dataSource).build();
 
@@ -212,6 +222,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldRejectUpdateWhenNewInventoryVersionIsNotNextVersion(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -240,6 +251,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldRejectUpdateWhenNewInventoryVersionIsOldVersion(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -268,6 +280,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldRejectUpdateWhenNewRevisionButNotR1(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -297,6 +310,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldRejectUpdateWhenRevisionAndUpdateDifferentVersion(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = Inventory.builderFromStub("o1", new OcflConfig(), "o1")
                 .mutableHead(true)
@@ -329,6 +343,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldRejectUpdateWhenRevisionAndUpdateNotNextRevision(String tableName) {
+        this.tableName = tableName;
         var database = createDatabase(tableName);
         var inventory = Inventory.builderFromStub("o1", new OcflConfig(), "o1")
                 .mutableHead(true)
@@ -364,6 +379,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldFailWhenCannotAcquireLock(String tableName) throws InterruptedException, ExecutionException {
+        this.tableName = tableName;
         var database = new ObjectDetailsDatabaseBuilder()
                 .waitTime(250, TimeUnit.MILLISECONDS)
                 .dataSource(dataSource)
@@ -400,6 +416,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldFailDeleteWhenCannotAcquireLock(String tableName) throws InterruptedException, ExecutionException {
+        this.tableName = tableName;
         var database = new ObjectDetailsDatabaseBuilder()
                 .waitTime(250, TimeUnit.MILLISECONDS)
                 .dataSource(dataSource)
@@ -447,6 +464,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldFailWhenConcurrentUpdateAndNew(String tableName) throws InterruptedException, ExecutionException {
+        this.tableName = tableName;
         var database = new ObjectDetailsDatabaseBuilder()
                 .waitTime(250, TimeUnit.MILLISECONDS)
                 .dataSource(dataSource)
@@ -497,6 +515,7 @@ public class ObjectDetailsDatabaseTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldSucceedWhenConcurrentAddAndSameDigest(String tableName) throws InterruptedException, ExecutionException {
+        this.tableName = tableName;
         var database = new ObjectDetailsDatabaseBuilder()
                 .waitTime(500, TimeUnit.MILLISECONDS)
                 .dataSource(dataSource)
@@ -527,7 +546,8 @@ public class ObjectDetailsDatabaseTest {
 
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
-    public void shouldFailWhenConcurrentAddAndDifferentDigest(String tableName) throws InterruptedException {
+    public void shouldFailWhenConcurrentAddAndDifferentDigest(String tableName) {
+        this.tableName = tableName;
         var database = new ObjectDetailsDatabaseBuilder()
                 .waitTime(1, TimeUnit.SECONDS)
                 .dataSource(dataSource)
@@ -598,6 +618,15 @@ public class ObjectDetailsDatabaseTest {
             Files.write(dst, invBytes);
             return dst;
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void truncateObjectDetails() {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.prepareStatement("TRUNCATE TABLE " + tableName)) {
+            statement.executeUpdate();
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }

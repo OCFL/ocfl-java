@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,6 +24,7 @@ public class DbObjectLockTest {
     public static final String TABLE_1 = "ocfl_object_lock";
     public static final String TABLE_2 = "obj_lock_2";
 
+    private String tableName;
     private ComboPooledDataSource dataSource;
     private ExecutorService executor;
 
@@ -36,6 +38,7 @@ public class DbObjectLockTest {
 
     @AfterEach
     public void after() {
+        truncateObjectLock();
         dataSource.close();
         executor.shutdown();
     }
@@ -43,6 +46,7 @@ public class DbObjectLockTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldAcquireLockWhenDoesNotExist(String tableName) {
+        this.tableName = tableName;
         var lock = createLock(tableName);
         var result = new AtomicBoolean(false);
         lock.doInWriteLock("obj1", () -> {
@@ -54,6 +58,7 @@ public class DbObjectLockTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldAcquireLockWhenAlreadyExistsButNotHeld(String tableName) {
+        this.tableName = tableName;
         var lock = createLock(tableName);
         var result = new AtomicBoolean(false);
         lock.doInWriteLock("obj1", () -> {
@@ -70,6 +75,7 @@ public class DbObjectLockTest {
     @ParameterizedTest
     @ValueSource(strings = {TABLE_1, TABLE_2})
     public void shouldThrowExceptionWhenCannotAcquireLock(String tableName) throws ExecutionException, InterruptedException {
+        this.tableName = tableName;
         var lock = createLock(tableName);
 
         var phaser = new Phaser(2);
@@ -96,6 +102,15 @@ public class DbObjectLockTest {
 
         assertFalse(result.get());
         future.get();
+    }
+
+    private void truncateObjectLock() {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.prepareStatement("TRUNCATE TABLE " + tableName)) {
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private ObjectLock createLock(String tableName) {
