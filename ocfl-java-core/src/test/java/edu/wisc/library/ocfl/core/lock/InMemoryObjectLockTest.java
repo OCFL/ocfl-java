@@ -3,11 +3,13 @@ package edu.wisc.library.ocfl.core.lock;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.exception.LockException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -25,25 +27,33 @@ public class InMemoryObjectLockTest {
     @BeforeEach
     public void setup() {
         cache = Caffeine.newBuilder().weakValues().build();
-        lock = new InMemoryObjectLock(cache, 2, TimeUnit.SECONDS);
-        executor = Executors.newFixedThreadPool(2);
+        lock = new InMemoryObjectLock(cache, 250, TimeUnit.MILLISECONDS);
+        executor = Executors.newCachedThreadPool();
+    }
+
+    @AfterEach
+    public void after() {
+        executor.shutdown();
     }
 
     @Test
     public void shouldRemoveValuesWhenNoLongerReferenced() throws Exception {
         var id = "obj1";
 
+        var phaser = new Phaser(2);
+
         var future = executor.submit(() -> {
             lock.doInWriteLock(id, () -> {
+                phaser.arriveAndAwaitAdvance();
                 try {
-                    TimeUnit.SECONDS.sleep(3);
+                    TimeUnit.MILLISECONDS.sleep(500);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             });
         });
 
-        TimeUnit.MILLISECONDS.sleep(100);
+        phaser.arriveAndAwaitAdvance();
 
         assertTrue(cache.asMap().containsKey(id));
 
@@ -58,20 +68,23 @@ public class InMemoryObjectLockTest {
     }
 
     @Test
-    public void shouldBlockWhenLockAlreadyHeld() throws Exception {
+    public void shouldBlockWhenLockAlreadyHeld() {
         var id = "obj1";
+
+        var phaser = new Phaser(2);
 
         executor.submit(() -> {
             lock.doInWriteLock(id, () -> {
+                phaser.arriveAndAwaitAdvance();
                 try {
-                    TimeUnit.SECONDS.sleep(3);
+                    TimeUnit.MILLISECONDS.sleep(500);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             });
         });
 
-        TimeUnit.MILLISECONDS.sleep(100);
+        phaser.arriveAndAwaitAdvance();
 
         assertThrows(LockException.class, () -> {
             lock.doInWriteLock(id, () -> {

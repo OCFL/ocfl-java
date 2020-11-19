@@ -54,6 +54,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseObjectDetailsDatabase.class);
 
+    private final String tableName;
     private final DataSource dataSource;
     private final boolean storeInventory;
     private final long waitMillis;
@@ -61,13 +62,40 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private final String lockFailCode;
     private final String duplicateKeyCode;
 
-    public BaseObjectDetailsDatabase(DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit,
-                                     String lockFailCode, String duplicateKeyCode) {
+    private final String selectDetailsQuery;
+    private final String deleteDetailsQuery;
+    private final String rowLockQuery;
+    private final String updateDetailsQuery;
+    private final String insertDetailsQuery;
+    private final String selectDigestQuery;
+
+    public BaseObjectDetailsDatabase(String tableName,
+                                     DataSource dataSource,
+                                     boolean storeInventory,
+                                     long waitTime,
+                                     TimeUnit timeUnit,
+                                     String lockFailCode,
+                                     String duplicateKeyCode) {
+        this.tableName = Enforce.notBlank(tableName, "tableName cannot be blank");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.storeInventory = storeInventory;
         this.lockFailCode = Enforce.notBlank(lockFailCode, "lockFailCode cannot be blank");
         this.duplicateKeyCode = Enforce.notBlank(duplicateKeyCode, "duplicateKeyCode cannot be blank");
         this.waitMillis = timeUnit.toMillis(waitTime);
+
+        this.selectDetailsQuery = String.format("SELECT" +
+                " object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp" +
+                " FROM %s WHERE object_id = ?", tableName);
+        this.deleteDetailsQuery = String.format("DELETE FROM %s WHERE object_id = ?", tableName);
+        this.rowLockQuery = String.format("SELECT version_id, revision_id FROM %s WHERE object_id = ? FOR UPDATE", tableName);
+        this.updateDetailsQuery = String.format("UPDATE %s SET" +
+                " (version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
+                " = (?, ?, ?, ?, ?, ?, ?)" +
+                " WHERE object_id = ?", tableName);
+        this.insertDetailsQuery = String.format("INSERT INTO %s" +
+                " (object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", tableName);
+        this.selectDigestQuery = String.format("SELECT inventory_digest FROM %s WHERE object_id = ?", tableName);
     }
 
     /**
@@ -89,9 +117,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         OcflObjectDetails details = null;
 
         try (var connection = dataSource.getConnection()) {
-            try (var statement = connection.prepareStatement("SELECT" +
-                    " object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp" +
-                    " FROM ocfl_object_details WHERE object_id = ?")) {
+            try (var statement = connection.prepareStatement(selectDetailsQuery)) {
                 statement.setString(1, objectId);
 
                 try (var rs = statement.executeQuery()) {
@@ -164,7 +190,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
             connection.setAutoCommit(false);
             setLockWaitTimeout(connection, waitMillis);
 
-            try (var statement = connection.prepareStatement("DELETE FROM ocfl_object_details WHERE object_id = ?")) {
+            try (var statement = connection.prepareStatement(deleteDetailsQuery)) {
                 statement.setString(1, objectId);
                 statement.executeUpdate();
                 connection.commit();
@@ -201,7 +227,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     }
 
     private void insertInventory(Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream) throws SQLException {
-        try (var lockStatement = connection.prepareStatement("SELECT version_id, revision_id FROM ocfl_object_details WHERE object_id = ? FOR UPDATE")) {
+        try (var lockStatement = connection.prepareStatement(rowLockQuery)) {
             lockStatement.setString(1, inventory.getId());
 
             try (var lockResult = lockStatement.executeQuery()) {
@@ -222,10 +248,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     }
 
     private void executeUpdateDetails(Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream) throws SQLException {
-        try (var insertStatement = connection.prepareStatement("UPDATE ocfl_object_details SET" +
-                " (version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
-                " = (?, ?, ?, ?, ?, ?, ?)" +
-                " WHERE object_id = ?")) {
+        try (var insertStatement = connection.prepareStatement(updateDetailsQuery)) {
             insertStatement.setString(1, inventory.getHead().toString());
             insertStatement.setString(2, inventory.getObjectRootPath());
             insertStatement.setString(3, revisionNumStr(inventory.getRevisionNum()));
@@ -244,9 +267,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     }
 
     private void executeInsertDetails(Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream) throws SQLException {
-        try (var insertStatement = connection.prepareStatement("INSERT INTO ocfl_object_details" +
-                " (object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+        try (var insertStatement = connection.prepareStatement(insertDetailsQuery)) {
             insertStatement.setString(1, inventory.getId());
             insertStatement.setString(2, inventory.getHead().toString());
             insertStatement.setString(3, inventory.getObjectRootPath());
@@ -271,7 +292,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
     private String retrieveDigest(String objectId) {
         try (var connection = dataSource.getConnection()) {
-            try (var statement = connection.prepareStatement("SELECT inventory_digest FROM ocfl_object_details WHERE object_id = ?")) {
+            try (var statement = connection.prepareStatement(selectDigestQuery)) {
                 statement.setString(1, objectId);
 
                 try (var resultSet = statement.executeQuery()) {

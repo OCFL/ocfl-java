@@ -11,8 +11,9 @@ import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
@@ -24,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -34,10 +36,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ObjectDetailsDatabaseTest {
 
+    public static final String TABLE_1 = "ocfl_object_details";
+    public static final String TABLE_2 = "obj_details_2";
+    
     @TempDir
     public Path tempDir;
 
-    private ObjectDetailsDatabase database;
     private ComboPooledDataSource dataSource;
     private InventoryMapper inventoryMapper;
     private ExecutorService executor;
@@ -46,24 +50,21 @@ public class ObjectDetailsDatabaseTest {
     public void setup() {
         dataSource = new ComboPooledDataSource();
         dataSource.setJdbcUrl("jdbc:h2:mem:test");
-//        dataSource.setJdbcUrl( "jdbc:postgresql://localhost/ocfl" );
-//        dataSource.setUser("pwinckles");
-//        dataSource.setPassword("");
 
-        database = new ObjectDetailsDatabaseBuilder().dataSource(dataSource).build();
         inventoryMapper = InventoryMapper.prettyPrintMapper();
-        executor = Executors.newFixedThreadPool(2);
-
-        truncateObjectDetails(dataSource);
+        executor = Executors.newCachedThreadPool();
     }
 
     @AfterEach
     public void after() {
+        dataSource.close();
         executor.shutdown();
     }
 
-    @Test
-    public void shouldAddDetailsWhenDoNotExist() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldAddDetailsWhenDoNotExist(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -74,8 +75,10 @@ public class ObjectDetailsDatabaseTest {
         assertObjectDetails(inventory, digest, invBytes, details);
     }
 
-    @Test
-    public void shouldUpdateDetailsWhenDetailsExist() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldUpdateDetailsWhenDetailsExist(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -97,14 +100,18 @@ public class ObjectDetailsDatabaseTest {
         assertObjectDetails(inventory, digest, invBytes, details);
     }
 
-    @Test
-    public void shouldReturnNullWhenDetailsDoNotExist() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldReturnNullWhenDetailsDoNotExist(String tableName) {
+        var database = createDatabase(tableName);
         var details = database.retrieveObjectDetails("o1");
         assertNull(details);
     }
 
-    @Test
-    public void shouldApplyUpdateWhenRunnableSucceeds() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldApplyUpdateWhenRunnableSucceeds(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -127,8 +134,10 @@ public class ObjectDetailsDatabaseTest {
         assertObjectDetails(inventory, digest, invBytes, details);
     }
 
-    @Test
-    public void shouldRollbackDbChangesWhenRunnableFails() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldRollbackDbChangesWhenRunnableFails(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -156,8 +165,10 @@ public class ObjectDetailsDatabaseTest {
         assertObjectDetails(inventory, digest, invBytes, details);
     }
 
-    @Test
-    public void shouldDeleteDetailsWhenExist() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldDeleteDetailsWhenExist(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -173,15 +184,19 @@ public class ObjectDetailsDatabaseTest {
         assertNull(details);
     }
 
-    @Test
-    public void shouldDoNothingWhenDeleteAndDetailsDoNotExist() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldDoNothingWhenDeleteAndDetailsDoNotExist(String tableName) {
+        var database = createDatabase(tableName);
         database.deleteObjectDetails("o1");
         var details = database.retrieveObjectDetails("o1");
         assertNull(details);
     }
 
-    @Test
-    public void shouldNotStoreInventoryBytesWhenFeatureDisabled() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldNotStoreInventoryBytesWhenFeatureDisabled(String tableName) {
+        var database = createDatabase(tableName);
         database = new ObjectDetailsDatabaseBuilder().storeInventory(false).dataSource(dataSource).build();
 
         var inventory = basicInventory();
@@ -194,8 +209,10 @@ public class ObjectDetailsDatabaseTest {
         assertObjectDetails(inventory, digest, null, details);
     }
 
-    @Test
-    public void shouldRejectUpdateWhenNewInventoryVersionIsNotNextVersion() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldRejectUpdateWhenNewInventoryVersionIsNotNextVersion(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -220,8 +237,10 @@ public class ObjectDetailsDatabaseTest {
         });
     }
 
-    @Test
-    public void shouldRejectUpdateWhenNewInventoryVersionIsOldVersion() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldRejectUpdateWhenNewInventoryVersionIsOldVersion(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -246,8 +265,10 @@ public class ObjectDetailsDatabaseTest {
         });
     }
 
-    @Test
-    public void shouldRejectUpdateWhenNewRevisionButNotR1() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldRejectUpdateWhenNewRevisionButNotR1(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
@@ -273,8 +294,10 @@ public class ObjectDetailsDatabaseTest {
         });
     }
 
-    @Test
-    public void shouldRejectUpdateWhenRevisionAndUpdateDifferentVersion() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldRejectUpdateWhenRevisionAndUpdateDifferentVersion(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = Inventory.builderFromStub("o1", new OcflConfig(), "o1")
                 .mutableHead(true)
                 .addFileToManifest("f1", "v1/content/file1.txt")
@@ -303,8 +326,10 @@ public class ObjectDetailsDatabaseTest {
         });
     }
 
-    @Test
-    public void shouldRejectUpdateWhenRevisionAndUpdateNotNextRevision() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldRejectUpdateWhenRevisionAndUpdateNotNextRevision(String tableName) {
+        var database = createDatabase(tableName);
         var inventory = Inventory.builderFromStub("o1", new OcflConfig(), "o1")
                 .mutableHead(true)
                 .addFileToManifest("f1", "v1/content/file1.txt")
@@ -336,26 +361,34 @@ public class ObjectDetailsDatabaseTest {
         });
     }
 
-    @Test
-    public void shouldFailWhenCannotAcquireLock() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldFailWhenCannotAcquireLock(String tableName) throws InterruptedException, ExecutionException {
+        var database = new ObjectDetailsDatabaseBuilder()
+                .waitTime(250, TimeUnit.MILLISECONDS)
+                .dataSource(dataSource)
+                .tableName(tableName)
+                .build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
         var invPath = writeInventory(invBytes);
 
+        var phaser = new Phaser(2);
+
         var future = executor.submit(() -> {
             database.updateObjectDetails(inventory, digest, invPath, () -> {
                 try {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(3));
+                    phaser.arriveAndAwaitAdvance();
+                    TimeUnit.MILLISECONDS.sleep(500);
                 } catch (InterruptedException e) {
                     Thread.interrupted();
                 }
             });
         });
 
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        phaser.arriveAndAwaitAdvance();
 
         assertThrows(LockException.class, () -> {
             database.addObjectDetails(inventory, digest, invBytes);
@@ -364,9 +397,14 @@ public class ObjectDetailsDatabaseTest {
         future.get();
     }
 
-    @Test
-    public void shouldFailDeleteWhenCannotAcquireLock() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldFailDeleteWhenCannotAcquireLock(String tableName) throws InterruptedException, ExecutionException {
+        var database = new ObjectDetailsDatabaseBuilder()
+                .waitTime(250, TimeUnit.MILLISECONDS)
+                .dataSource(dataSource)
+                .tableName(tableName)
+                .build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -384,17 +422,20 @@ public class ObjectDetailsDatabaseTest {
         var digest2 = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes2);
         var invPath = writeInventory(invBytes2);
 
+        var phaser = new Phaser(2);
+
         var future = executor.submit(() -> {
             database.updateObjectDetails(inv2, digest2, invPath, () -> {
                 try {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(3));
+                    phaser.arriveAndAwaitAdvance();
+                    TimeUnit.MILLISECONDS.sleep(2000);
                 } catch (InterruptedException e) {
                     Thread.interrupted();
                 }
             });
         });
 
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        phaser.arriveAndAwaitAdvance();
 
         assertThrows(LockException.class, () -> {
             database.deleteObjectDetails(inventory.getId());
@@ -403,9 +444,14 @@ public class ObjectDetailsDatabaseTest {
         future.get();
     }
 
-    @Test
-    public void shouldFailWhenConcurrentUpdateAndNew() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldFailWhenConcurrentUpdateAndNew(String tableName) throws InterruptedException, ExecutionException {
+        var database = new ObjectDetailsDatabaseBuilder()
+                .waitTime(250, TimeUnit.MILLISECONDS)
+                .dataSource(dataSource)
+                .tableName(tableName)
+                .build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
@@ -422,26 +468,23 @@ public class ObjectDetailsDatabaseTest {
         var digest2 = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes2);
         var invPath2 = writeInventory(invBytes2);
 
+        var phaser = new Phaser(2);
+
         var future = executor.submit(() -> {
             database.updateObjectDetails(inv2, digest2, invPath2, () -> {
                 try {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(3));
+                    phaser.arriveAndAwaitAdvance();
+                    TimeUnit.MILLISECONDS.sleep(500);
                 } catch (InterruptedException e) {
                     Thread.interrupted();
                 }
             });
         });
 
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        phaser.arriveAndAwaitAdvance();
 
         assertThrows(LockException.class, () -> {
-            database.updateObjectDetails(inventory, digest, invPath, () -> {
-                try {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(3));
-                } catch (InterruptedException e) {
-                    Thread.interrupted();
-                }
-            });
+            database.updateObjectDetails(inventory, digest, invPath, () -> {});
         });
 
         future.get();
@@ -451,17 +494,27 @@ public class ObjectDetailsDatabaseTest {
         assertObjectDetails(inv2, digest2, invBytes2, details);
     }
 
-    @Test
-    public void shouldSucceedWhenConcurrentAddAndSameDigest() throws InterruptedException, ExecutionException {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldSucceedWhenConcurrentAddAndSameDigest(String tableName) throws InterruptedException, ExecutionException {
+        var database = new ObjectDetailsDatabaseBuilder()
+                .waitTime(500, TimeUnit.MILLISECONDS)
+                .dataSource(dataSource)
+                .tableName(tableName)
+                .build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
 
+        var phaser = new Phaser(2);
+
         var future = executor.submit(() -> {
+            phaser.arriveAndAwaitAdvance();
             database.addObjectDetails(inventory, digest, invBytes);
         });
+
+        phaser.arriveAndAwaitAdvance();
 
         database.addObjectDetails(inventory, digest, invBytes);
 
@@ -472,29 +525,35 @@ public class ObjectDetailsDatabaseTest {
         assertObjectDetails(inventory, digest, invBytes, details);
     }
 
-    @Test
-    public void shouldFailWhenConcurrentAddAndDifferentDigest() {
-        database = new ObjectDetailsDatabaseBuilder().waitTime(1, TimeUnit.SECONDS).dataSource(dataSource).build();
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldFailWhenConcurrentAddAndDifferentDigest(String tableName) throws InterruptedException {
+        var database = new ObjectDetailsDatabaseBuilder()
+                .waitTime(1, TimeUnit.SECONDS)
+                .dataSource(dataSource)
+                .tableName(tableName)
+                .build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
 
-        var inv2 = inventory.buildFrom()
-                .addHeadVersion(Version.builder()
-                        .created(OffsetDateTime.now())
-                        .addFile("f1", "file2.txt")
-                        .build())
-                .build();
+        var inv2 = inventory.buildFrom().build();
         var invBytes2 = inventoryBytes(inv2);
-        var digest2 = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes2);
+        var digest2 = "bogus";
+
+        var phaser = new Phaser(3);
 
         var future = executor.submit(() -> {
+            phaser.arriveAndAwaitAdvance();
             database.addObjectDetails(inv2, digest2, invBytes2);
         });
         var future2 = executor.submit(() -> {
+            phaser.arriveAndAwaitAdvance();
             database.addObjectDetails(inventory, digest, invBytes);
         });
+
+        phaser.arriveAndAwaitAdvance();
 
         assertThrows(ObjectOutOfSyncException.class, () -> {
             try {
@@ -543,13 +602,10 @@ public class ObjectDetailsDatabaseTest {
         }
     }
 
-    private void truncateObjectDetails(DataSource dataSource) {
-        try (var connection = dataSource.getConnection();
-             var statement = connection.prepareStatement("TRUNCATE TABLE ocfl_object_details")) {
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    private ObjectDetailsDatabase createDatabase(String tableName) {
+        // want to make sure the defaulting works
+        var name = TABLE_1.equals(tableName) ? null : tableName;
+        return new ObjectDetailsDatabaseBuilder().dataSource(dataSource).tableName(name).build();
     }
 
 }

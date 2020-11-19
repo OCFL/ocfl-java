@@ -44,14 +44,22 @@ public class H2ObjectLock implements ObjectLock {
 
     private static final String OBJECT_LOCK_FAIL = "HYT00";
 
-    private DataSource dataSource;
-    private long waitMillis;
+    private final String tableName;
+    private final DataSource dataSource;
+    private final long waitMillis;
 
-    public H2ObjectLock(DataSource dataSource, long waitTime, TimeUnit timeUnit) {
+    private final String createRowLockQuery;
+    private final String acquireLockQuery;
+
+    public H2ObjectLock(String tableName, DataSource dataSource, long waitTime, TimeUnit timeUnit) {
+        this.tableName = Enforce.notBlank(tableName, "tableName cannot be blank");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         Enforce.expressionTrue(waitTime > -1, waitTime, "waitTime cannot be negative");
         Enforce.notNull(timeUnit, "timeUnit cannot be null");
         this.waitMillis = timeUnit.toMillis(waitTime);
+
+        createRowLockQuery = String.format("MERGE INTO %s (object_id) VALUES (?)", tableName);
+        acquireLockQuery = String.format("SELECT object_id FROM %s WHERE object_id = ? FOR UPDATE", tableName);
     }
 
     /**
@@ -106,8 +114,7 @@ public class H2ObjectLock implements ObjectLock {
     }
 
     private void createLockRow(String objectId, Connection connection) throws SQLException {
-        try (var statement = connection.prepareStatement("MERGE INTO ocfl_object_lock" +
-                     " (object_id) VALUES (?)")) {
+        try (var statement = connection.prepareStatement(createRowLockQuery)) {
             statement.setString(1, objectId);
             statement.executeUpdate();
         }
@@ -124,7 +131,7 @@ public class H2ObjectLock implements ObjectLock {
     }
 
     private PreparedStatement acquireLock(Connection connection) throws SQLException {
-        return connection.prepareStatement("SELECT object_id FROM ocfl_object_lock WHERE object_id = ? FOR UPDATE");
+        return connection.prepareStatement(acquireLockQuery);
     }
 
     private void safeCleanup(Connection connection) {

@@ -2,14 +2,15 @@ package edu.wisc.library.ocfl.core.lock;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.exception.LockException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import javax.sql.DataSource;
-import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -19,7 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DbObjectLockTest {
 
-    private ObjectLock lock;
+    public static final String TABLE_1 = "ocfl_object_lock";
+    public static final String TABLE_2 = "obj_lock_2";
+
     private ComboPooledDataSource dataSource;
     private ExecutorService executor;
 
@@ -27,18 +30,20 @@ public class DbObjectLockTest {
     public void setup() {
         dataSource = new ComboPooledDataSource();
         dataSource.setJdbcUrl("jdbc:h2:mem:test");
-//        dataSource.setJdbcUrl( "jdbc:postgresql://localhost/ocfl" );
-//        dataSource.setUser("pwinckles");
-//        dataSource.setPassword("");
 
-        lock = new ObjectLockBuilder().waitTime(500, TimeUnit.MILLISECONDS).dataSource(dataSource).build();
-        executor = Executors.newFixedThreadPool(2);
-
-        truncateObjectLock(dataSource);
+        executor = Executors.newCachedThreadPool();
     }
 
-    @Test
-    public void shouldAcquireLockWhenDoesNotExist() {
+    @AfterEach
+    public void after() {
+        dataSource.close();
+        executor.shutdown();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldAcquireLockWhenDoesNotExist(String tableName) {
+        var lock = createLock(tableName);
         var result = new AtomicBoolean(false);
         lock.doInWriteLock("obj1", () -> {
             result.set(true);
@@ -46,8 +51,10 @@ public class DbObjectLockTest {
         assertTrue(result.get());
     }
 
-    @Test
-    public void shouldAcquireLockWhenAlreadyExistsButNotHeld() {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldAcquireLockWhenAlreadyExistsButNotHeld(String tableName) {
+        var lock = createLock(tableName);
         var result = new AtomicBoolean(false);
         lock.doInWriteLock("obj1", () -> {
             result.set(true);
@@ -60,19 +67,25 @@ public class DbObjectLockTest {
         assertFalse(result.get());
     }
 
-    @Test
-    public void shouldThrowExceptionWhenCannotAcquireLock() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @ValueSource(strings = {TABLE_1, TABLE_2})
+    public void shouldThrowExceptionWhenCannotAcquireLock(String tableName) throws ExecutionException, InterruptedException {
+        var lock = createLock(tableName);
+
+        var phaser = new Phaser(2);
+
         var future = executor.submit(() -> {
             lock.doInWriteLock("obj1", () -> {
+                phaser.arriveAndAwaitAdvance();
                 try {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(3));
+                    Thread.sleep(TimeUnit.MILLISECONDS.toMillis(500));
                 } catch (InterruptedException e) {
                     Thread.interrupted();
                 }
             });
         });
 
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        phaser.arriveAndAwaitAdvance();
 
         var result = new AtomicBoolean(false);
         assertThrows(LockException.class, () -> {
@@ -85,13 +98,13 @@ public class DbObjectLockTest {
         future.get();
     }
 
-    private void truncateObjectLock(DataSource dataSource) {
-        try (var connection = dataSource.getConnection();
-             var statement = connection.prepareStatement("TRUNCATE TABLE ocfl_object_lock")) {
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    private ObjectLock createLock(String tableName) {
+        var name = TABLE_1.equals(tableName) ? null : tableName;
+        return new ObjectLockBuilder()
+                .waitTime(250, TimeUnit.MILLISECONDS)
+                .dataSource(dataSource)
+                .tableName(name)
+                .build();
     }
 
 }

@@ -44,14 +44,22 @@ public class PostgresObjectLock implements ObjectLock {
 
     private static final String OBJECT_LOCK_FAIL = "55P03";
 
-    private DataSource dataSource;
-    private long waitMillis;
+    private final String tableName;
+    private final DataSource dataSource;
+    private final long waitMillis;
 
-    public PostgresObjectLock(DataSource dataSource, long waitTime, TimeUnit timeUnit) {
+    private final String createRowLockQuery;
+    private final String acquireLockQuery;
+
+    public PostgresObjectLock(String tableName, DataSource dataSource, long waitTime, TimeUnit timeUnit) {
+        this.tableName = Enforce.notBlank(tableName, "tableName cannot be blank");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         Enforce.expressionTrue(waitTime > -1, waitTime, "waitTime cannot be negative");
         Enforce.notNull(timeUnit, "timeUnit cannot be null");
         this.waitMillis = timeUnit.toMillis(waitTime);
+
+        this.createRowLockQuery = String.format("INSERT INTO %s (object_id) VALUES (?) ON CONFLICT (object_id) DO NOTHING", tableName);
+        this.acquireLockQuery = String.format("SELECT object_id FROM %s WHERE object_id = ? FOR UPDATE", tableName);
     }
 
     /**
@@ -103,9 +111,7 @@ public class PostgresObjectLock implements ObjectLock {
     }
 
     private void createLockRow(String objectId, Connection connection) throws SQLException {
-        try (var statement = connection.prepareStatement("INSERT INTO ocfl_object_lock" +
-                " (object_id) VALUES (?)" +
-                " ON CONFLICT (object_id) DO NOTHING")) {
+        try (var statement = connection.prepareStatement(createRowLockQuery)) {
             statement.setString(1, objectId);
             statement.executeUpdate();
         }
@@ -122,7 +128,7 @@ public class PostgresObjectLock implements ObjectLock {
     }
 
     private PreparedStatement acquireLock(Connection connection) throws SQLException {
-        return connection.prepareStatement("SELECT object_id FROM ocfl_object_lock WHERE object_id = ? FOR UPDATE");
+        return connection.prepareStatement(acquireLockQuery);
     }
 
     private void safeCleanup(Connection connection) {

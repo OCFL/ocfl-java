@@ -44,37 +44,40 @@ public class TableCreator {
 
     private static final Logger LOG = LoggerFactory.getLogger(TableCreator.class);
 
-    private static final String LOCK_TABLE_FILE = "ocfl_object_lock.sql";
-    private static final String OBJECT_DETAILS_TABLE_FILE = "ocfl_object_details.sql";
+    private static final String LOCK_TABLE_FILE = "ocfl_object_lock.ddl.tmpl";
+    private static final String OBJECT_DETAILS_TABLE_FILE = "ocfl_object_details.ddl.tmpl";
 
-    private Map<DbType, String> dbScriptDir = Map.of(
+    private final Map<DbType, String> dbScriptDir = Map.of(
             DbType.POSTGRES, "db/postgresql",
             DbType.H2, "db/h2"
     );
 
-    private DbType dbType;
-    private DataSource dataSource;
+    private final DbType dbType;
+    private final DataSource dataSource;
 
     public TableCreator(DbType dbType, DataSource dataSource) {
         this.dbType = Enforce.notNull(dbType, "dbType cannot be null");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
     }
 
-    public void createObjectLockTable() {
-        createTable(LOCK_TABLE_FILE);
+    public void createObjectLockTable(String tableName) {
+        createTable(tableName, LOCK_TABLE_FILE);
     }
 
-    public void createObjectDetailsTable() {
-        createTable(OBJECT_DETAILS_TABLE_FILE);
+    public void createObjectDetailsTable(String tableName) {
+        createTable(tableName, OBJECT_DETAILS_TABLE_FILE);
     }
 
-    private void createTable(String fileName) {
+    private void createTable(String tableName, String fileName) {
+        Enforce.notBlank(tableName, "tableName cannot be blank");
         try (var connection = dataSource.getConnection()) {
             var filePath = getSqlFilePath(fileName);
             LOG.debug("Loading {}", filePath);
             if (filePath != null) {
                 try (var stream = this.getClass().getResourceAsStream("/" + filePath)) {
-                    try (var statement = connection.prepareStatement(streamToString(stream))) {
+                    var ddlTemplate = streamToString(stream);
+                    var ddl = String.format(ddlTemplate, tableName);
+                    try (var statement = connection.prepareStatement(ddl)) {
                         statement.executeUpdate();
                     }
                 }

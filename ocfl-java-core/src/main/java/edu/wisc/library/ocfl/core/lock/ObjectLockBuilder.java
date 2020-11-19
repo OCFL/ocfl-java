@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.core.lock;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.db.DbType;
+import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.db.TableCreator;
 
 import javax.sql.DataSource;
@@ -37,9 +38,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class ObjectLockBuilder {
 
+    private static final String DEFAULT_TABLE_NAME = "ocfl_object_lock";
+
     private long waitTime;
     private TimeUnit timeUnit;
     private DataSource dataSource;
+    private String tableName;
 
     public ObjectLockBuilder() {
         waitTime = 10;
@@ -71,6 +75,17 @@ public class ObjectLockBuilder {
     }
 
     /**
+     * Sets the name of the table to use for object locking. Default: ocfl_object_lock
+     *
+     * @param tableName the table name to use
+     * @return builder
+     */
+    public ObjectLockBuilder tableName(String tableName) {
+        this.tableName = tableName;
+        return this;
+    }
+
+    /**
      * Constructs a new {@link ObjectLock}. If a DataSource was set, then a DB lock is created; otherwise, an in-memory
      * lock is used.
      *
@@ -87,21 +102,23 @@ public class ObjectLockBuilder {
     private ObjectLock buildDbLock() {
         Enforce.notNull(dataSource, "dataSource cannot be null");
 
+        var resolvedTableName = tableName == null ? DEFAULT_TABLE_NAME : tableName;
+
         var dbType = DbType.fromDataSource(dataSource);
         ObjectLock lock;
 
         switch (dbType) {
             case POSTGRES:
-                lock = new PostgresObjectLock(dataSource, waitTime, timeUnit);
+                lock = new PostgresObjectLock(resolvedTableName, dataSource, waitTime, timeUnit);
                 break;
             case H2:
-                lock = new H2ObjectLock(dataSource, waitTime, timeUnit);
+                lock = new H2ObjectLock(resolvedTableName, dataSource, waitTime, timeUnit);
                 break;
             default:
                 throw new OcflJavaException(String.format("Database type %s is not mapped to an ObjectLock implementation.", dbType));
         }
 
-        new TableCreator(dbType, dataSource).createObjectLockTable();
+        new TableCreator(dbType, dataSource).createObjectLockTable(resolvedTableName);
 
         return lock;
     }

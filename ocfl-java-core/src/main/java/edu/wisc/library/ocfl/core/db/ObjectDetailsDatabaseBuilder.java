@@ -35,10 +35,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class ObjectDetailsDatabaseBuilder {
 
+    private static final String DEFAULT_TABLE_NAME = "ocfl_object_details";
+
     private boolean storeInventory;
     private long waitTime;
     private TimeUnit timeUnit;
     private DataSource dataSource;
+    private String tableName;
 
     public ObjectDetailsDatabaseBuilder() {
         storeInventory = true;
@@ -82,6 +85,17 @@ public class ObjectDetailsDatabaseBuilder {
     }
 
     /**
+     * Sets the name of the table to use to store object details. Default: ocfl_object_details
+     *
+     * @param tableName the table name to use
+     * @return builder
+     */
+    public ObjectDetailsDatabaseBuilder tableName(String tableName) {
+        this.tableName = tableName;
+        return this;
+    }
+
+    /**
      * Constructs a new {@link ObjectDetailsDatabase} instance using the given dataSource. If the database does not
      * already contain an object details table, it attempts to create one.
      *
@@ -90,21 +104,23 @@ public class ObjectDetailsDatabaseBuilder {
     public ObjectDetailsDatabase build() {
         Enforce.notNull(dataSource, "dataSource cannot be null");
 
+        var resolvedTableName = tableName == null ? DEFAULT_TABLE_NAME : tableName;
+
         var dbType = DbType.fromDataSource(dataSource);
         ObjectDetailsDatabase database;
 
         switch (dbType) {
             case POSTGRES:
-                database = new PostgresObjectDetailsDatabase(dataSource, storeInventory, waitTime, timeUnit);
+                database = new PostgresObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
             case H2:
-                database = new H2ObjectDetailsDatabase(dataSource, storeInventory, waitTime, timeUnit);
+                database = new H2ObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
             default:
                 throw new OcflJavaException(String.format("Database type %s is not mapped to an ObjectDetailsDatabase implementation.", dbType));
         }
 
-        new TableCreator(dbType, dataSource).createObjectDetailsTable();
+        new TableCreator(dbType, dataSource).createObjectDetailsTable(resolvedTableName);
 
         return database;
     }
