@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.core.lock;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.exception.LockException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,16 +21,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DbObjectLockTest {
 
+    private static ComboPooledDataSource dataSource;
+
     private String tableName;
-    private ComboPooledDataSource dataSource;
     private ExecutorService executor;
     private ObjectLock lock;
+
+    @BeforeAll
+    public static void beforeAll() {
+        dataSource = new ComboPooledDataSource();
+        dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
+        dataSource.setUser(System.getProperty("db.user", ""));
+        dataSource.setPassword(System.getProperty("db.password", ""));
+    }
 
     @BeforeEach
     public void setup() {
         tableName = "lock_" + UUID.randomUUID().toString().replaceAll("-", "");
-        dataSource = new ComboPooledDataSource();
-        dataSource.setJdbcUrl("jdbc:h2:mem:test");
 
         lock = createLock(tableName);
         executor = Executors.newCachedThreadPool();

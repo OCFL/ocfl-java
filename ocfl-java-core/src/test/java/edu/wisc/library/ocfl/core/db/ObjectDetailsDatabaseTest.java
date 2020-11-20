@@ -10,6 +10,7 @@ import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -37,17 +38,24 @@ public class ObjectDetailsDatabaseTest {
     @TempDir
     public Path tempDir;
 
+    private static ComboPooledDataSource dataSource;
+
     private String tableName;
-    private ComboPooledDataSource dataSource;
     private InventoryMapper inventoryMapper;
     private ExecutorService executor;
     private ObjectDetailsDatabase database;
 
+    @BeforeAll
+    public static void beforeAll() {
+        dataSource = new ComboPooledDataSource();
+        dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
+        dataSource.setUser(System.getProperty("db.user", ""));
+        dataSource.setPassword(System.getProperty("db.password", ""));
+    }
+
     @BeforeEach
     public void setup() {
         tableName = "details_" + UUID.randomUUID().toString().replaceAll("-", "");
-        dataSource = new ComboPooledDataSource();
-        dataSource.setJdbcUrl("jdbc:h2:mem:test");
 
         database = createDatabase(tableName);
         inventoryMapper = InventoryMapper.prettyPrintMapper();
@@ -179,7 +187,11 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldNotStoreInventoryBytesWhenFeatureDisabled() {
-        database = new ObjectDetailsDatabaseBuilder().storeInventory(false).dataSource(dataSource).build();
+        database = new ObjectDetailsDatabaseBuilder()
+                .storeInventory(false)
+                .dataSource(dataSource)
+                .tableName(tableName)
+                .build();
 
         var inventory = basicInventory();
         var invBytes = inventoryBytes(inventory);

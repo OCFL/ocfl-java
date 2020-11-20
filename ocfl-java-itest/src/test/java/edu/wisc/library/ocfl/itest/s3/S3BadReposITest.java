@@ -11,15 +11,15 @@ import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.BadReposITest;
 import edu.wisc.library.ocfl.itest.ITestHelper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import javax.sql.DataSource;
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 public class S3BadReposITest extends BadReposITest {
 
@@ -28,20 +28,26 @@ public class S3BadReposITest extends BadReposITest {
 
     private final S3Client s3Client = S3_MOCK.createS3ClientV2();
 
+    private static ComboPooledDataSource dataSource;
+
     private S3ITestHelper s3Helper;
-    private ComboPooledDataSource dataSource;
     private Set<String> createdBuckets = new HashSet<>();
+
+    @BeforeAll
+    public static void beforeAll() {
+        dataSource = new ComboPooledDataSource();
+        dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
+        dataSource.setUser(System.getProperty("db.user", ""));
+        dataSource.setPassword(System.getProperty("db.password", ""));
+    }
 
     @Override
     protected void onBefore() {
         s3Helper = new S3ITestHelper(s3Client);
-        dataSource = new ComboPooledDataSource();
-        dataSource.setJdbcUrl("jdbc:h2:mem:test");
     }
 
     @Override
     protected void onAfter() {
-        truncateObjectDetails(dataSource);
         deleteBuckets();
     }
 
@@ -52,8 +58,8 @@ public class S3BadReposITest extends BadReposITest {
         var repo = new OcflRepositoryBuilder()
                 .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
                 .inventoryCache(new NoOpCache<>())
-                .objectLock(lock -> lock.dataSource(dataSource))
-                .objectDetailsDb(db -> db.dataSource(dataSource))
+                .objectLock(lock -> lock.dataSource(dataSource).tableName(lockTable()))
+                .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
                 .cloudStorage(storage -> storage
@@ -76,15 +82,6 @@ public class S3BadReposITest extends BadReposITest {
         });
     }
 
-    private void truncateObjectDetails(DataSource dataSource) {
-        try (var connection = dataSource.getConnection();
-             var statement = connection.prepareStatement("TRUNCATE TABLE ocfl_object_details")) {
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private void createBucket(String name) {
         if (!createdBuckets.contains(name)) {
             s3Client.createBucket(CreateBucketRequest.builder().bucket(name).build());
@@ -96,6 +93,14 @@ public class S3BadReposITest extends BadReposITest {
         createdBuckets.forEach(bucket -> {
             s3Helper.deleteBucket(bucket);
         });
+    }
+
+    private String detailsTable() {
+        return "details_" + UUID.randomUUID().toString().replaceAll("-", "");
+    }
+
+    private String lockTable() {
+        return "lock_" + UUID.randomUUID().toString().replaceAll("-", "");
     }
 
 }
