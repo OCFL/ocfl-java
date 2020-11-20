@@ -15,7 +15,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,6 +49,7 @@ public class ObjectDetailsDatabaseTest {
     @BeforeEach
     public void setup() {
         dataSource = new ComboPooledDataSource();
+        dataSource.hardReset();
         dataSource.setJdbcUrl("jdbc:h2:mem:test");
 
         inventoryMapper = InventoryMapper.prettyPrintMapper();
@@ -59,7 +59,7 @@ public class ObjectDetailsDatabaseTest {
     @AfterEach
     public void after() {
         truncateObjectDetails();
-        dataSource.close();
+        dataSource.hardReset();
         executor.shutdown();
     }
 

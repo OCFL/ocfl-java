@@ -39,7 +39,7 @@ public class DbObjectLockTest {
     @AfterEach
     public void after() {
         truncateObjectLock();
-        dataSource.close();
+        dataSource.hardReset();
         executor.shutdown();
     }
 
