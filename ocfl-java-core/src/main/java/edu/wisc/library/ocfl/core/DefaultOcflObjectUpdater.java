@@ -119,7 +119,14 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             ((FixityCheckInputStream) input).checkFixity();
         }
 
-        var digest = Bytes.wrap(digestInput.getMessageDigest().digest()).encodeHex();
+        String digest;
+
+        if (digestInput instanceof FixityCheckInputStream) {
+            digest = ((FixityCheckInputStream) digestInput).getActualDigestValue().get();
+        } else {
+            digest = Bytes.wrap(digestInput.getMessageDigest().digest()).encodeHex();
+        }
+
         var result = inventoryUpdater.addFile(digest, destinationPath, options);
 
         if (!result.isNew()) {
@@ -266,6 +273,10 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         if (input instanceof DigestInputStream) {
             var digestAlgorithm = ((DigestInputStream) input).getMessageDigest().getAlgorithm();
             if (inventory.getDigestAlgorithm().getJavaStandardName().equalsIgnoreCase(digestAlgorithm)) {
+                if (input instanceof FixityCheckInputStream) {
+                    // Need to ensure fixity checking is enabled so that the digest is calculated
+                    ((FixityCheckInputStream) input).enableFixityCheck(true);
+                }
                 return (DigestInputStream) input;
             }
         }

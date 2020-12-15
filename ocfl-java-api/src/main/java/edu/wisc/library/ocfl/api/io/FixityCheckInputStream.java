@@ -34,6 +34,7 @@ import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
 
 /**
  * Wrapper around Java's DigestInputStream to compute a digest while streaming data, and then verify the fixity of the data.
@@ -43,6 +44,7 @@ public class FixityCheckInputStream extends DigestInputStream {
 
     private boolean enabled = true;
     private final String expectedDigestValue;
+    private String actualDigestValue;
 
     /**
      * @param inputStream the underlying stream
@@ -65,8 +67,8 @@ public class FixityCheckInputStream extends DigestInputStream {
     }
 
     /**
-     * Performs a fixity check and throws an exception if the check fails. This should only be called after the entire
-     * contents of the stream has been read.
+     * Performs a fixity check and throws an exception if the check fails. This method MUST NOT be called before the
+     * entire stream has been read, doing so will invalidate the digest.
      *
      * <p>If the check is disabled, nothing happens
      *
@@ -74,7 +76,7 @@ public class FixityCheckInputStream extends DigestInputStream {
      */
     public void checkFixity() {
         if (enabled) {
-            var actualDigest = Bytes.wrap(digest.digest()).encodeHex();
+            var actualDigest = getActualDigestValue().get();
             if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
                 throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
                         digest.getAlgorithm(), expectedDigestValue, actualDigest));
@@ -88,6 +90,20 @@ public class FixityCheckInputStream extends DigestInputStream {
      */
     public String getExpectedDigestValue() {
         return expectedDigestValue;
+    }
+
+    /**
+     * Returns the hex encoded digest value of the input stream. This method MUST NOT be called before the entire
+     * stream has been read, doing so will invalidate the digest. A digest will not be returned if the fixity check
+     * is disabled.
+     *
+     * @return the digest of the stream
+     */
+    public Optional<String> getActualDigestValue() {
+        if (enabled && actualDigestValue == null) {
+            actualDigestValue = Bytes.wrap(digest.digest()).encodeHex();
+        }
+        return Optional.of(actualDigestValue);
     }
 
     /**

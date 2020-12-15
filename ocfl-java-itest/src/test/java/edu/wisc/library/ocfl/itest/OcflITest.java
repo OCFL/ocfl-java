@@ -29,6 +29,7 @@ import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -37,9 +38,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.DigestInputStream;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -124,6 +127,50 @@ public abstract class OcflITest {
 
     protected void onAfter() {
 
+    }
+
+    @Test
+    public void writeInputStreamWithFixityCheck() throws IOException {
+        var repoName = "input-stream-fixity";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "obj1";
+
+        var file1Contents = "... contents of first file ...";
+        var file1Sha512 = "6407d5ecc067dad1a2a3c75d088ecdab97d4df5a580a3bbc1b190ad988cea529b92eab11131fd2f5c0b40fa5891eec979e7e5e96b6bed38e6dddde7a20722345";
+        var inputStream1 = new FixityCheckInputStream(streamString(file1Contents), DigestAlgorithm.sha512, file1Sha512);
+
+        var file2Contents = "... contents of second file ...";
+        var file2Sha512 = "d173736e7984e4439cab8d0bd6665e8f9a3aefc4d518a5ed5a3a46e05da40fa5803ac5dc52c9b17d302e12525619a9b6076f33a0c80b558bff051812800e0875";
+        var inputStream2 = new FixityCheckInputStream(streamString(file2Contents), DigestAlgorithm.sha512, file2Sha512);
+        inputStream2.enableFixityCheck(false);
+
+        var file3Contents = "... contents of third file ...";
+        var file3Sha512 = "f280e67f4142469ac514dd7ad366c6ed629e10b30f6f637e6de36b861c44ba5753d8fe8d589b9b23310df9e9d564a20a06d5f4637bd9f8e66ab628c7cce33e72";
+        var inputStream3 = new DigestInputStream(streamString(file3Contents), DigestAlgorithm.sha512.getMessageDigest());
+
+        repo.updateObject(ObjectVersionId.head(objectId), new VersionInfo(), updater -> {
+            updater.writeFile(inputStream1,"file1");
+            updater.writeFile(inputStream2,"file2");
+            updater.writeFile(inputStream3,"file3");
+        });
+
+        var object = repo.getObject(ObjectVersionId.head(objectId));
+
+        try (var stream = object.getFile("file1").getStream()) {
+            assertEquals(file1Contents, new String(stream.readAllBytes()));
+        }
+        assertEquals(file1Sha512, object.getFile("file1").getFixity().get(DigestAlgorithm.sha512));
+
+        try (var stream = object.getFile("file2").getStream()) {
+            assertEquals(file2Contents, new String(stream.readAllBytes()));
+        }
+        assertEquals(file2Sha512, object.getFile("file2").getFixity().get(DigestAlgorithm.sha512));
+
+        try (var stream = object.getFile("file3").getStream()) {
+            assertEquals(file3Contents, new String(stream.readAllBytes()));
+        }
+        assertEquals(file3Sha512, object.getFile("file3").getFixity().get(DigestAlgorithm.sha512));
     }
 
     @Test
