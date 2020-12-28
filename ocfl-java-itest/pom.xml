@@ -153,13 +153,13 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.5.5</version>
+            <version>1.6.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <version>1.5.5</version>
+            <version>1.6.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
