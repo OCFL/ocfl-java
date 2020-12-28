@@ -6,7 +6,7 @@ import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
@@ -62,7 +62,7 @@ public class S3MutableHeadITest extends MutableHeadITest {
     protected MutableOcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
         createBucket(name);
         var repo = new OcflRepositoryBuilder()
-                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .objectLock(lock -> lock.dataSource(dataSource).tableName(lockTable()))
                 .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))

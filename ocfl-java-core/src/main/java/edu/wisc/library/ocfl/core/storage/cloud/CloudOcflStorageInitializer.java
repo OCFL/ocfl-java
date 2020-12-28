@@ -37,6 +37,7 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflLayout;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -290,7 +291,9 @@ public class CloudOcflStorageInitializer {
     }
 
     private String layoutConfigFile(String extensionName) {
-        return extensionName + ".json";
+        return FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR,
+                extensionName,
+                OcflConstants.EXT_CONFIG_JSON);
     }
 
     private <T> T read(InputStream stream, Class<T> clazz) {

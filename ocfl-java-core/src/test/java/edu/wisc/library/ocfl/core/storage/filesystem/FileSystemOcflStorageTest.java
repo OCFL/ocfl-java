@@ -6,7 +6,7 @@ import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
@@ -51,7 +51,7 @@ public class FileSystemOcflStorageTest {
         stagingDir = Files.createDirectories(workDir.resolve("staging"));
         stagingContentDir = Files.createDirectories(stagingDir.resolve("content"));
 
-        layoutConfig = new HashedTruncatedNTupleConfig();
+        layoutConfig = new HashedNTupleLayoutConfig();
     }
 
     @Test

@@ -41,7 +41,7 @@ var repoDir = Paths.get("ocfl-repo"); // This directory contains the OCFL storag
 var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL versions. It cannot be within the OCFL storage root.
 
 var repo = new OcflRepositoryBuilder()
-        .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
+        .defaultLayoutConfig(new HashedNTupleLayoutConfig())
         .fileSystemStorage(storage -> storage.repositoryRoot(repoDir))
         .workDir(workDir)
         .build();
@@ -81,9 +81,9 @@ it is critical that this directory is located on the same volume as the OCFL sto
 map OCFL object IDs to object root directories within the repository. The layout configuration must be set when creating
 new OCFL repositories, but is not required when opening an existing repository. Storage layouts must be defined in by an
  OCFL extension. Currently, the following extensions are implemented:
-  * **0002-flat-direct-storage-layout**: `FlatLayoutConfig`
-  * **0003-hashed-n-tuple-trees**: `HashedTruncatedNTupleConfig`
-  * **0005-hashed-n-tuple-id-layout**: `HashedTruncatedNTupleIdConfig`
+  * [0002-flat-direct-storage-layout](https://ocfl.github.io/extensions/0002-flat-direct-storage-layout.html): `FlatLayoutConfig`
+  * [0003-hash-and-id-n-tuple-storage-layout](https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html): `HashedNTupleIdEncapsulationLayoutConfig`
+  * [0004-hashed-n-tuple-storage-layout](https://github.com/OCFL/extensions/pull/16): `HashedNTupleLayoutConfig`
  
 ### Optional Properties
 
@@ -169,7 +169,7 @@ Use `CloudOcflStorage.builder()` to create and configure an `OcflStorage` instan
 
 ```java
 var repo = new OcflRepositoryBuilder()
-        .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
+        .defaultLayoutConfig(new HashedNTupleLayoutConfig())
         .contentPathConstraints(ContentPathConstraints.cloud())
         .objectLock(lock -> lock.dataSource(dataSource))
         .objectDetailsDb(db -> db.dataSource(dataSource))

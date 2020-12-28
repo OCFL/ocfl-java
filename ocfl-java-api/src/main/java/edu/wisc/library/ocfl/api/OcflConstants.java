@@ -42,6 +42,7 @@ public final class OcflConstants {
     public static final String INVENTORY_SIDECAR_PREFIX = INVENTORY_FILE + ".";
     public static final String LOGS_DIR = "logs";
     public static final String EXTENSIONS_DIR = "extensions";
+    public static final String EXT_CONFIG_JSON = "config.json";
 
     public static final String OBJECT_NAMASTE_1_0 = "0=" + OcflVersion.OCFL_1_0.getOcflObjectVersion();
 

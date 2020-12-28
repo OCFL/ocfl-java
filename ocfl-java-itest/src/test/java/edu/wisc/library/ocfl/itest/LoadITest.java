@@ -7,7 +7,7 @@ import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -418,7 +418,7 @@ public class LoadITest {
     private OcflRepository createFsRepo() {
         System.out.println("OCFL root: " + tempRoot.toString() + "/ocfl");
         return new OcflRepositoryBuilder()
-                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .storage(FileSystemOcflStorage.builder()
                         .repositoryRoot(UncheckedFiles.createDirectories(tempRoot.resolve("ocfl")))
@@ -435,7 +435,7 @@ public class LoadITest {
         var prefix = UUID.randomUUID().toString();
         // Note this is NOT using a db, which an S3 setup would normally use
         return new OcflRepositoryBuilder()
-                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .storage(CloudOcflStorage.builder()
                         .cloudClient(OcflS3Client.builder()

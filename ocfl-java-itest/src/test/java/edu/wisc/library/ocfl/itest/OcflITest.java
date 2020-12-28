@@ -21,15 +21,14 @@ import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -38,7 +37,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -106,13 +104,13 @@ public abstract class OcflITest {
     }
 
     protected OcflRepository defaultRepo(String name) {
-        return defaultRepo(name, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
+        return defaultRepo(name, builder -> builder.defaultLayoutConfig(new HashedNTupleLayoutConfig()));
     }
 
     protected abstract OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer);
 
     protected OcflRepository existingRepo(String name, Path path) {
-        return existingRepo(name, path, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
+        return existingRepo(name, path, builder -> builder.defaultLayoutConfig(new HashedNTupleLayoutConfig()));
     }
 
     protected abstract OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer);
@@ -814,14 +812,14 @@ public abstract class OcflITest {
 
     @Test
     public void failToInitRepoWhenObjectsStoredUsingDifferentLayout() {
-        var repoName = "repo3";
+        var repoName = "no-layout";
         var repoDir = expectedRepoPath(repoName);
         assertThrows(RepositoryConfigurationException.class, () -> {
             new OcflRepositoryBuilder()
-                    .defaultLayoutConfig(new HashedTruncatedNTupleConfig().setTupleSize(1))
+                    .defaultLayoutConfig(new HashedNTupleLayoutConfig().setTupleSize(1))
                     .inventoryMapper(ITestHelper.testInventoryMapper())
                     .storage(FileSystemOcflStorage.builder().repositoryRoot(repoDir).build())
-                    .workDir(repoDir.resolve("deposit"))
+                    .workDir(workDir)
                     .build();
         });
     }
@@ -1121,7 +1119,7 @@ public abstract class OcflITest {
             repo.describeObject(objectId);
         });
 
-        assertEquals(2, listFilesInRepo(repoName).size());
+        assertEquals(4, listFilesInRepo(repoName).size());
     }
 
     @Test
@@ -1141,7 +1139,7 @@ public abstract class OcflITest {
             repo.describeObject("o4");
         });
 
-        assertEquals(9, listFilesInRepo(repoName).size());
+        assertEquals(11, listFilesInRepo(repoName).size());
     }
 
     @Test
@@ -1547,7 +1545,7 @@ public abstract class OcflITest {
     @Test
     public void hashedIdLayout() {
         var repoName = "hashed-id-layout";
-        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleIdConfig()));
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
 
         var objectIds = List.of("o1",
                 "http://library.wisc.edu/123",

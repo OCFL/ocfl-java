@@ -1,11 +1,12 @@
 package edu.wisc.library.ocfl.itest.filesystem;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
@@ -59,7 +60,7 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void hashedIdLayoutLongEncoded() {
         var repoName = "hashed-id-layout-2";
-        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleIdConfig()));
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
 
         var objectId = "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ";
 
@@ -85,7 +86,7 @@ public class FileSystemOcflITest extends OcflITest {
         repo.purgeObject(objectId);
 
         assertThat(Arrays.asList(repoDir(repoName).toFile().list()).stream().collect(Collectors.toList()),
-                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt", "0003-hashed-n-tuple-trees.json", "ocfl_layout.json"));
+                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt", OcflConstants.EXTENSIONS_DIR, OcflConstants.OCFL_LAYOUT));
     }
 
     @Override
@@ -108,7 +109,7 @@ public class FileSystemOcflITest extends OcflITest {
         }
 
         var builder = new OcflRepositoryBuilder()
-                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .fileSystemStorage(storage -> storage

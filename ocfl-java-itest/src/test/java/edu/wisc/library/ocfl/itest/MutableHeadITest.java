@@ -9,7 +9,7 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.hamcrest.Matchers;
@@ -69,13 +69,13 @@ public abstract class MutableHeadITest {
     }
 
     protected MutableOcflRepository defaultRepo(String name) {
-        return defaultRepo(name, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
+        return defaultRepo(name, builder -> builder.defaultLayoutConfig(new HashedNTupleLayoutConfig()));
     }
 
     protected abstract MutableOcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer);
 
     protected MutableOcflRepository existingRepo(String name, Path path) {
-        return existingRepo(name, path, builder -> builder.defaultLayoutConfig(new HashedTruncatedNTupleConfig()));
+        return existingRepo(name, path, builder -> builder.defaultLayoutConfig(new HashedNTupleLayoutConfig()));
     }
 
     protected abstract MutableOcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer);

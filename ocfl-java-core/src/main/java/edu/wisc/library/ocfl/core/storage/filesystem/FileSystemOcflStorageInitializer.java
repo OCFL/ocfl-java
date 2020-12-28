@@ -246,7 +246,9 @@ public class FileSystemOcflStorageInitializer {
         try {
             objectMapper.writeValue(ocflLayoutPath(repositoryRoot).toFile(), spec);
             if (layoutConfig.hasParameters()) {
-                objectMapper.writeValue(layoutExtensionConfigPath(repositoryRoot, layoutConfig.getExtensionName()).toFile(), layoutConfig);
+                var configFile = layoutExtensionConfigPath(repositoryRoot, layoutConfig.getExtensionName());
+                UncheckedFiles.createDirectories(configFile.getParent());
+                objectMapper.writeValue(configFile.toFile(), layoutConfig);
             }
         } catch (IOException e) {
             throw new OcflIOException(e);
@@ -307,7 +309,9 @@ public class FileSystemOcflStorageInitializer {
     }
 
     private Path layoutExtensionConfigPath(Path repositoryRoot, String extensionName) {
-        return repositoryRoot.resolve(extensionName + ".json");
+        return repositoryRoot.resolve(OcflConstants.EXTENSIONS_DIR)
+                .resolve(extensionName)
+                .resolve(OcflConstants.EXT_CONFIG_JSON);
     }
 
 }

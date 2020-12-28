@@ -3,7 +3,7 @@ package edu.wisc.library.ocfl.itest.filesystem;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.itest.BadReposITest;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 
@@ -11,7 +11,7 @@ public class FileSystemBadReposITest extends BadReposITest {
 
     protected MutableOcflRepository defaultRepo(String name) {
         var repo = new OcflRepositoryBuilder()
-                .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
+                .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .fileSystemStorage(storage -> storage

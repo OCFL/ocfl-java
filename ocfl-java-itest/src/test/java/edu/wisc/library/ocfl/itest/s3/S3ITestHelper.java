@@ -1,8 +1,6 @@
 package edu.wisc.library.ocfl.itest.s3;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
-import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleIdExtension;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -67,11 +65,7 @@ public class S3ITestHelper {
         try (var walk = Files.walk(root)) {
             walk.filter(p -> {
                 var pStr = p.toString();
-                return !(pStr.contains(".gitkeep")
-                        || pStr.contains("deposit")
-                        // TODO remove this once layout an extensions are finalized
-                        || pStr.contains("ocfl_layout")
-                        || pStr.contains(HashedTruncatedNTupleExtension.EXTENSION_NAME));
+                return !pStr.contains(".gitkeep");
             }).filter(p -> Files.isRegularFile(p)).forEach(p -> {
                 paths.add(FileUtil.pathToStringStandardSeparator(root.relativize(p)));
             });
@@ -103,12 +97,7 @@ public class S3ITestHelper {
                 .prefix("")
                 .build());
 
-        return result.contents().stream().map(S3Object::key).filter(k -> {
-            return !(k.contains("ocfl_layout")
-                    // TODO remove when extensions finalized
-                    || k.contains(HashedTruncatedNTupleExtension.EXTENSION_NAME)
-                    || k.contains(HashedTruncatedNTupleIdExtension.EXTENSION_NAME));
-        }).collect(Collectors.toList());
+        return result.contents().stream().map(S3Object::key).collect(Collectors.toList());
     }
 
     private boolean bucketExists(String bucket) {

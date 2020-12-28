@@ -1,0 +1,4 @@
+{
+  "extension" : "0002-flat-direct-storage-layout",
+  "description" : "OCFL object identifiers are mapped directly to directory names that are direct children of the OCFL storage root."
+}

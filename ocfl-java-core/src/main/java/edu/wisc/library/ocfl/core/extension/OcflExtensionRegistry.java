@@ -27,8 +27,8 @@ package edu.wisc.library.ocfl.core.extension;
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
-import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleExtension;
-import edu.wisc.library.ocfl.core.extension.storage.layout.HashedTruncatedNTupleIdExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +42,8 @@ import java.util.Optional;
  *
  * <ul>
  *     <li>0002-flat-direct-storage-layout: {@link FlatLayoutExtension}</li>
- *     <li>0003-hashed-n-tuple-trees: {@link HashedTruncatedNTupleExtension}</li>
- *     <li>0005-hashed-n-tuple-id-layout: {@link HashedTruncatedNTupleIdExtension}</li>
+ *     <li>0003-hash-and-id-n-tuple-storage-layout: {@link HashedNTupleIdEncapsulationLayoutExtension}</li>
+ *     <li>0004-hashed-n-tuple-storage-layout: {@link HashedNTupleLayoutExtension}</li>
  * </ul>
  */
 public final class OcflExtensionRegistry {
@@ -51,8 +51,8 @@ public final class OcflExtensionRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(OcflExtensionRegistry.class);
 
     private static final Map<String, Class<? extends OcflExtension>> REGISTRY = new HashMap<>(Map.of(
-            HashedTruncatedNTupleExtension.EXTENSION_NAME, HashedTruncatedNTupleExtension.class,
-            HashedTruncatedNTupleIdExtension.EXTENSION_NAME, HashedTruncatedNTupleIdExtension.class,
+            HashedNTupleLayoutExtension.EXTENSION_NAME, HashedNTupleLayoutExtension.class,
+            HashedNTupleIdEncapsulationLayoutExtension.EXTENSION_NAME, HashedNTupleIdEncapsulationLayoutExtension.class,
             FlatLayoutExtension.EXTENSION_NAME, FlatLayoutExtension.class
     ));
 

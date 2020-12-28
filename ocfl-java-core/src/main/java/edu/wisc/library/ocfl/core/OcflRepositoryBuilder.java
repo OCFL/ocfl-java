@@ -34,6 +34,9 @@ import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.lock.InMemoryObjectLock;
 import edu.wisc.library.ocfl.core.lock.ObjectLock;
@@ -59,7 +62,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
+ * Constructs a local file system based OCFL repository sensible defaults that can be overridden prior to calling
  * build().
  *
  * <p>Important: The same OcflRepositoryBuilder instance MUST NOT be used to initialize multiple repositories.
@@ -79,7 +82,7 @@ public class OcflRepositoryBuilder {
     private ObjectDetailsDatabase objectDetailsDb;
 
     /**
-     * Constructs a local file system based OCFL repository sensible defaults that can be overriden prior to calling
+     * Constructs a local file system based OCFL repository sensible defaults that can be overridden prior to calling
      * build().
      *
      * <p>Important: The same OcflRepositoryBuilder instance MUST NOT be used to initialize multiple repositories.
@@ -318,9 +321,9 @@ public class OcflRepositoryBuilder {
      * yet exist. If the repository does exist and it has a storage layout defined, then a layout does not need to
      * be specified and, if it is specified here, it will be ignored.
      *
-     * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleConfig
-     * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedTruncatedNTupleIdConfig
-     * @see edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig
+     * @see HashedNTupleLayoutConfig
+     * @see HashedNTupleIdEncapsulationLayoutConfig
+     * @see FlatLayoutConfig
      *
      * @param defaultLayoutConfig the default storage layout configuration
      * @return builder
