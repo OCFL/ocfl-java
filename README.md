@@ -278,15 +278,15 @@ BEFORE initializing your OCFL repository.
 
 The following is a list of currently supported storage layout extensions:
 
-* **0002-flat-direct-storage-layout**
+* [0002-flat-direct-storage-layout](https://ocfl.github.io/extensions/0002-flat-direct-storage-layout.html)
   * Configuration class: `FlatLayoutConfig`
   * Implementation class: `FlatLayoutExtension`
-* **0003-hashed-n-tuple-trees**
-  * Configuration class: `HashedTruncatedNTupleConfig`
-  * Implementation class: `HashedTruncatedNTupleExtension`
-* **0005-hashed-n-tuple-id-layout**
-  * Configuration class: `HashedTruncatedNTupleIdConfig`
-  * Implementation class: `HashedTruncatedNTupleIdExtension`
+* [0003-hash-and-id-n-tuple-storage-layout](https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html)
+  * Configuration class: `HashedNTupleIdEncapsulationLayoutConfig`
+  * Implementation class: `HashedNTupleIdEncapsulationLayoutExtension`
+* [0004-hashed-n-tuple-storage-layout](https://github.com/OCFL/extensions/pull/16)
+  * Configuration class: `HashedNTupleLayoutConfig`
+  * Implementation class: `HashedNTupleLayoutExtension`
 
 ### Mutable HEAD Extension
 
