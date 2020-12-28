@@ -20,7 +20,7 @@ Add the following to your project's POM to pull in the library:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-core</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -30,7 +30,7 @@ Add the following if you'd like to use Amazon S3 for the storage layer:
 <dependency>
     <groupId>edu.wisc.library.ocfl</groupId>
     <artifactId>ocfl-java-aws</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
