@@ -31,9 +31,8 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import java.util.Objects;
 
 /**
- * Configuration for the Flat Storage Layout extension.
- *
- * TODO Add link to spec when finalized
+ * Configuration for the <a href="https://ocfl.github.io/extensions/0002-flat-direct-storage-layout.html">
+ * Flat Direct Storage Layout</a> extension.
  */
 public class FlatLayoutConfig implements OcflExtensionConfig {
 

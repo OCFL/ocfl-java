@@ -35,9 +35,8 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExt
 import java.util.Objects;
 
 /**
- * Configuration for the Hashed Truncated N-tuple Trees for OCFL Storage Hierarchies extension.
- *
- * TODO Add link to spec when finalized
+ * Configuration for the <a href="https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html">
+ * Hashed N-tuple Storage Layout</a> extension.
  */
 public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
 

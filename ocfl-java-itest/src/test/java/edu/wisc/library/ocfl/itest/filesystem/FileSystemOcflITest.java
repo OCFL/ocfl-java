@@ -5,6 +5,7 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
+import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -86,7 +87,9 @@ public class FileSystemOcflITest extends OcflITest {
         repo.purgeObject(objectId);
 
         assertThat(Arrays.asList(repoDir(repoName).toFile().list()).stream().collect(Collectors.toList()),
-                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt", OcflConstants.EXTENSIONS_DIR, OcflConstants.OCFL_LAYOUT));
+                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt",
+                        OcflConstants.EXTENSIONS_DIR, OcflConstants.OCFL_LAYOUT,
+                        HashedNTupleLayoutExtension.EXTENSION_NAME + ".md"));
     }
 
     @Override

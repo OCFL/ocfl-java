@@ -83,7 +83,7 @@ new OCFL repositories, but is not required when opening an existing repository. 
  OCFL extension. Currently, the following extensions are implemented:
   * [0002-flat-direct-storage-layout](https://ocfl.github.io/extensions/0002-flat-direct-storage-layout.html): `FlatLayoutConfig`
   * [0003-hash-and-id-n-tuple-storage-layout](https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html): `HashedNTupleIdEncapsulationLayoutConfig`
-  * [0004-hashed-n-tuple-storage-layout](https://github.com/OCFL/extensions/pull/16): `HashedNTupleLayoutConfig`
+  * [0004-hashed-n-tuple-storage-layout](https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html): `HashedNTupleLayoutConfig`
  
 ### Optional Properties
 
@@ -284,7 +284,7 @@ The following is a list of currently supported storage layout extensions:
 * [0003-hash-and-id-n-tuple-storage-layout](https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html)
   * Configuration class: `HashedNTupleIdEncapsulationLayoutConfig`
   * Implementation class: `HashedNTupleIdEncapsulationLayoutExtension`
-* [0004-hashed-n-tuple-storage-layout](https://github.com/OCFL/extensions/pull/16)
+* [0004-hashed-n-tuple-storage-layout](https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html)
   * Configuration class: `HashedNTupleLayoutConfig`
   * Implementation class: `HashedNTupleLayoutExtension`
 

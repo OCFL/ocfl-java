@@ -145,6 +145,7 @@ public class FileSystemOcflStorageInitializerTest {
                 aFileNamed(equalTo("0=ocfl_1.0")),
                 aFileNamed(equalTo("ocfl_1.0.txt")),
                 aFileNamed(equalTo(OcflConstants.OCFL_LAYOUT)),
+                aFileNamed(equalTo(HashedNTupleLayoutExtension.EXTENSION_NAME + ".md")),
                 aFileNamed(equalTo(OcflConstants.EXTENSIONS_DIR))));
         assertThat(root.resolve(OcflConstants.EXTENSIONS_DIR)
                 .resolve(HashedNTupleLayoutExtension.EXTENSION_NAME)

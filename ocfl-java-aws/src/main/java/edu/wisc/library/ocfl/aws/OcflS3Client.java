@@ -72,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -489,6 +490,7 @@ public class OcflS3Client implements CloudClient {
     public void deleteObjects(Collection<String> objectPaths) {
         if (!objectPaths.isEmpty()) {
             var objectKeys = objectPaths.stream()
+                    .filter(Objects::nonNull)
                     .map(keyBuilder::buildFromPath)
                     .collect(Collectors.toList());
 

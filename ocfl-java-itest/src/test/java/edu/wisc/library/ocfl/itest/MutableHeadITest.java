@@ -266,7 +266,7 @@ public abstract class MutableHeadITest {
 
         OcflAsserts.assertThrowsWithMessage(ObjectOutOfSyncException.class, "Changes are out of sync with the current object state", () -> {
             repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 2"), updater -> {
-                writeFile(repoName, O1_PATH + "/extensions/0004-mutable-head/revisions/r2", TestHelper.inputStream("r2"));
+                writeFile(repoName, O1_PATH + "/extensions/0005-mutable-head/revisions/r2", TestHelper.inputStream("r2"));
                 updater.writeFile(new ByteArrayInputStream("file5" .getBytes()), "file5")
                         .renameFile("dir1/file3", "file3")
                         .removeFile("dir1/file4");
@@ -416,7 +416,7 @@ public abstract class MutableHeadITest {
 
         repo1.exportObject(objectId, output);
 
-        Files.delete(output.resolve("extensions/0004-mutable-head/head/content/r1/dir1/file3"));
+        Files.delete(output.resolve("extensions/0005-mutable-head/head/content/r1/dir1/file3"));
 
         var repoName2 = "mutable-import";
         var repo2 = defaultRepo(repoName2);

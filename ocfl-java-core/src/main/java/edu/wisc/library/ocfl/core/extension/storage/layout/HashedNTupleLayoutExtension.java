@@ -31,9 +31,8 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLa
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 
 /**
- * Implementation of the Hashed Truncated N-tuple Trees for OCFL Storage Hierarchies extension.
- *
- * TODO add link to spec when finalized
+ * Implementation of the <a href="https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html">
+ * Hashed N-tuple Storage Layout</a> extension.
  */
 public class HashedNTupleLayoutExtension implements OcflStorageLayoutExtension {
 
