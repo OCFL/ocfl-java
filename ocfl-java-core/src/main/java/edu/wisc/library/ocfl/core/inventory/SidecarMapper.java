@@ -58,7 +58,7 @@ public final class SidecarMapper {
         }
 
         try {
-            var parts = Files.readString(sidecarPath).split("\\s");
+            var parts = Files.readString(sidecarPath).split("\\s+");
             if (parts.length != 2) {
                 throw new CorruptObjectException("Invalid inventory sidecar file: " + sidecarPath);
             }
