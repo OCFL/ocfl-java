@@ -290,11 +290,12 @@ The following is a list of currently supported storage layout extensions:
 
 ### Mutable HEAD Extension
 
-The mutable HEAD extension enables an OCFL object to have a mutable HEAD version that is stored inside of the object root.
-This version is NOT an official OCFL version, and it is not recognized by clients that do not implement this extension. This
-extension allows you to iteratively make changes to an object without every change producing a new OCFL version. When
-you are satisfied with the state of the object, the mutable HEAD version should be committed, which moves it into an official,
-immutable OCFL version that is recognized by all OCFL clients.
+The [mutable HEAD extension](https://ocfl.github.io/extensions/0005-mutable-head.html) enables an OCFL object to have a
+mutable HEAD version that is stored inside of the object root. This version is NOT an official OCFL version, and it is
+not recognized by clients that do not implement this extension. This extension allows you to iteratively make changes
+to an object without every change producing a new OCFL version. When you are satisfied with the state of the object,
+the mutable HEAD version should be committed, which moves it into an official, immutable OCFL version that is recognized
+by all OCFL clients.
 
 To enable this extension, call `OcflRepositoryBuilder.buildMutable()`. Note, you do not need to enable the extension for
 reading. `ocfl-java` will automatically read mutable HEAD versions that already exist. However, it will not allow you to

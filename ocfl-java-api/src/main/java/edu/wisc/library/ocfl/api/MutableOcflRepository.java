@@ -32,10 +32,11 @@ import edu.wisc.library.ocfl.api.model.VersionInfo;
 import java.util.function.Consumer;
 
 /**
- * Defines APIs for implementing the OCFL Mutable HEAD Extension. These APIs are outside of the scope of the core OCFL
- * specification, and provide additional functionality for staging object content within the OCFL storage root before
- * committing it to a version. It is imperative to understand that staged content is NOT part of the core OCFL object,
- * and it CANNOT be interpreted by an OCFL client that does not implement the Mutable HEAD Extension.
+ * Defines APIs for implementing the OCFL <a href="https://ocfl.github.io/extensions/0005-mutable-head.html">Mutable HEAD Extension</a>.
+ * These APIs are outside of the scope of the core OCFL specification, and provide additional functionality for staging
+ * object content within the OCFL storage root before committing it to a version. It is imperative to understand that
+ * staged content is NOT part of the core OCFL object, and it CANNOT be interpreted by an OCFL client that does not
+ * implement the Mutable HEAD Extension.
  */
 public interface MutableOcflRepository extends OcflRepository {
 

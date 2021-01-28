@@ -47,7 +47,9 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * Extends the OCFL repository to support OCFL objects with mutable HEADs. This is not supported in the official spec.
+ * Extends the OCFL repository to support OCFL objects with mutable HEADs as defined by the
+ * <a href="https://ocfl.github.io/extensions/0005-mutable-head.html">Mutable HEAD Extension</a>.
+ * This is not supported in the official spec.
  *
  * @see OcflRepositoryBuilder
  */
