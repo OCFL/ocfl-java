@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
@@ -80,6 +81,9 @@ public class FlatLayoutExtension implements OcflStorageLayoutExtension {
         if (objectId.indexOf(pathSeparator) != -1) {
             throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
                     "%s because it contains the path separator character.", objectId, EXTENSION_NAME));
+        } else if (OcflConstants.EXTENSIONS_DIR.equals(objectId)) {
+            throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
+                    "%s because it conflicts with the extensions directory.", objectId, EXTENSION_NAME));
         }
 
         return objectId;

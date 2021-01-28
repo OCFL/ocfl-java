@@ -7,6 +7,7 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
@@ -2037,6 +2038,17 @@ public abstract class OcflITest {
         assertEquals("v2", desc.getHeadVersionNum().toString());
         assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
         assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
+    }
+
+    @Test
+    public void rejectPathsThatConflictWithExtensions() {
+        var repo = defaultRepo("flat", builder -> builder.defaultLayoutConfig(new FlatLayoutConfig()));
+
+        OcflAsserts.assertThrowsWithMessage(OcflExtensionException.class, "conflicts with the extensions directory", () -> {
+            repo.updateObject(ObjectVersionId.head("extensions"), null, updater -> {
+                updater.writeFile(streamString("file3"), "file3.txt");
+            });
+        });
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
