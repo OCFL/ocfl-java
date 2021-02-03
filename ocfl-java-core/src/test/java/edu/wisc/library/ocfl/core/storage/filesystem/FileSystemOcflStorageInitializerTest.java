@@ -5,6 +5,7 @@ import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
@@ -39,7 +40,7 @@ public class FileSystemOcflStorageInitializerTest {
 
     @BeforeEach
     public void setup() {
-        this.initializer = new FileSystemOcflStorageInitializer(ITestHelper.prettyPrintMapper());
+        this.initializer = new FileSystemOcflStorageInitializer(ITestHelper.prettyPrintMapper(), new ExtensionSupportEvaluator());
     }
 
     @Test

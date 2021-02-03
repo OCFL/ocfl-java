@@ -33,6 +33,7 @@ import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflLayout;
@@ -65,10 +66,14 @@ public class CloudOcflStorageInitializer {
 
     private final CloudClient cloudClient;
     private final ObjectMapper objectMapper;
+    private final ExtensionSupportEvaluator supportEvaluator;
 
-    public CloudOcflStorageInitializer(CloudClient cloudClient, ObjectMapper objectMapper) {
+    public CloudOcflStorageInitializer(CloudClient cloudClient,
+                                       ObjectMapper objectMapper,
+                                       ExtensionSupportEvaluator supportEvaluator) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
+        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
     }
 
     public OcflStorageLayoutExtension initializeStorage(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
@@ -82,6 +87,8 @@ public class CloudOcflStorageInitializer {
             layoutExtension = initNewRepo(ocflVersion, layoutConfig);
         } else {
             layoutExtension = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
+            // This is only validating currently and does not load anything
+            loadRepositoryExtensions();
         }
 
         LOG.info("OCFL repository is configured to use OCFL storage layout extension {} implemented by {}",
@@ -217,6 +224,14 @@ public class CloudOcflStorageInitializer {
             cloudClient.safeDeleteObjects(keys);
             throw e;
         }
+    }
+
+    private void loadRepositoryExtensions() {
+        // Currently, this just ensures that the repository does not use any extensions that ocfl-java does not support
+        var listResults = cloudClient.listDirectory(OcflConstants.EXTENSIONS_DIR);
+        listResults.getDirectories().forEach(dir -> {
+            supportEvaluator.checkSupport(dir.getName());
+        });
     }
 
     private String writeOcflSpec(OcflVersion ocflVersion) {

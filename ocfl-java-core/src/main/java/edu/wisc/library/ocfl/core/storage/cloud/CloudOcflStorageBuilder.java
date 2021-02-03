@@ -26,7 +26,12 @@ package edu.wisc.library.ocfl.core.storage.cloud;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
+import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Builder for constructing S3OcflStorage objects. It is configured with sensible defaults and can minimally be
@@ -37,9 +42,13 @@ public class CloudOcflStorageBuilder {
     private ObjectMapper objectMapper;
     private CloudClient cloudClient;
     private CloudOcflStorageInitializer initializer;
+    private UnsupportedExtensionBehavior unsupportedBehavior;
+    private Set<String> ignoreUnsupportedExtensions;
 
     public CloudOcflStorageBuilder() {
-        this.objectMapper = ObjectMappers.prettyPrintMapper();
+        objectMapper = ObjectMappers.prettyPrintMapper();
+        unsupportedBehavior = UnsupportedExtensionBehavior.FAIL;
+        ignoreUnsupportedExtensions = Collections.emptySet();
     }
 
     /**
@@ -50,6 +59,34 @@ public class CloudOcflStorageBuilder {
      */
     public CloudOcflStorageBuilder cloudClient(CloudClient cloudClient) {
         this.cloudClient = cloudClient;
+        return this;
+    }
+
+    /**
+     * Set the behavior when an unsupported extension is encountered. By default, ocfl-java will not operate on
+     * repositories or objects that contain unsupported extensions. Set this value to WARN, if you'd like ocfl-java
+     * to log a WARNing, but continue to operate instead.
+     * <p>
+     * Specific unsupported extensions may be ignored individually using {@code ignoreUnsupportedExtensions}
+     *
+     * @param unsupportedBehavior FAIL to throw an exception or WARN to log a warning
+     * @return builder
+     */
+    public CloudOcflStorageBuilder unsupportedExtensionBehavior(UnsupportedExtensionBehavior unsupportedBehavior) {
+        this.unsupportedBehavior = Enforce.notNull(unsupportedBehavior, "unsupportedExtensionBehavior cannot be null");
+        return this;
+    }
+
+    /**
+     * Sets a list of unsupported extensions that should be ignored. If the unsupported extension behavior
+     * is set to FAIL, this means that these extensions will produce log WARNings if they are encountered. If
+     * the behavior is set to WARN, then these extensions will be silently ignored.
+     *
+     * @param ignoreUnsupportedExtensions set of unsupported extension names that should be ignored
+     * @return builder
+     */
+    public CloudOcflStorageBuilder ignoreUnsupportedExtensions(Set<String> ignoreUnsupportedExtensions) {
+        this.ignoreUnsupportedExtensions = Enforce.notNull(ignoreUnsupportedExtensions, "ignoreUnsupportedExtensions cannot be null");
         return this;
     }
 
@@ -79,12 +116,14 @@ public class CloudOcflStorageBuilder {
      * @return a new {@link CloudOcflStorage} object
      */
     public CloudOcflStorage build() {
+        var supportEvaluator = new ExtensionSupportEvaluator(unsupportedBehavior, ignoreUnsupportedExtensions);
+
         var init = initializer;
         if (init == null) {
-            init = new CloudOcflStorageInitializer(cloudClient, objectMapper);
+            init = new CloudOcflStorageInitializer(cloudClient, objectMapper, supportEvaluator);
         }
 
-        return new CloudOcflStorage(cloudClient, init);
+        return new CloudOcflStorage(cloudClient, init, supportEvaluator);
     }
 
 }

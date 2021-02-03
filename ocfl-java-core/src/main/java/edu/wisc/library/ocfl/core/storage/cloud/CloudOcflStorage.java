@@ -38,6 +38,7 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
@@ -86,6 +87,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private final CloudOcflStorageInitializer initializer;
     private OcflStorageLayoutExtension storageLayoutExtension;
     private final CloudOcflFileRetriever.Builder fileRetrieverBuilder;
+    private final ExtensionSupportEvaluator supportEvaluator;
 
     /**
      * Create a new builder.
@@ -106,9 +108,12 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * @param cloudClient the client to use to interface with cloud storage such as S3
      * @param initializer initializes a new OCFL repo
      */
-    public CloudOcflStorage(CloudClient cloudClient, CloudOcflStorageInitializer initializer) {
+    public CloudOcflStorage(CloudClient cloudClient,
+                            CloudOcflStorageInitializer initializer,
+                            ExtensionSupportEvaluator supportEvaluator) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
+        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(this.cloudClient);
@@ -127,6 +132,9 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
         if (containsObject(objectId)) {
             var objectRootPath = objectRootPath(objectId);
+
+            // currently just validates that no unsupported extensions are used
+            loadObjectExtensions(objectRootPath);
 
             if (hasMutableHead(objectRootPath)) {
                 inventory = downloadAndVerifyMutableInventory(objectId, objectRootPath);
@@ -867,6 +875,14 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             } catch (IOException e) {
                 throw new OcflIOException(e);
             }
+        });
+    }
+
+    private void loadObjectExtensions(String objectRoot) {
+        // Currently, this just ensures that the object does not use any extensions that ocfl-java does not support
+        var listResults = cloudClient.listDirectory(ObjectPaths.extensionsPath(objectRoot));
+        listResults.getDirectories().forEach(dir -> {
+            supportEvaluator.checkSupport(dir.getName());
         });
     }
 

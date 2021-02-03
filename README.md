@@ -122,6 +122,10 @@ client should be located on the same mount as the OCFL storage root.
 Use `FileSystemOcflStorage.builder()` to create and configure an `OcflStorage` instnace.
 
 * **repositoryRoot**: Required, path to the OCFL storage root directory.
+* **unsupportedExtensionBehavior**: By default set to `FAIL`, which means that repositories and objects that contain
+  unsupported extensions will not be allowed. May be set to `WARN`, to all unsupported extensions.
+* **ignoreUnsupportedExtensions**: A set of unsupported extension namess that should be allowed either without causing a
+  failure, if `unsupportedExtensionBehavior` is set to `FAIL`, or not logging, if set to `WARN`
 * **checkNewVersionFixity**: Optional, instructs the client to check the fixity of every file in new versions once the version
 is at rest. By default, this is disabled and it is unlikely to be worthwhile if the work directory and OCFL storage root are
 on the same mount, as recommended.
@@ -164,6 +168,10 @@ requiring them to be retrieved from S3 on every access.
 Use `CloudOcflStorage.builder()` to create and configure an `OcflStorage` instance.
 
 * **cloudClient**: Required, sets the `CloudClient` implementation to use. For Amazon S3, use `OcflS3Client.builder()`.
+* **unsupportedExtensionBehavior**: By default set to `FAIL`, which means that repositories and objects that contain
+  unsupported extensions will not be allowed. May be set to `WARN`, to all unsupported extensions.
+* **ignoreUnsupportedExtensions**: A set of unsupported extension namess that should be allowed either without causing a
+  failure, if `unsupportedExtensionBehavior` is set to `FAIL`, or not logging, if set to `WARN`.
 
 **Example**
 

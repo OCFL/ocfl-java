@@ -43,6 +43,7 @@ public final class OcflConstants {
     public static final String LOGS_DIR = "logs";
     public static final String EXTENSIONS_DIR = "extensions";
     public static final String EXT_CONFIG_JSON = "config.json";
+    public static final String INIT_EXT = "init";
 
     public static final String OBJECT_NAMASTE_1_0 = "0=" + OcflVersion.OCFL_1_0.getOcflObjectVersion();
 
@@ -52,8 +53,11 @@ public final class OcflConstants {
     public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha512;
     public static final Set<DigestAlgorithm> ALLOWED_DIGEST_ALGORITHMS = Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
 
-    public static final String MUTABLE_HEAD_EXT_PATH = EXTENSIONS_DIR + "/0005-mutable-head";
+    public static final String MUTABLE_HEAD_EXT_NAME = "0005-mutable-head";
+    public static final String MUTABLE_HEAD_EXT_PATH = EXTENSIONS_DIR + "/" + MUTABLE_HEAD_EXT_NAME;
     public static final String MUTABLE_HEAD_VERSION_PATH = MUTABLE_HEAD_EXT_PATH + "/head";
     public static final String MUTABLE_HEAD_REVISIONS_PATH = MUTABLE_HEAD_EXT_PATH + "/revisions";
+
+    public static final String DIGEST_ALGORITHMS_EXT_NAME = "0001-digest-algorithms";
 
 }

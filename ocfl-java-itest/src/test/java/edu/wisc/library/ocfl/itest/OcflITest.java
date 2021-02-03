@@ -2051,6 +2051,28 @@ public abstract class OcflITest {
         });
     }
 
+    @Test
+    public void failWhenRepoContainsUnsupportedExtension() {
+        var repoName = "unsupported-root-ext";
+        var repoRoot = sourceRepoPath(repoName);
+
+        OcflAsserts.assertThrowsWithMessage(OcflExtensionException.class, "1000-bogus", () -> {
+            existingRepo(repoName, repoRoot);
+        });
+    }
+
+    @Test
+    public void failWhenRepoContainsUnsupportedObjectExtension() {
+        var repoName = "unsupported-object-ext";
+        var repoRoot = sourceRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        OcflAsserts.assertThrowsWithMessage(OcflExtensionException.class, "1000-bogus", () -> {
+            repo.describeObject("o2");
+        });
+    }
+
+
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
         var stream = actual.getStream();
         var contents = TestHelper.inputToString(stream);

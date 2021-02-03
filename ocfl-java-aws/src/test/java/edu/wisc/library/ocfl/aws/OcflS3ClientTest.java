@@ -285,6 +285,17 @@ public class OcflS3ClientTest {
 
         assertEquals(1, result.getDirectories().size());
         assertEquals("d1/d2/", result.getDirectories().get(0).getPath());
+        assertEquals("d2", result.getDirectories().get(0).getName());
+
+        result = client.listDirectory("");
+
+        assertEquals(2, result.getObjects().size());
+        assertObjectListingDir(repoPrefix, "f1", result.getObjects().get(0));
+        assertObjectListingDir(repoPrefix, "f2", result.getObjects().get(1));
+
+        assertEquals(1, result.getDirectories().size());
+        assertEquals("d1/", result.getDirectories().get(0).getPath());
+        assertEquals("d1", result.getDirectories().get(0).getName());
     }
 
     @ParameterizedTest

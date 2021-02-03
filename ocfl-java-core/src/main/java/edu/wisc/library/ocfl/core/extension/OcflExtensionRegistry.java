@@ -24,17 +24,19 @@
 
 package edu.wisc.library.ocfl.core.extension;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
-import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Registry for mapping extensions to their implementations. The following out-of-the-box extensions are pre-registered
@@ -103,6 +105,16 @@ public final class OcflExtensionRegistry {
             throw new OcflExtensionException(String.format("Failed to load extension %s class %s.",
                     extensionName, extensionClass), e);
         }
+    }
+
+    /**
+     * Returns true if there is a known implementation of the given extension name
+     *
+     * @param extensionName the extension to look for
+     * @return true if there is an implementation of the extension
+     */
+    public static boolean isSupported(String extensionName) {
+        return REGISTRY.containsKey(extensionName);
     }
 
 }

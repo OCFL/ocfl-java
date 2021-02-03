@@ -146,6 +146,19 @@ public class ListResult {
             return this;
         }
 
+        /**
+         * Return the virtual name of the directory. For example, if the path is `a/b/`, then the name is `b`.
+         *
+         * @return directory name
+         */
+        public String getName() {
+            var name = path;
+            if (name.endsWith("/")) {
+                name = name.substring(0, name.length() - 1);
+            }
+            return name.substring(Math.max(0, name.lastIndexOf("/") + 1));
+        }
+
         @Override
         public String toString() {
             return "DirectoryListing{" +

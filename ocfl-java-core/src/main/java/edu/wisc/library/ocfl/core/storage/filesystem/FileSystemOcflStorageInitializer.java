@@ -33,6 +33,7 @@ import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflLayout;
@@ -51,6 +52,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -64,9 +66,11 @@ public class FileSystemOcflStorageInitializer {
     private static final String OBJECT_MARKER_PREFIX = "0=ocfl_object";
 
     private final ObjectMapper objectMapper;
+    private final ExtensionSupportEvaluator supportEvaluator;
 
-    public FileSystemOcflStorageInitializer(ObjectMapper objectMapper) {
+    public FileSystemOcflStorageInitializer(ObjectMapper objectMapper, ExtensionSupportEvaluator supportEvaluator) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
+        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
     }
 
     /**
@@ -97,6 +101,8 @@ public class FileSystemOcflStorageInitializer {
             layoutExtension = initNewRepo(repositoryRoot, ocflVersion, layoutConfig);
         } else {
             layoutExtension = validateAndLoadExistingRepo(repositoryRoot, ocflVersion, layoutConfig);
+            // This is only validating currently and does not load anything
+            loadRepositoryExtensions(repositoryRoot);
         }
 
         LOG.info("OCFL repository is configured to use OCFL storage layout extension {} implemented by {}",
@@ -300,6 +306,21 @@ public class FileSystemOcflStorageInitializer {
         } else {
             // No config found, create default config object
             return initClass(clazz);
+        }
+    }
+
+    private void loadRepositoryExtensions(Path repositoryRoot) {
+        // Currently, this just ensures that the repository does not use any extensions that ocfl-java does not support
+        var extensionsDir = repositoryRoot.resolve(OcflConstants.EXTENSIONS_DIR);
+        if (Files.exists(extensionsDir)) {
+            try (var list = Files.list(extensionsDir)) {
+                list.filter(Files::isDirectory).forEach(dir -> {
+                    var extensionName = dir.getFileName().toString();
+                    supportEvaluator.checkSupport(extensionName);
+                });
+            } catch (IOException e) {
+                throw new OcflIOException(e);
+            }
         }
     }
 

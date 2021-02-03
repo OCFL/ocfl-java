@@ -37,6 +37,7 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
@@ -81,6 +82,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private final Path repositoryRoot;
     private final FileSystemOcflStorageInitializer initializer;
+    private final ExtensionSupportEvaluator supportEvaluator;
 
     private final boolean checkNewVersionFixity;
 
@@ -116,10 +118,12 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      */
     public FileSystemOcflStorage(Path repositoryRoot,
                                  boolean checkNewVersionFixity,
-                                 FileSystemOcflStorageInitializer initializer) {
+                                 FileSystemOcflStorageInitializer initializer,
+                                 ExtensionSupportEvaluator supportEvaluator) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.checkNewVersionFixity = checkNewVersionFixity;
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
+        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.ioRetry = new RetryPolicy<Void>()
@@ -143,6 +147,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         var objectRootPathAbsolute = repositoryRoot.resolve(objectRootPathStr);
 
         if (Files.exists(objectRootPathAbsolute)) {
+            // currently just validates that no unsupported extensions are used
+            loadObjectExtensions(objectRootPathAbsolute);
             var mutableHeadInventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPathAbsolute);
             if (Files.exists(mutableHeadInventoryPath)) {
                 ensureRootObjectHasNotChanged(objectId, objectRootPathAbsolute);
@@ -872,6 +878,21 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
                 throw new ObjectOutOfSyncException(
                         String.format("The mutable HEAD of object %s is out of sync with the root object state.", objectId));
+            }
+        }
+    }
+
+    private void loadObjectExtensions(Path objectRoot) {
+        // Currently, this just ensures that the object does not use any extensions that ocfl-java does not support
+        var extensionsDir = ObjectPaths.extensionsPath(objectRoot);
+        if (Files.exists(extensionsDir)) {
+            try (var list = Files.list(extensionsDir)) {
+                list.filter(Files::isDirectory).forEach(dir -> {
+                    var extensionName = dir.getFileName().toString();
+                    supportEvaluator.checkSupport(extensionName);
+                });
+            } catch (IOException e) {
+                throw new OcflIOException(e);
             }
         }
     }

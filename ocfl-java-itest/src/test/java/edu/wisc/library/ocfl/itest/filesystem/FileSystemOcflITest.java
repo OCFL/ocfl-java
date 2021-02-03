@@ -2,9 +2,11 @@ package edu.wisc.library.ocfl.itest.filesystem;
 
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
+import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
@@ -12,6 +14,7 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
+import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.fixTime;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
 import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -90,6 +94,35 @@ public class FileSystemOcflITest extends OcflITest {
                 containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt",
                         OcflConstants.EXTENSIONS_DIR, OcflConstants.OCFL_LAYOUT,
                         HashedNTupleLayoutExtension.EXTENSION_NAME + ".md"));
+    }
+
+    @Test
+    public void doNotFailWhenRepoContainsUnsupportedExtensionAndSetToWarn() {
+        var repoName = "unsupported-root-ext";
+        var repoRoot = sourceRepoPath(repoName);
+
+        existingRepo(repoName, repoRoot, builder -> {
+            builder.fileSystemStorage(storage -> storage
+                    .checkNewVersionFixity(true)
+                    .objectMapper(ITestHelper.prettyPrintMapper())
+                    .unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN)
+                    .repositoryRoot(repoDir(repoName)));
+        });
+    }
+
+    @Test
+    public void doNotFailWhenRepoContainsUnsupportedObjectExtensionAndSetToWarn() {
+        var repoName = "unsupported-object-ext";
+        var repoRoot = sourceRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.fileSystemStorage(storage -> storage
+                    .checkNewVersionFixity(true)
+                    .objectMapper(ITestHelper.prettyPrintMapper())
+                    .unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN)
+                    .repositoryRoot(repoDir(repoName)));
+        });
+
+        repo.describeObject("o2");
     }
 
     @Override
