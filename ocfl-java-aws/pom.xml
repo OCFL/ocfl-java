@@ -31,12 +31,12 @@
     <parent>
         <groupId>edu.wisc.library.ocfl</groupId>
         <artifactId>ocfl-java-parent</artifactId>
-        <version>0.3.0-SNAPSHOT</version>
+        <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>ocfl-java-aws</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 
     <name>OCFL Java AWS</name>
     <description>Java OCFL implementation that writes to S3.</description>
@@ -81,7 +81,7 @@
         <dependency>
             <groupId>edu.wisc.library.ocfl</groupId>
             <artifactId>ocfl-java-core</artifactId>
-            <version>0.3.0-SNAPSHOT</version>
+            <version>1.0.0</version>
         </dependency>
 
         <!-- AWS -->
@@ -112,7 +112,7 @@
         <dependency>
             <groupId>edu.wisc.library.ocfl</groupId>
             <artifactId>ocfl-java-test</artifactId>
-            <version>0.3.0-SNAPSHOT</version>
+            <version>1.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
