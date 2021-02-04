@@ -65,7 +65,7 @@ an object may only be found within its `inventory.json`.
 
 `digestAlgorithm` is defaulted to `sha256`, and it MUST either contain a digest
 algorithm that's [officially supported by the OCFL
-spec](https://ocfl.io/draft/spec/#digest-algorithms) or defined in a community
+specification](https://ocfl.io/1.0/spec/#digest-algorithms) or defined in a community
 extension. The specified algorithm is applied to OCFL object identifiers to
 produce hex encoded digest values that are then mapped to OCFL object root
 paths.
