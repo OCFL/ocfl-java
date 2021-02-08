@@ -33,7 +33,9 @@ import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabase;
 import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
@@ -58,6 +60,8 @@ import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilde
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -80,6 +84,8 @@ public class OcflRepositoryBuilder {
     private LogicalPathMapper logicalPathMapper;
     private ContentPathConstraintProcessor contentPathConstraintProcessor;
     private ObjectDetailsDatabase objectDetailsDb;
+    private UnsupportedExtensionBehavior unsupportedBehavior;
+    private Set<String> ignoreUnsupportedExtensions;
 
     /**
      * Constructs a local file system based OCFL repository sensible defaults that can be overridden prior to calling
@@ -96,6 +102,8 @@ public class OcflRepositoryBuilder {
         inventoryMapper = InventoryMapper.defaultMapper();
         logicalPathMapper = LogicalPathMappers.directMapper();
         contentPathConstraintProcessor = ContentPathConstraints.none();
+        unsupportedBehavior = UnsupportedExtensionBehavior.FAIL;
+        ignoreUnsupportedExtensions = Collections.emptySet();
     }
 
     /**
@@ -334,6 +342,34 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Set the behavior when an unsupported extension is encountered. By default, ocfl-java will not operate on
+     * repositories or objects that contain unsupported extensions. Set this value to WARN, if you'd like ocfl-java
+     * to log a WARNing, but continue to operate instead.
+     * <p>
+     * Specific unsupported extensions may be ignored individually using {@code ignoreUnsupportedExtensions}
+     *
+     * @param unsupportedBehavior FAIL to throw an exception or WARN to log a warning
+     * @return builder
+     */
+    public OcflRepositoryBuilder unsupportedExtensionBehavior(UnsupportedExtensionBehavior unsupportedBehavior) {
+        this.unsupportedBehavior = Enforce.notNull(unsupportedBehavior, "unsupportedExtensionBehavior cannot be null");
+        return this;
+    }
+
+    /**
+     * Sets a list of unsupported extensions that should be ignored. If the unsupported extension behavior
+     * is set to FAIL, this means that these extensions will produce log WARNings if they are encountered. If
+     * the behavior is set to WARN, then these extensions will be silently ignored.
+     *
+     * @param ignoreUnsupportedExtensions set of unsupported extension names that should be ignored
+     * @return builder
+     */
+    public OcflRepositoryBuilder ignoreUnsupportedExtensions(Set<String> ignoreUnsupportedExtensions) {
+        this.ignoreUnsupportedExtensions = Enforce.notNull(ignoreUnsupportedExtensions, "ignoreUnsupportedExtensions cannot be null");
+        return this;
+    }
+
+    /**
      * Constructs an OCFL repository. Brand new repositories are initialized.
      *
      * @return OcflRepository
@@ -355,8 +391,13 @@ public class OcflRepositoryBuilder {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 
+        var supportEvaluator = new ExtensionSupportEvaluator(unsupportedBehavior, ignoreUnsupportedExtensions);
+
         var wrappedStorage = cache(db(storage));
-        wrappedStorage.initializeStorage(config.getOcflVersion(), defaultLayoutConfig, inventoryMapper);
+        wrappedStorage.initializeStorage(config.getOcflVersion(),
+                defaultLayoutConfig,
+                inventoryMapper,
+                supportEvaluator);
 
         Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");

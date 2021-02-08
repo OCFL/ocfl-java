@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.core.storage;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 
@@ -37,6 +38,7 @@ public abstract class AbstractOcflStorage implements OcflStorage {
 
     protected InventoryMapper inventoryMapper;
     protected OcflVersion ocflVersion;
+    protected ExtensionSupportEvaluator supportEvaluator;
 
     private boolean closed = false;
     private boolean initialized = false;
@@ -45,13 +47,17 @@ public abstract class AbstractOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void initializeStorage(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig, InventoryMapper inventoryMapper) {
+    public synchronized void initializeStorage(OcflVersion ocflVersion,
+                                               OcflExtensionConfig layoutConfig,
+                                               InventoryMapper inventoryMapper,
+                                               ExtensionSupportEvaluator supportEvaluator) {
         if (initialized) {
             return;
         }
 
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         this.ocflVersion = Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
+        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
         doInitialize(layoutConfig);
         this.initialized = true;

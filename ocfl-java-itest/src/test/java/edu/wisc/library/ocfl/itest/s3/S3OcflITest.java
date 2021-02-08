@@ -6,14 +6,12 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
@@ -27,7 +25,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
-import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
 
 public class S3OcflITest extends OcflITest {
 
@@ -47,41 +44,6 @@ public class S3OcflITest extends OcflITest {
         dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
         dataSource.setUser(System.getProperty("db.user", ""));
         dataSource.setPassword(System.getProperty("db.password", ""));
-    }
-
-    @Test
-    public void doNotFailWhenRepoContainsUnsupportedExtensionAndSetToWarn() {
-        var repoName = "unsupported-root-ext";
-        var repoRoot = sourceRepoPath(repoName);
-
-        existingRepo(repoName, repoRoot, builder -> {
-            builder.cloudStorage(cloud -> cloud
-                    .objectMapper(ITestHelper.prettyPrintMapper())
-                    .unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN)
-                    .cloudClient(OcflS3Client.builder()
-                            .s3Client(s3Client)
-                            .bucket(repoName)
-                            .build())
-                    .build());
-        });
-    }
-
-    @Test
-    public void doNotFailWhenRepoContainsUnsupportedObjectExtensionAndSetToWarn() {
-        var repoName = "unsupported-object-ext";
-        var repoRoot = sourceRepoPath(repoName);
-        var repo = existingRepo(repoName, repoRoot, builder -> {
-            builder.cloudStorage(cloud -> cloud
-                    .objectMapper(ITestHelper.prettyPrintMapper())
-                    .unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN)
-                    .cloudClient(OcflS3Client.builder()
-                            .s3Client(s3Client)
-                            .bucket(repoName)
-                            .build())
-                    .build());
-        });
-
-        repo.describeObject("o2");
     }
 
     @Override

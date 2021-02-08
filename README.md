@@ -114,6 +114,14 @@ disallowing `:` and `\` characters.
  `LogicalPathMappers.percentEncodingWindowsMapper()`, which
  percent-encodes a handful of characters that are problematic on
  Windows.
+* **unsupportedExtensionBehavior**: By default set to `FAIL`, which
+  means that repositories and objects that contain unsupported
+  extensions will not be allowed. May be set to `WARN` to all
+  unsupported extensions.
+* **ignoreUnsupportedExtensions**: A set of unsupported extension
+  names that should be allowed either without causing a failure, if
+  `unsupportedExtensionBehavior` is set to `FAIL`, or not logging, if
+  set to `WARN`
 * **inventoryCache**: By default, an in-memory
 [Caffeine](https://github.com/ben-manes/caffeine) cache is used to
 cache deserialized inventories.
@@ -147,14 +155,6 @@ Use `FileSystemOcflStorage.builder()` to create and configure an
 
 * **repositoryRoot**: Required, path to the OCFL storage root
   directory.
-* **unsupportedExtensionBehavior**: By default set to `FAIL`, which
-  means that repositories and objects that contain unsupported
-  extensions will not be allowed. May be set to `WARN` to all
-  unsupported extensions.
-* **ignoreUnsupportedExtensions**: A set of unsupported extension
-  names that should be allowed either without causing a failure, if
-  `unsupportedExtensionBehavior` is set to `FAIL`, or not logging, if
-  set to `WARN`
 * **checkNewVersionFixity**: Optional, instructs the client to check
 the fixity of every file in new versions once the version is at rest.
 By default, this is disabled and it is unlikely to be worthwhile if
@@ -209,14 +209,6 @@ Use `CloudOcflStorage.builder()` to create and configure an
 
 * **cloudClient**: Required, sets the `CloudClient` implementation to
   use. For Amazon S3, use `OcflS3Client.builder()`.
-* **unsupportedExtensionBehavior**: By default set to `FAIL`, which
-  means that repositories and objects that contain unsupported
-  extensions will not be allowed. May be set to `WARN` to all
-  unsupported extensions.
-* **ignoreUnsupportedExtensions**: A set of unsupported extension
-  names that should be allowed either without causing a failure, if
-  `unsupportedExtensionBehavior` is set to `FAIL`, or not logging, if
-  set to `WARN`.
 
 **Example**
 

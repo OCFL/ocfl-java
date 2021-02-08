@@ -5,6 +5,7 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -176,7 +177,10 @@ public class FileSystemOcflStorageTest {
                 .checkNewVersionFixity(enableFixityCheck)
                 .repositoryRoot(repoDir)
                 .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION, layoutConfig, ITestHelper.testInventoryMapper());
+        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION,
+                layoutConfig,
+                ITestHelper.testInventoryMapper(),
+                new ExtensionSupportEvaluator());
         return storage;
     }
 

@@ -38,7 +38,6 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
@@ -87,7 +86,6 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private final CloudOcflStorageInitializer initializer;
     private OcflStorageLayoutExtension storageLayoutExtension;
     private final CloudOcflFileRetriever.Builder fileRetrieverBuilder;
-    private final ExtensionSupportEvaluator supportEvaluator;
 
     /**
      * Create a new builder.
@@ -109,11 +107,9 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * @param initializer initializes a new OCFL repo
      */
     public CloudOcflStorage(CloudClient cloudClient,
-                            CloudOcflStorageInitializer initializer,
-                            ExtensionSupportEvaluator supportEvaluator) {
+                            CloudOcflStorageInitializer initializer) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
-        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(this.cloudClient);
@@ -437,7 +433,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      */
     @Override
     protected void doInitialize(OcflExtensionConfig layoutConfig) {
-        this.storageLayoutExtension = this.initializer.initializeStorage(ocflVersion, layoutConfig);
+        this.storageLayoutExtension = this.initializer.initializeStorage(ocflVersion, layoutConfig, supportEvaluator);
     }
 
     /**

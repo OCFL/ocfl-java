@@ -21,6 +21,7 @@ import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
+import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
@@ -2072,6 +2073,27 @@ public abstract class OcflITest {
         });
     }
 
+    @Test
+    public void doNotFailWhenRepoContainsUnsupportedExtensionAndSetToWarn() {
+        var repoName = "unsupported-root-ext";
+        var repoRoot = sourceRepoPath(repoName);
+
+        existingRepo(repoName, repoRoot, builder -> {
+            builder.unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        });
+    }
+
+    @Test
+    public void doNotFailWhenRepoContainsUnsupportedObjectExtensionAndSetToWarn() {
+        var repoName = "unsupported-object-ext";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        });
+
+        repo.describeObject("o2");
+    }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
         var stream = actual.getStream();

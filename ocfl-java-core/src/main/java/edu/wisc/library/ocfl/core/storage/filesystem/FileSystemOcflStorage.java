@@ -37,7 +37,6 @@ import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.ObjectPaths;
-import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
@@ -82,7 +81,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
     private final Path repositoryRoot;
     private final FileSystemOcflStorageInitializer initializer;
-    private final ExtensionSupportEvaluator supportEvaluator;
 
     private final boolean checkNewVersionFixity;
 
@@ -118,12 +116,10 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      */
     public FileSystemOcflStorage(Path repositoryRoot,
                                  boolean checkNewVersionFixity,
-                                 FileSystemOcflStorageInitializer initializer,
-                                 ExtensionSupportEvaluator supportEvaluator) {
+                                 FileSystemOcflStorageInitializer initializer) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
         this.checkNewVersionFixity = checkNewVersionFixity;
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
-        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.ioRetry = new RetryPolicy<Void>()
@@ -523,7 +519,10 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      */
     @Override
     protected void doInitialize(OcflExtensionConfig layoutConfig) {
-        this.storageLayoutExtension = this.initializer.initializeStorage(repositoryRoot, ocflVersion, layoutConfig);
+        this.storageLayoutExtension = this.initializer.initializeStorage(repositoryRoot,
+                ocflVersion,
+                layoutConfig,
+                supportEvaluator);
     }
 
     /**

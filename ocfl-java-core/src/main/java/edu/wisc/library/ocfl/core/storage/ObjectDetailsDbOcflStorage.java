@@ -63,7 +63,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      */
     @Override
     protected void doInitialize(OcflExtensionConfig layoutConfig) {
-        delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper);
+        delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper, supportEvaluator);
     }
 
     /**

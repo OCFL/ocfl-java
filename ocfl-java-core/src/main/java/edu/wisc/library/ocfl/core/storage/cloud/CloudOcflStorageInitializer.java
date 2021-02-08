@@ -66,17 +66,16 @@ public class CloudOcflStorageInitializer {
 
     private final CloudClient cloudClient;
     private final ObjectMapper objectMapper;
-    private final ExtensionSupportEvaluator supportEvaluator;
 
     public CloudOcflStorageInitializer(CloudClient cloudClient,
-                                       ObjectMapper objectMapper,
-                                       ExtensionSupportEvaluator supportEvaluator) {
+                                       ObjectMapper objectMapper) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
-        this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
     }
 
-    public OcflStorageLayoutExtension initializeStorage(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    public OcflStorageLayoutExtension initializeStorage(OcflVersion ocflVersion,
+                                                        OcflExtensionConfig layoutConfig,
+                                                        ExtensionSupportEvaluator supportEvaluator) {
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
 
         ensureBucketExists();
@@ -88,7 +87,7 @@ public class CloudOcflStorageInitializer {
         } else {
             layoutExtension = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
             // This is only validating currently and does not load anything
-            loadRepositoryExtensions();
+            loadRepositoryExtensions(supportEvaluator);
         }
 
         LOG.info("OCFL repository is configured to use OCFL storage layout extension {} implemented by {}",
@@ -226,7 +225,7 @@ public class CloudOcflStorageInitializer {
         }
     }
 
-    private void loadRepositoryExtensions() {
+    private void loadRepositoryExtensions(ExtensionSupportEvaluator supportEvaluator) {
         // Currently, this just ensures that the repository does not use any extensions that ocfl-java does not support
         var listResults = cloudClient.listDirectory(OcflConstants.EXTENSIONS_DIR);
         listResults.getDirectories().forEach(dir -> {

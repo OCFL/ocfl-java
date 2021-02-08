@@ -26,13 +26,9 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
-import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Set;
 
 /**
  * Builder for constructing FileSystemOcflStorage objects. It is configured with sensible defaults and can minimally be
@@ -44,14 +40,10 @@ public class FileSystemOcflStorageBuilder {
     private boolean checkNewVersionFixity;
     private ObjectMapper objectMapper;
     private FileSystemOcflStorageInitializer initializer;
-    private UnsupportedExtensionBehavior unsupportedBehavior;
-    private Set<String> ignoreUnsupportedExtensions;
 
     public FileSystemOcflStorageBuilder() {
         checkNewVersionFixity = false;
         objectMapper = ObjectMappers.prettyPrintMapper();
-        unsupportedBehavior = UnsupportedExtensionBehavior.FAIL;
-        ignoreUnsupportedExtensions = Collections.emptySet();
 
     }
 
@@ -63,34 +55,6 @@ public class FileSystemOcflStorageBuilder {
      */
     public FileSystemOcflStorageBuilder repositoryRoot(Path repositoryRoot) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
-        return this;
-    }
-
-    /**
-     * Set the behavior when an unsupported extension is encountered. By default, ocfl-java will not operate on
-     * repositories or objects that contain unsupported extensions. Set this value to WARN, if you'd like ocfl-java
-     * to log a WARNing, but continue to operate instead.
-     * <p>
-     * Specific unsupported extensions may be ignored individually using {@code ignoreUnsupportedExtensions}
-     *
-     * @param unsupportedBehavior FAIL to throw an exception or WARN to log a warning
-     * @return builder
-     */
-    public FileSystemOcflStorageBuilder unsupportedExtensionBehavior(UnsupportedExtensionBehavior unsupportedBehavior) {
-        this.unsupportedBehavior = Enforce.notNull(unsupportedBehavior, "unsupportedExtensionBehavior cannot be null");
-        return this;
-    }
-
-    /**
-     * Sets a list of unsupported extensions that should be ignored. If the unsupported extension behavior
-     * is set to FAIL, this means that these extensions will produce log WARNings if they are encountered. If
-     * the behavior is set to WARN, then these extensions will be silently ignored.
-     *
-     * @param ignoreUnsupportedExtensions set of unsupported extension names that should be ignored
-     * @return builder
-     */
-    public FileSystemOcflStorageBuilder ignoreUnsupportedExtensions(Set<String> ignoreUnsupportedExtensions) {
-        this.ignoreUnsupportedExtensions = Enforce.notNull(ignoreUnsupportedExtensions, "ignoreUnsupportedExtensions cannot be null");
         return this;
     }
 
@@ -135,14 +99,12 @@ public class FileSystemOcflStorageBuilder {
      * @return file system storage
      */
     public FileSystemOcflStorage build() {
-        var supportEvaluator = new ExtensionSupportEvaluator(unsupportedBehavior, ignoreUnsupportedExtensions);
-
         var init = initializer;
         if (init == null) {
-            init = new FileSystemOcflStorageInitializer(objectMapper, supportEvaluator);
+            init = new FileSystemOcflStorageInitializer(objectMapper);
         }
 
-        return new FileSystemOcflStorage(repositoryRoot, checkNewVersionFixity, init, supportEvaluator);
+        return new FileSystemOcflStorage(repositoryRoot, checkNewVersionFixity, init);
     }
 
 }

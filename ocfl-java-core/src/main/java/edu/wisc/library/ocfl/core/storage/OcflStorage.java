@@ -31,6 +31,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.VersionNum;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -60,8 +61,12 @@ public interface OcflStorage {
      * @param ocflVersion the OCFL version
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
      * @param inventoryMapper the mapper to use for inventory serialization
+     * @param supportEvaluator the evaluator that determines what to do when unsupported extensions are encountered
      */
-    void initializeStorage(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig, InventoryMapper inventoryMapper);
+    void initializeStorage(OcflVersion ocflVersion,
+                           OcflExtensionConfig layoutConfig,
+                           InventoryMapper inventoryMapper,
+                           ExtensionSupportEvaluator supportEvaluator);
 
     /**
      * Returns a verified copy of the most recent object inventory. Null is returned if the object is not found.
