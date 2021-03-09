@@ -133,7 +133,7 @@ public class OcflS3ClientTest {
                 .s3Client(awsS3Client)
                 .bucket(bucket)
                 .repoPrefix(repoPrefix)
-                .putObjectModifier((key, builder) -> {
+                .createMultipartModifier((key, builder) -> {
                     if (key.endsWith("/test.txt")) {
                         builder.contentType("text/plain");
                     }
@@ -161,7 +161,7 @@ public class OcflS3ClientTest {
         try (var response = awsS3Client.getObject(builder -> {
             builder.bucket(bucket).key(FileUtil.pathJoinIgnoreEmpty(repoPrefix, key2)).build();
         })) {
-            assertEquals("application/octet-stream", response.response().contentType());
+            assertEquals("binary/octet-stream", response.response().contentType());
         }
     }
 
