@@ -43,12 +43,12 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class FileUtil {
@@ -58,9 +58,6 @@ public final class FileUtil {
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(FileUtil.class);
-
-    private static final SecureRandom RANDOM = new SecureRandom();
-
 
     /**
      * Creates a new directory as a child of the parent path named: md5(objectId)-[random-long]
@@ -74,7 +71,8 @@ public final class FileUtil {
     public static Path createObjectTempDir(Path parent, String objectId) {
         var digest = DigestUtil.computeDigestHex(DigestAlgorithm.md5, objectId);
         UncheckedFiles.createDirectories(parent);
-        return UncheckedFiles.createDirectory(parent.resolve(digest + "-" + Long.toUnsignedString(RANDOM.nextLong())));
+        return UncheckedFiles.createDirectory(parent.resolve(digest + "-"
+                + Integer.toUnsignedString(ThreadLocalRandom.current().nextInt())));
     }
 
     /**
