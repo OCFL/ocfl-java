@@ -198,7 +198,7 @@ public class OcflS3Client implements CloudClient {
             throw new OcflInputException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
         }
 
-        if (fileSize > MAX_PART_BYTES) {
+        if (fileSize > maxPartBytes) {
             multipartUpload(srcPath, dstKey, fileSize, contentType);
         } else {
             LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
@@ -590,13 +590,13 @@ public class OcflS3Client implements CloudClient {
     }
 
     private int determinePartSize(long fileSize) {
-        var partSize = PART_SIZE_BYTES;
+        var partSize = partSizeBytes;
         var maxParts = MAX_PARTS;
 
         while (fileSize / partSize > maxParts) {
             partSize += PART_SIZE_INCREMENT;
 
-            if (partSize > MAX_PART_BYTES) {
+            if (partSize > maxPartBytes) {
                 maxParts += PARTS_INCREMENT;
                 partSize /= 2;
             }
