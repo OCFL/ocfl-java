@@ -72,6 +72,22 @@ public abstract class AbstractOcflStorage implements OcflStorage {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache(String objectId) {
+        // no op
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache() {
+        // no op
+    }
+
+    /**
      * Does whatever is necessary to initialize OCFL repository storage.
      *
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration

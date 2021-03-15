@@ -68,6 +68,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private final String updateDetailsQuery;
     private final String insertDetailsQuery;
     private final String selectDigestQuery;
+    private final String deleteAllQuery;
 
     public BaseObjectDetailsDatabase(String tableName,
                                      DataSource dataSource,
@@ -96,6 +97,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                 " (object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", tableName);
         this.selectDigestQuery = String.format("SELECT inventory_digest FROM %s WHERE object_id = ?", tableName);
+        this.deleteAllQuery = String.format("DELETE FROM %s", tableName);
     }
 
     /**
@@ -202,6 +204,22 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
             }
         } catch (SQLException e) {
             throwLockException(e, objectId);
+            throw new OcflDbException(e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteAllDetails() {
+        try (var connection = dataSource.getConnection()) {
+            setLockWaitTimeout(connection, waitMillis);
+            try (var statement = connection.prepareStatement(deleteAllQuery)) {
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throwLockException(e);
             throw new OcflDbException(e);
         }
     }
@@ -344,6 +362,12 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private void throwLockException(SQLException e, String objectId) {
         if (lockFailCode.equals(e.getSQLState())) {
             throw new LockException("Failed to acquire lock for object " + objectId);
+        }
+    }
+
+    private void throwLockException(SQLException e) {
+        if (lockFailCode.equals(e.getSQLState())) {
+            throw new LockException("Failed to acquire lock: " + e.getMessage());
         }
     }
 

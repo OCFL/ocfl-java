@@ -239,4 +239,22 @@ public class CachingOcflStorage extends AbstractOcflStorage {
     public void close() {
         delegate.close();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache(String objectId) {
+        inventoryCache.invalidate(objectId);
+        delegate.invalidateCache(objectId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache() {
+        inventoryCache.invalidateAll();
+        delegate.invalidateCache();
+    }
 }

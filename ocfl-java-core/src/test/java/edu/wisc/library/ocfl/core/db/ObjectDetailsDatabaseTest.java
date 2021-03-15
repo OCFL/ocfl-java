@@ -179,6 +179,38 @@ public class ObjectDetailsDatabaseTest {
     }
 
     @Test
+    public void shouldDeleteAllDetailsWhenExist() {
+        var inventory = basicInventory();
+        var invBytes = inventoryBytes(inventory);
+        var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
+
+        database.addObjectDetails(inventory, digest, invBytes);
+        var details = database.retrieveObjectDetails(inventory.getId());
+
+        assertObjectDetails(inventory, digest, invBytes, details);
+
+        var inv2 = Inventory.builderFromStub("o2", new OcflConfig(), "o2")
+                .addFileToManifest("f1", "v1/content/file1.txt")
+                .addHeadVersion(Version.builder()
+                        .created(OffsetDateTime.now())
+                        .addFile("f1", "file1.txt")
+                        .build())
+                .build();
+        var invBytes2 = inventoryBytes(inv2);
+        var digest2 = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes2);
+
+        database.addObjectDetails(inv2, digest2, invBytes2);
+        details = database.retrieveObjectDetails(inv2.getId());
+
+        assertObjectDetails(inv2, digest2, invBytes2, details);
+
+        database.deleteAllDetails();
+
+        assertNull(database.retrieveObjectDetails(inventory.getId()));
+        assertNull(database.retrieveObjectDetails(inv2.getId()));
+    }
+
+    @Test
     public void shouldDoNothingWhenDeleteAndDetailsDoNotExist() {
         database.deleteObjectDetails("o1");
         var details = database.retrieveObjectDetails("o1");

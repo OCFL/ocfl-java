@@ -70,4 +70,9 @@ public interface ObjectDetailsDatabase {
      */
     void deleteObjectDetails(String objectId);
 
+    /**
+     * Removes all ObjectDetails from the database
+     */
+    void deleteAllDetails();
+
 }

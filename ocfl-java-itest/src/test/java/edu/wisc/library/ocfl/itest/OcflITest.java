@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.itest;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.AlreadyExistsException;
@@ -21,10 +22,12 @@ import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
+import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
+import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
@@ -43,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.DigestInputStream;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -2093,6 +2097,49 @@ public abstract class OcflITest {
         });
 
         repo.describeObject("o2");
+    }
+
+    @Test
+    public void invalidateCacheWhenObjectExists() {
+        var repoName = "clear-cache";
+
+        var cache = new CaffeineCache<String, Inventory>(Caffeine.newBuilder()
+                .expireAfterAccess(Duration.ofMinutes(10))
+                .maximumSize(512).build());
+
+        var repo = defaultRepo(repoName, builder -> {
+            builder.inventoryCache(cache);
+        });
+
+        var objectId1 = "o1";
+        var objectId2 = "o2";
+
+        repo.updateObject(ObjectVersionId.head(objectId1), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1.txt");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId1), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file2"), "file2.txt");
+        });
+        repo.updateObject(ObjectVersionId.head(objectId2), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3.txt");
+        });
+
+        assertTrue(cache.contains(objectId1));
+        assertTrue(cache.contains(objectId2));
+
+        repo.invalidateCache(objectId1);
+
+        assertFalse(cache.contains(objectId1));
+        assertTrue(cache.contains(objectId2));
+
+        repo.describeObject(objectId1);
+
+        assertTrue(cache.contains(objectId1));
+
+        repo.invalidateCache();
+
+        assertFalse(cache.contains(objectId1));
+        assertFalse(cache.contains(objectId2));
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {

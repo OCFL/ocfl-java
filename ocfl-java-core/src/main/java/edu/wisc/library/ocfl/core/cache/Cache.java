@@ -63,6 +63,11 @@ public interface Cache<K,V> {
     void invalidate(K key);
 
     /**
+     * Invalidates the entire cache
+     */
+    void invalidateAll();
+
+    /**
      * Returns true if the cache contains the specified key
      *
      * @param key key

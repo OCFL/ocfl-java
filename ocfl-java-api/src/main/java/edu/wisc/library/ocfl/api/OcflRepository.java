@@ -268,4 +268,18 @@ public interface OcflRepository {
      */
     OcflConfig config();
 
+    /**
+     * If the OcflRepository is using an inventory cache, then this method invalidates the cache entry for the
+     * specified object. Otherwise, nothing happens.
+     *
+     * @param objectId the ID of the object to invalidate in the cache
+     */
+    void invalidateCache(String objectId);
+
+    /**
+     * If the OcflRepository is using an inventory cache, then this method invalidates all entries in the cache.
+     * Otherwise, nothing happens.
+     */
+    void invalidateCache();
+
 }

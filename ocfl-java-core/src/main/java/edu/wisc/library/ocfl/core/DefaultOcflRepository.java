@@ -519,6 +519,24 @@ public class DefaultOcflRepository implements OcflRepository {
         return new OcflConfig(config);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache(String objectId) {
+        if (objectId != null) {
+            storage.invalidateCache(objectId);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache() {
+        storage.invalidateCache();
+    }
+
     protected Inventory loadInventory(ObjectVersionId objectId) {
         return storage.loadInventory(objectId.getObjectId());
     }

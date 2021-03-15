@@ -248,6 +248,24 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         delegate.close();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache(String objectId) {
+        objectDetailsDb.deleteObjectDetails(objectId);
+        delegate.invalidateCache(objectId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateCache() {
+        objectDetailsDb.deleteAllDetails();
+        delegate.invalidateCache();
+    }
+
     private void updateDetails(Inventory inventory, Path stagingDir, Runnable runnable) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
         var sidecarPath = ObjectPaths.inventorySidecarPath(stagingDir, inventory);
