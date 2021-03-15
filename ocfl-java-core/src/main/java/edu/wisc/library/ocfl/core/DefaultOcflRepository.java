@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core;
 
+import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
@@ -53,7 +54,6 @@ import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
-import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.ResponseMapper;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
@@ -62,9 +62,12 @@ import edu.wisc.library.ocfl.core.validation.ObjectValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.DigestOutputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.function.Consumer;
@@ -586,11 +589,18 @@ public class DefaultOcflRepository implements OcflRepository {
 
     protected Inventory writeInventory(Inventory inventory, Path stagingDir) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
-        inventoryMapper.write(inventoryPath, inventory);
-        String inventoryDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), inventoryPath);
-        SidecarMapper.writeSidecar(inventory, inventoryDigest, stagingDir);
 
-        return inventory.buildFrom().currentDigest(inventoryDigest).build();
+        try (var outStream = new BufferedOutputStream(Files.newOutputStream(inventoryPath))) {
+            var digestStream = new DigestOutputStream(outStream, inventory.getDigestAlgorithm().getMessageDigest());
+            inventoryMapper.write(digestStream, inventory);
+
+            var digest = Bytes.wrap(digestStream.getMessageDigest().digest()).encodeHex();
+            SidecarMapper.writeSidecar(inventory, digest, stagingDir);
+
+            return inventory.buildFrom().currentDigest(digest).build();
+        } catch (IOException e) {
+            throw new OcflIOException(e);
+        }
     }
 
     private Inventory createImportVersionInventory(Path versionPath) {

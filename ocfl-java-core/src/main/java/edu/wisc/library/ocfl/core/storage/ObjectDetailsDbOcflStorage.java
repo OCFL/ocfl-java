@@ -85,6 +85,8 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
             if (inventory != null) {
                 var baos = new ByteArrayOutputStream();
                 inventoryMapper.write(baos, inventory);
+                // TODO This is incorrect because it assumes that the inventory will be serialized identically
+                //      to what's currently on disk, but this is not a safe assumption
                 objectDetailsDb.addObjectDetails(inventory, inventory.getCurrentDigest(), baos.toByteArray());
             }
 
