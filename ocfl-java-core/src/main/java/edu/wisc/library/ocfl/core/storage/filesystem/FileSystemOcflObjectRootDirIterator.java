@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -41,8 +42,13 @@ import java.util.Iterator;
  */
 public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
 
+    private final String extSuffix;
+    private final String extPrefix;
+
     public FileSystemOcflObjectRootDirIterator(Path start) {
         super(FileUtil.pathToStringStandardSeparator(start));
+        this.extSuffix = start.getFileSystem().getSeparator().charAt(0) + OcflConstants.EXTENSIONS_DIR;
+        this.extPrefix = OcflConstants.EXTENSIONS_DIR + start.getFileSystem().getSeparator().charAt(0);
     }
 
     @Override
@@ -53,6 +59,11 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
+    }
+
+    @Override
+    protected boolean shouldSkip(String path) {
+        return path.endsWith(extSuffix) || extPrefix.equals(path);
     }
 
     @Override

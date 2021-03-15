@@ -40,11 +40,11 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
 
     protected static final String OCFL_OBJECT_MARKER_PREFIX = "0=ocfl_object";
 
-    private String start;
+    private final String start;
     private boolean started = false;
     private boolean closed = false;
 
-    private ArrayDeque<Directory> dirStack;
+    private final ArrayDeque<Directory> dirStack;
     private String next;
 
     public OcflObjectRootDirIterator(String start) {
@@ -59,6 +59,14 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
      * @return true if path is an object root path
      */
     abstract protected boolean isObjectRoot(String path);
+
+    /**
+     * Returns true if the path should be skipped
+     *
+     * @param path directory path
+     * @return true if path should be skipped
+     */
+    abstract protected boolean shouldSkip(String path);
 
     /**
      * Creates an object to maintain directory state
@@ -102,7 +110,9 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
             var nextDirectory = fetchNextDirectory();
 
             while (nextDirectory != null) {
-                if (isObjectRoot(nextDirectory)) {
+                if (shouldSkip(nextDirectory)) {
+                    popDirectory();
+                } else if (isObjectRoot(nextDirectory)) {
                     // Do not process children
                     popDirectory();
                     next = nextDirectory;

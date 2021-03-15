@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.storage.cloud;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -35,7 +36,10 @@ import java.util.Iterator;
  */
 public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
 
-    private CloudClient cloudClient;
+    private static final String EXT_SUFFIX = "/" + OcflConstants.EXTENSIONS_DIR;
+    private static final String EXT_PREFIX = OcflConstants.EXTENSIONS_DIR + "/";
+
+    private final CloudClient cloudClient;
 
     public CloudOcflObjectRootDirIterator(String start, CloudClient cloudClient) {
         super(start);
@@ -49,13 +53,18 @@ public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
     }
 
     @Override
+    protected boolean shouldSkip(String path) {
+        return path.endsWith(EXT_SUFFIX) || EXT_PREFIX.equals(path);
+    }
+
+    @Override
     protected Directory createDirectory(String path) {
         return new CloudDirectory(path);
     }
 
     private class CloudDirectory implements Directory {
 
-        private Iterator<ListResult.DirectoryListing> childDirectories;
+        private final Iterator<ListResult.DirectoryListing> childDirectories;
 
         CloudDirectory(String path) {
             var listResult = cloudClient.listDirectory(path);

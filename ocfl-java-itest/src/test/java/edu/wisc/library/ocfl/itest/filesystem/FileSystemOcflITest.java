@@ -5,6 +5,7 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
+import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.fixTime;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
 import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,6 +57,19 @@ public class FileSystemOcflITest extends OcflITest {
             var objectIds = objectIdsStream.collect(Collectors.toList());
             assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
         }
+    }
+
+    // TODO move once this issue is resolved: https://github.com/adobe/S3Mock/issues/215
+    @Test
+    public void shouldNotListObjectsWithinTheExtensionsDir() {
+        var repoName = "repo-multiple-objects";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        });
+
+        assertThat(repo.listObjectIds().collect(Collectors.toList()), containsInAnyOrder("o1", "o2", "o3"));
     }
 
     // This test doesn't work with S3Mock because it double encodes
