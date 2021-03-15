@@ -69,7 +69,9 @@ public class FileSystemOcflITest extends OcflITest {
             builder.unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
         });
 
-        assertThat(repo.listObjectIds().collect(Collectors.toList()), containsInAnyOrder("o1", "o2", "o3"));
+        try (var list = repo.listObjectIds()) {
+            assertThat(list.collect(Collectors.toList()), containsInAnyOrder("o1", "o2", "o3"));
+        }
     }
 
     // This test doesn't work with S3Mock because it double encodes
