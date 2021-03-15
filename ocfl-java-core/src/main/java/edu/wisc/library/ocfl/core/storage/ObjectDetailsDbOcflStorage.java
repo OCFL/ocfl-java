@@ -41,7 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -83,17 +82,26 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
             var inventory = delegate.loadInventory(objectId);
 
             if (inventory != null) {
-                var baos = new ByteArrayOutputStream();
-                inventoryMapper.write(baos, inventory);
-                // TODO This is incorrect because it assumes that the inventory will be serialized identically
-                //      to what's currently on disk, but this is not a safe assumption
-                objectDetailsDb.addObjectDetails(inventory, inventory.getCurrentDigest(), baos.toByteArray());
+                try {
+                    var inventoryBytes = delegate.getInventoryBytes(inventory.getId(), inventory.getHead());
+                    objectDetailsDb.addObjectDetails(inventory, inventory.getCurrentDigest(), inventoryBytes);
+                } catch (Exception e) {
+                    LOG.warn("Failed to cache inventory for object <{}>", objectId, e);
+                }
             }
 
             return inventory;
         }
 
         return parseInventory(details);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public byte[] getInventoryBytes(String objectId, VersionNum versionNum) {
+        return delegate.getInventoryBytes(objectId, versionNum);
     }
 
     /**

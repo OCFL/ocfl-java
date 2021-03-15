@@ -2,7 +2,7 @@
   "id" : "o2",
   "type" : "https://ocfl.io/1.0/spec/#inventory",
   "digestAlgorithm" : "sha512",
-  "head" : "v3",
+  "head" : "v7",
   "contentDirectory" : "content",
   "fixity" : { },
   "manifest" : {

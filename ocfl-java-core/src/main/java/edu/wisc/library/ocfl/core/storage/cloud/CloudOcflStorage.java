@@ -53,6 +53,7 @@ import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -141,6 +142,48 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
 
         return inventory;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public byte[] getInventoryBytes(String objectId, VersionNum versionNum) {
+        ensureOpen();
+
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+        Enforce.notNull(versionNum, "versionNum cannot be null");
+
+        LOG.debug("Loading inventory bytes for object {} version {}", objectId, versionNum);
+
+        var objectRootPath = objectRootPath(objectId);
+        var versionPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionNum.toString());
+
+        var inventoryPath = ObjectPaths.inventoryPath(versionPath);
+
+        try (var stream = cloudClient.downloadStream(inventoryPath)) {
+            return stream.readAllBytes();
+        } catch (KeyNotFoundException e) {
+            var mutableHeadInventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
+
+            try (var mutableStream = cloudClient.downloadStream(mutableHeadInventoryPath)) {
+                var bytes = mutableStream.readAllBytes();
+                var inv = inventoryMapper.readMutableHead("root", "bogus",
+                        RevisionNum.R1, new ByteArrayInputStream(bytes));
+
+                if (versionNum.equals(inv.getHead())) {
+                    return bytes;
+                }
+            } catch (KeyNotFoundException e2) {
+                // Ignore missing mutable head
+            } catch (IOException e2) {
+                throw new OcflIOException(e2);
+            }
+        } catch (IOException e) {
+            throw new OcflIOException(e);
+        }
+
+        throw new NotFoundException(String.format("No inventory could be found for object %s version %s", objectId, versionNum));
     }
 
     /**

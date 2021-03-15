@@ -3,8 +3,10 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.FixityCheckException;
+import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
@@ -13,6 +15,7 @@ import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
+import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import org.junit.jupiter.api.BeforeEach;
@@ -158,6 +161,25 @@ public class FileSystemOcflStorageTest {
         var objectIds = objectIdsStream.collect(Collectors.toList());
 
         assertEquals(0, objectIds.size());
+    }
+
+    @Test
+    public void shouldReturnInventoryBytesWhenExists() {
+        copyExistingRepo("repo-multiple-objects");
+        var storage = newStorage(false);
+
+        var bytes = storage.getInventoryBytes("o2", VersionNum.fromInt(2));
+        assertEquals("c15f51c96fafe599dd056c1782fce5e8d6a0461017260ec5bc751d12821e2a7c2344048fc32312d57fdbdd67" +
+                "ec32e238a5f68e5127a762dd866e77fcddbaa3ce",
+                DigestUtil.computeDigestHex(DigestAlgorithm.sha512, bytes));
+    }
+
+    @Test
+    public void shouldReturnExceptionWhenInventoryDoesNotExist() {
+        copyExistingRepo("repo-multiple-objects");
+        var storage = newStorage(false);
+
+        assertThrows(NotFoundException.class, () -> storage.getInventoryBytes("o2", VersionNum.fromInt(4)));
     }
 
     private InventoryBuilder inventoryBuilder() {

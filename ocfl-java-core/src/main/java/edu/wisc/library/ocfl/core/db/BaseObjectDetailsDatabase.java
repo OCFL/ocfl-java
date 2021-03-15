@@ -213,6 +213,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
      */
     @Override
     public void deleteAllDetails() {
+        LOG.debug("Clearing all entries in the {} table", tableName);
         try (var connection = dataSource.getConnection()) {
             setLockWaitTimeout(connection, waitMillis);
             try (var statement = connection.prepareStatement(deleteAllQuery)) {

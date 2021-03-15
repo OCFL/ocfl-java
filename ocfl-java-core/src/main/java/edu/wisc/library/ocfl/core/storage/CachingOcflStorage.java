@@ -72,6 +72,14 @@ public class CachingOcflStorage extends AbstractOcflStorage {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public byte[] getInventoryBytes(String objectId, VersionNum versionNum) {
+        return delegate.getInventoryBytes(objectId, versionNum);
+    }
+
+    /**
      * Stores a new version of an object and writes the inventory to the cache.
      *
      * @param inventory the updated object inventory

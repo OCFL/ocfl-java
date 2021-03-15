@@ -161,6 +161,48 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
+    public byte[] getInventoryBytes(String objectId, VersionNum versionNum) {
+        ensureOpen();
+
+        Enforce.notBlank(objectId, "objectId cannot be blank");
+        Enforce.notNull(versionNum, "versionNum cannot be null");
+
+        LOG.debug("Loading inventory bytes for object {} version {}", objectId, versionNum);
+
+        var objectRootPath = repositoryRoot.resolve(objectRootPath(objectId));
+        var versionPath = objectRootPath.resolve(versionNum.toString());
+
+        Path inventoryPath = null;
+
+        if (Files.exists(versionPath)) {
+            inventoryPath = ObjectPaths.inventoryPath(versionPath);
+        } else {
+            var mutableHeadInventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
+            if (Files.exists(mutableHeadInventoryPath)) {
+                var inv = inventoryMapper.readMutableHead("root", "bogus",
+                        RevisionNum.R1, mutableHeadInventoryPath);
+
+                if (versionNum.equals(inv.getHead())) {
+                    inventoryPath = mutableHeadInventoryPath;
+                }
+            }
+        }
+
+        if (inventoryPath != null) {
+            try {
+                return Files.readAllBytes(inventoryPath);
+            } catch (IOException e) {
+                throw new OcflIOException(e);
+            }
+        }
+
+        throw new NotFoundException(String.format("No inventory could be found for object %s version %s", objectId, versionNum));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Stream<String> listObjectIds() {
         LOG.debug("List object ids");
 

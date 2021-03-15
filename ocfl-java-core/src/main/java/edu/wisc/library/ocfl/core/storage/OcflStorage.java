@@ -80,6 +80,16 @@ public interface OcflStorage {
     Inventory loadInventory(String objectId);
 
     /**
+     * Returns the raw inventory bytes for the specified object version
+     *
+     * @param objectId the id of the object
+     * @param versionNum the version number
+     * @return the raw inventory bytes
+     * @throws NotFoundException if object or version cannot be found
+     */
+    byte[] getInventoryBytes(String objectId, VersionNum versionNum);
+
+    /**
      * Persists a fully composed object version. The contents of the stagingDir are the contents of the new version,
      * including a serialized copy of the updated inventory. It is safe to move the entire stagingDir to object-root/version.
      *
