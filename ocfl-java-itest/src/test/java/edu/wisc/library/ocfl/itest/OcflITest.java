@@ -25,20 +25,17 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
@@ -56,7 +53,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedOutputPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
@@ -74,7 +70,6 @@ import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionFile;
 import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionInfo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -84,8 +79,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class OcflITest {
 
-    private static final String O1_PATH = "235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc";
-    private static final String O2_PATH = "925/0b9/912/9250b9912ee91d6b46e23299459ecd6eb8154451d62558a3a0a708a77926ad04";
+    protected static final String O1_PATH = "235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc";
+    protected static final String O2_PATH = "925/0b9/912/9250b9912ee91d6b46e23299459ecd6eb8154451d62558a3a0a708a77926ad04";
 
     @TempDir
     public Path tempRoot;
@@ -910,29 +905,6 @@ public abstract class OcflITest {
         repo.putObject(ObjectVersionId.head(objectId), sourcePathV2, defaultVersionInfo.setMessage("second"));
 
         verifyRepo(repoName);
-    }
-
-    @Test
-    @EnabledOnOs(OS.LINUX)
-    public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() throws IOException {
-        var repoName = "repo16";
-        var repo = defaultRepo(repoName);
-
-        var objectId = "o1";
-
-        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
-            updater.writeFile(new ByteArrayInputStream("test1".getBytes()), "backslash\\path\\file");
-            updater.writeFile(new ByteArrayInputStream("test3".getBytes()), "fi\u0080le");
-        });
-
-        var expectedRepoPath = expectedRepoPath(repoName);
-        var backslashFile = expectedRepoPath.resolve(O1_PATH + "/v1/content/backslash\\path\\file");
-        try {
-            Files.write(backslashFile, "test1".getBytes());
-            verifyRepo(repoName);
-        } finally {
-            Files.deleteIfExists(backslashFile);
-        }
     }
 
     @Test

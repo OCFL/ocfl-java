@@ -15,10 +15,14 @@ import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -103,10 +107,33 @@ public class FileSystemOcflITest extends OcflITest {
 
         repo.purgeObject(objectId);
 
-        assertThat(Arrays.asList(repoDir(repoName).toFile().list()).stream().collect(Collectors.toList()),
+        assertThat(new ArrayList<>(Arrays.asList(repoDir(repoName).toFile().list())),
                 containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt",
                         OcflConstants.EXTENSIONS_DIR, OcflConstants.OCFL_LAYOUT,
                         HashedNTupleLayoutExtension.EXTENSION_NAME + ".md"));
+    }
+
+    @Test
+    @EnabledOnOs(OS.LINUX)
+    public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() throws IOException {
+        var repoName = "repo16";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.writeFile(new ByteArrayInputStream("test1".getBytes()), "backslash\\path\\file");
+            updater.writeFile(new ByteArrayInputStream("test3".getBytes()), "fi\u0080le");
+        });
+
+        var expectedRepoPath = expectedRepoPath(repoName);
+        var backslashFile = expectedRepoPath.resolve(O1_PATH + "/v1/content/backslash\\path\\file");
+        try {
+            Files.write(backslashFile, "test1".getBytes());
+            verifyRepo(repoName);
+        } finally {
+            Files.deleteIfExists(backslashFile);
+        }
     }
 
     @Override

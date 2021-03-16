@@ -3,9 +3,12 @@ package edu.wisc.library.ocfl.itest.s3;
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.OcflRepository;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
+import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
@@ -14,11 +17,15 @@ import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariables;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -26,12 +33,21 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
+import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class S3OcflITest extends OcflITest {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3OcflITest.class);
+
+    private static final String ENV_ACCESS_KEY = "OCFL_TEST_AWS_ACCESS_KEY";
+    private static final String ENV_SECRET_KEY = "OCFL_TEST_AWS_SECRET_KEY";
+    private static final String ENV_BUCKET = "OCFL_TEST_S3_BUCKET";
 
     private static final String REPO_PREFIX = "S3OcflITest" + ThreadLocalRandom.current().nextLong();
 
@@ -48,9 +64,9 @@ public class S3OcflITest extends OcflITest {
 
     @BeforeAll
     public static void beforeAll() {
-        var accessKey = System.getenv().get("OCFL_TEST_AWS_ACCESS_KEY");
-        var secretKey = System.getenv().get("OCFL_TEST_AWS_SECRET_KEY");
-        var bucket = System.getenv().get("OCFL_TEST_S3_BUCKET");
+        var accessKey = System.getenv().get(ENV_ACCESS_KEY);
+        var secretKey = System.getenv().get(ENV_SECRET_KEY);
+        var bucket = System.getenv().get(ENV_BUCKET);
 
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
             LOG.info("Running tests against AWS");
@@ -83,8 +99,66 @@ public class S3OcflITest extends OcflITest {
         });
     }
 
-    public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() {
-        // Test doesn't work with s3
+    // Doesn't work with mock https://github.com/adobe/S3Mock/issues/215
+    @Test
+    @EnabledIfEnvironmentVariable(named = ENV_ACCESS_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_SECRET_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_BUCKET, matches = ".+")
+    public void listObjectsInRepo() {
+        var repoName = "repo-list";
+        var repo = defaultRepo(repoName);
+
+        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo, updater -> {
+            updater.writeFile(inputStream("test1"), "test1.txt");
+        });
+        repo.updateObject(ObjectVersionId.head("o2"), defaultVersionInfo, updater -> {
+            updater.writeFile(inputStream("test2"), "test2.txt");
+        });
+        repo.updateObject(ObjectVersionId.head("o3"), defaultVersionInfo, updater -> {
+            updater.writeFile(inputStream("test3"), "test3.txt");
+        });
+
+        try (var objectIdsStream = repo.listObjectIds()) {
+            var objectIds = objectIdsStream.collect(Collectors.toList());
+            assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
+        }
+    }
+
+    // Doesn't work with mock https://github.com/adobe/S3Mock/issues/215
+    @Test
+    @EnabledIfEnvironmentVariable(named = ENV_ACCESS_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_SECRET_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_BUCKET, matches = ".+")
+    public void shouldNotListObjectsWithinTheExtensionsDir() {
+        var repoName = "repo-multiple-objects";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        });
+
+        try (var list = repo.listObjectIds()) {
+            assertThat(list.collect(Collectors.toList()), containsInAnyOrder("o1", "o2", "o3"));
+        }
+    }
+
+    // This test doesn't work with S3Mock because it double encodes
+    @Test
+    @EnabledIfEnvironmentVariable(named = ENV_ACCESS_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_SECRET_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_BUCKET, matches = ".+")
+    public void hashedIdLayoutLongEncoded() {
+        var repoName = "hashed-id-layout-2";
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
+
+        var objectId = "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                    .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+        });
+
+        verifyRepo(repoName);
     }
 
     @Override
