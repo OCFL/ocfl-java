@@ -903,13 +903,11 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private void copyObjects(List<ListResult.ObjectListing> objects, Path outputPath) {
         objects.forEach(object -> {
-            var key = object.getKey().getKey();
-            var relativePath = object.getKeySuffix();
-            var destination = outputPath.resolve(relativePath);
+            var destination = outputPath.resolve(object.getKeySuffix());
 
             UncheckedFiles.createDirectories(destination.getParent());
 
-            try (var stream = cloudClient.downloadStream(key)) {
+            try (var stream = cloudClient.downloadStream(object.getKey().getPath())) {
                 Files.copy(stream, destination);
             } catch (IOException e) {
                 throw new OcflIOException(e);

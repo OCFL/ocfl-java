@@ -34,6 +34,7 @@ jobs:
       run: mvn -B -U clean install
   postgres:
     runs-on: ubuntu-latest
+    environment: ci
     services:
       postgres:
         image: postgres:12
@@ -41,6 +42,9 @@ jobs:
           POSTGRES_USER: db-user
           POSTGRES_PASSWORD: db-pw
           POSTGRES_DB: ocfl
+          OCFL_TEST_AWS_ACCESS_KEY: ${{ secrets.OCFL_TEST_AWS_ACCESS_KEY }}
+          OCFL_TEST_AWS_SECRET_KEY: ${{ secrets.OCFL_TEST_AWS_SECRET_KEY }}
+          OCFL_TEST_S3_BUCKET: ${{ secrets.OCFL_TEST_S3_BUCKET }}
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

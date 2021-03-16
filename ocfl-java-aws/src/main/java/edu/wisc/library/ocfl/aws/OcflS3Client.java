@@ -606,7 +606,7 @@ public class OcflS3Client implements CloudClient {
     }
 
     private ListResult toListResult(ListObjectsV2Response s3Result) {
-        var prefixLength = s3Result.prefix() == null ? 0 : s3Result.prefix().length();
+        var prefixLength = prefixLength(s3Result.prefix());
         var repoPrefixLength = repoPrefix.isBlank() ? 0 : repoPrefix.length() + 1;
 
         var objects = s3Result.contents().stream().map(o -> {
@@ -628,6 +628,17 @@ public class OcflS3Client implements CloudClient {
         return new ListResult()
                 .setObjects(objects)
                 .setDirectories(dirs);
+    }
+
+    private int prefixLength(String prefix) {
+        var prefixLength = 0;
+        if (prefix != null) {
+            prefixLength = prefix.length();
+            if (!prefix.endsWith("/")) {
+                prefixLength += 1;
+            }
+        }
+        return prefixLength;
     }
 
     @VisibleForTesting

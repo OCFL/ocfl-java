@@ -8,38 +8,63 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 
 public class S3OcflITest extends OcflITest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(S3OcflITest.class);
+
+    private static final String REPO_PREFIX = "S3OcflITest" + ThreadLocalRandom.current().nextLong();
+
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
 
-    private final S3Client s3Client = S3_MOCK.createS3ClientV2();
+    private static S3Client s3Client;
+    private static String bucket;
 
     private static ComboPooledDataSource dataSource;
 
     private S3ITestHelper s3Helper;
-    private Set<String> createdBuckets = new HashSet<>();
+    private Set<String> repoPrefixes = new HashSet<>();
 
     @BeforeAll
     public static void beforeAll() {
+        var accessKey = System.getenv().get("OCFL_TEST_AWS_ACCESS_KEY");
+        var secretKey = System.getenv().get("OCFL_TEST_AWS_SECRET_KEY");
+        var bucket = System.getenv().get("OCFL_TEST_S3_BUCKET");
+
+        if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
+            LOG.info("Running tests against AWS");
+            s3Client = S3ITestHelper.createS3Client(accessKey, secretKey);
+            S3OcflITest.bucket = bucket;
+        } else {
+            LOG.info("Running tests against S3 Mock");
+            s3Client = S3_MOCK.createS3ClientV2();
+            S3OcflITest.bucket = UUID.randomUUID().toString();
+            s3Client.createBucket(request -> {
+                request.bucket(S3OcflITest.bucket);
+            });
+        }
+
         dataSource = new ComboPooledDataSource();
         dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
         dataSource.setUser(System.getProperty("db.user", ""));
@@ -53,7 +78,9 @@ public class S3OcflITest extends OcflITest {
 
     @Override
     protected void onAfter() {
-        deleteBuckets();
+        repoPrefixes.forEach(prefix -> {
+            createCloudClient(prefix).deletePath("");
+        });
     }
 
     public void allowPathsWithDifficultCharsWhenNoRestrictionsApplied() {
@@ -62,8 +89,6 @@ public class S3OcflITest extends OcflITest {
 
     @Override
     protected OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
-        createBucket(name);
-
         var builder = new OcflRepositoryBuilder()
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
@@ -73,10 +98,7 @@ public class S3OcflITest extends OcflITest {
                 .contentPathConstraints(ContentPathConstraints.cloud())
                 .cloudStorage(cloud -> cloud
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloudClient(OcflS3Client.builder()
-                                .s3Client(s3Client)
-                                .bucket(name)
-                                .build())
+                        .cloudClient(createCloudClient(name))
                         .build())
                 .workDir(workDir);
 
@@ -89,37 +111,21 @@ public class S3OcflITest extends OcflITest {
 
     @Override
     protected OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer) {
-        createBucket(name);
+        var client = createCloudClient(name);
         FileUtil.findFiles(path).stream().filter(f -> !f.getFileName().toString().equals(".gitkeep")).forEach(file -> {
-            s3Client.putObject(PutObjectRequest.builder()
-                    .bucket(name)
-                    .key(FileUtil.pathToStringStandardSeparator(path.relativize(file)))
-                    .build(), file);
+            client.uploadFile(file, FileUtil.pathToStringStandardSeparator(path.relativize(file)));
         });
         return defaultRepo(name, consumer);
     }
 
     @Override
     protected void verifyRepo(String name) {
-        s3Helper.verifyRepo(expectedRepoPath(name), name);
+        s3Helper.verifyRepo(expectedRepoPath(name), bucket, prefix(name));
     }
 
     @Override
     protected List<String> listFilesInRepo(String name) {
-        return s3Helper.listAllObjects(name);
-    }
-
-    private void createBucket(String name) {
-        if (!createdBuckets.contains(name)) {
-            s3Client.createBucket(CreateBucketRequest.builder().bucket(name).build());
-            createdBuckets.add(name);
-        }
-    }
-
-    private void deleteBuckets() {
-        createdBuckets.forEach(bucket -> {
-            s3Helper.deleteBucket(bucket);
-        });
+        return s3Helper.listAllObjects(bucket, prefix(name));
     }
 
     private String detailsTable() {
@@ -128,6 +134,20 @@ public class S3OcflITest extends OcflITest {
 
     private String lockTable() {
         return "lock_" + UUID.randomUUID().toString().replaceAll("-", "");
+    }
+
+    private CloudClient createCloudClient(String name) {
+        repoPrefixes.add(name);
+
+        return OcflS3Client.builder()
+                .s3Client(s3Client)
+                .bucket(bucket)
+                .repoPrefix(prefix(name))
+                .build();
+    }
+
+    private String prefix(String name) {
+        return REPO_PREFIX + "-" + name;
     }
 
 }

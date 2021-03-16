@@ -3,15 +3,13 @@ package edu.wisc.library.ocfl.itest.s3;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.Delete;
-import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
-import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.IOException;
@@ -25,7 +23,6 @@ import static edu.wisc.library.ocfl.itest.ITestHelper.computeDigest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class S3ITestHelper {
 
@@ -35,28 +32,27 @@ public class S3ITestHelper {
         this.s3Client = s3Client;
     }
 
-    public void verifyRepo(Path expected, String bucket) {
-        assertTrue(bucketExists(bucket), bucket + " should exist");
-        assertEquals(expected.getFileName().toString(), bucket);
+    public static S3Client createS3Client(String accessKey, String secretKey) {
+        return S3Client.builder()
+                .region(Region.US_EAST_2)
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKey, secretKey)))
+                .httpClientBuilder(ApacheHttpClient.builder())
+                .build();
+    }
 
+    public void verifyRepo(Path expected, String bucket, String prefix) {
         var expectedPaths = listAllFiles(expected);
-        var actualObjects = listAllObjects(bucket);
+        var actualObjects = listAllObjects(bucket, prefix);
 
         assertThat(actualObjects, containsInAnyOrder(expectedPaths.toArray()));
 
         expectedPaths.forEach(path -> {
             var expectedFile = expected.resolve(path);
-            assertEquals(computeDigest(expectedFile), computeS3Digest(bucket, path),
+            assertEquals(computeDigest(expectedFile), computeS3Digest(bucket, prefix, path),
                     () -> String.format("Comparing %s to object in bucket %s: \n\n%s",
-                            expectedFile, bucket, new String(getObjectContent(bucket, path))));
+                            expectedFile, bucket, new String(getObjectContent(bucket, prefix, path))));
         });
-    }
-
-    public void deleteBucket(String bucket) {
-        var result = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucket).prefix("").build());
-        var keys = result.contents().stream().map(S3Object::key).map(k -> ObjectIdentifier.builder().key(k).build()).collect(Collectors.toList());
-        s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(bucket).delete(Delete.builder().objects(keys).build()).build());
-        s3Client.deleteBucket(DeleteBucketRequest.builder().bucket(bucket).build());
     }
 
     private List<String> listAllFiles(Path root) {
@@ -66,7 +62,7 @@ public class S3ITestHelper {
             walk.filter(p -> {
                 var pStr = p.toString();
                 return !pStr.contains(".gitkeep");
-            }).filter(p -> Files.isRegularFile(p)).forEach(p -> {
+            }).filter(Files::isRegularFile).forEach(p -> {
                 paths.add(FileUtil.pathToStringStandardSeparator(root.relativize(p)));
             });
         } catch (IOException e) {
@@ -76,10 +72,10 @@ public class S3ITestHelper {
         return paths;
     }
 
-    private byte[] getObjectContent(String bucket, String key) {
+    private byte[] getObjectContent(String bucket, String prefix, String key) {
         try (var result = s3Client.getObject(GetObjectRequest.builder()
                 .bucket(bucket)
-                .key(key)
+                .key(prefix + "/" +key)
                 .build())) {
             return result.readAllBytes();
         } catch (IOException e) {
@@ -87,28 +83,19 @@ public class S3ITestHelper {
         }
     }
 
-    private String computeS3Digest(String bucket, String key) {
-        return DigestUtil.computeDigestHex(DigestAlgorithm.md5, getObjectContent(bucket, key));
+    private String computeS3Digest(String bucket, String prefix, String key) {
+        return DigestUtil.computeDigestHex(DigestAlgorithm.md5, getObjectContent(bucket, prefix, key));
     }
 
-    public List<String> listAllObjects(String bucket) {
+    public List<String> listAllObjects(String bucket, String prefix) {
         var result = s3Client.listObjectsV2(ListObjectsV2Request.builder()
                 .bucket(bucket)
-                .prefix("")
+                .prefix(prefix)
                 .build());
 
-        return result.contents().stream().map(S3Object::key).collect(Collectors.toList());
-    }
-
-    private boolean bucketExists(String bucket) {
-        try {
-            s3Client.headBucket(HeadBucketRequest.builder()
-                    .bucket(bucket)
-                    .build());
-            return true;
-        } catch (NoSuchBucketException e) {
-            return false;
-        }
+        return result.contents().stream().map(S3Object::key)
+                .map(k -> k.substring(prefix.length() + 1))
+                .collect(Collectors.toList());
     }
 
 }
