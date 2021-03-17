@@ -37,6 +37,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
+
 /**
  * Implementation of {@link OcflObjectRootDirIterator} that iterates over the filesystem
  */
@@ -49,7 +51,7 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
     @Override
     protected boolean isObjectRoot(String path) {
         try (var objectMarkers = Files.newDirectoryStream(Paths.get(path),
-                p -> p.getFileName().toString().startsWith(OCFL_OBJECT_MARKER_PREFIX))) {
+                p -> p.getFileName().toString().startsWith(OBJECT_NAMASTE_PREFIX))) {
             return objectMarkers.iterator().hasNext();
         } catch (IOException e) {
             throw new OcflIOException(e);

@@ -176,6 +176,7 @@ public class FileSystemOcflStorageInitializerTest {
         assertThat(children, containsInAnyOrder(
                 aFileNamed(equalTo("0=ocfl_1.0")),
                 aFileNamed(equalTo("ocfl_1.0.txt")),
+                aFileNamed(equalTo("ocfl_extensions_1.0.md")),
                 aFileNamed(equalTo(OcflConstants.OCFL_LAYOUT)),
                 aFileNamed(equalTo(HashedNTupleLayoutExtension.EXTENSION_NAME + ".md")),
                 aFileNamed(equalTo(OcflConstants.EXTENSIONS_DIR))));

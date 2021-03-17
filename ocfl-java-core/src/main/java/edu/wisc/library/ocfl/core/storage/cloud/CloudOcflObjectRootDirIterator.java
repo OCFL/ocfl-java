@@ -31,6 +31,8 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.util.Iterator;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
+
 /**
  * Implementation of {@link OcflObjectRootDirIterator} that iterates over cloud objects
  */
@@ -48,7 +50,7 @@ public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
 
     @Override
     protected boolean isObjectRoot(String path) {
-        var listResult = cloudClient.list(FileUtil.pathJoinFailEmpty(path, OCFL_OBJECT_MARKER_PREFIX));
+        var listResult = cloudClient.list(FileUtil.pathJoinFailEmpty(path, OBJECT_NAMASTE_PREFIX));
         return !listResult.getObjects().isEmpty();
     }
 

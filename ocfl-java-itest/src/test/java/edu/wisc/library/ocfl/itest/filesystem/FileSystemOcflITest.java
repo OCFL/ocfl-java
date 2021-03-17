@@ -108,7 +108,7 @@ public class FileSystemOcflITest extends OcflITest {
         repo.purgeObject(objectId);
 
         assertThat(new ArrayList<>(Arrays.asList(repoDir(repoName).toFile().list())),
-                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt",
+                containsInAnyOrder("0=ocfl_1.0", "ocfl_1.0.txt", "ocfl_extensions_1.0.md",
                         OcflConstants.EXTENSIONS_DIR, OcflConstants.OCFL_LAYOUT,
                         HashedNTupleLayoutExtension.EXTENSION_NAME + ".md"));
     }

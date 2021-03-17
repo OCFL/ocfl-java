@@ -38,8 +38,6 @@ import java.util.NoSuchElementException;
  */
 public abstract class OcflObjectRootDirIterator implements Iterator<String>, Closeable {
 
-    protected static final String OCFL_OBJECT_MARKER_PREFIX = "0=ocfl_object";
-
     private final String start;
     private boolean started = false;
     private boolean closed = false;

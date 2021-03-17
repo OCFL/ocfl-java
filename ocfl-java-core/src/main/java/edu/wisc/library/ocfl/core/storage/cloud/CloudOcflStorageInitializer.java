@@ -51,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
+
 /**
  * Initializes an OCFL repository in cloud storage. If the repository does not already exist, a new one is created. If it
  * does exist, the client configuration is verified and {@link OcflStorageLayoutExtension} is created.
@@ -60,9 +62,9 @@ public class CloudOcflStorageInitializer {
     private static final Logger LOG = LoggerFactory.getLogger(CloudOcflStorageInitializer.class);
 
     private static final String SPECS_DIR = "specs/";
+    private static final String EXT_SPEC = "ocfl_extensions_1.0.md";
     private static final String MEDIA_TYPE_TEXT = "text/plain; charset=UTF-8";
     private static final String MEDIA_TYPE_JSON = "application/json; charset=UTF-8";
-    private static final String OBJECT_MARKER_PREFIX = "0=ocfl_object";
 
     private final CloudClient cloudClient;
     private final ObjectMapper objectMapper;
@@ -169,7 +171,7 @@ public class CloudOcflStorageInitializer {
         var response = cloudClient.listDirectory(prefix);
 
         for (var object : response.getObjects()) {
-            if (object.getKeySuffix().startsWith(OBJECT_MARKER_PREFIX)) {
+            if (object.getKeySuffix().startsWith(OBJECT_NAMASTE_PREFIX)) {
                 var path = object.getKey().getPath();
                 return (String) path.subSequence(0, path.lastIndexOf('/'));
             }
@@ -217,6 +219,7 @@ public class CloudOcflStorageInitializer {
             keys.add(writeOcflSpec(ocflVersion));
             keys.addAll(writeOcflLayout(layoutConfig, layoutExtension.getDescription()));
             keys.add(writeOcflLayoutSpec(layoutConfig));
+            keys.add(writeSpecFile(EXT_SPEC));
             return layoutExtension;
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository", e);

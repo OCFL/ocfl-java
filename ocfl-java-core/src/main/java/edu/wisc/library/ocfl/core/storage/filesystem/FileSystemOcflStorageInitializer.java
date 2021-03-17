@@ -54,6 +54,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
+
 /**
  * Prepares an OCFL storage root for use.
  */
@@ -62,7 +64,7 @@ public class FileSystemOcflStorageInitializer {
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemOcflStorageInitializer.class);
 
     private static final String SPECS_DIR = "specs/";
-    private static final String OBJECT_MARKER_PREFIX = "0=ocfl_object";
+    private static final String EXT_SPEC = "ocfl_extensions_1.0.md";
 
     private final ObjectMapper objectMapper;
 
@@ -186,7 +188,7 @@ public class FileSystemOcflStorageInitializer {
             Files.walkFileTree(root, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    if (file.getFileName().toString().startsWith(OBJECT_MARKER_PREFIX)) {
+                    if (file.getFileName().toString().startsWith(OBJECT_NAMASTE_PREFIX)) {
                         ref.set(file.getParent());
                         return FileVisitResult.TERMINATE;
                     }
@@ -228,6 +230,7 @@ public class FileSystemOcflStorageInitializer {
             writeOcflSpec(repositoryRoot, ocflVersion);
             writeOcflLayout(repositoryRoot, layoutConfig, layoutExtension.getDescription());
             writeOcflLayoutSpec(repositoryRoot, layoutConfig);
+            writeSpecFile(repositoryRoot, EXT_SPEC);
             return layoutExtension;
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository at {}", repositoryRoot, e);
