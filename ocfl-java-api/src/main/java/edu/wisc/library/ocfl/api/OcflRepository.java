@@ -29,10 +29,12 @@ import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
+import edu.wisc.library.ocfl.api.exception.ValidationException;
 import edu.wisc.library.ocfl.api.model.FileChangeHistory;
 import edu.wisc.library.ocfl.api.model.ObjectDetails;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
+import edu.wisc.library.ocfl.api.model.ValidationResults;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 
@@ -165,6 +167,23 @@ public interface OcflRepository {
     void purgeObject(String objectId);
 
     /**
+     * Validates an existing object against the OCFL 1.0 spec and returns a report containing all of the issues that
+     * were found with their accompanying <a href="https://ocfl.io/validation/validation-codes.html">validation code</a>.
+     *
+     * <p>The validation does NOT lock the object, which means that if an object is updated while the object is in
+     * the process of being validated, then the results may be inaccurate.
+     *
+     * <p>If a fixity check is requested, then this call may be quite expensive as it will have to calculate the digests
+     * of every file in the object.
+     *
+     * @param objectId the id of the object to validate
+     * @param contentFixityCheck true if the fixity of the content files should be verified
+     * @return the validation results
+     * @throws NotFoundException if the object does not exist.
+     */
+    ValidationResults validateObject(String objectId, boolean contentFixityCheck);
+
+    /**
      * Creates a new head version by copying the state of the specified version. This is a non-destructive way to roll an
      * object back to a prior version without altering its version history.
      *
@@ -204,9 +223,8 @@ public interface OcflRepository {
      *
      * @param objectVersionId the id of the object and version to export
      * @param outputPath the directory to write the exported version to, if it does not exist it will be created
-     * @param options optional config options. Use {@link OcflOption#NO_VALIDATION} to disable export validation.
+     * @param options optional config options.
      * @throws NotFoundException when no object can be found for the specified objectVersionId
-     * @throws CorruptObjectException when the exported version fails validation
      */
     void exportVersion(ObjectVersionId objectVersionId, Path outputPath, OcflOption... options);
 
@@ -222,7 +240,7 @@ public interface OcflRepository {
      * @param outputPath the directory to write the exported object to, if it does not exist it will be created
      * @param options optional config options. Use {@link OcflOption#NO_VALIDATION} to disable export validation.
      * @throws NotFoundException when no object can be found for the specified objectId
-     * @throws CorruptObjectException when the exported object fails validation
+     * @throws ValidationException when the exported object fails validation
      */
     void exportObject(String objectId, Path outputPath, OcflOption... options);
 
