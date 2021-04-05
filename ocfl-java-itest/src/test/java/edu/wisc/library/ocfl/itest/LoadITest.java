@@ -41,18 +41,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 @Disabled
 public class LoadITest {
 
+    // AVG: rate(putObject_seconds_sum[1m])/rate(putObject_seconds_count[1m])
+    // p99: histogram_quantile(0.99, sum(rate(putObject_seconds_bucket[1m])) by (le))
+
     private static final int KB = 1024;
     private static final long MB = 1024 * KB;
 
     private static final int BUFFER_SIZE = 32 * KB;
-
-    private static final Random RANDOM = new SecureRandom();
 
     @TempDir
     public Path tempRoot;
@@ -96,9 +98,21 @@ public class LoadITest {
     }
 
     @Test
+    public void fsPutObjectSmallFilesTest() throws InterruptedException {
+        var threadCount = 10;
+        var duration = Duration.ofMinutes(7);
+        var fileCount = 10;
+        var fileSize = 128 * KB;
+
+        var repo = createFsRepo();
+
+        runPutTest(repo, fileCount, fileSize, threadCount, duration, "fs", true);
+    }
+
+    @Test
     public void fsPutObjectModestFilesTest() throws InterruptedException {
         var threadCount = 10;
-        var duration = Duration.ofMinutes(15);
+        var duration = Duration.ofMinutes(7);
         var fileCount = 10;
         var fileSize = 3 * MB;
 
@@ -110,7 +124,7 @@ public class LoadITest {
     @Test
     public void fsPutObjectManyFilesTest() throws InterruptedException {
         var threadCount = 10;
-        var duration = Duration.ofMinutes(15);
+        var duration = Duration.ofMinutes(10);
         var fileCount = 2048;
         var fileSize = 128 * KB;
 
@@ -464,7 +478,7 @@ public class LoadITest {
         try (var out = new BufferedOutputStream(Files.newOutputStream(path))) {
             var written = 0;
             while (written < size) {
-                RANDOM.nextBytes(bytes);
+                ThreadLocalRandom.current().nextBytes(bytes);
                 out.write(bytes);
                 written += BUFFER_SIZE;
             }
