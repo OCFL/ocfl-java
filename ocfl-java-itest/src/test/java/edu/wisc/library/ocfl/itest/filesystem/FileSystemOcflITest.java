@@ -8,6 +8,7 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -15,6 +16,8 @@ import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -39,6 +42,7 @@ import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class FileSystemOcflITest extends OcflITest {
 
@@ -164,6 +168,27 @@ public class FileSystemOcflITest extends OcflITest {
         } finally {
             Files.deleteIfExists(backslashFile);
         }
+    }
+
+    @Test
+    public void shouldNotCreateEmptyContentDirWhenVersionHasNoContent() {
+        var repoName = "empty-content";
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new FlatLayoutConfig()));
+
+        var objectId = "object";
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.writeFile(streamString("asdf"), "file.txt");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.removeFile("file.txt");
+        });
+
+        var root = repoDir(repoName);
+        var v2ContentPath = root.resolve(objectId).resolve("v2/content");
+
+        assertFalse(Files.exists(v2ContentPath), "empty content directories should not exist");
     }
 
     @Override

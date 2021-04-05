@@ -604,6 +604,13 @@ public class DefaultOcflRepository implements OcflRepository {
 
     protected void writeNewVersion(Inventory inventory, Path stagingDir) {
         var finalInventory = writeInventory(inventory, stagingDir);
+
+        // Versions should not contain empty content directories
+        var contentDir = stagingDir.resolve(inventory.resolveContentDirectory());
+        if (!FileUtil.hasChildren(contentDir)) {
+            UncheckedFiles.delete(contentDir);
+        }
+
         objectLock.doInWriteLock(inventory.getId(), () -> storage.storeNewVersion(finalInventory, stagingDir));
     }
 

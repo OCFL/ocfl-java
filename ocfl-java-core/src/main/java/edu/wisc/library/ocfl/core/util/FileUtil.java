@@ -262,7 +262,6 @@ public final class FileUtil {
         }
     }
 
-
     /**
      * Recursive delete that deletes everything under and including the specified directory. Failures deleting individual
      * files are logged and a single exception is thrown at the end.

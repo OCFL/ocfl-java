@@ -866,7 +866,15 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private void versionContentCheck(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path contentPath, boolean checkFixity) {
+    private void versionContentCheck(Inventory inventory,
+                                     ObjectPaths.ObjectRoot objectRoot,
+                                     Path contentPath,
+                                     boolean checkFixity) {
+        // The content directory will not exist if the version does not introduce new files
+        if (Files.notExists(contentPath)) {
+            return;
+        }
+
         var version = inventory.getHeadVersion();
         var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath));
 
