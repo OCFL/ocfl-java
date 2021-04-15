@@ -129,12 +129,16 @@ cache deserialized inventories.
 objects for writing. By default, it is an in-memory lock with a 10
 second wait to acquire. Use `ObjectLockBuilder` construct an alternate
 lock. When more than one processes may be concurrently writing to an
-OCFL repository or when using cloud storage, a different
-implementation, such as `PostgresObjectLock`, should be used.
+OCFL repository, a different implementation, such as `DbObjectLock`,
+should be used.
 * **objectDetailsDb**: Configures a database to use to store OCFL
-object metadata. By default, this feature is not used. It should be
-used when using cloud storage. Use `ObjectDetailsDatabaseBuilder` to
-construct an `ObjectDetailsDatabase`.
+object metadata. By default, this feature is not used. It is intended
+to be used when using cloud storage, and caches a copy of the most
+recent inventory file. In addition to speeding cloud operations up a
+little, it also addresses the eventual consistency problem, though
+most cloud storage, including S3, is now strongly consistent. Use
+`ObjectDetailsDatabaseBuilder` to construct an
+`ObjectDetailsDatabase`.
 
 ## Storage Implementations
 
@@ -187,14 +191,27 @@ At the minimum, the client needs permissions to the following actions:
 * `s3:ListBucket`
 * `s3:AbortMultipartUpload`
 
-The `ocfl-client` needs to be configured to use a database for locking
-and caching OCFL object details. This is necessary to solve eventual
-consistency and concurrency issues. Use
-`OcflRepositoryBuilder.objectLock()` and
-`OcflRepositoryBuilder.objectDetailsDb()` to set this up. Currently,
-the only supported databases are PostgreSQL and H2. The `ocfl-java`
-client populates the object details database on demand. There is no
-need to pre-populate it, and it can safely be wiped anytime.
+If it is possible that multiple applications may be writing to the
+OCFL repository, then it is essential that a distributed lock is used
+to ensure that only one process is updating an object at a time.
+`ocfl-java` provides a builtin database based locking mechanism that
+can be used for these purposes. This is configured by setting the
+`objectLock` on the `OcflRepositoryBuilder` as shown in the example
+below.
+
+Additionally, another database table may be optionally used to cache
+details about the objects in the repository. This allows `ocfl-java`
+to retrieve object details without needing to read inventories from
+S3. It also addresses the problem of eventually consistent writes.
+However, Amazon S3 is now strongly consistent, so it is no longer
+critical to use this feature. If you do want to use it, configure the
+`objectDetailsDb` on the `OcflRepositoryBuilder` as shown in the
+example below.
+
+Currently, the only supported databases are PostgreSQL and H2. The
+`ocfl-java` client populates the object details database on demand.
+There is no need to pre-populate it, and the table can safely be wiped
+anytime.
 
 Note, the Amazon S3 storage implementation is significantly slower
 than the file system implementation. It will likely not perform well
@@ -241,10 +258,9 @@ The client automatically creates the tables that it needs.
 
 If you intend to write to an OCFL repository from multiple different
 instances, you should use a database based object lock rather than the
-default in-memory lock. This is a requirement for using cloud storage,
-by not strictly necessary for filesystem storage. Additionally, you
-may want to either adjust or disable inventory caching, or hook up a
-distributed cache implementation.
+default in-memory lock. Additionally, you may want to either adjust or
+disable inventory caching, or hook up a distributed cache
+implementation.
 
 ### Inventory size
 

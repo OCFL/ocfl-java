@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -23,7 +24,6 @@ public class DbObjectLockTest {
 
     private static ComboPooledDataSource dataSource;
 
-    private String tableName;
     private ExecutorService executor;
     private ObjectLock lock;
 
@@ -37,9 +37,7 @@ public class DbObjectLockTest {
 
     @BeforeEach
     public void setup() {
-        tableName = "lock_" + UUID.randomUUID().toString().replaceAll("-", "");
-
-        lock = createLock(tableName);
+        lock = createLock(Duration.ofHours(1));
         executor = Executors.newCachedThreadPool();
     }
 
@@ -99,11 +97,158 @@ public class DbObjectLockTest {
         future.get();
     }
 
-    private ObjectLock createLock(String tableName) {
+    @Test
+    public void onConcurrentAcquireOnlyOneProcessShouldGetLock() throws InterruptedException {
+        var phaser = new Phaser(3);
+
+        var result1 = new AtomicBoolean(false);
+        var future1 = executor.submit(() -> {
+            phaser.arriveAndAwaitAdvance();
+            lock.doInWriteLock("obj1", () -> {
+                result1.set(true);
+                try {
+                    Thread.sleep(TimeUnit.MILLISECONDS.toMillis(100));
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            });
+        });
+
+        var result2 = new AtomicBoolean(false);
+        var future2 = executor.submit(() -> {
+            phaser.arriveAndAwaitAdvance();
+            lock.doInWriteLock("obj1", () -> {
+                result2.set(true);
+                try {
+                    Thread.sleep(TimeUnit.MILLISECONDS.toMillis(100));
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            });
+        });
+
+        phaser.arriveAndAwaitAdvance();
+
+        try {
+            future1.get();
+            future2.get();
+        } catch (ExecutionException e) {
+            // don't care about this
+        }
+
+        assertFalse(result1.get() && result2.get());
+        assertTrue(result1.get() || result2.get());
+    }
+
+    @Test
+    public void shouldAcquireLockWhenExistsButIsExpired() throws ExecutionException, InterruptedException {
+        lock = createLock(Duration.ofMillis(100));
+
+        var phaser = new Phaser(2);
+
+        var future = executor.submit(() -> {
+            lock.doInWriteLock("obj1", () -> {
+                phaser.arriveAndAwaitAdvance();
+                try {
+                    Thread.sleep(TimeUnit.MILLISECONDS.toMillis(500));
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            });
+        });
+
+        phaser.arriveAndAwaitAdvance();
+
+        Thread.sleep(TimeUnit.MILLISECONDS.toMillis(101));
+
+        var result1 = new AtomicBoolean(false);
+        lock.doInWriteLock("obj1", () -> {
+            result1.set(true);
+        });
+        assertTrue(result1.get());
+
+        var result2 = new AtomicBoolean(false);
+        lock.doInWriteLock("obj1", () -> {
+            result2.set(true);
+        });
+        assertTrue(result2.get());
+
+        future.get();
+    }
+
+    @Test
+    public void onConcurrentAcquireOnlyOneProcessShouldGetLockWhenLockExpired() throws ExecutionException, InterruptedException {
+        lock = createLock(Duration.ofMillis(100));
+
+        var phaser = new Phaser(4);
+
+        var future0 = executor.submit(() -> {
+            lock.doInWriteLock("obj1", () -> {
+                phaser.arriveAndAwaitAdvance();
+                try {
+                    Thread.sleep(TimeUnit.MILLISECONDS.toMillis(500));
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            });
+        });
+
+        var result1 = new AtomicBoolean(false);
+        var future1 = executor.submit(() -> {
+            phaser.arriveAndAwaitAdvance();
+            try {
+                Thread.sleep(TimeUnit.MILLISECONDS.toMillis(101));
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            }
+            lock.doInWriteLock("obj1", () -> {
+                result1.set(true);
+                try {
+                    Thread.sleep(TimeUnit.MILLISECONDS.toMillis(100));
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            });
+        });
+
+        var result2 = new AtomicBoolean(false);
+        var future2 = executor.submit(() -> {
+            phaser.arriveAndAwaitAdvance();
+            try {
+                Thread.sleep(TimeUnit.MILLISECONDS.toMillis(101));
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+            }
+            lock.doInWriteLock("obj1", () -> {
+                result2.set(true);
+                try {
+                    Thread.sleep(TimeUnit.MILLISECONDS.toMillis(100));
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            });
+        });
+
+        phaser.arriveAndAwaitAdvance();
+
+        try {
+            future0.get();
+            future1.get();
+            future2.get();
+        } catch (ExecutionException e) {
+            // don't care about this
+        }
+
+        assertFalse(result1.get() && result2.get());
+        assertTrue(result1.get() || result2.get());
+    }
+
+    private ObjectLock createLock(Duration maxLockDuration) {
+        var tableName = "lock_" + UUID.randomUUID().toString().replaceAll("-", "");
         return new ObjectLockBuilder()
-                .waitTime(250, TimeUnit.MILLISECONDS)
                 .dataSource(dataSource)
                 .tableName(tableName)
+                .maxLockDuration(maxLockDuration)
                 .build();
     }
 

@@ -24,13 +24,12 @@
 
 package edu.wisc.library.ocfl.core.lock;
 
-import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.db.DbType;
-import edu.wisc.library.ocfl.core.db.ObjectDetailsDatabaseBuilder;
 import edu.wisc.library.ocfl.core.db.TableCreator;
 
 import javax.sql.DataSource;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -44,14 +43,18 @@ public class ObjectLockBuilder {
     private TimeUnit timeUnit;
     private DataSource dataSource;
     private String tableName;
+    private Duration maxLockDuration;
 
     public ObjectLockBuilder() {
         waitTime = 10;
         timeUnit = TimeUnit.SECONDS;
+        maxLockDuration = Duration.ofHours(1);
     }
 
     /**
      * Used to override the amount of time the client will wait to obtain an object lock. Default: 10 seconds.
+     *
+     * <p>This only applies to in-memory locks
      *
      * @param waitTime wait time
      * @param timeUnit unit of time
@@ -86,6 +89,22 @@ public class ObjectLockBuilder {
     }
 
     /**
+     * Sets the maximum amount of time a lock may be held for before it's able to be acquired by another process.
+     * Default: 1 hour
+     *
+     * <p>This only applies for database locks, and is used to avoid permanently locking an object if the process
+     * that acquired the lock dies without releasing the lock. This duration should be fairly generous to allow
+     * sufficient time for slow S3 writes.
+     *
+     * @param maxLockDuration the maximum amount of time a lock may be held for
+     * @return builder
+     */
+    public ObjectLockBuilder maxLockDuration(Duration maxLockDuration) {
+        this.maxLockDuration = maxLockDuration;
+        return this;
+    }
+
+    /**
      * Constructs a new {@link ObjectLock}. If a DataSource was set, then a DB lock is created; otherwise, an in-memory
      * lock is used.
      *
@@ -105,18 +124,7 @@ public class ObjectLockBuilder {
         var resolvedTableName = tableName == null ? DEFAULT_TABLE_NAME : tableName;
 
         var dbType = DbType.fromDataSource(dataSource);
-        ObjectLock lock;
-
-        switch (dbType) {
-            case POSTGRES:
-                lock = new PostgresObjectLock(resolvedTableName, dataSource, waitTime, timeUnit);
-                break;
-            case H2:
-                lock = new H2ObjectLock(resolvedTableName, dataSource, waitTime, timeUnit);
-                break;
-            default:
-                throw new OcflJavaException(String.format("Database type %s is not mapped to an ObjectLock implementation.", dbType));
-        }
+        var lock = new DbObjectLock(dbType, resolvedTableName, dataSource, maxLockDuration);
 
         new TableCreator(dbType, dataSource).createObjectLockTable(resolvedTableName);
 
