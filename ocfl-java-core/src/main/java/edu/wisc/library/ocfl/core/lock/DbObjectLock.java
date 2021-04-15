@@ -38,6 +38,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -93,7 +94,7 @@ public class DbObjectLock implements ObjectLock {
      */
     @Override
     public <T> T doInWriteLock(String objectId, Callable<T> doInLock) {
-        var now = Instant.now();
+        var now = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
         try (var connection = dataSource.getConnection()) {
             if (!createLockRow(objectId, now, connection)) {
