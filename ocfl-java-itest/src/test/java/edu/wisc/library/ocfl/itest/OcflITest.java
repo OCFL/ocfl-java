@@ -20,6 +20,7 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
+import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
@@ -34,6 +35,7 @@ import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,6 +76,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -2144,11 +2147,74 @@ public abstract class OcflITest {
         });
     }
 
+    @Test
+    public void addFileWithPrecomputedDigest() throws IOException {
+        var repoName = "unsafe";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.unsafeAddPath("96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd5" +
+                    "61fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
+                    sourceObjectPath(objectId, "v1").resolve("file1"),
+                    "");
+        });
+
+        var file = repo.getObject(ObjectVersionId.head(objectId)).getFile("file1");
+        assertNotNull(file);
+        assertStream("Test file 1", file);
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+            updater.unsafeAddPath("4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6a" +
+                            "db0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
+                    sourceObjectPath(objectId, "v1").resolve("file2"),
+                    "file1", OcflOption.OVERWRITE);
+        });
+
+        file = repo.getObject(ObjectVersionId.head(objectId)).getFile("file1");
+        assertStream("Test file 2", file);
+    }
+
+    @Test
+    public void corruptObjectWhenInvalidDigestProvided() throws IOException {
+        var repoName = "unsafe";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.unsafeAddPath("4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6a" +
+                            "db0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
+                    sourceObjectPath(objectId, "v1").resolve("file1"),
+                    "");
+        });
+
+        var file = repo.getObject(ObjectVersionId.head(objectId)).getFile("file1");
+        assertNotNull(file);
+        OcflAsserts.assertThrowsWithMessage(FixityCheckException.class, "Expected sha-512 digest", () -> {
+            assertStream("Test file 1", file);
+        });
+
+        var results = repo.validateObject(objectId, true);
+        assertEquals(1, results.getErrors().size(), () -> "Found: " + results.getErrors());
+        var error = results.getErrors().get(0);
+        assertEquals(ValidationCode.E092, error.getCode());
+        assertThat(error.getMessage(), containsString("failed sha512 fixity check"));
+    }
+
+    private void assertStream(String expected, OcflObjectVersionFile actual) throws IOException {
+        try (var stream = actual.getStream()) {
+            var contents = TestHelper.inputToString(stream);
+            assertEquals(expected, contents);
+            stream.checkFixity();
+        }
+    }
+
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
-        var stream = actual.getStream();
-        var contents = TestHelper.inputToString(stream);
-        stream.checkFixity();
-        assertEquals(TestHelper.inputToString(Files.newInputStream(expectedFile)), contents);
+        try (var fileStream = Files.newInputStream(expectedFile)) {
+            assertStream(TestHelper.inputToString(fileStream), actual);
+        }
     }
 
     private Path outputPath(String repoName, String path) {

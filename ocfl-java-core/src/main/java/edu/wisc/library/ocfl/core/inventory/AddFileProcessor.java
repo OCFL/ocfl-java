@@ -41,6 +41,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Encapsulates logic for adding files to an object, both adding them to the inventory and moving them into staging.
@@ -103,29 +104,12 @@ public class AddFileProcessor {
 
         var results = new HashMap<String, Path>();
         var optionsSet = OcflOption.toSet(options);
-
         var destination = destinationPath(destinationPath, sourcePath);
 
         try (var paths = Files.walk(sourcePath, FileVisitOption.FOLLOW_LINKS)) {
             paths.filter(Files::isRegularFile).forEach(file -> {
                 var digest = DigestUtil.computeDigestHex(digestAlgorithm, file);
-
-                var logicalPath = logicalPath(sourcePath, file, destination);
-                var result = inventoryUpdater.addFile(digest, logicalPath, options);
-
-                if (result.isNew()) {
-                    results.put(logicalPath, stagingFullPath(result.getPathUnderContentDir()));
-
-                    var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
-
-                    if (optionsSet.contains(OcflOption.MOVE_SOURCE)) {
-                        LOG.debug("Moving file <{}> to <{}>", file, stagingFullPath);
-                        FileUtil.moveFileMakeParents(file, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
-                    } else {
-                        LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
-                        FileUtil.copyFileMakeParents(file, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
+                processFileInternal(results, digest, sourcePath, file, destination, optionsSet, options);
             });
         } catch (IOException e) {
             throw new OcflIOException(e);
@@ -137,6 +121,62 @@ public class AddFileProcessor {
         }
 
         return results;
+    }
+
+    /**
+     * Adds the file at sourcePath to the object at the specified destinationPath. The provided digest is trusted to
+     * be accurate. If it is not, or is the wrong algorithm, then the object will be corrupted.
+     *
+     * @param digest the digest of the file. MUST use the same algorithm as the object's content digest algorithm
+     * @param sourcePath the file or directory to add
+     * @param destinationPath the location to insert the file or directory at within the object
+     * @param options options for how to move the files
+     * @return a map of logical paths to their corresponding file within the stagingDir for newly added files
+     */
+    public Map<String, Path> processFileWithDigest(String digest,
+                                                   Path sourcePath,
+                                                   String destinationPath,
+                                                   OcflOption... options) {
+        Enforce.notBlank(digest, "digest cannot be blank");
+        Enforce.notNull(sourcePath, "sourcePath cannot be null");
+        Enforce.notNull(destinationPath, "destinationPath cannot be null");
+
+        if (!Files.isRegularFile(sourcePath)) {
+            throw new IllegalStateException(String.format("%s must be a regular file", sourcePath));
+        }
+
+        var results = new HashMap<String, Path>();
+        var optionsSet = OcflOption.toSet(options);
+        var destination = destinationPath(destinationPath, sourcePath);
+
+        processFileInternal(results, digest, sourcePath, sourcePath, destination, optionsSet, options);
+
+        return results;
+    }
+
+    private void processFileInternal(Map<String, Path> results,
+                                     String digest,
+                                     Path sourcePath,
+                                     Path file,
+                                     String destination,
+                                     Set<OcflOption> optionsSet,
+                                     OcflOption... options) {
+        var logicalPath = logicalPath(sourcePath, file, destination);
+        var result = inventoryUpdater.addFile(digest, logicalPath, options);
+
+        if (result.isNew()) {
+            results.put(logicalPath, stagingFullPath(result.getPathUnderContentDir()));
+
+            var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
+
+            if (optionsSet.contains(OcflOption.MOVE_SOURCE)) {
+                LOG.debug("Moving file <{}> to <{}>", file, stagingFullPath);
+                FileUtil.moveFileMakeParents(file, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
+                FileUtil.copyFileMakeParents(file, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
     }
 
     private String destinationPath(String path, Path sourcePath) {

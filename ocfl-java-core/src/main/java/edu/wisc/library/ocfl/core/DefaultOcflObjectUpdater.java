@@ -100,6 +100,21 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         return this;
     }
 
+    @Override
+    public OcflObjectUpdater unsafeAddPath(String digest, Path sourcePath, String destinationPath, OcflOption... options) {
+        Enforce.notBlank(digest, "digest cannot be blank");
+        Enforce.notNull(sourcePath, "sourcePath cannot be null");
+        Enforce.notNull(destinationPath, "destinationPath cannot be null");
+
+        LOG.debug("Unsafe add <{}> to object <{}> at logical path <{}> with digest <{}>",
+                sourcePath, inventory.getId(), destinationPath, digest);
+
+        var newStagedFiles = addFileProcessor.processFileWithDigest(digest, sourcePath, destinationPath, options);
+        stagedFileMap.putAll(newStagedFiles);
+
+        return this;
+    }
+
     /**
      * {@inheritDoc}
      */
