@@ -229,7 +229,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 2);
-        assertHasError(results, ValidationCode.E044, "Inventory versions is missing an entry for version v2 in E040_wrong_head_doesnt_exist/inventory.json");
+        assertHasError(results, ValidationCode.E010, "Inventory versions is missing an entry for version v2 in E040_wrong_head_doesnt_exist/inventory.json");
         assertHasError(results, ValidationCode.E040, "Inventory head must be the highest version number in E040_wrong_head_doesnt_exist/inventory.json. Expected: v1; Found: v2");
         assertWarningsCount(results, 2);
         assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a user in E040_wrong_head_doesnt_exist/inventory.json");
@@ -457,15 +457,15 @@ public class ValidatorTest {
 
     @Test
     public void errorOnSkippedVersions() {
-        var name = "E044_skipped_versions";
+        var name = "E010_skipped_versions";
         var validator = createValidator(CUSTOM_BAD_FIXTURES);
 
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 3);
-        assertHasError(results, ValidationCode.E044, "Inventory versions is missing an entry for version v2 in E044_skipped_versions/inventory.json");
-        assertHasError(results, ValidationCode.E044, "Inventory versions is missing an entry for version v3 in E044_skipped_versions/inventory.json");
-        assertHasError(results, ValidationCode.E044, "Inventory versions is missing an entry for version v6 in E044_skipped_versions/inventory.json");
+        assertHasError(results, ValidationCode.E010, "Inventory versions is missing an entry for version v2 in E010_skipped_versions/inventory.json");
+        assertHasError(results, ValidationCode.E010, "Inventory versions is missing an entry for version v3 in E010_skipped_versions/inventory.json");
+        assertHasError(results, ValidationCode.E010, "Inventory versions is missing an entry for version v6 in E010_skipped_versions/inventory.json");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -713,7 +713,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 1);
-        assertHasError(results, ValidationCode.E040, "Inventory head must be the highest version number in E040_wrong_version_in_version_dir/inventory.json. Expected: v3; Found: v2");
+        assertHasError(results, ValidationCode.E040, "Inventory head must be v2 in E040_wrong_version_in_version_dir/v2/inventory.json");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -819,15 +819,15 @@ public class ValidatorTest {
 
     @Test
     public void errorOnAlgorithmChangeInvalidDigest() {
-        var name = "E093_algorithm_change_incorrect_digest";
+        var name = "E092_algorithm_change_incorrect_digest";
         var validator = createValidator(CUSTOM_BAD_FIXTURES);
 
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 3);
-        assertHasError(results, ValidationCode.E093, "File E093_algorithm_change_incorrect_digest/v1/content/file-2.txt failed sha512 fixity check. Expected: 1fef2458ee1a9277925614272adfe60872f4c1bf02eecce7276166957d1ab30f65cf5c8065a294bf1b13e3c3589ba936a3b5db911572e30dfcb200ef71ad33d5; Actual: 9fef2458ee1a9277925614272adfe60872f4c1bf02eecce7276166957d1ab30f65cf5c8065a294bf1b13e3c3589ba936a3b5db911572e30dfcb200ef71ad33d5");
-        assertHasError(results, ValidationCode.E093, "File E093_algorithm_change_incorrect_digest/v1/content/file-3.txt failed sha512 fixity check. Expected: 13b26d26c9d8cfbb884b50e798f93ac6bef275a018547b1560af3e6d38f2723785731d3ca6338682fa7ac9acb506b3c594a125ce9d3d60cd14498304cc864cf2; Actual: b3b26d26c9d8cfbb884b50e798f93ac6bef275a018547b1560af3e6d38f2723785731d3ca6338682fa7ac9acb506b3c594a125ce9d3d60cd14498304cc864cf2");
-        assertHasError(results, ValidationCode.E093, "File E093_algorithm_change_incorrect_digest/v1/content/file-1.txt failed sha512 fixity check. Expected: 17e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1; Actual: 07e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1");
+        assertHasError(results, ValidationCode.E092, "File E092_algorithm_change_incorrect_digest/v1/content/file-2.txt failed sha512 fixity check. Expected: 1fef2458ee1a9277925614272adfe60872f4c1bf02eecce7276166957d1ab30f65cf5c8065a294bf1b13e3c3589ba936a3b5db911572e30dfcb200ef71ad33d5; Actual: 9fef2458ee1a9277925614272adfe60872f4c1bf02eecce7276166957d1ab30f65cf5c8065a294bf1b13e3c3589ba936a3b5db911572e30dfcb200ef71ad33d5");
+        assertHasError(results, ValidationCode.E092, "File E092_algorithm_change_incorrect_digest/v1/content/file-3.txt failed sha512 fixity check. Expected: 13b26d26c9d8cfbb884b50e798f93ac6bef275a018547b1560af3e6d38f2723785731d3ca6338682fa7ac9acb506b3c594a125ce9d3d60cd14498304cc864cf2; Actual: b3b26d26c9d8cfbb884b50e798f93ac6bef275a018547b1560af3e6d38f2723785731d3ca6338682fa7ac9acb506b3c594a125ce9d3d60cd14498304cc864cf2");
+        assertHasError(results, ValidationCode.E092, "File E092_algorithm_change_incorrect_digest/v1/content/file-1.txt failed sha512 fixity check. Expected: 17e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1; Actual: 07e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1");
         assertWarningsCount(results, 1);
         assertInfoCount(results, 0);
     }

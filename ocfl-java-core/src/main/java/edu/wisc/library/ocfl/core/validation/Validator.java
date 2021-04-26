@@ -486,6 +486,8 @@ public class Validator {
     private void fixityCheck(String objectRootPath, SimpleInventory inventory, Manifests manifests, ValidationResultsBuilder results) {
         var invertedFixityMap = invertFixity(inventory);
         var contentAlgorithm = DigestAlgorithmRegistry.getAlgorithm(inventory.getDigestAlgorithm());
+        var contentAlgorithms = new HashSet<DigestAlgorithm>();
+        contentAlgorithms.add(contentAlgorithm);
 
         for (var entry : inventory.getManifest().entrySet()) {
             var digest = entry.getKey();
@@ -504,6 +506,7 @@ public class Validator {
                                 var algorithm = DigestAlgorithmRegistry.getAlgorithm(e.getKey());
                                 if (algorithm != null) {
                                     expectations.put(algorithm, e.getValue());
+                                    contentAlgorithms.add(algorithm);
                                 }
                             });
                 }
@@ -525,7 +528,7 @@ public class Validator {
                     expectations.forEach((algorithm, expected) -> {
                         var actual = actualDigests.get(algorithm);
                         if (!expected.equalsIgnoreCase(actual)) {
-                            var code = algorithm.equals(contentAlgorithm) ? ValidationCode.E092 : ValidationCode.E093;
+                            var code = contentAlgorithms.contains(algorithm) ? ValidationCode.E092 : ValidationCode.E093;
                             results.addIssue(code,
                                     "File %s failed %s fixity check. Expected: %s; Actual: %s",
                                     storagePath, algorithm.getOcflName(), expected, actual);

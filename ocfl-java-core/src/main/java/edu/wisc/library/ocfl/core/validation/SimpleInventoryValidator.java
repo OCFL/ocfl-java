@@ -306,7 +306,7 @@ public class SimpleInventoryValidator {
         if (inventory.getVersions() != null) {
             if (inventory.getHead() != null
                     && !inventory.getVersions().containsKey(inventory.getHead())) {
-                results.addIssue(ValidationCode.E044,
+                results.addIssue(ValidationCode.E010,
                         "Inventory versions is missing an entry for version %s in %s", inventory.getHead(), inventoryPath);
             }
 
@@ -335,7 +335,7 @@ public class SimpleInventoryValidator {
                         } else {
                             var missing = new VersionNum(nextNum, currentNum.getZeroPaddingWidth());
                             while (!missing.equals(currentNum)) {
-                                results.addIssue(ValidationCode.E044,
+                                results.addIssue(ValidationCode.E010,
                                         "Inventory versions is missing an entry for version %s in %s", missing, inventoryPath);
                                 missing = missing.nextVersionNum();
                             }
