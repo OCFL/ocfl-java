@@ -31,12 +31,12 @@
     <parent>
         <groupId>edu.wisc.library.ocfl</groupId>
         <artifactId>ocfl-java-parent</artifactId>
-        <version>1.0.4-SNAPSHOT</version>
+        <version>1.1.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>ocfl-java-core</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.1.0</version>
 
     <name>OCFL Java Core</name>
     <description>Core Java OCFL implementation code.</description>
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>edu.wisc.library.ocfl</groupId>
             <artifactId>ocfl-java-api</artifactId>
-            <version>1.0.4-SNAPSHOT</version>
+            <version>1.1.0</version>
         </dependency>
 
         <!-- JSON -->
@@ -127,7 +127,7 @@
         <dependency>
             <groupId>edu.wisc.library.ocfl</groupId>
             <artifactId>ocfl-java-test</artifactId>
-            <version>1.0.4-SNAPSHOT</version>
+            <version>1.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
