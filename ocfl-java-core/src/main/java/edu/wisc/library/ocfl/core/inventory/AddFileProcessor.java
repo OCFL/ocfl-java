@@ -165,9 +165,9 @@ public class AddFileProcessor {
         var result = inventoryUpdater.addFile(digest, logicalPath, options);
 
         if (result.isNew()) {
-            results.put(logicalPath, stagingFullPath(result.getPathUnderContentDir()));
-
             var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
+
+            results.put(logicalPath, stagingFullPath);
 
             if (optionsSet.contains(OcflOption.MOVE_SOURCE)) {
                 LOG.debug("Moving file <{}> to <{}>", file, stagingFullPath);
