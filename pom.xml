@@ -74,7 +74,7 @@
 
         <java.version>11</java.version>
 
-        <jackson.version>2.12.2</jackson.version>
+        <jackson.version>2.12.3</jackson.version>
         <slf4j.version>2.0.0-alpha1</slf4j.version>
     </properties>
 
@@ -309,7 +309,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>30.1-jre</version>
+                <version>30.1.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>net.jodah</groupId>
@@ -326,7 +326,7 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.16.20</version>
+                <version>2.16.51</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -355,12 +355,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>3.8.0</version>
+                <version>3.9.0</version>
             </dependency>
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>42.2.19</version>
+                <version>42.2.20</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
@@ -375,7 +375,7 @@
             <dependency>
                 <groupId>com.adobe.testing</groupId>
                 <artifactId>s3mock-junit5</artifactId>
-                <version>2.1.28</version>
+                <version>2.1.29</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
