@@ -80,6 +80,34 @@ public interface OcflObjectUpdater {
     OcflObjectUpdater addPath(Path sourcePath, String destinationPath, OcflOption... options);
 
     /**
+     * Adds a file to the object at the specified destinationPath. The destinationPath is the logical path
+     * to the file within the object. Forward slashes MUST be used as filename separators in the path. It is important to
+     * keep this in mind on Windows systems, where backslashes MUST be converted to forward slashes.
+     *
+     * <p>This method differs from addPath() in that it DOES NOT calculate the file's digest. The digest must be
+     * provided and it MUST use the same algorithm as the object's content digest algorithm. If a different algorithm
+     * is used or the digest is wrong, then the OCFL object will be corrupted. This method should only be used when
+     * performance is critical and the necessary digest was already calculated elsewhere.
+     *
+     * <p>By default, files are copied into the OCFL repository. If {@link OcflOption#MOVE_SOURCE} is specified, then
+     * files will be moved instead. Warning: If an exception occurs and the new version is not created, the files that were
+     * will be lost. This operation is more efficient but less safe than the default copy.
+     *
+     * <p>By default, the change will be rejected if there is already a file in the object at the destinationPath.
+     * To overwrite, specify {@link OcflOption#OVERWRITE}.
+     *
+     * @param digest the digest of the file. The digest MUST use the same algorithm as the object's content digest algorithm
+     * @param sourcePath the local file to add to the object
+     * @param destinationPath the logical path to store the sourcePath at within the object, an empty string indicates the object root
+     * @param options optional config options. Use {@link OcflOption#MOVE_SOURCE} to move files into the repo instead of copying.
+     *                    Use {@link OcflOption#OVERWRITE} to overwrite existing files within an object
+     * @return this
+     * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
+     *                            not specified
+     */
+    OcflObjectUpdater unsafeAddPath(String digest, Path sourcePath, String destinationPath, OcflOption... options);
+
+    /**
      * Writes the contents of the InputStream to the object at the specified destinationPath. The destinationPath is the
      * logical path to the file within the object. Forward slashes MUST be used as filename separators in the path. It is
      * important to keep this in mind on Windows systems, where backslashes MUST be converted to forward slashes.
