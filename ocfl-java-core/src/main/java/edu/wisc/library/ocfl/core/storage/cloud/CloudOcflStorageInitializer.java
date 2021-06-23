@@ -251,7 +251,11 @@ public class CloudOcflStorageInitializer {
 
     private String writeSpecFile(String fileName) {
         try (var stream = this.getClass().getClassLoader().getResourceAsStream(SPECS_DIR + fileName)) {
-            return uploadStream(fileName, stream).getPath();
+            if (stream != null) {
+                return uploadStream(fileName, stream).getPath();
+            } else {
+                throw new RuntimeException("No spec file found for " + fileName);
+            }
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
