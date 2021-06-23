@@ -255,7 +255,11 @@ public class FileSystemOcflStorageInitializer {
 
     private void writeSpecFile(Path repositoryRoot, String fileName) {
         try (var stream = this.getClass().getClassLoader().getResourceAsStream(SPECS_DIR + fileName)) {
-            Files.copy(stream, repositoryRoot.resolve(fileName));
+            if (stream != null) {
+                Files.copy(stream, repositoryRoot.resolve(fileName));
+            } else {
+                throw new RuntimeException("No spec file found for " + fileName);
+            }
         } catch (IOException e) {
             throw new OcflIOException(e);
         }

@@ -25,6 +25,7 @@ import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
@@ -33,6 +34,8 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
+import edu.wisc.library.ocfl.itest.ext.TestLayoutExtension;
+import edu.wisc.library.ocfl.itest.ext.TestLayoutExtensionConfig;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
 import org.hamcrest.Matchers;
@@ -2201,6 +2204,28 @@ public abstract class OcflITest {
         var error = results.getErrors().get(0);
         assertEquals(ValidationCode.E092, error.getCode());
         assertThat(error.getMessage(), containsString("failed sha512 fixity check"));
+    }
+
+    @Test
+    public void testUsingCustomLayoutExtensions() {
+        OcflExtensionRegistry.register(TestLayoutExtension.EXTENSION_NAME, TestLayoutExtension.class);
+
+        try {
+            var repoName = "custom-ext";
+            var repo = defaultRepo(repoName, builder -> {
+                builder.defaultLayoutConfig(new TestLayoutExtensionConfig());
+            });
+
+            var objectId = "obj1";
+
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+                updater.writeFile(inputStream("testing"), "file1.txt");
+            });
+
+            verifyRepo(repoName);
+        } finally {
+            OcflExtensionRegistry.remove(TestLayoutExtension.EXTENSION_NAME);
+        }
     }
 
     private void assertStream(String expected, OcflObjectVersionFile actual) throws IOException {
