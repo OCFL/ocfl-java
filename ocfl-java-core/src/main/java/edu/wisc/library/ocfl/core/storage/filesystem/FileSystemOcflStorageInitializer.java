@@ -63,7 +63,7 @@ public class FileSystemOcflStorageInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemOcflStorageInitializer.class);
 
-    private static final String SPECS_DIR = "specs/";
+    private static final String SPECS_DIR = "ocfl-specs/";
     private static final String EXT_SPEC = "ocfl_extensions_1.0.md";
 
     private final ObjectMapper objectMapper;
@@ -230,7 +230,7 @@ public class FileSystemOcflStorageInitializer {
             writeOcflSpec(repositoryRoot, ocflVersion);
             writeOcflLayout(repositoryRoot, layoutConfig, layoutExtension.getDescription());
             writeOcflLayoutSpec(repositoryRoot, layoutConfig);
-            writeSpecFile(repositoryRoot, EXT_SPEC);
+            writeSpecFile(this.getClass().getClassLoader(), repositoryRoot, EXT_SPEC);
             return layoutExtension;
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository at {}", repositoryRoot, e);
@@ -241,20 +241,20 @@ public class FileSystemOcflStorageInitializer {
 
     private void writeOcflSpec(Path repositoryRoot, OcflVersion ocflVersion) {
         var ocflSpecFile = ocflVersion.getOcflVersion() + ".txt";
-        writeSpecFile(repositoryRoot, ocflSpecFile);
+        writeSpecFile(this.getClass().getClassLoader(), repositoryRoot, ocflSpecFile);
     }
 
     private void writeOcflLayoutSpec(Path repositoryRoot, OcflExtensionConfig layoutConfig) {
         var specFile = layoutConfig.getExtensionName() + ".md";
         try {
-            writeSpecFile(repositoryRoot, specFile);
+            writeSpecFile(layoutConfig.getClass().getClassLoader(), repositoryRoot, specFile);
         } catch (RuntimeException e) {
             LOG.warn("Failed to write spec file for layout extension {}", layoutConfig.getExtensionName(), e);
         }
     }
 
-    private void writeSpecFile(Path repositoryRoot, String fileName) {
-        try (var stream = this.getClass().getClassLoader().getResourceAsStream(SPECS_DIR + fileName)) {
+    private void writeSpecFile(ClassLoader classLoader, Path repositoryRoot, String fileName) {
+        try (var stream = classLoader.getResourceAsStream(SPECS_DIR + fileName)) {
             if (stream != null) {
                 Files.copy(stream, repositoryRoot.resolve(fileName));
             } else {
