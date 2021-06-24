@@ -61,7 +61,7 @@ public class CloudOcflStorageInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(CloudOcflStorageInitializer.class);
 
-    private static final String SPECS_DIR = "specs/";
+    private static final String SPECS_DIR = "ocfl-specs/";
     private static final String EXT_SPEC = "ocfl_extensions_1.0.md";
     private static final String MEDIA_TYPE_TEXT = "text/plain; charset=UTF-8";
     private static final String MEDIA_TYPE_JSON = "application/json; charset=UTF-8";
@@ -219,7 +219,7 @@ public class CloudOcflStorageInitializer {
             keys.add(writeOcflSpec(ocflVersion));
             keys.addAll(writeOcflLayout(layoutConfig, layoutExtension.getDescription()));
             keys.add(writeOcflLayoutSpec(layoutConfig));
-            keys.add(writeSpecFile(EXT_SPEC));
+            keys.add(writeSpecFile(this.getClass().getClassLoader(), EXT_SPEC));
             return layoutExtension;
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository", e);
@@ -237,20 +237,20 @@ public class CloudOcflStorageInitializer {
     }
 
     private String writeOcflSpec(OcflVersion ocflVersion) {
-        return writeSpecFile(ocflVersion.getOcflVersion() + ".txt");
+        return writeSpecFile(this.getClass().getClassLoader(), ocflVersion.getOcflVersion() + ".txt");
     }
 
     private String writeOcflLayoutSpec(OcflExtensionConfig layoutConfig) {
         try {
-            return writeSpecFile(layoutConfig.getExtensionName() + ".md");
+            return writeSpecFile(layoutConfig.getClass().getClassLoader(), layoutConfig.getExtensionName() + ".md");
         } catch (RuntimeException e) {
             LOG.warn("Failed to write spec file for layout extension {}", layoutConfig.getExtensionName(), e);
             return null;
         }
     }
 
-    private String writeSpecFile(String fileName) {
-        try (var stream = this.getClass().getClassLoader().getResourceAsStream(SPECS_DIR + fileName)) {
+    private String writeSpecFile(ClassLoader classLoader, String fileName) {
+        try (var stream = classLoader.getResourceAsStream(SPECS_DIR + fileName)) {
             if (stream != null) {
                 return uploadStream(fileName, stream).getPath();
             } else {
