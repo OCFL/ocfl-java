@@ -1,0 +1,24 @@
+{
+  "id" : "obj1",
+  "type" : "https://ocfl.io/1.0/spec/#inventory",
+  "digestAlgorithm" : "sha512",
+  "head" : "v0001",
+  "contentDirectory" : "content",
+  "fixity" : { },
+  "manifest" : {
+    "521b9ccefbcd14d179e7a1bb877752870a6d620938b28a66a107eac6e6805b9d0989f45b5730508041aa5e710847d439ea74cd312c9355f1f2dae08d40e41d50" : [ "v0001/content/file1.txt" ]
+  },
+  "versions" : {
+    "v0001" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "commit message",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "521b9ccefbcd14d179e7a1bb877752870a6d620938b28a66a107eac6e6805b9d0989f45b5730508041aa5e710847d439ea74cd312c9355f1f2dae08d40e41d50" : [ "file1.txt" ]
+      }
+    }
+  }
+}

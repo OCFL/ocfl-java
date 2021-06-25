@@ -114,9 +114,12 @@ public class Inventory {
             String id,
             OcflConfig config,
             String objectRootPath) {
-        return new Inventory(id, config.getOcflVersion().getInventoryType(),
+        return new Inventory(id,
+                config.getOcflVersion().getInventoryType(),
                 config.getDefaultDigestAlgorithm(),
-                config.getDefaultContentDirectory(), objectRootPath);
+                config.getDefaultContentDirectory(),
+                objectRootPath,
+                config.getDefaultZeroPaddingWidth());
     }
 
     /**
@@ -197,11 +200,12 @@ public class Inventory {
             InventoryType type,
             DigestAlgorithm digestAlgorithm,
             String contentDirectory,
-            String objectRootPath) {
+            String objectRootPath,
+            int zeroPaddingWidth) {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        this.head = new VersionNum(0);
+        this.head = new VersionNum(0, zeroPaddingWidth);
         this.contentDirectory = contentDirectory;
         this.fixityBiMap = Collections.emptyMap();
         this.manifestBiMap = new PathBiMap();

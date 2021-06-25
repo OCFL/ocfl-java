@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.itest;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.exception.AlreadyExistsException;
@@ -38,7 +39,6 @@ import edu.wisc.library.ocfl.itest.ext.TestLayoutExtension;
 import edu.wisc.library.ocfl.itest.ext.TestLayoutExtensionConfig;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -2226,6 +2226,24 @@ public abstract class OcflITest {
         } finally {
             OcflExtensionRegistry.remove(TestLayoutExtension.EXTENSION_NAME);
         }
+    }
+
+    @Test
+    public void allowCustomizingVersionZeroPadding() {
+        var repoName = "zero-padded-2";
+        var repo = defaultRepo(repoName, builder -> {
+            builder.ocflConfig(new OcflConfig().setDefaultZeroPaddingWidth(4));
+        });
+
+        var objectId = "obj1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(inputStream("testing"), "file1.txt");
+        });
+
+        verifyRepo(repoName);
+
+        assertEquals("v0001", repo.describeObject(objectId).getHeadVersion().getVersionNum().toString());
     }
 
     private void assertStream(String expected, OcflObjectVersionFile actual) throws IOException {
