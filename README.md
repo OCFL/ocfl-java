@@ -375,12 +375,8 @@ scope of the OCFL spec.
 
 Storage layout extensions describe how OCFL object IDs should be mapped
 to paths within the OCFL storage root. `ocfl-java` includes built-in
-implementations of these extensions, but, you can override these
-implementations or add new layout extensions by writing your own
-implementations of `OcflStorageLayoutExtension` and registering the
-extension by calling
-`OcflExtensionRegistry.register("new-extension-name",
-NewExtension.class)` **before** initializing your OCFL repository.
+implementations of registered extensions, but, you can override these
+implementations or add custom layout extensions.
 
 The following is a list of currently supported storage layout
 extensions:
@@ -394,6 +390,26 @@ extensions:
 * [0004-hashed-n-tuple-storage-layout](https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html)
   * Configuration class: `HashedNTupleLayoutConfig`
   * Implementation class: `HashedNTupleLayoutExtension`
+
+#### Custom Storage Layout Extensions
+
+Custom storage layout extensions are supported by implementing
+`OcflStorageLayoutExtension` and `OcflExtensionConfig`. Reference the
+built-in extensions for an example of what this looks like.
+
+After defining the extension classes, the extension must be registered
+with `ocfl-java` **before** initializing your OCFL repository. It
+would look something like this:
+
+``` java
+OcflExtensionRegistry.register(NewLayoutExtension.EXTENSION_NAME, NewLayoutExtension.class);
+var repo = new OcflRepositoryBuilder().defaultLayoutConfig(new NewExtensionConfig())...
+```
+
+If you would like `ocfl-java` to write a copy of your extension's
+specification to the OCFL storage root, then include it as a Markdown
+file inside the jar your extension is defined in. The file should be
+at `ocfl-specs/EXTENSION_NAME.md`.
 
 ### Mutable HEAD Extension
 
