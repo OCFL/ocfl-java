@@ -96,8 +96,9 @@ following extensions are implemented:
 ### Optional Properties
 
 * **ocflConfig**: Sets the following default values that are used for
-creating new OCFL objects: version, digest algorithm, and content
-directory. The defaults are `v1`, `sha512`, and `content`.
+creating new OCFL objects: OCFL version, digest algorithm, version
+zero-padding width, and content directory. The defaults are `1.0`,
+`sha512`, `0`, and `content`.
 * **prettyPrintJson**: Enables pretty print JSON in newly written
  inventory files. By default, pretty printing is disabled to reduce
  inventory file size.

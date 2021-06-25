@@ -38,17 +38,20 @@ public class OcflConfig {
     private OcflVersion ocflVersion;
     private DigestAlgorithm defaultDigestAlgorithm;
     private String defaultContentDirectory;
+    private int defaultZeroPaddingWidth;
 
     public OcflConfig() {
         ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
         defaultDigestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
         defaultContentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
+        defaultZeroPaddingWidth = OcflConstants.DEFAULT_ZERO_PADDING_WIDTH;
     }
 
     public OcflConfig(OcflConfig original) {
         ocflVersion = original.ocflVersion;
         defaultDigestAlgorithm = original.defaultDigestAlgorithm;
         defaultContentDirectory = original.defaultContentDirectory;
+        defaultZeroPaddingWidth = original.defaultZeroPaddingWidth;
     }
 
     /**
@@ -99,6 +102,31 @@ public class OcflConfig {
 
     public String getDefaultContentDirectory() {
         return defaultContentDirectory;
+    }
+
+    public int getDefaultZeroPaddingWidth() {
+        return defaultZeroPaddingWidth;
+    }
+
+    /**
+     * Set the default zero padding width to use in version numbers in newly created objects. Default: 0
+     *
+     * @param defaultZeroPaddingWidth zero padding width
+     * @return config
+     */
+    public OcflConfig setDefaultZeroPaddingWidth(int defaultZeroPaddingWidth) {
+        this.defaultZeroPaddingWidth = defaultZeroPaddingWidth;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "OcflConfig{" +
+                "ocflVersion=" + ocflVersion +
+                ", defaultDigestAlgorithm=" + defaultDigestAlgorithm +
+                ", defaultContentDirectory='" + defaultContentDirectory + '\'' +
+                ", defaultZeroPaddingWidth=" + defaultZeroPaddingWidth +
+                '}';
     }
 
 }

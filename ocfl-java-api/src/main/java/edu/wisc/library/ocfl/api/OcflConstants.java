@@ -50,6 +50,7 @@ public final class OcflConstants {
 
     public static final String DEFAULT_INITIAL_VERSION_ID = "v1";
     public static final String DEFAULT_CONTENT_DIRECTORY = "content";
+    public static final int DEFAULT_ZERO_PADDING_WIDTH = 0;
 
     public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha512;
     public static final Set<DigestAlgorithm> ALLOWED_DIGEST_ALGORITHMS = Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
