@@ -23,11 +23,13 @@
  */
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatOmitPrefixLayoutConfig;
 
 /**
- * Implementation of the <a href="https://github.com/OCFL/extensions/blob/c9f2ef4fdb581d2a5070bc37af1ebe54150c998d/docs/NNNN-flat-omit-prefix-storage-layout.md">
+ * Implementation of the <a href="https://ocfl.github.io/extensions/0006-flat-omit-prefix-storage-layout.html">
  * Flat Omit Prefix Storage Layout</a> extension.
  *
  * @author awoods
@@ -35,9 +37,10 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatOmitPrefix
  */
 public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension {
 
-    public static final String EXTENSION_NAME = "NNNN-flat-omit-prefix-storage-layout";
+    public static final String EXTENSION_NAME = "0006-flat-omit-prefix-storage-layout";
 
     private FlatOmitPrefixLayoutConfig config;
+    private boolean isCaseSensitive = true; // The spec does not provide for configuring this
 
     /**
      * {@inheritDoc}
@@ -71,7 +74,7 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
             }
 
             if (!(config instanceof FlatOmitPrefixLayoutConfig)) {
-                throw new IllegalArgumentException(String.format("This extension only supports %s configuration. Received: %s",
+                throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s",
                         getExtensionConfigClass(), config));
             }
 
@@ -85,8 +88,8 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
     private static void validateConfig(FlatOmitPrefixLayoutConfig config) {
         if (config != null) {
             String delimiter = config.getDelimiter();
-            if (delimiter == null || delimiter.isBlank()) {
-                throw new RuntimeException("Digest configuration must not be empty!");
+            if (delimiter == null || delimiter.isEmpty()) {
+                throw new OcflExtensionException("Digest configuration must not be empty!");
             }
         }
     }
@@ -102,10 +105,25 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
     @Override
     public String mapObjectId(String objectId) {
         if (config == null) {
-            throw new RuntimeException("This extension must be initialized before it can be used.");
+            throw new OcflExtensionException("This extension must be initialized before it can be used.");
         }
 
-        String[] parts = objectId.split(config.getDelimiter());
-        return parts[parts.length - 1];
+        // Use lowercase of delimiter and objectId if configured for case-sensitivity (default)
+        String delim = config.getDelimiter();
+        String id = objectId;
+        if (isCaseSensitive) {
+            delim = delim.toLowerCase();
+            id = id.toLowerCase();
+        }
+
+        int index = id.lastIndexOf(delim);
+        String dir = objectId.substring(index + delim.length());
+
+        if (OcflConstants.EXTENSIONS_DIR.equals(dir) || dir.isEmpty()) {
+            throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
+                    "%s because it is empty or conflicts with the extensions directory.", objectId, EXTENSION_NAME));
+        }
+
+        return dir;
     }
 }

@@ -31,7 +31,7 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.FlatOmitPrefixLayoutE
 import java.util.Objects;
 
 /**
- * Configuration for the <a href="https://github.com/OCFL/extensions/blob/c9f2ef4fdb581d2a5070bc37af1ebe54150c998d/docs/NNNN-flat-omit-prefix-storage-layout.md">
+ * Configuration for the <a href="https://ocfl.github.io/extensions/0006-flat-omit-prefix-storage-layout.html">
  * Flat Omit Prefix Storage Layout</a> extension.
  *
  * @author awoods
@@ -69,8 +69,8 @@ public class FlatOmitPrefixLayoutConfig implements OcflExtensionConfig {
      */
     public FlatOmitPrefixLayoutConfig setDelimiter(String delimiter) {
         Enforce.notNull(delimiter, "delimiter cannot be null");
-        if (delimiter.isBlank()) {
-            throw new IllegalArgumentException("Arg must not be empty or null: 'delimiter'");
+        if (delimiter.isEmpty()) {
+            throw new IllegalArgumentException("Arg must not be empty: 'delimiter'");
         }
         this.delimiter = delimiter;
         return this;
