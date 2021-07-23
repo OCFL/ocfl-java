@@ -39,8 +39,7 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
 
     public static final String EXTENSION_NAME = "0006-flat-omit-prefix-storage-layout";
 
-    private FlatOmitPrefixLayoutConfig config;
-    private boolean isCaseSensitive = true; // The spec does not provide for configuring this
+    private String delim;
 
     /**
      * {@inheritDoc}
@@ -66,7 +65,7 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
     @Override
     public synchronized void init(OcflExtensionConfig config) {
         // Only set this.config if it is uninitialized
-        if (this.config == null) {
+        if (this.delim == null) {
 
             // Is arg config null?
             if (config == null) {
@@ -81,7 +80,7 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
             FlatOmitPrefixLayoutConfig castConfig = (FlatOmitPrefixLayoutConfig) config;
 
             validateConfig(castConfig);
-            this.config = castConfig;
+            this.delim = castConfig.getDelimiter().toLowerCase();
         }
     }
 
@@ -104,17 +103,12 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
      */
     @Override
     public String mapObjectId(String objectId) {
-        if (config == null) {
+        if (delim == null) {
             throw new OcflExtensionException("This extension must be initialized before it can be used.");
         }
 
-        // Use lowercase of delimiter and objectId if configured for case-sensitivity (default)
-        String delim = config.getDelimiter();
-        String id = objectId;
-        if (isCaseSensitive) {
-            delim = delim.toLowerCase();
-            id = id.toLowerCase();
-        }
+        // Use lowercase of delimiter and objectId, per specification
+        String id = objectId.toLowerCase();
 
         int index = id.lastIndexOf(delim);
         String dir = objectId.substring(index + delim.length());
