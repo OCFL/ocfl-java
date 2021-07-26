@@ -2,6 +2,7 @@
 *.swp
 .attach*
 *.iml
+/.idea
 
 # eclipse files
 .project
