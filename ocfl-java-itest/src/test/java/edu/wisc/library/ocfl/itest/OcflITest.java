@@ -59,6 +59,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedOutputPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
@@ -76,6 +77,7 @@ import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionFile;
 import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionInfo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1531,29 +1533,11 @@ public abstract class OcflITest {
     }
 
     @Test
-    public void hashedIdLayout() {
-        var repoName = "hashed-id-layout";
-        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
-
-        var objectIds = List.of("o1",
-                "http://library.wisc.edu/123",
-                "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghija");
-
-        objectIds.forEach(objectId -> {
-            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
-                updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
-                        .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
-            });
-        });
-
-        verifyRepo(repoName);
-    }
-
-    @Test
     public void makeContentPathsWindowsSafe() throws IOException {
         var repoName = "windows-safe";
         var repo = defaultRepo(repoName, builder ->
-                builder.logicalPathMapper(LogicalPathMappers.percentEncodingWindowsMapper())
+                builder.defaultLayoutConfig(new FlatLayoutConfig())
+                        .logicalPathMapper(LogicalPathMappers.percentEncodingWindowsMapper())
                         .contentPathConstraints(ContentPathConstraints.windows()));
 
         var logicalPath = "tést/<bad>:Path 1/\\|obj/?8*%id/#{something}/[0]/۞.txt";
@@ -2244,6 +2228,67 @@ public abstract class OcflITest {
         verifyRepo(repoName);
 
         assertEquals("v0001", repo.describeObject(objectId).getHeadVersion().getVersionNum().toString());
+    }
+
+    @Test
+    public void listObjectsInRepo() {
+        var repoName = "repo-list";
+        var repo = defaultRepo(repoName);
+
+        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo, updater -> {
+            updater.writeFile(inputStream("test1"), "test1.txt");
+        });
+        repo.updateObject(ObjectVersionId.head("o2"), defaultVersionInfo, updater -> {
+            updater.writeFile(inputStream("test2"), "test2.txt");
+        });
+        repo.updateObject(ObjectVersionId.head("o3"), defaultVersionInfo, updater -> {
+            updater.writeFile(inputStream("test3"), "test3.txt");
+        });
+
+        try (var objectIdsStream = repo.listObjectIds()) {
+            var objectIds = objectIdsStream.collect(Collectors.toList());
+            assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
+        }
+    }
+
+    @Test
+    public void shouldNotListObjectsWithinTheExtensionsDir() {
+        var repoName = "repo-multiple-objects";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        });
+
+        try (var list = repo.listObjectIds()) {
+            assertThat(list.collect(Collectors.toList()), containsInAnyOrder("o1", "o2", "o3"));
+        }
+    }
+
+    @Test
+    public void shouldReturnNoValidationErrorsWhenObjectIsValid() {
+        var repoName = "valid-repo";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "uri:valid-object";
+        var versionInfo = new VersionInfo()
+                .setUser("Peter", "mailto:peter@example.com")
+                .setMessage("message");
+
+        repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
+            updater.writeFile(streamString("file1"), "file1");
+            updater.writeFile(streamString("file2"), "file2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
+            updater.writeFile(streamString("file3"), "file3")
+                    .removeFile("file2");
+        });
+
+        var results = repo.validateObject(objectId, true);
+
+        assertEquals(0, results.getErrors().size(), () -> results.getErrors().toString());
+        assertEquals(0, results.getWarnings().size(), () -> results.getWarnings().toString());
     }
 
     private void assertStream(String expected, OcflObjectVersionFile actual) throws IOException {

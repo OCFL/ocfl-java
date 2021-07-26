@@ -3,10 +3,8 @@ package edu.wisc.library.ocfl.itest.filesystem;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
-import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
@@ -16,8 +14,6 @@ import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -35,81 +31,35 @@ import java.util.stream.Collectors;
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.fixTime;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
-import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
 import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
-import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class FileSystemOcflITest extends OcflITest {
 
     private Path reposDir;
 
-    // TODO move once this issue is resolved: https://github.com/adobe/S3Mock/issues/215
+    // Does not work with S3Mock because the generated filenames are too long
     @Test
-    public void listObjectsInRepo() {
-        var repoName = "repo-list";
-        var repo = defaultRepo(repoName);
+    public void hashedIdLayout() {
+        var repoName = "hashed-id-layout";
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
 
-        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo, updater -> {
-            updater.writeFile(inputStream("test1"), "test1.txt");
-        });
-        repo.updateObject(ObjectVersionId.head("o2"), defaultVersionInfo, updater -> {
-            updater.writeFile(inputStream("test2"), "test2.txt");
-        });
-        repo.updateObject(ObjectVersionId.head("o3"), defaultVersionInfo, updater -> {
-            updater.writeFile(inputStream("test3"), "test3.txt");
-        });
+        var objectIds = List.of(
+                "o1",
+                "http://library.wisc.edu/123",
+                "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghija");
 
-        try (var objectIdsStream = repo.listObjectIds()) {
-            var objectIds = objectIdsStream.collect(Collectors.toList());
-            assertThat(objectIds, containsInAnyOrder("o1", "o2", "o3"));
-        }
-    }
-
-    // TODO move once this issue is resolved: https://github.com/adobe/S3Mock/issues/215
-    @Test
-    public void shouldNotListObjectsWithinTheExtensionsDir() {
-        var repoName = "repo-multiple-objects";
-        var repoRoot = sourceRepoPath(repoName);
-
-        var repo = existingRepo(repoName, repoRoot, builder -> {
-            builder.unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        objectIds.forEach(objectId -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+                updater.writeFile(new ByteArrayInputStream("1".getBytes()), "f1")
+                        .writeFile(new ByteArrayInputStream("2".getBytes()), "f2");
+            });
         });
 
-        try (var list = repo.listObjectIds()) {
-            assertThat(list.collect(Collectors.toList()), containsInAnyOrder("o1", "o2", "o3"));
-        }
-    }
-
-    // TODO move once this issue is resolved: https://github.com/adobe/S3Mock/issues/215
-    @Test
-    public void shouldReturnNoValidationErrorsWhenObjectIsValid() {
-        var repoName = "valid-repo";
-        var repo = defaultRepo(repoName);
-
-        var objectId = "uri:valid-object";
-        var versionInfo = new VersionInfo()
-                .setUser("Peter", "mailto:peter@example.com")
-                .setMessage("message");
-
-        repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
-            updater.writeFile(streamString("file1"), "file1");
-            updater.writeFile(streamString("file2"), "file2");
-        });
-
-        repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
-            updater.writeFile(streamString("file3"), "file3")
-                    .removeFile("file2");
-        });
-
-        var results = repo.validateObject(objectId, true);
-
-        assertEquals(0, results.getErrors().size(), () -> results.getErrors().toString());
-        assertEquals(0, results.getWarnings().size(), () -> results.getWarnings().toString());
+        verifyRepo(repoName);
     }
 
     // This test doesn't work with S3Mock because it double encodes

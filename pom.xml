@@ -74,8 +74,8 @@
 
         <java.version>11</java.version>
 
-        <jackson.version>2.12.3</jackson.version>
-        <slf4j.version>2.0.0-alpha1</slf4j.version>
+        <jackson.version>2.12.4</jackson.version>
+        <slf4j.version>2.0.0-alpha2</slf4j.version>
     </properties>
 
     <profiles>
@@ -314,19 +314,19 @@
             <dependency>
                 <groupId>net.jodah</groupId>
                 <artifactId>failsafe</artifactId>
-                <version>2.4.0</version>
+                <version>2.4.1</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.68</version>
+                <version>1.69</version>
             </dependency>
 
             <!-- AWS -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.16.51</version>
+                <version>2.17.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -339,28 +339,18 @@
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-api</artifactId>
-                <version>5.7.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-engine</artifactId>
-                <version>5.7.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-params</artifactId>
-                <version>5.7.1</version>
+                <artifactId>junit-jupiter</artifactId>
+                <version>5.7.2</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>3.9.0</version>
+                <version>3.11.2</version>
             </dependency>
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>42.2.20</version>
+                <version>42.2.23</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
@@ -375,7 +365,7 @@
             <dependency>
                 <groupId>com.adobe.testing</groupId>
                 <artifactId>s3mock-junit5</artifactId>
-                <version>2.1.29</version>
+                <version>2.1.36</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
