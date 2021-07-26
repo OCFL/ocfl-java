@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.exception.AlreadyExistsException;
-import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
