@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +49,7 @@ public class ObjectDetails {
      *
      * @return VersionDetails for the object's HEAD version
      */
+    @JsonIgnore
     public VersionDetails getHeadVersion() {
         return versions.get(headVersionNum);
     }

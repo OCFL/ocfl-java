@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashMap;
@@ -64,6 +66,7 @@ public class VersionDetails {
      *
      * @return the object's id
      */
+    @JsonIgnore
     public String getObjectId() {
         return objectVersionId.getObjectId();
     }
@@ -73,6 +76,7 @@ public class VersionDetails {
      *
      * @return the version number
      */
+    @JsonIgnore
     public VersionNum getVersionNum() {
         return objectVersionId.getVersionNum();
     }
@@ -124,6 +128,7 @@ public class VersionDetails {
      *
      * @return all of the files in the version
      */
+    @JsonIgnore
     public Collection<FileDetails> getFiles() {
         return fileMap.values();
     }
@@ -151,6 +156,10 @@ public class VersionDetails {
     public VersionDetails setFileMap(Map<String, FileDetails> fileMap) {
         this.fileMap = fileMap;
         return this;
+    }
+
+    public Map<String, FileDetails> getFileMap() {
+        return fileMap;
     }
 
     @Override

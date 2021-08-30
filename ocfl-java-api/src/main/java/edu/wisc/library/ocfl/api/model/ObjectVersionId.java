@@ -24,6 +24,9 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
@@ -80,7 +83,8 @@ public class ObjectVersionId {
      * @param versionNum the OCFL version number of the version
      * @return new ObjectVersionId
      */
-    public static ObjectVersionId version(String objectId, VersionNum versionNum) {
+    @JsonCreator
+    public static ObjectVersionId version(@JsonProperty("objectId") String objectId, @JsonProperty("versionNum") VersionNum versionNum) {
         return new ObjectVersionId(objectId, versionNum);
     }
 
@@ -114,6 +118,7 @@ public class ObjectVersionId {
     /**
      * @return true if no version number is set
      */
+    @JsonIgnore
     public boolean isHead() {
         return versionNum == null;
     }

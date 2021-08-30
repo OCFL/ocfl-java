@@ -59,8 +59,20 @@ public class VersionInfo {
      * @return this
      */
     public VersionInfo setUser(String name, String address) {
-        user.setName(Enforce.notBlank(name, "username cannot be blank"))
+        this.user = new User()
+                .setName(name)
                 .setAddress(address);
+        return this;
+    }
+
+    /**
+     * Sets the user info
+     *
+     * @param user the user object
+     * @return this
+     */
+    public VersionInfo setUser(User user) {
+        this.user = user;
         return this;
     }
 
