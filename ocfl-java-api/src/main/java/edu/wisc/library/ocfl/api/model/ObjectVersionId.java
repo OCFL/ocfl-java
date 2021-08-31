@@ -84,7 +84,8 @@ public class ObjectVersionId {
      * @return new ObjectVersionId
      */
     @JsonCreator
-    public static ObjectVersionId version(@JsonProperty("objectId") String objectId, @JsonProperty("versionNum") VersionNum versionNum) {
+    public static ObjectVersionId version(@JsonProperty("objectId") String objectId,
+                                          @JsonProperty("versionNum") VersionNum versionNum) {
         return new ObjectVersionId(objectId, versionNum);
     }
 
