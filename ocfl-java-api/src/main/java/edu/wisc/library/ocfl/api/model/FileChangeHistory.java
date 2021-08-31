@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -68,6 +70,7 @@ public class FileChangeHistory {
      *
      * @return most recent change
      */
+    @JsonIgnore
     public FileChange getMostRecent() {
         return fileChanges.get(fileChanges.size() - 1);
     }
@@ -77,6 +80,7 @@ public class FileChangeHistory {
      *
      * @return oldest change
      */
+    @JsonIgnore
     public FileChange getOldest() {
         return fileChanges.get(0);
     }
@@ -86,6 +90,7 @@ public class FileChangeHistory {
      *
      * @return reverse change iterator
      */
+    @JsonIgnore
     public Iterator<FileChange> getReverseChangeIterator() {
         return new Iterator<>() {
             private int index = fileChanges.size() - 1;
@@ -107,6 +112,7 @@ public class FileChangeHistory {
      *
      * @return forward change iterator
      */
+    @JsonIgnore
     public Iterator<FileChange> getForwardChangeIterator() {
         return fileChanges.iterator();
     }

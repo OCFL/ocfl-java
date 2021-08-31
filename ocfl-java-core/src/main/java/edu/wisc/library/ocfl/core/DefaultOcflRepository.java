@@ -142,11 +142,15 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... options) {
+    public ObjectVersionId putObject(ObjectVersionId objectVersionId,
+                                     Path path,
+                                     VersionInfo versionInfo,
+                                     OcflOption... options) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(path, "path cannot be null");
+        validateVersionInfo(versionInfo);
 
         LOG.debug("Putting object at <{}> into OCFL repo under id <{}>", path, objectVersionId.getObjectId());
 
@@ -176,11 +180,14 @@ public class DefaultOcflRepository implements OcflRepository {
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId updateObject(ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater) {
+    public ObjectVersionId updateObject(ObjectVersionId objectVersionId,
+                                        VersionInfo versionInfo,
+                                        Consumer<OcflObjectUpdater> objectUpdater) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
+        validateVersionInfo(versionInfo);
 
         LOG.debug("Update object <{}>", objectVersionId.getObjectId());
 
@@ -356,6 +363,7 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
+        validateVersionInfo(versionInfo);
 
         LOG.debug("Replicate version <{}>", objectVersionId);
 
@@ -811,6 +819,12 @@ public class DefaultOcflRepository implements OcflRepository {
             Enforce.expressionTrue(Files.isDirectory(outputPath), outputPath, "outputPath must be a directory");
         }
         UncheckedFiles.createDirectories(outputPath);
+    }
+
+    protected void validateVersionInfo(VersionInfo versionInfo) {
+        if (versionInfo != null && versionInfo.getUser() != null && versionInfo.getUser().getAddress() != null) {
+            Enforce.notBlank(versionInfo.getUser().getName(), "username cannot be blank");
+        }
     }
 
     /**

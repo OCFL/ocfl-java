@@ -83,11 +83,14 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId stageChanges(ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater) {
+    public ObjectVersionId stageChanges(ObjectVersionId objectVersionId,
+                                        VersionInfo versionInfo,
+                                        Consumer<OcflObjectUpdater> objectUpdater) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
         Enforce.notNull(objectUpdater, "objectUpdater cannot be null");
+        validateVersionInfo(versionInfo);
 
         LOG.debug("Stage changes to object <{}>", objectVersionId.getObjectId());
 
@@ -125,6 +128,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         ensureOpen();
 
         Enforce.notBlank(objectId, "objectId cannot be blank");
+        validateVersionInfo(versionInfo);
 
         LOG.debug("Commit staged changes on object <{}>", objectId);
 

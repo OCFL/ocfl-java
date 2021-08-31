@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.api.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
 /**
@@ -34,7 +36,9 @@ public class ValidationIssue {
     private final ValidationCode code;
     private final String message;
 
-    public ValidationIssue(ValidationCode code, String message) {
+    @JsonCreator
+    public ValidationIssue(@JsonProperty("code") ValidationCode code,
+                           @JsonProperty("message") String message) {
         this.code = Enforce.notNull(code, "code cannot be null");
         this.message = Enforce.notBlank(message, "message cannot be blank");
     }

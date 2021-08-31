@@ -90,7 +90,7 @@ public class VersionBuilder {
     public VersionBuilder versionInfo(VersionInfo versionInfo) {
         if (versionInfo != null) {
             this.message = versionInfo.getMessage();
-            if (versionInfo.getUser().getName() != null) {
+            if (versionInfo.getUser() != null && versionInfo.getUser().getName() != null) {
                 this.user = new User(versionInfo.getUser().getName(), versionInfo.getUser().getAddress());
             }
         }

@@ -158,6 +158,11 @@ public class VersionDetails {
         return this;
     }
 
+    /**
+     * Returns a map of logical paths to file details that represents the state of the object at this version.
+     *
+     * @return file state map
+     */
     public Map<String, FileDetails> getFileMap() {
         return fileMap;
     }
