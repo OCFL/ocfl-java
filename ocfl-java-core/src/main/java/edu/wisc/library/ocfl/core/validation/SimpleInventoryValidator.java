@@ -311,47 +311,44 @@ public class SimpleInventoryValidator {
             }
 
             if (inventory.getVersions().size() > 0) {
-                var versions = new TreeSet<String>(Comparator.naturalOrder());
-                versions.addAll(inventory.getVersions().keySet());
+                var versions = new TreeSet<VersionNum>(Comparator.naturalOrder());
+
+                inventory.getVersions().keySet().forEach(version -> {
+                    parseAndValidateVersionNum(version, inventoryPath, results).ifPresent(versions::add);
+                });
 
                 long previousNum = 0;
                 Integer paddingWidth = null;
                 boolean inconsistentPadding = false;
 
-                for (var actual : versions) {
-                    var parsed = parseAndValidateVersionNum(actual, inventoryPath, results);
+                for (var currentNum : versions) {
+                    var nextNum = previousNum + 1;
 
-                    if (parsed.isPresent()) {
-                        var currentNum = parsed.get();
-
-                        var nextNum = previousNum + 1;
-
-                        if (currentNum.getVersionNum() == nextNum) {
-                            if (paddingWidth == null) {
-                                paddingWidth = currentNum.getZeroPaddingWidth();
-                            } else if (!inconsistentPadding) {
-                                inconsistentPadding = paddingWidth != currentNum.getZeroPaddingWidth();
-                            }
-                        } else {
-                            var missing = new VersionNum(nextNum, currentNum.getZeroPaddingWidth());
-                            while (!missing.equals(currentNum)) {
-                                results.addIssue(ValidationCode.E010,
-                                        "Inventory versions is missing an entry for version %s in %s", missing, inventoryPath);
-                                missing = missing.nextVersionNum();
-                            }
+                    if (currentNum.getVersionNum() == nextNum) {
+                        if (paddingWidth == null) {
+                            paddingWidth = currentNum.getZeroPaddingWidth();
+                        } else if (!inconsistentPadding) {
+                            inconsistentPadding = paddingWidth != currentNum.getZeroPaddingWidth();
                         }
-
-                        previousNum = currentNum.getVersionNum();
+                    } else {
+                        var missing = new VersionNum(nextNum, currentNum.getZeroPaddingWidth());
+                        while (!missing.equals(currentNum)) {
+                            results.addIssue(ValidationCode.E010,
+                                    "Inventory versions is missing an entry for version %s in %s", missing, inventoryPath);
+                            missing = missing.nextVersionNum();
+                        }
                     }
+
+                    previousNum = currentNum.getVersionNum();
                 }
 
                 results.addIssue(isFalse(inconsistentPadding, ValidationCode.E013,
                         "Inventory versions contain inconsistently padded version numbers in %s", inventoryPath));
 
-                var highestVersion = versions.last();
+                var highestVersion = versions.isEmpty() ? null : versions.last();
 
                 if (highestVersion != null && inventory.getHead() != null) {
-                    results.addIssue(isTrue(highestVersion.equals(inventory.getHead()), ValidationCode.E040,
+                    results.addIssue(isTrue(highestVersion.toString().equals(inventory.getHead()), ValidationCode.E040,
                             "Inventory head must be the highest version number in %s. Expected: %s; Found: %s",
                             inventoryPath, highestVersion, inventory.getHead()));
                 }
