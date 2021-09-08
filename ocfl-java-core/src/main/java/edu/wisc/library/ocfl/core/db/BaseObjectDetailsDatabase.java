@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -174,7 +175,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         Enforce.notNull(inventoryFile, "inventoryFile cannot be null");
         Enforce.notNull(runnable, "runnable cannot be null");
 
-        try (var inventoryStream = Files.newInputStream(inventoryFile)) {
+        try (var inventoryStream = new BufferedInputStream(Files.newInputStream(inventoryFile))) {
             updateObjectDetailsInternal(inventory, inventoryDigest, inventoryStream, runnable);
         } catch (IOException e) {
             throw new OcflIOException(e);

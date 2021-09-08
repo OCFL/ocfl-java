@@ -43,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -2299,7 +2300,7 @@ public abstract class OcflITest {
     }
 
     private void verifyStream(Path expectedFile, OcflObjectVersionFile actual) throws IOException {
-        try (var fileStream = Files.newInputStream(expectedFile)) {
+        try (var fileStream = new BufferedInputStream(Files.newInputStream(expectedFile))) {
             assertStream(TestHelper.inputToString(fileStream), actual);
         }
     }

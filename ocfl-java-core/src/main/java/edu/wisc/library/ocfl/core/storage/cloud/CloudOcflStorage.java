@@ -56,6 +56,7 @@ import edu.wisc.library.ocfl.core.validation.storage.CloudStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -272,7 +273,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
                 UncheckedFiles.createDirectories(destination.getParent());
 
-                try (var stream = new FixityCheckInputStream(cloudClient.downloadStream(srcPath), digestAlgorithm, id)) {
+                try (var stream = new FixityCheckInputStream(new BufferedInputStream(cloudClient.downloadStream(srcPath)),
+                        digestAlgorithm, id)) {
                     Files.copy(stream, destination);
                     stream.checkFixity();
                 } catch (FixityCheckException e) {
@@ -736,7 +738,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var expectedDigest = findAndGetDigestFromSidecar(objectRootPath);
         var remotePath = ObjectPaths.inventoryPath(objectRootPath);
 
-        try (var stream = new FixityCheckInputStream(cloudClient.downloadStream(remotePath),
+        try (var stream = new FixityCheckInputStream(new BufferedInputStream(cloudClient.downloadStream(remotePath)),
                 expectedDigest.getKey(), expectedDigest.getValue())) {
             var inventory = inventoryMapper.read(objectRootPath, expectedDigest.getValue(), stream);
 
@@ -758,7 +760,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         var expectedDigest = findAndGetDigestFromSidecar(ObjectPaths.mutableHeadVersionPath(objectRootPath));
         var remotePath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
 
-        try (var stream = new FixityCheckInputStream(cloudClient.downloadStream(remotePath),
+        try (var stream = new FixityCheckInputStream(new BufferedInputStream(cloudClient.downloadStream(remotePath)),
                 expectedDigest.getKey(), expectedDigest.getValue())) {
             var revisionNum = identifyLatestRevision(objectRootPath);
             var inventory = inventoryMapper.readMutableHead(objectRootPath, expectedDigest.getValue(), revisionNum, stream);

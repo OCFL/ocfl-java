@@ -48,7 +48,6 @@ import edu.wisc.library.ocfl.core.validation.storage.Storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -516,7 +515,7 @@ public class Validator {
                     expectations.putAll(fixityDigests);
                 }
 
-                try (var contentStream = new BufferedInputStream(storage.readFile(storagePath))) {
+                try (var contentStream = storage.readFile(storagePath)) {
                     var wrapped = MultiDigestInputStream.create(contentStream, expectations.keySet());
 
                     while (wrapped.read() != -1) {
@@ -734,7 +733,7 @@ public class Validator {
     }
 
     private String computeInventoryDigest(String inventoryPath, DigestAlgorithm algorithm) {
-        try (var stream = new BufferedInputStream(storage.readFile(inventoryPath))) {
+        try (var stream = storage.readFile(inventoryPath)) {
             var wrapped = MultiDigestInputStream.create(stream, List.of(algorithm));
             while (wrapped.read() > 0) {
                 // consume stream

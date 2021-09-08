@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.test;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,7 +41,7 @@ public final class TestHelper {
     }
 
     public static String fileToString(Path file) {
-        try (var input = Files.newInputStream(file)) {
+        try (var input = new BufferedInputStream(Files.newInputStream(file))) {
             return inputToString(input);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -63,7 +64,7 @@ public final class TestHelper {
 
     public static InputStream inputStream(Path path) {
         try {
-            return Files.newInputStream(path);
+            return new BufferedInputStream(Files.newInputStream(path));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

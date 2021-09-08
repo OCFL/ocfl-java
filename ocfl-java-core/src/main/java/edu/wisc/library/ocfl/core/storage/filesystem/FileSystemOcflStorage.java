@@ -57,6 +57,7 @@ import net.jodah.failsafe.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileAlreadyExistsException;
@@ -292,7 +293,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
 
                 UncheckedFiles.createDirectories(destination.getParent());
 
-                try (var stream = new FixityCheckInputStream(Files.newInputStream(srcPath), digestAlgorithm, id)) {
+                try (var stream = new FixityCheckInputStream(new BufferedInputStream(Files.newInputStream(srcPath)), digestAlgorithm, id)) {
                     Files.copy(stream, destination);
                     stream.checkFixity();
                 } catch (IOException e) {
@@ -642,7 +643,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         var expectedDigest = SidecarMapper.readDigest(sidecarPath);
         var algorithm = SidecarMapper.getDigestAlgorithmFromSidecar(FileUtil.pathToStringStandardSeparator(sidecarPath));
 
-        return new FixityCheckInputStream(Files.newInputStream(inventoryPath), algorithm, expectedDigest);
+        return new FixityCheckInputStream(new BufferedInputStream(Files.newInputStream(inventoryPath)), algorithm, expectedDigest);
     }
 
     private RevisionNum identifyLatestRevision(Path objectRootPath) {

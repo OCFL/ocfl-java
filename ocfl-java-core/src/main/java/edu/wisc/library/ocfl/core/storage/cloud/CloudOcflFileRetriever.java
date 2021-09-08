@@ -29,6 +29,8 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 
+import java.io.BufferedInputStream;
+
 /**
  * OcflFileRetriever implementation for lazy-loading files from cloud storage.
  */
@@ -71,7 +73,7 @@ public class CloudOcflFileRetriever implements OcflFileRetriever {
     @Override
     public FixityCheckInputStream retrieveFile() {
         // TODO caching?
-        return new FixityCheckInputStream(cloudClient.downloadStream(key), digestAlgorithm, digestValue);
+        return new FixityCheckInputStream(new BufferedInputStream(cloudClient.downloadStream(key)), digestAlgorithm, digestValue);
     }
 
 }

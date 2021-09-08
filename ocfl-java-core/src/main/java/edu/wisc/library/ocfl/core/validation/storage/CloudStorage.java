@@ -30,6 +30,7 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,7 +82,7 @@ public class CloudStorage implements Storage {
     @Override
     public InputStream readFile(String filePath) {
         try {
-            return client.downloadStream(filePath);
+            return new BufferedInputStream(client.downloadStream(filePath));
         } catch (KeyNotFoundException e) {
             throw new NotFoundException(String.format("%s was not found", filePath), e);
         }

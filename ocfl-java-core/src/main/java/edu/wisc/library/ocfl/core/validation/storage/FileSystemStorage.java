@@ -29,6 +29,7 @@ import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileVisitResult;
@@ -75,7 +76,7 @@ public class FileSystemStorage implements Storage {
     @Override
     public InputStream readFile(String filePath) {
         try {
-            return Files.newInputStream(storageRoot.resolve(filePath));
+            return new BufferedInputStream(Files.newInputStream(storageRoot.resolve(filePath)));
         } catch (NoSuchFileException e) {
             throw new NotFoundException(String.format("%s was not found", filePath), e);
         } catch (IOException e) {
