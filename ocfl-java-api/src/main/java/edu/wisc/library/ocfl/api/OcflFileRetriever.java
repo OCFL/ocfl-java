@@ -32,7 +32,8 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 public interface OcflFileRetriever {
 
     /**
-     * Returns a new input stream of the file's content. The caller is responsible for closing the stream.
+     * Returns a new input stream of the file's content. The caller is responsible for closing the stream. The input
+     * stream is buffered.
      *
      * <p>The caller may call {@link FixityCheckInputStream#checkFixity} on the InputStream after streaming all of that data to ensure the
      * fixity of data.
