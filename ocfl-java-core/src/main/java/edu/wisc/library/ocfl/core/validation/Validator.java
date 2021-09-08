@@ -734,7 +734,7 @@ public class Validator {
     }
 
     private String computeInventoryDigest(String inventoryPath, DigestAlgorithm algorithm) {
-        try (var stream = storage.readFile(inventoryPath)) {
+        try (var stream = new BufferedInputStream(storage.readFile(inventoryPath))) {
             var wrapped = MultiDigestInputStream.create(stream, List.of(algorithm));
             while (wrapped.read() > 0) {
                 // consume stream
