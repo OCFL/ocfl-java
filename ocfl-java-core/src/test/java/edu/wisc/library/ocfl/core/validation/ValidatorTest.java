@@ -46,6 +46,13 @@ public class ValidatorTest {
     }
 
     @Test
+    public void validateLargeObject() {
+        var validator = createValidator("custom/good-objects");
+        var results = validator.validateObject("large-object", true);
+        assertNoIssues(results);
+    }
+
+    @Test
     public void errorOnExtraDirInRoot() {
         var name = "E001_extra_dir_in_root";
         var validator = createValidator(OFFICIAL_BAD_FIXTURES);

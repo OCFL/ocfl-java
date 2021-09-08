@@ -62,7 +62,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -203,7 +203,7 @@ public class Validator {
 
         if (inventoryIsValid && !validationResults.hasErrors()) {
             rootInventory.getVersions().keySet().stream()
-                    .filter(version -> !seenVersions.contains(version))
+                    .filter(version -> !seenVersions.containsValue(version))
                     .forEach(version -> results.addIssue(ValidationCode.E010,
                                 "Object root at %s is missing version directory %s", objectRootPath, version));
 
@@ -213,7 +213,7 @@ public class Validator {
             var manifests = new Manifests(rootInventory);
 
             // This MUST be done in reverse order
-            seenVersions.forEach(versionStr -> {
+            seenVersions.values().forEach(versionStr -> {
                 if (Objects.equals(rootInventory.getHead(), versionStr)) {
                     validateHeadVersion(objectRootPath, rootInventory, rootDigest, results);
                 } else {
@@ -616,13 +616,13 @@ public class Validator {
         return null;
     }
 
-    private Set<String> validateObjectRootContents(String objectRootPath,
+    private Map<VersionNum, String> validateObjectRootContents(String objectRootPath,
                                                    Set<String> ignoreFiles,
                                                    SimpleInventory inventory,
                                                    ValidationResultsBuilder results) {
         var files = storage.listDirectory(objectRootPath, false);
         // It is essential that the order is reversed here so that we later validate versions in reverse order
-        var seenVersions = new TreeSet<>(Comparator.<String>naturalOrder().reversed());
+        var seenVersions = new TreeMap<VersionNum, String>(Comparator.<VersionNum>naturalOrder().reversed());
 
         for (var file : files) {
             var fileName = file.getRelativePath();
@@ -662,7 +662,7 @@ public class Validator {
                                     "Object contains zero-padded version %s in %s",
                                     fileName, objectRootPath);
                         }
-                        seenVersions.add(fileName);
+                        seenVersions.put(versionNum, fileName);
                     }
                 } else {
                     results.addIssue(ValidationCode.E001,
