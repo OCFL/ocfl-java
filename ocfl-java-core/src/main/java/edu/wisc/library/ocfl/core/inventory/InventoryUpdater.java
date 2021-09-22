@@ -212,6 +212,17 @@ public class InventoryUpdater {
     }
 
     /**
+     * Maps the logical path to a content path and returns the part of the content path that's under the
+     * content directory.
+     *
+     * @param logicalPath the logical path
+     * @return content path part that's under the content directory
+     */
+    public String innerContentPath(String logicalPath) {
+        return pathUnderContentDir(contentPathMapper.fromLogicalPath(logicalPath));
+    }
+
+    /**
      * Adds an entry to the fixity block. An entry is not added if the algorithm is the same as the inventory's algorithm.
      *
      * @param logicalPath the file's logical path

@@ -46,7 +46,6 @@ import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
-import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
@@ -68,12 +67,10 @@ import java.nio.file.StandardCopyOption;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -86,8 +83,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
     private final Path repositoryRoot;
     private final FileSystemOcflStorageInitializer initializer;
     private final Validator validator;
-
-    private final boolean checkNewVersionFixity;
 
     private OcflStorageLayoutExtension storageLayoutExtension;
 
@@ -113,17 +108,11 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
      * @see FileSystemOcflStorageBuilder
      *
      * @param repositoryRoot OCFL repository root directory
-     * @param checkNewVersionFixity If a fixity check should be performed on the contents of a new version's
-     *                              content directory after moving it into the object. In most cases, this should not be
-     *                              required, especially if the OCFL client's work directory is on the same volume as the
-     *                              storage root.
      * @param initializer initializes a new OCFL repo
      */
     public FileSystemOcflStorage(Path repositoryRoot,
-                                 boolean checkNewVersionFixity,
                                  FileSystemOcflStorageInitializer initializer) {
         this.repositoryRoot = Enforce.notNull(repositoryRoot, "repositoryRoot cannot be null");
-        this.checkNewVersionFixity = checkNewVersionFixity;
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
@@ -405,8 +394,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         moveToVersionDirectory(newInventory, objectRoot.mutableHeadPath(), versionRoot);
 
         try {
-            versionContentCheck(newInventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
-
             try {
                 // The inventory is written to the root first so that the mutable version can be recovered if the write fails
                 copyInventoryToRootWithRollback(stagingRoot, objectRoot, newInventory);
@@ -678,7 +665,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             moveToVersionDirectory(inventory, stagingDir, versionRoot);
 
             try {
-                versionContentCheck(inventory, objectRoot, versionRoot.contentPath(), checkNewVersionFixity);
                 verifyPriorInventory(inventory, objectRoot.inventorySidecar());
                 copyInventoryToRootWithRollback(versionRoot, objectRoot, inventory);
             } catch (RuntimeException e) {
@@ -718,7 +704,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 }
 
                 try {
-                    versionContentCheck(inventory, objectRoot, revisionPath, checkNewVersionFixity);
                     verifyPriorInventoryMutable(inventory, objectRoot, isNewMutableHead);
                     copyInventory(stagingVersionRoot, versionRoot);
                 } catch (RuntimeException e) {
@@ -863,52 +848,6 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
             }
         } else if (!inventory.getHead().equals(VersionNum.V1)) {
             LOG.debug("Cannot verify prior inventory for object {} because its digest is unknown.", inventory.getId());
-        }
-    }
-
-    private void versionContentCheck(Inventory inventory,
-                                     ObjectPaths.ObjectRoot objectRoot,
-                                     Path contentPath,
-                                     boolean checkFixity) {
-        // The content directory will not exist if the version does not introduce new files
-        if (Files.notExists(contentPath)) {
-            return;
-        }
-
-        var version = inventory.getHeadVersion();
-        var fileIds = inventory.getFileIdsForMatchingFiles(objectRoot.path().relativize(contentPath));
-
-        var expected = new HashSet<String>(fileIds.size());
-        expected.addAll(fileIds);
-
-        try (var paths = Files.walk(contentPath)) {
-            paths.filter(Files::isRegularFile).forEach(file -> {
-                var fileContentPath = FileUtil.pathToStringStandardSeparator(objectRoot.path().relativize(file));
-                var expectedDigest = inventory.getFileId(fileContentPath);
-
-                if (expectedDigest == null) {
-                    throw new CorruptObjectException(String.format("File not listed in object %s manifest: %s",
-                            inventory.getId(), fileContentPath));
-                } else if (version.getPaths(expectedDigest) == null) {
-                    throw new CorruptObjectException(String.format("File not found in object %s version %s state: %s",
-                            inventory.getId(), inventory.getHead(), fileContentPath));
-                } else if (checkFixity) {
-                    var actualDigest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), file);
-                    if (!expectedDigest.equalsIgnoreCase(actualDigest)) {
-                        throw new FixityCheckException(String.format("File %s in object %s failed its %s fixity check. Expected: %s; Actual: %s",
-                                file, inventory.getId(), inventory.getDigestAlgorithm().getOcflName(), expectedDigest, actualDigest));
-                    }
-                }
-
-                expected.remove(expectedDigest);
-            });
-        } catch (IOException e) {
-            throw new OcflIOException(e);
-        }
-
-        if (!expected.isEmpty()) {
-            var filePaths = expected.stream().map(inventory::getContentPath).collect(Collectors.toList());
-            throw new CorruptObjectException(String.format("Object %s is missing the following files: %s", inventory.getId(), filePaths));
         }
     }
 

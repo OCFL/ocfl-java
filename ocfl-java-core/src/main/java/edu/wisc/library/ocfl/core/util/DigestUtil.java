@@ -33,6 +33,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
 
 public final class DigestUtil {
 
@@ -43,16 +44,27 @@ public final class DigestUtil {
     }
 
     public static String computeDigestHex(DigestAlgorithm algorithm, Path path) {
-        return computeDigestHex(algorithm, path, false);
+        return computeDigestHex(algorithm.getMessageDigest(), path);
+    }
+
+    public static String computeDigestHex(MessageDigest digest, Path path) {
+        return computeDigestHex(digest, path, false);
     }
 
     public static String computeDigestHex(DigestAlgorithm algorithm, Path path, boolean upperCase) {
-        return Bytes.wrap(computeDigest(algorithm, path)).encodeHex(upperCase);
+        return computeDigestHex(algorithm.getMessageDigest(), path, upperCase);
+    }
+
+    public static String computeDigestHex(MessageDigest digest, Path path, boolean upperCase) {
+        return Bytes.wrap(computeDigest(digest, path)).encodeHex(upperCase);
     }
 
     public static byte[] computeDigest(DigestAlgorithm algorithm, Path path) {
+        return computeDigest(algorithm.getMessageDigest(), path);
+    }
+
+    public static byte[] computeDigest(MessageDigest digest, Path path) {
         try (var channel = FileChannel.open(path, StandardOpenOption.READ)) {
-            var digest = algorithm.getMessageDigest();
             var buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
             while (channel.read(buffer) > -1) {

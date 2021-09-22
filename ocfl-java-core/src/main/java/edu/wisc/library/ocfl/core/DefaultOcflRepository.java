@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core;
 
 import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflObjectUpdater;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.OcflRepository;
@@ -75,6 +76,8 @@ import java.security.DigestOutputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -89,6 +92,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflRepository.class);
 
+    private final boolean verifyStaging;
     protected final OcflStorage storage;
     protected final InventoryMapper inventoryMapper;
     protected final Path workDir;
@@ -113,6 +117,7 @@ public class DefaultOcflRepository implements OcflRepository {
      * @param logicalPathMapper logical path mapper
      * @param contentPathConstraintProcessor content path constraint processor
      * @param config ocfl defaults configuration
+     * @param verifyStaging true if the contents of a stage version should be double-checked
      */
     public DefaultOcflRepository(OcflStorage storage,
                                  Path workDir,
@@ -120,12 +125,14 @@ public class DefaultOcflRepository implements OcflRepository {
                                  InventoryMapper inventoryMapper,
                                  LogicalPathMapper logicalPathMapper,
                                  ContentPathConstraintProcessor contentPathConstraintProcessor,
-                                 OcflConfig config) {
+                                 OcflConfig config,
+                                 boolean verifyStaging) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.workDir = Enforce.notNull(workDir, "workDir cannot be null");
         this.objectLock = Enforce.notNull(objectLock, "objectLock cannot be null");
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
         this.config = Enforce.notNull(config, "config cannot be null");
+        this.verifyStaging = verifyStaging;
 
         inventoryUpdaterBuilder = InventoryUpdater.builder().contentPathMapperBuilder(
                 ContentPathMapper.builder()
@@ -613,13 +620,62 @@ public class DefaultOcflRepository implements OcflRepository {
     protected void writeNewVersion(Inventory inventory, Path stagingDir) {
         var finalInventory = writeInventory(inventory, stagingDir);
 
-        // Versions should not contain empty content directories
         var contentDir = stagingDir.resolve(inventory.resolveContentDirectory());
         if (!FileUtil.hasChildren(contentDir)) {
             UncheckedFiles.delete(contentDir);
         }
 
+        if (verifyStaging) {
+            versionContentCheck(inventory, stagingDir, resolveContentDir(inventory, stagingDir));
+        }
+
         objectLock.doInWriteLock(inventory.getId(), () -> storage.storeNewVersion(finalInventory, stagingDir));
+    }
+
+    private void versionContentCheck(Inventory inventory,
+                                     Path rootPath,
+                                     Path contentPath) {
+        var version = inventory.getHeadVersion();
+        String prefix;
+        Set<String> fileIds;
+
+        if (inventory.hasMutableHead()) {
+            prefix = OcflConstants.MUTABLE_HEAD_VERSION_PATH + "/";
+            fileIds = inventory.getFileIdsForMatchingFiles(
+                    prefix + FileUtil.pathToStringStandardSeparator(rootPath.relativize(contentPath)) + "/" + inventory.getRevisionNum());
+        } else {
+            prefix = inventory.getHead() + "/";
+            fileIds = inventory.getFileIdsForMatchingFiles(prefix + FileUtil.pathToStringStandardSeparator(rootPath.relativize(contentPath)));
+        }
+
+        var expected = new HashSet<String>(fileIds.size());
+        expected.addAll(fileIds);
+
+        if (Files.exists(contentPath)) {
+            try (var paths = Files.walk(contentPath)) {
+                paths.filter(Files::isRegularFile).forEach(file -> {
+                    var fileContentPath = prefix + FileUtil.pathToStringStandardSeparator(rootPath.relativize(file));
+                    var expectedDigest = inventory.getFileId(fileContentPath);
+
+                    if (expectedDigest == null) {
+                        throw new OcflStateException(String.format("Staged version contains a file not in the manifest: %s",
+                                fileContentPath));
+                    } else if (version.getPaths(expectedDigest) == null) {
+                        throw new OcflStateException(String.format("Staged version contains a file not in its state: %s",
+                                fileContentPath));
+                    }
+
+                    expected.remove(expectedDigest);
+                });
+            } catch (IOException e) {
+                throw new OcflIOException(e);
+            }
+        }
+
+        if (!expected.isEmpty()) {
+            var filePaths = expected.stream().map(inventory::getContentPath).collect(Collectors.toList());
+            throw new OcflStateException(String.format("Staged version is missing the following files: %s", filePaths));
+        }
     }
 
     protected Inventory writeInventory(Inventory inventory, Path stagingDir) {

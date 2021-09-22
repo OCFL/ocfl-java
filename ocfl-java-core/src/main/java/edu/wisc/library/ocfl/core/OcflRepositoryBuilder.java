@@ -77,6 +77,7 @@ public class OcflRepositoryBuilder {
     private OcflConfig config;
     private OcflExtensionConfig defaultLayoutConfig;
     private Path workDir;
+    private boolean verifyStaging;
 
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
@@ -104,6 +105,7 @@ public class OcflRepositoryBuilder {
         contentPathConstraintProcessor = ContentPathConstraints.none();
         unsupportedBehavior = UnsupportedExtensionBehavior.FAIL;
         ignoreUnsupportedExtensions = Collections.emptySet();
+        verifyStaging = true;
     }
 
     /**
@@ -370,6 +372,22 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Configures whether to verify the contents of a staged version before it is moved into the OCFL object. This
+     * verification includes iterating over all of the files in the version and ensuring they match the expectations
+     * in the inventory.
+     *
+     * This verification is enabled by default out of conservatism. It is unlikely that there will ever be a problem
+     * for it to uncover, and it can be safely disabled if there are concerns about performance on slower filesystems.
+     *
+     * @param verifyStaging true if the contents of a stage version should be double-checked
+     * @return builder
+     */
+    public OcflRepositoryBuilder verifyStaging(boolean verifyStaging) {
+        this.verifyStaging = verifyStaging;
+        return this;
+    }
+
+    /**
      * Constructs an OCFL repository. Brand new repositories are initialized.
      *
      * @return OcflRepository
@@ -412,7 +430,7 @@ public class OcflRepositoryBuilder {
         return clazz.cast(new DefaultOcflRepository(wrappedStorage, workDir,
                 objectLock, inventoryMapper,
                 logicalPathMapper, contentPathConstraintProcessor,
-                config));
+                config, verifyStaging));
     }
 
     private OcflStorage cache(OcflStorage storage) {

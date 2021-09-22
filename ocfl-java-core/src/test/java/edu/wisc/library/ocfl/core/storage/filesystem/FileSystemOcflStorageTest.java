@@ -61,7 +61,6 @@ public class FileSystemOcflStorageTest {
     @Test
     public void shouldRejectCallsWhenNotInitialized() {
         var storage = FileSystemOcflStorage.builder()
-                .checkNewVersionFixity(true)
                 .repositoryRoot(repoDir)
                 .build();
 
@@ -71,66 +70,9 @@ public class FileSystemOcflStorageTest {
     }
 
     @Test
-    public void shouldFailNewVersionMissingFilesNoFixityCheck() throws IOException {
-        var storage = newStorage(false);
-
-        Files.writeString(stagingContentDir.resolve("file1"), "file1 content");
-
-        var inventory = inventoryBuilder()
-                .addFileToManifest("1", "v1/content/file1")
-                .addFileToManifest("2", "v1/content/file2")
-                .addHeadVersion(versionBuilder()
-                        .addFile("1", "file1")
-                        .addFile("2", "file2")
-                        .build())
-                .build();
-
-        assertThat(assertThrows(CorruptObjectException.class, () -> storage.storeNewVersion(inventory, stagingDir)).getMessage(),
-                containsString("Object o1 is missing the following files: [v1/content/file2]"));
-    }
-
-    @Test
-    public void shouldFailNewVersionHasExtraFilesNoFixityCheck() throws IOException {
-        var storage = newStorage(false);
-
-        Files.writeString(stagingContentDir.resolve("file1"), "file1 content");
-        Files.writeString(stagingContentDir.resolve("file2"), "file2 content");
-        Files.writeString(stagingContentDir.resolve("file3"), "file3 content");
-
-        var inventory = inventoryBuilder()
-                .addFileToManifest("1", "v1/content/file1")
-                .addFileToManifest("2", "v1/content/file2")
-                .addHeadVersion(versionBuilder()
-                        .addFile("1", "file1")
-                        .addFile("2", "file2")
-                        .build())
-                .build();
-
-        assertThat(assertThrows(CorruptObjectException.class, () -> storage.storeNewVersion(inventory, stagingDir)).getMessage(),
-                containsString("File not listed in object o1 manifest: v1/content/file3"));
-    }
-
-    @Test
-    public void shouldFailNewVersionWhenFixityCheckEnabledAndFixityFails() throws IOException {
-        var storage = newStorage(true);
-
-        Files.writeString(stagingContentDir.resolve("file1"), "file1 content");
-
-        var inventory = inventoryBuilder()
-                .addFileToManifest("1", "v1/content/file1")
-                .addHeadVersion(versionBuilder()
-                        .addFile("1", "file1")
-                        .build())
-                .build();
-
-        assertThat(assertThrows(FixityCheckException.class, () -> storage.storeNewVersion(inventory, stagingDir)).getMessage(),
-                containsString("file1 in object o1 failed its sha512 fixity check. Expected: 1; Actual: "));
-    }
-
-    @Test
     public void shouldListObjectIdsWhenOnlyOne() {
         copyExistingRepo("repo-one-object");
-        var storage = newStorage(false);
+        var storage = newStorage();
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -142,7 +84,7 @@ public class FileSystemOcflStorageTest {
     @Test
     public void shouldListObjectIdsWhenMultipleObjects() {
         copyExistingRepo("repo-multiple-objects");
-        var storage = newStorage(false);
+        var storage = newStorage();
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -154,7 +96,7 @@ public class FileSystemOcflStorageTest {
     @Test
     public void shouldListObjectIdsWhenOnlyNone() {
         copyExistingRepo("repo-no-objects");
-        var storage = newStorage(false);
+        var storage = newStorage();
 
         var objectIdsStream = storage.listObjectIds();
 
@@ -166,7 +108,7 @@ public class FileSystemOcflStorageTest {
     @Test
     public void shouldReturnInventoryBytesWhenExists() {
         copyExistingRepo("repo-multiple-objects");
-        var storage = newStorage(false);
+        var storage = newStorage();
 
         var bytes = storage.getInventoryBytes("o2", VersionNum.fromInt(2));
         assertEquals("c15f51c96fafe599dd056c1782fce5e8d6a0461017260ec5bc751d12821e2a7c2344048fc32312d57fdbdd67" +
@@ -177,7 +119,7 @@ public class FileSystemOcflStorageTest {
     @Test
     public void shouldReturnExceptionWhenInventoryDoesNotExist() {
         copyExistingRepo("repo-multiple-objects");
-        var storage = newStorage(false);
+        var storage = newStorage();
 
         assertThrows(NotFoundException.class, () -> storage.getInventoryBytes("o2", VersionNum.fromInt(4)));
     }
@@ -194,9 +136,8 @@ public class FileSystemOcflStorageTest {
         return Version.builder().created(OffsetDateTime.now());
     }
 
-    private FileSystemOcflStorage newStorage(boolean enableFixityCheck) {
+    private FileSystemOcflStorage newStorage() {
         var storage = FileSystemOcflStorage.builder()
-                .checkNewVersionFixity(enableFixityCheck)
                 .repositoryRoot(repoDir)
                 .build();
         storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION,
