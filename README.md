@@ -100,6 +100,10 @@ following extensions are implemented:
 creating new OCFL objects: OCFL version, digest algorithm, version
 zero-padding width, and content directory. The defaults are `1.0`,
 `sha512`, `0`, and `content`.
+* **verifyStaging**: Determines whether the contents of staged
+  versions should be verified immediately prior to installing them.
+  This is enabled by default, but can be safely disabled if you are
+  concerned with performance on slow filesystems.
 * **prettyPrintJson**: Enables pretty print JSON in newly written
  inventory files. By default, pretty printing is disabled to reduce
  inventory file size.
@@ -161,11 +165,6 @@ Use `FileSystemOcflStorage.builder()` to create and configure an
 
 * **repositoryRoot**: Required, path to the OCFL storage root
   directory.
-* **checkNewVersionFixity**: Optional, instructs the client to check
-the fixity of every file in new versions once the version is at rest.
-By default, this is disabled and it is unlikely to be worthwhile if
-the work directory and OCFL storage root are on the same mount, as
-recommended.
 
 **Example**
 

@@ -51,7 +51,6 @@ import java.security.DigestInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
@@ -62,14 +61,16 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflObjectUpdater.class);
 
-    private Inventory inventory;
-    private InventoryUpdater inventoryUpdater;
-    private Path stagingDir;
-    private AddFileProcessor addFileProcessor;
+    private final Inventory inventory;
+    private final InventoryUpdater inventoryUpdater;
+    private final Path stagingDir;
+    private final AddFileProcessor addFileProcessor;
 
-    private Map<String, Path> stagedFileMap;
+    private final Map<String, Path> stagedFileMap;
 
-    public DefaultOcflObjectUpdater(Inventory inventory, InventoryUpdater inventoryUpdater, Path stagingDir,
+    public DefaultOcflObjectUpdater(Inventory inventory,
+                                    InventoryUpdater inventoryUpdater,
+                                    Path stagingDir,
                                     AddFileProcessor addFileProcessor) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
@@ -125,13 +126,22 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
         LOG.debug("Write stream to object <{}> at logical path <{}>", inventory.getId(), destinationPath);
 
-        var tempPath = stagingDir.resolve(UUID.randomUUID().toString());
+        var stagingFullPath = stagingFullPath(inventoryUpdater.innerContentPath(destinationPath));
+
         var digestInput = wrapInDigestInputStream(input);
-        LOG.debug("Writing input stream to temp file: {}", tempPath);
-        UncheckedFiles.copy(digestInput, tempPath);
+        LOG.debug("Writing input stream to: {}", stagingFullPath);
+        if (Files.notExists(stagingFullPath.getParent())) {
+            UncheckedFiles.createDirectories(stagingFullPath.getParent());
+        }
+        UncheckedFiles.copy(digestInput, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
 
         if (input instanceof FixityCheckInputStream) {
-            ((FixityCheckInputStream) input).checkFixity();
+            try {
+                ((FixityCheckInputStream) input).checkFixity();
+            } catch (FixityCheckException e) {
+                FileUtil.safeDelete(stagingFullPath);
+                throw e;
+            }
         }
 
         String digest;
@@ -145,12 +155,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var result = inventoryUpdater.addFile(digest, destinationPath, options);
 
         if (!result.isNew()) {
-            LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", tempPath, digest);
-            UncheckedFiles.delete(tempPath);
+            LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", stagingFullPath, digest);
+            UncheckedFiles.delete(stagingFullPath);
         } else {
-            var stagingFullPath = stagingFullPath(result.getPathUnderContentDir());
-            LOG.debug("Moving file <{}> to <{}>", tempPath, stagingFullPath);
-            FileUtil.moveFileMakeParents(tempPath, stagingFullPath, StandardCopyOption.REPLACE_EXISTING);
             stagedFileMap.put(destinationPath, stagingFullPath);
         }
 

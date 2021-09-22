@@ -37,12 +37,10 @@ import java.nio.file.Path;
 public class FileSystemOcflStorageBuilder {
 
     private Path repositoryRoot;
-    private boolean checkNewVersionFixity;
     private ObjectMapper objectMapper;
     private FileSystemOcflStorageInitializer initializer;
 
     public FileSystemOcflStorageBuilder() {
-        checkNewVersionFixity = false;
         objectMapper = ObjectMappers.prettyPrintMapper();
 
     }
@@ -70,19 +68,6 @@ public class FileSystemOcflStorageBuilder {
     }
 
     /**
-     * Overrides whether the fixity of new version content should be checked on version creation after moving the version
-     * into the OCFL object root. Unless the work directory is on a different volume, it is unlikely that this check
-     * is needed. Default: false
-     *
-     * @param checkNewVersionFixity whether to check fixity on version creation. Default: false
-     * @return builder
-     */
-    public FileSystemOcflStorageBuilder checkNewVersionFixity(boolean checkNewVersionFixity) {
-        this.checkNewVersionFixity = checkNewVersionFixity;
-        return this;
-    }
-
-    /**
      * Overrides the default {@link FileSystemOcflStorageInitializer}. Normally, this does not need to be set.
      *
      * @param initializer the initializer
@@ -104,7 +89,7 @@ public class FileSystemOcflStorageBuilder {
             init = new FileSystemOcflStorageInitializer(objectMapper);
         }
 
-        return new FileSystemOcflStorage(repositoryRoot, checkNewVersionFixity, init);
+        return new FileSystemOcflStorage(repositoryRoot, init);
     }
 
 }

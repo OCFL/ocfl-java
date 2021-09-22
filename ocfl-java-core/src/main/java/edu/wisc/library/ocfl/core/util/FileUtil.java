@@ -178,7 +178,9 @@ public final class FileUtil {
 
     public static void copyFileMakeParents(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
-            Files.createDirectories(dst.getParent());
+            if (Files.notExists(dst.getParent())) {
+                Files.createDirectories(dst.getParent());
+            }
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
             throw new OcflIOException(e);
@@ -187,7 +189,9 @@ public final class FileUtil {
 
     public static void moveFileMakeParents(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
-            Files.createDirectories(dst.getParent());
+            if (Files.notExists(dst.getParent())) {
+                Files.createDirectories(dst.getParent());
+            }
             Files.move(src, dst, copyOptions);
         } catch (IOException e) {
             throw new OcflIOException(e);
@@ -259,6 +263,19 @@ public final class FileUtil {
             } catch (IOException e) {
                 LOG.warn("Failed to delete directory: {}", path, e);
             }
+        }
+    }
+
+    /**
+     * Non-recursive path delete. Any exception is swallowed and logged.
+     *
+     * @param path the path to delete
+     */
+    public static void safeDelete(Path path) {
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            LOG.warn("Failed to delete path: {}", path, e);
         }
     }
 

@@ -24,6 +24,7 @@ import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
+import edu.wisc.library.ocfl.core.DefaultOcflObjectUpdater;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.CaffeineCache;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
@@ -49,6 +50,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.DigestInputStream;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -85,6 +87,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public abstract class OcflITest {
 
@@ -959,22 +962,28 @@ public abstract class OcflITest {
     }
 
     @Test
-    public void rejectLogicalPathWhenAddConflicts() {
+    public void rejectLogicalPathWhenAddConflicts() throws IOException {
         var repoName = "conflict";
         var repo = defaultRepo(repoName);
         var objectId = "o1";
 
+        Files.writeString(tempRoot.resolve("file1"), "file1");
+        Files.writeString(tempRoot.resolve("file2"), "file1");
+
         OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "The logical path file1/file2 conflicts with the existing path file1.", () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
-                updater.writeFile(streamString("file1"), "file1");
-                updater.writeFile(streamString("file2"), "file1/file2");
+                updater.addPath(tempRoot.resolve("file1"), "file1", OcflOption.MOVE_SOURCE);
+                updater.addPath(tempRoot.resolve("file2"), "file1/file2", OcflOption.MOVE_SOURCE);
             });
         });
 
+        Files.writeString(tempRoot.resolve("file1"), "file1", StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        Files.writeString(tempRoot.resolve("file2"), "file1", StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
         OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "The logical path file1 conflicts with the existing path file1/file2.", () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
-                updater.writeFile(streamString("file2"), "file1/file2");
-                updater.writeFile(streamString("file1"), "file1");
+                updater.addPath(tempRoot.resolve("file2"), "file1/file2", OcflOption.MOVE_SOURCE);
+                updater.addPath(tempRoot.resolve("file1"), "file1", OcflOption.MOVE_SOURCE);
             });
         });
     }
@@ -2188,6 +2197,76 @@ public abstract class OcflITest {
         var error = results.getErrors().get(0);
         assertEquals(ValidationCode.E092, error.getCode());
         assertThat(error.getMessage(), containsString("failed sha512 fixity check"));
+    }
+
+    @Test
+    public void failCommitWhenMissingFile() throws IOException {
+        var repoName = "unsafe";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.unsafeAddPath("96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd5" +
+                            "61fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
+                    sourceObjectPath(objectId, "v1").resolve("file1"),
+                    "");
+        });
+
+        assertThrows(OcflStateException.class, () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+                updater.unsafeAddPath("4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6a" +
+                                "db0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
+                        sourceObjectPath(objectId, "v1").resolve("file2"),
+                        "file1", OcflOption.OVERWRITE);
+
+                try {
+                    var field = DefaultOcflObjectUpdater.class.getDeclaredField("stagingDir");
+                    field.setAccessible(true);
+                    Path stagingDir = (Path) field.get(updater);
+                    Files.delete(stagingDir.resolve("file1"));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        });
+
+        assertEquals(VersionNum.V1, repo.describeObject(objectId).getHeadVersionNum());
+    }
+
+    @Test
+    public void failCommitWhenHasExtraFile() throws IOException {
+        var repoName = "unsafe";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.unsafeAddPath("96a26e7629b55187f9ba3edc4acc940495d582093b8a88cb1f0303cf3399fe6b1f5283d76dfd5" +
+                            "61fc401a0cdf878c5aad9f2d6e7e2d9ceee678757bb5d95c39e",
+                    sourceObjectPath(objectId, "v1").resolve("file1"),
+                    "");
+        });
+
+        assertThrows(OcflStateException.class, () -> {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+                updater.unsafeAddPath("4cf0ff5673ec65d9900df95502ed92b2605fc602ca20b6901652c7561b302668026095813af6a" +
+                                "db0e663bdcdbe1f276d18bf0de254992a78573ad6574e7ae1f6",
+                        sourceObjectPath(objectId, "v1").resolve("file2"),
+                        "file1", OcflOption.OVERWRITE);
+
+                try {
+                    var field = DefaultOcflObjectUpdater.class.getDeclaredField("stagingDir");
+                    field.setAccessible(true);
+                    Path stagingDir = (Path) field.get(updater);
+                    Files.writeString(stagingDir.resolve("extra"), "extra");
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        });
+
+        assertEquals(VersionNum.V1, repo.describeObject(objectId).getHeadVersionNum());
     }
 
     @Test

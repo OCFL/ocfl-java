@@ -15,7 +15,6 @@ public class FileSystemBadReposITest extends BadReposITest {
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .fileSystemStorage(storage -> storage
-                        .checkNewVersionFixity(true)
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .repositoryRoot(repoDir(name))
                         .build())
