@@ -424,7 +424,7 @@ public class OcflRepositoryBuilder {
             return clazz.cast(new DefaultMutableOcflRepository(wrappedStorage, workDir,
                     objectLock, inventoryMapper,
                     logicalPathMapper, contentPathConstraintProcessor,
-                    config));
+                    config, verifyStaging));
         }
 
         return clazz.cast(new DefaultOcflRepository(wrappedStorage, workDir,

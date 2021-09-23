@@ -68,15 +68,17 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
      * @param logicalPathMapper logical path mapper
      * @param contentPathConstraintProcessor content path constraint processor
      * @param config ocfl defaults configuration
+     * @param verifyStaging true if the contents of a stage version should be double-checked
      */
     public DefaultMutableOcflRepository(OcflStorage storage, Path workDir,
                                         ObjectLock objectLock,
                                         InventoryMapper inventoryMapper,
                                         LogicalPathMapper logicalPathMapper,
                                         ContentPathConstraintProcessor contentPathConstraintProcessor,
-                                        OcflConfig config) {
+                                        OcflConfig config,
+                                        boolean verifyStaging) {
         super(storage, workDir, objectLock, inventoryMapper,
-                logicalPathMapper, contentPathConstraintProcessor, config);
+                logicalPathMapper, contentPathConstraintProcessor, config, verifyStaging);
     }
 
     /**
