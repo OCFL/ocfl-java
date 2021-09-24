@@ -349,7 +349,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
         ensureRootObjectHasNotChanged(newInventory);
 
-        if (cloudClient.listDirectory(ObjectPaths.mutableHeadVersionPath(newInventory.getObjectRootPath())).getObjects().isEmpty()) {
+        if (!hasMutableHead(newInventory.getObjectRootPath())) {
             throw new ObjectOutOfSyncException(
                     String.format("Cannot commit mutable HEAD of object %s because a mutable HEAD does not exist.", newInventory.getId()));
         }
@@ -533,7 +533,6 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             }
 
             var objectKeys = storeContentInCloud(inventory, stagingDir);
-            // TODO write a copy to the cache?
 
             try {
                 verifyPriorInventory(inventory, ObjectPaths.inventorySidecarPath(objectRootPath, inventory));
@@ -558,7 +557,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
         var isNewMutableHead = false;
 
-        if (!cloudClient.listDirectory(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath())).getObjects().isEmpty()) {
+        if (hasMutableHead(inventory.getObjectRootPath())) {
             ensureRootObjectHasNotChanged(inventory);
         } else {
             cleanupKeys.add(copyRootInventorySidecarToMutableHead(inventory));
@@ -569,8 +568,6 @@ public class CloudOcflStorage extends AbstractOcflStorage {
             cleanupKeys.add(createRevisionMarker(inventory));
 
             var objectKeys = storeContentInCloud(inventory, stagingDir);
-
-            // TODO write a copy to the cache?
 
             try {
                 verifyPriorInventoryMutable(inventory, isNewMutableHead);
@@ -861,15 +858,25 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    // TODO this could be incorrect due to eventual consistency issues
     private boolean hasMutableHead(String objectRootPath) {
-        return !cloudClient.listDirectory(ObjectPaths.mutableHeadVersionPath(objectRootPath)).getObjects().isEmpty();
+        try {
+            cloudClient.head(ObjectPaths.inventoryPath(ObjectPaths.mutableHeadVersionPath(objectRootPath)));
+            return true;
+        } catch (KeyNotFoundException e) {
+            return false;
+        }
     }
 
     private void ensureVersionDoesNotExist(Inventory inventory, String versionPath) {
-        if (!cloudClient.listDirectory(versionPath).getObjects().isEmpty()) {
-            throw new ObjectOutOfSyncException(
-                    String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
+        try {
+            cloudClient.head(ObjectPaths.inventoryPath(versionPath));
+        } catch (KeyNotFoundException e) {
+            // Because versions are not required to have inventories we must do a listing if the head fails.
+            // However, the majority of versions should have an inventory
+            if (!cloudClient.listDirectory(versionPath).getObjects().isEmpty()) {
+                throw new ObjectOutOfSyncException(
+                        String.format("Failed to create a new version of object %s. Changes are out of sync with the current object state.", inventory.getId()));
+            }
         }
     }
 
