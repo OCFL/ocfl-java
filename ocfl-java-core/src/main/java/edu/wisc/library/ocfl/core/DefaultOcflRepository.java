@@ -71,6 +71,7 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.security.DigestOutputStream;
 import java.time.Clock;
@@ -651,25 +652,25 @@ public class DefaultOcflRepository implements OcflRepository {
         var expected = new HashSet<String>(fileIds.size());
         expected.addAll(fileIds);
 
-        if (Files.exists(contentPath)) {
-            try (var paths = Files.walk(contentPath)) {
-                paths.filter(Files::isRegularFile).forEach(file -> {
-                    var fileContentPath = prefix + FileUtil.pathToStringStandardSeparator(rootPath.relativize(file));
-                    var expectedDigest = inventory.getFileId(fileContentPath);
+        try (var paths = Files.walk(contentPath)) {
+            paths.filter(Files::isRegularFile).forEach(file -> {
+                var fileContentPath = prefix + FileUtil.pathToStringStandardSeparator(rootPath.relativize(file));
+                var expectedDigest = inventory.getFileId(fileContentPath);
 
-                    if (expectedDigest == null) {
-                        throw new OcflStateException(String.format("Staged version contains a file not in the manifest: %s",
-                                fileContentPath));
-                    } else if (version.getPaths(expectedDigest) == null) {
-                        throw new OcflStateException(String.format("Staged version contains a file not in its state: %s",
-                                fileContentPath));
-                    }
+                if (expectedDigest == null) {
+                    throw new OcflStateException(String.format("Staged version contains a file not in the manifest: %s",
+                            fileContentPath));
+                } else if (version.getPaths(expectedDigest) == null) {
+                    throw new OcflStateException(String.format("Staged version contains a file not in its state: %s",
+                            fileContentPath));
+                }
 
-                    expected.remove(expectedDigest);
-                });
-            } catch (IOException e) {
-                throw new OcflIOException(e);
-            }
+                expected.remove(expectedDigest);
+            });
+        } catch (NoSuchFileException e) {
+            // ignore -- means there's no content dir
+        } catch (IOException e) {
+            throw new OcflIOException(e);
         }
 
         if (!expected.isEmpty()) {
@@ -688,7 +689,7 @@ public class DefaultOcflRepository implements OcflRepository {
             var digest = Bytes.wrap(digestStream.getMessageDigest().digest()).encodeHex();
             SidecarMapper.writeSidecar(inventory, digest, stagingDir);
 
-            return inventory.buildFrom().currentDigest(digest).build();
+            return inventory.buildFrom().inventoryDigest(digest).build();
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
@@ -725,7 +726,7 @@ public class DefaultOcflRepository implements OcflRepository {
             }
 
             InventoryValidator.validateCompatibleInventories(importInventory, existingInventory);
-            existingDigest = existingInventory.getCurrentDigest();
+            existingDigest = existingInventory.getInventoryDigest();
         }
 
         var objectRootPath = storage.objectRootPath(objectId);
@@ -742,7 +743,9 @@ public class DefaultOcflRepository implements OcflRepository {
         Enforce.expressionTrue(Files.exists(inventoryPath), inventoryPath, "inventory.json must exist");
         Enforce.expressionTrue(Files.exists(sidecarPath), sidecarPath, "inventory sidecar must exist");
 
-        return inventoryMapper.read(path.toString(), SidecarMapper.readDigest(sidecarPath), inventoryPath);
+        var algorithm = SidecarMapper.getDigestAlgorithmFromSidecar(sidecarPath);
+
+        return inventoryMapper.read(path.toString(), algorithm, inventoryPath);
     }
 
     private void importToStaging(Path source, Path stagingDir, OcflOption... options) {

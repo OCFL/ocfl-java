@@ -97,7 +97,7 @@ public abstract class BadReposITest {
         var repoName = "missing-sidecar";
         var repo = defaultRepo(repoName);
         assertThat(assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2")).getMessage(),
-                containsString("inventory sidecar"));
+                containsString("sidecar"));
     }
 
     @Test

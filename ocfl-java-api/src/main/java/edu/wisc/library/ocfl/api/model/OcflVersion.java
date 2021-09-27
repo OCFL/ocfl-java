@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.api.model;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * Represents a version of the OCFL spec.
@@ -82,13 +83,69 @@ public enum OcflVersion {
      * @return OCFL version
      */
     public static OcflVersion fromOcflVersionString(String ocflVersionString) {
+        var trimmed = ocflVersionString.trim();
         for (var version : values()) {
-            if (version.getOcflVersion().equals(ocflVersionString)) {
+            if (version.getOcflVersion().equals(trimmed)) {
                 return version;
             }
         }
         throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL version. Known versions: %s",
                 ocflVersionString, Arrays.asList(values())));
+    }
+
+    /**
+     * Returns an OCFL version based on the OCFL version string specified in the Namaste file in an OCFL object.
+     *
+     * @param ocflObjectVersionString the version string from the object Namaste file
+     * @return OCFL version
+     */
+    public static OcflVersion fromOcflObjectVersionString(String ocflObjectVersionString) {
+        var trimmed = ocflObjectVersionString.trim();
+        for (var version : values()) {
+            if (version.getOcflObjectVersion().equals(trimmed)) {
+                return version;
+            }
+        }
+        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL object version. Known versions: %s",
+                ocflObjectVersionString, Arrays.stream(values())
+                        .map(OcflVersion::getOcflObjectVersion)
+                        .collect(Collectors.toList())));
+    }
+
+    /**
+     * Returns an OCFL version based on the name of an OCFL storage root Namaste file
+     *
+     * @param ocflVersionFilename Namaste file name
+     * @return OCFL version
+     */
+    public static OcflVersion fromOcflVersionFilename(String ocflVersionFilename) {
+        var versionPart = ocflVersionFilename.substring(2);
+        for (var version : values()) {
+            if (version.getOcflVersion().equals(versionPart)) {
+                return version;
+            }
+        }
+        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL version. Known versions: %s",
+                versionPart, Arrays.asList(values())));
+    }
+
+    /**
+     * Returns an OCFL version based on the name of an OCFL object Namaste file
+     *
+     * @param ocflObjectVersionFilename Namaste file name
+     * @return OCFL version
+     */
+    public static OcflVersion fromOcflObjectVersionFilename(String ocflObjectVersionFilename) {
+        var versionPart = ocflObjectVersionFilename.substring(2);
+        for (var version : values()) {
+            if (version.getOcflObjectVersion().equals(versionPart)) {
+                return version;
+            }
+        }
+        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL object version. Known versions: %s",
+                versionPart, Arrays.stream(values())
+                        .map(OcflVersion::getOcflObjectVersion)
+                        .collect(Collectors.toList())));
     }
 
 }

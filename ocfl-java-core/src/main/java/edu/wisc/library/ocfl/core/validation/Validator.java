@@ -41,6 +41,7 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
 import edu.wisc.library.ocfl.core.validation.model.SimpleVersion;
 import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
@@ -65,16 +66,14 @@ import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS;
+
 /**
  * Validates an object directory against the OCFL 1.0 spec
  */
 public class Validator {
 
     private static final Logger LOG = LoggerFactory.getLogger(Validator.class);
-
-    private static final DigestAlgorithm[] POSSIBLE_INV_ALGORITHMS = new DigestAlgorithm[]{
-            DigestAlgorithm.sha256, DigestAlgorithm.sha512
-    };
 
     private static final String OBJECT_NAMASTE_CONTENTS = OcflVersion.OCFL_1_0.getOcflObjectVersion() + "\n";
 
@@ -147,7 +146,7 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
 
         if (storage.fileExists(inventoryPath)) {
-            var parseResult = parseInventory(inventoryPath, results, POSSIBLE_INV_ALGORITHMS);
+            var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
             parseResult.inventory.ifPresent(inventory ->
                     validateObjectWithInventory(objectRootPath, inventoryPath, inventory,
                             parseResult.digests, parseResult.isValid, contentFixityCheck, results));
@@ -173,7 +172,7 @@ public class Validator {
         }
 
         var results = new ValidationResultsBuilder();
-        var parseResults = parseInventory(inventoryPath, results, POSSIBLE_INV_ALGORITHMS);
+        var parseResults = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
 
         parseResults.inventory.ifPresent(inventory -> {
             var validationResults = inventoryValidator.validateInventory(inventory, inventoryPath);
@@ -247,7 +246,7 @@ public class Validator {
         if (storage.fileExists(inventoryPath)) {
             ignoreFiles.add(OcflConstants.INVENTORY_FILE);
 
-            var parseResult = parseInventory(inventoryPath, results, POSSIBLE_INV_ALGORITHMS);
+            var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
             parseResult.inventory.ifPresent(inventory -> {
                 var validationResults = inventoryValidator.validateInventory(inventory, inventoryPath);
                 results.addAll(validationResults);

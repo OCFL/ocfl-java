@@ -46,41 +46,41 @@ public class SidecarMapperTest {
     @Test
     public void parseSidecarWithSingleSpace() {
         var expected = "abc123";
-        var actual = SidecarMapper.readDigest(writeFile(expected + " "));
+        var actual = SidecarMapper.readDigestRequired(writeFile(expected + " "));
         assertEquals(expected, actual);
     }
 
     @Test
     public void parseSidecarWithMultipleSpace() {
         var expected = "abc123";
-        var actual = SidecarMapper.readDigest(writeFile(expected + "   "));
+        var actual = SidecarMapper.readDigestRequired(writeFile(expected + "   "));
         assertEquals(expected, actual);
     }
     @Test
     public void parseSidecarWithSinglTab() {
         var expected = "abc123";
-        var actual = SidecarMapper.readDigest(writeFile(expected + "\t"));
+        var actual = SidecarMapper.readDigestRequired(writeFile(expected + "\t"));
         assertEquals(expected, actual);
     }
 
     @Test
     public void parseSidecarWithMultipleTabs() {
         var expected = "abc123";
-        var actual = SidecarMapper.readDigest(writeFile(expected + "\t\t"));
+        var actual = SidecarMapper.readDigestRequired(writeFile(expected + "\t\t"));
         assertEquals(expected, actual);
     }
 
     @Test
     public void failWhenSinglePart() {
         assertThrows(CorruptObjectException.class, () -> {
-            SidecarMapper.readDigest(writeFile("blah"));
+            SidecarMapper.readDigestRequired(writeFile("blah"));
         });
     }
 
     @Test
     public void failWhenTooManyParts() {
         assertThrows(CorruptObjectException.class, () -> {
-            SidecarMapper.readDigest(writeFile("blah blah blah "));
+            SidecarMapper.readDigestRequired(writeFile("blah blah blah "));
         });
     }
 

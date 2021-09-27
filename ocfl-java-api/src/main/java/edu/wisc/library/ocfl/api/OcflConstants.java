@@ -45,7 +45,7 @@ public final class OcflConstants {
     public static final String EXT_CONFIG_JSON = "config.json";
     public static final String INIT_EXT = "init";
 
-    public static final String OBJECT_NAMASTE_PREFIX = "0=ocfl_object";
+    public static final String OBJECT_NAMASTE_PREFIX = "0=ocfl_object_";
     public static final String OBJECT_NAMASTE_1_0 = "0=" + OcflVersion.OCFL_1_0.getOcflObjectVersion();
 
     public static final String DEFAULT_INITIAL_VERSION_ID = "v1";
@@ -61,5 +61,9 @@ public final class OcflConstants {
     public static final String MUTABLE_HEAD_REVISIONS_PATH = MUTABLE_HEAD_EXT_PATH + "/revisions";
 
     public static final String DIGEST_ALGORITHMS_EXT_NAME = "0001-digest-algorithms";
+
+    public static final DigestAlgorithm[] VALID_INVENTORY_ALGORITHMS = new DigestAlgorithm[]{
+            DigestAlgorithm.sha256, DigestAlgorithm.sha512
+    };
 
 }

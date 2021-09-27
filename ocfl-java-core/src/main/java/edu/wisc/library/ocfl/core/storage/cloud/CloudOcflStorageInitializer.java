@@ -119,7 +119,7 @@ public class CloudOcflStorageInitializer {
         for (var file : listRootObjects()) {
             var path = file.getPath();
             if (path.startsWith("0=")) {
-                existingOcflVersion = OcflVersion.fromOcflVersionString(path.substring(2));
+                existingOcflVersion = OcflVersion.fromOcflVersionFilename(path);
                 break;
             }
         }

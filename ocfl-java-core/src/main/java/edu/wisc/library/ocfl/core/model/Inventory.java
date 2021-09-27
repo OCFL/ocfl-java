@@ -100,7 +100,7 @@ public class Inventory {
 
     // This property is injected
     @JsonIgnore
-    private final String currentDigest;
+    private String inventoryDigest;
 
     /**
      * Creates a stub inventory that is useful when creating new objects. It should NOT be persisted.
@@ -156,7 +156,7 @@ public class Inventory {
      * @param revisionNum current revision number
      * @param objectRootPath object root path
      * @param previousDigest digest of previous inventory
-     * @param currentDigest digest of this inventory
+     * @param inventoryDigest digest of this inventory
      */
     public Inventory(
             String id,
@@ -171,7 +171,7 @@ public class Inventory {
             RevisionNum revisionNum,
             String objectRootPath,
             String previousDigest,
-            String currentDigest) {
+            String inventoryDigest) {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
@@ -189,7 +189,7 @@ public class Inventory {
         this.revisionNum = revisionNum;
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
         this.previousDigest = previousDigest;
-        this.currentDigest = currentDigest;
+        this.inventoryDigest = inventoryDigest;
     }
 
     /**
@@ -215,7 +215,7 @@ public class Inventory {
         this.revisionNum = null;
         this.objectRootPath = Enforce.notBlank(objectRootPath, "objectRootPath cannot be null");
         this.previousDigest = null;
-        this.currentDigest = null;
+        this.inventoryDigest = null;
     }
 
     /**
@@ -234,8 +234,8 @@ public class Inventory {
      */
     public InventoryBuilder buildNextVersionFrom() {
         return buildFrom()
-                .previousDigest(getCurrentDigest())
-                .currentDigest(null);
+                .previousDigest(getInventoryDigest())
+                .inventoryDigest(null);
     }
 
     private static Map<DigestAlgorithm, PathBiMap> createFixityBiMap(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
@@ -514,13 +514,13 @@ public class Inventory {
     }
 
     /**
-     * Returns the digest of the this version or null if it's not known.
+     * Returns the digest of this inventory or null if it's not known.
      *
-     * @return the digest of this version or null
+     * @return the digest of this inventory or null
      */
     @JsonIgnore
-    public String getCurrentDigest() {
-        return currentDigest;
+    public String getInventoryDigest() {
+        return inventoryDigest;
     }
 
     /**
@@ -581,7 +581,7 @@ public class Inventory {
                 ", mutableHead=" + mutableHead +
                 ", objectRootPath='" + objectRootPath + '\'' +
                 ", previousDigest='" + previousDigest + '\'' +
-                ", currentDigest='" + currentDigest + '\'' +
+                ", inventoryDigest='" + inventoryDigest + '\'' +
                 '}';
     }
 
@@ -602,7 +602,7 @@ public class Inventory {
                 Objects.equals(revisionNum, inventory.revisionNum) &&
                 objectRootPath.equals(inventory.objectRootPath) &&
                 Objects.equals(previousDigest, inventory.previousDigest) &&
-                Objects.equals(currentDigest, inventory.currentDigest);
+                Objects.equals(inventoryDigest, inventory.inventoryDigest);
     }
 
     @Override
@@ -611,7 +611,7 @@ public class Inventory {
                 head, contentDirectory, fixityBiMap,
                 manifestBiMap, versions, revisionNum,
                 mutableHead, objectRootPath, previousDigest,
-                currentDigest);
+                inventoryDigest);
     }
 
     /**
@@ -632,7 +632,7 @@ public class Inventory {
         RevisionNum revisionNum;
         String objectRootPath;
         String previousDigest;
-        String currentDigest;
+        String inventoryDigest;
 
         public void withId(String id) {
             this.id = id;
@@ -681,9 +681,9 @@ public class Inventory {
             this.objectRootPath = objectRootPath;
         }
 
-        @JacksonInject("currentDigest")
-        public void withCurrentDigest(String currentDigest) {
-            this.currentDigest = currentDigest;
+        @JacksonInject("inventoryDigest")
+        public void withInventoryDigest(String inventoryDigest) {
+            this.inventoryDigest = inventoryDigest;
         }
 
         public Inventory build() {
@@ -691,7 +691,7 @@ public class Inventory {
                     head, contentDirectory, fixity,
                     manifest, versions, mutableHead,
                     revisionNum, objectRootPath, previousDigest,
-                    currentDigest);
+                    inventoryDigest);
         }
 
     }

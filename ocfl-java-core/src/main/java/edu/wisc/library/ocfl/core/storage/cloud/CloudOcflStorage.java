@@ -35,6 +35,7 @@ import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -47,6 +48,7 @@ import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
 import edu.wisc.library.ocfl.core.storage.AbstractOcflStorage;
+import edu.wisc.library.ocfl.core.storage.ObjectProperties;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
@@ -66,13 +68,17 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import static edu.wisc.library.ocfl.api.OcflConstants.INVENTORY_SIDECAR_PREFIX;
 
 /**
  * {@link OcflStorage} implementation for integrating with cloud storage providers. {@link CloudClient} implementation
@@ -93,6 +99,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private OcflStorageLayoutExtension storageLayoutExtension;
     private final CloudOcflFileRetriever.Builder fileRetrieverBuilder;
     private final Validator validator;
+    private final boolean verifyInventoryDigest;
 
     /**
      * Create a new builder.
@@ -111,13 +118,16 @@ public class CloudOcflStorage extends AbstractOcflStorage {
      * @see CloudOcflStorageBuilder
      *
      * @param cloudClient the client to use to interface with cloud storage such as S3
+     * @param verifyInventoryDigest true if inventory digests should be verified on read
      * @param initializer initializes a new OCFL repo
      */
     public CloudOcflStorage(CloudClient cloudClient,
+                            boolean verifyInventoryDigest,
                             CloudOcflStorageInitializer initializer) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
 
+        this.verifyInventoryDigest = verifyInventoryDigest;
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(this.cloudClient);
         this.validator = new Validator(new CloudStorage(cloudClient));
@@ -134,20 +144,27 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
         Inventory inventory = null;
 
-        if (containsObject(objectId)) {
-            var objectRootPath = objectRootPath(objectId);
+        var objectRootPath = objectRootPath(objectId);
+        var objectProps = examineObject(objectRootPath);
 
-            // currently just validates that no unsupported extensions are used
-            loadObjectExtensions(objectRootPath);
-
-            if (hasMutableHead(objectRootPath)) {
-                inventory = downloadAndVerifyMutableInventory(objectId, objectRootPath);
-                ensureRootObjectHasNotChanged(inventory);
-            } else {
-                inventory = downloadAndVerifyInventory(objectId, objectRootPath);
+        if (objectProps.getOcflVersion() != null) {
+            if (objectProps.getDigestAlgorithm() == null) {
+                throw new CorruptObjectException(String.format("Object %s is missing its root sidecar file", objectId));
             }
 
-            if (inventory != null && !Objects.equals(objectId, inventory.getId())) {
+            var hasMutableHead = false;
+            if (objectProps.hasExtensions()) {
+                hasMutableHead = loadObjectExtensions(objectRootPath).contains(OcflConstants.MUTABLE_HEAD_EXT_NAME);
+            }
+
+            if (hasMutableHead) {
+                inventory = downloadAndVerifyMutableInventory(objectId, objectProps.getDigestAlgorithm(), objectRootPath);
+                ensureRootObjectHasNotChanged(inventory);
+            } else {
+                inventory = downloadAndVerifyInventory(objectId, objectProps.getDigestAlgorithm(), objectRootPath);
+            }
+
+            if (!Objects.equals(objectId, inventory.getId())) {
                 throw new CorruptObjectException(String.format("Expected object at %s to have id %s. Found: %s",
                         objectRootPath, objectId, inventory.getId()));
             }
@@ -180,7 +197,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
             try (var mutableStream = cloudClient.downloadStream(mutableHeadInventoryPath)) {
                 var bytes = mutableStream.readAllBytes();
-                var inv = inventoryMapper.readMutableHead("root", "bogus",
+                var inv = inventoryMapper.readMutableHeadNoDigest("root",
                         RevisionNum.R1, new ByteArrayInputStream(bytes));
 
                 if (versionNum.equals(inv.getHead())) {
@@ -394,15 +411,8 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     public boolean containsObject(String objectId) {
         ensureOpen();
 
-        var exists = false;
-
-        // TODO this ONLY WORKs for OCFL v1.0
-        try {
-            cloudClient.head(ObjectPaths.objectNamastePath(objectRootPath(objectId)));
-            exists = true;
-        } catch (KeyNotFoundException e) {
-            // Ignore; object does not exist
-        }
+        var objectProps = examineObject(objectRootPath(objectId));
+        var exists = objectProps.getOcflVersion() != null;
 
         LOG.debug("OCFL repository contains object <{}>: {}", objectId, exists);
 
@@ -731,18 +741,17 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private Inventory downloadAndVerifyInventory(String objectId, String objectRootPath) {
-        var expectedDigest = findAndGetDigestFromSidecar(objectRootPath);
+    private Inventory downloadAndVerifyInventory(String objectId, DigestAlgorithm digestAlgorithm, String objectRootPath) {
         var remotePath = ObjectPaths.inventoryPath(objectRootPath);
 
-        try (var stream = new FixityCheckInputStream(new BufferedInputStream(cloudClient.downloadStream(remotePath)),
-                expectedDigest.getKey(), expectedDigest.getValue())) {
-            var inventory = inventoryMapper.read(objectRootPath, expectedDigest.getValue(), stream);
+        try (var stream = cloudClient.downloadStream(remotePath)) {
+            var inventory = inventoryMapper.read(objectRootPath, digestAlgorithm, stream);
 
-            try {
-                stream.checkFixity();
-            } catch (FixityCheckException e) {
-                throw new CorruptObjectException(String.format("Invalid root inventory in object %s", objectId), e);
+            if (verifyInventoryDigest) {
+                var expectedDigest = getDigestFromSidecar(ObjectPaths.inventorySidecarPath(objectRootPath, inventory));
+                if (!expectedDigest.equalsIgnoreCase(inventory.getInventoryDigest())) {
+                    throw new CorruptObjectException(String.format("Invalid root inventory in object %s", objectId));
+                }
             }
 
             return inventory;
@@ -753,19 +762,18 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private Inventory downloadAndVerifyMutableInventory(String objectId, String objectRootPath) {
-        var expectedDigest = findAndGetDigestFromSidecar(ObjectPaths.mutableHeadVersionPath(objectRootPath));
+    private Inventory downloadAndVerifyMutableInventory(String objectId, DigestAlgorithm digestAlgorithm, String objectRootPath) {
         var remotePath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
 
-        try (var stream = new FixityCheckInputStream(new BufferedInputStream(cloudClient.downloadStream(remotePath)),
-                expectedDigest.getKey(), expectedDigest.getValue())) {
+        try (var stream = cloudClient.downloadStream(remotePath)) {
             var revisionNum = identifyLatestRevision(objectRootPath);
-            var inventory = inventoryMapper.readMutableHead(objectRootPath, expectedDigest.getValue(), revisionNum, stream);
+            var inventory = inventoryMapper.readMutableHead(objectRootPath, revisionNum, digestAlgorithm, stream);
 
-            try {
-                stream.checkFixity();
-            } catch (FixityCheckException e) {
-                throw new CorruptObjectException(String.format("Invalid mutable HEAD inventory in object %s", objectId), e);
+            if (verifyInventoryDigest) {
+                var expectedDigest = getDigestFromSidecar(ObjectPaths.mutableHeadInventorySidecarPath(objectRootPath, inventory));
+                if (!expectedDigest.equalsIgnoreCase(inventory.getInventoryDigest())) {
+                    throw new CorruptObjectException(String.format("Invalid mutable HEAD inventory in object %s", objectId));
+                }
             }
 
             return inventory;
@@ -779,8 +787,7 @@ public class CloudOcflStorage extends AbstractOcflStorage {
     private Inventory downloadInventory(String objectRootPath) {
         var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
         try (var stream = cloudClient.downloadStream(inventoryPath)) {
-            // Intentionally filling in a bad digest here because all we care about is the object's id
-            return inventoryMapper.read(objectRootPath, "digest", stream);
+            return inventoryMapper.readNoDigest(objectRootPath, stream);
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
@@ -890,26 +897,13 @@ public class CloudOcflStorage extends AbstractOcflStorage {
 
     private void ensureRootObjectHasNotChanged(Inventory inventory) {
         var savedDigest = getDigestFromSidecar(FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()),
-                "root-" + OcflConstants.INVENTORY_SIDECAR_PREFIX + inventory.getDigestAlgorithm().getOcflName()));
+                "root-" + INVENTORY_SIDECAR_PREFIX + inventory.getDigestAlgorithm().getOcflName()));
         var rootDigest = getDigestFromSidecar(ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory));
 
         if (!savedDigest.equalsIgnoreCase(rootDigest)) {
             throw new ObjectOutOfSyncException(
                     String.format("The mutable HEAD of object %s is out of sync with the root object state.", inventory.getId()));
         }
-    }
-
-    private Map.Entry<DigestAlgorithm, String> findAndGetDigestFromSidecar(String path) {
-        for (var listing : cloudClient.listDirectory(path).getObjects()) {
-            if (listing.getKeySuffix().startsWith(OcflConstants.INVENTORY_SIDECAR_PREFIX)) {
-                var sidecarPath = listing.getKey().getPath();
-                var algorithm = SidecarMapper.getDigestAlgorithmFromSidecar(sidecarPath);
-                var digest = getDigestFromSidecar(sidecarPath);
-                return Map.entry(algorithm, digest);
-            }
-        }
-
-        throw new CorruptObjectException("Missing inventory sidecar in " + path);
     }
 
     private String getDigestFromSidecar(String sidecarPath) {
@@ -953,12 +947,45 @@ public class CloudOcflStorage extends AbstractOcflStorage {
         });
     }
 
-    private void loadObjectExtensions(String objectRoot) {
+    private ObjectProperties examineObject(String objectRootPath) {
+        var properties = new ObjectProperties();
+        var results = cloudClient.listDirectory(objectRootPath);
+
+        for (var file : results.getObjects()) {
+            if (file.getKeySuffix().startsWith(OcflConstants.INVENTORY_SIDECAR_PREFIX)) {
+                properties.setDigestAlgorithm(SidecarMapper.getDigestAlgorithmFromSidecar(file.getKey().getPath()));
+            } else if (file.getKeySuffix().startsWith(OcflConstants.OBJECT_NAMASTE_PREFIX)) {
+                properties.setOcflVersion(OcflVersion.fromOcflObjectVersionFilename(file.getKeySuffix()));
+            }
+
+            if (properties.getOcflVersion() != null && properties.getDigestAlgorithm() != null) {
+                break;
+            }
+        }
+
+        for (var dir : results.getDirectories()) {
+            if (OcflConstants.EXTENSIONS_DIR.equals(dir.getName())) {
+                properties.setExtensions(true);
+                break;
+            }
+        }
+
+        return properties;
+    }
+
+    /**
+     * @return a set of supported extension names
+     */
+    private Set<String> loadObjectExtensions(String objectRoot) {
+        var extensions = new HashSet<String>();
         // Currently, this just ensures that the object does not use any extensions that ocfl-java does not support
         var listResults = cloudClient.listDirectory(ObjectPaths.extensionsPath(objectRoot));
         listResults.getDirectories().forEach(dir -> {
-            supportEvaluator.checkSupport(dir.getName());
+            if (supportEvaluator.checkSupport(dir.getName())) {
+                extensions.add(dir.getName());
+            }
         });
+        return extensions;
     }
 
 }
