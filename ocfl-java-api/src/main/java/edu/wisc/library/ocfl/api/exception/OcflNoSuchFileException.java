@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api.exception;
 
 import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 
 /**
  * This exception is a wrapper around NoSuchFileException and FileNotFoundException

@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorageBuilder;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
