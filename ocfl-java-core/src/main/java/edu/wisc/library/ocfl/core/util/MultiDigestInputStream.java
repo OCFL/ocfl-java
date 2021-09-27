@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.validation;
+package edu.wisc.library.ocfl.core.util;
 
 import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
@@ -38,7 +38,7 @@ import java.util.Map;
 /**
  * Input stream that is able to calculate multiple digests concurrently
  */
-class MultiDigestInputStream extends FilterInputStream {
+public class MultiDigestInputStream extends FilterInputStream {
 
     private final Map<DigestAlgorithm, DigestInputStream> streamMap;
 

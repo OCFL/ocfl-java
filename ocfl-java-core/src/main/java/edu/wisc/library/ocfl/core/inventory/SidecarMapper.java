@@ -28,12 +28,14 @@ import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.model.Inventory;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -52,24 +54,35 @@ public final class SidecarMapper {
         }
     }
 
-    public static String readDigest(Path sidecarPath) {
-        if (Files.notExists(sidecarPath)) {
+    public static String readDigestRequired(Path sidecarPath) {
+        try {
+            return readDigestOptional(sidecarPath);
+        } catch (OcflNoSuchFileException e) {
             throw new CorruptObjectException("Inventory sidecar does not exist at " + sidecarPath);
         }
+    }
 
+    public static String readDigestOptional(Path sidecarPath) {
         try {
             var parts = Files.readString(sidecarPath).split("\\s+");
             if (parts.length != 2) {
                 throw new CorruptObjectException("Invalid inventory sidecar file: " + sidecarPath);
             }
             return parts[0];
+        } catch (NoSuchFileException e) {
+            throw new OcflNoSuchFileException(e);
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
     }
 
     public static DigestAlgorithm getDigestAlgorithmFromSidecar(String inventorySidecarPath) {
-        var value = Paths.get(inventorySidecarPath).getFileName().toString().substring(OcflConstants.INVENTORY_FILE.length() + 1);
+        return getDigestAlgorithmFromSidecar(Paths.get(inventorySidecarPath));
+    }
+
+    public static DigestAlgorithm getDigestAlgorithmFromSidecar(Path inventorySidecarPath) {
+        var value = inventorySidecarPath.getFileName().toString()
+                .substring(OcflConstants.INVENTORY_SIDECAR_PREFIX.length());
         var algorithm = DigestAlgorithmRegistry.getAlgorithm(value);
 
         if (!OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(algorithm)) {

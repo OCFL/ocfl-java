@@ -37,9 +37,11 @@ public class CloudOcflStorageBuilder {
     private ObjectMapper objectMapper;
     private CloudClient cloudClient;
     private CloudOcflStorageInitializer initializer;
+    private boolean verifyInventoryDigest;
 
     public CloudOcflStorageBuilder() {
         objectMapper = ObjectMappers.prettyPrintMapper();
+        this.verifyInventoryDigest = true;
     }
 
     /**
@@ -76,6 +78,18 @@ public class CloudOcflStorageBuilder {
     }
 
     /**
+     * Configures whether inventory digests should be verified on read. This means computing the digest of the inventory
+     * file and comparing it with the digest in the inventory's sidecar. Default: true.
+     *
+     * @param verifyInventoryDigest true if inventory digests should be verified on read
+     * @return builder
+     */
+    public CloudOcflStorageBuilder verifyInventoryDigest(boolean verifyInventoryDigest) {
+        this.verifyInventoryDigest = verifyInventoryDigest;
+        return this;
+    }
+
+    /**
      * @return a new {@link CloudOcflStorage} object
      */
     public CloudOcflStorage build() {
@@ -84,7 +98,7 @@ public class CloudOcflStorageBuilder {
             init = new CloudOcflStorageInitializer(cloudClient, objectMapper);
         }
 
-        return new CloudOcflStorage(cloudClient, init);
+        return new CloudOcflStorage(cloudClient, verifyInventoryDigest, init);
     }
 
 }

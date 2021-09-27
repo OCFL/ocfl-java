@@ -29,6 +29,7 @@ import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
@@ -133,7 +135,7 @@ public class FileSystemOcflStorageInitializer {
 
         for (var file : repositoryRoot.toFile().listFiles()) {
             if (file.isFile() && file.getName().startsWith("0=")) {
-                existingOcflVersion = OcflVersion.fromOcflVersionString(file.getName().substring(2));
+                existingOcflVersion = OcflVersion.fromOcflVersionFilename(file.getName());
                 break;
             }
         }
@@ -296,19 +298,19 @@ public class FileSystemOcflStorageInitializer {
     private OcflLayout readOcflLayout(Path repositoryRoot) {
         var layoutPath = ocflLayoutPath(repositoryRoot);
 
-        if (Files.exists(layoutPath)) {
+        try {
             return read(layoutPath, OcflLayout.class);
+        } catch (OcflNoSuchFileException e) {
+            return null;
         }
-
-        return null;
     }
 
     private OcflExtensionConfig readLayoutConfig(Path repositoryRoot, OcflLayout ocflLayout, Class<? extends OcflExtensionConfig> clazz) {
         var configPath = layoutExtensionConfigPath(repositoryRoot, ocflLayout.getExtension());
 
-        if (Files.exists(configPath)) {
+        try {
             return read(configPath, clazz);
-        } else {
+        } catch (OcflNoSuchFileException e) {
             // No config found, create default config object
             return initClass(clazz);
         }
@@ -317,15 +319,15 @@ public class FileSystemOcflStorageInitializer {
     private void loadRepositoryExtensions(Path repositoryRoot, ExtensionSupportEvaluator supportEvaluator) {
         // Currently, this just ensures that the repository does not use any extensions that ocfl-java does not support
         var extensionsDir = repositoryRoot.resolve(OcflConstants.EXTENSIONS_DIR);
-        if (Files.exists(extensionsDir)) {
-            try (var list = Files.list(extensionsDir)) {
-                list.filter(Files::isDirectory).forEach(dir -> {
-                    var extensionName = dir.getFileName().toString();
-                    supportEvaluator.checkSupport(extensionName);
-                });
-            } catch (IOException e) {
-                throw new OcflIOException(e);
-            }
+        try (var list = Files.list(extensionsDir)) {
+            list.filter(Files::isDirectory).forEach(dir -> {
+                var extensionName = dir.getFileName().toString();
+                supportEvaluator.checkSupport(extensionName);
+            });
+        } catch (NoSuchFileException e) {
+            // ignore
+        } catch (IOException e) {
+            throw new OcflIOException(e);
         }
     }
 
@@ -341,7 +343,7 @@ public class FileSystemOcflStorageInitializer {
         try {
             return objectMapper.readValue(path.toFile(), clazz);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 

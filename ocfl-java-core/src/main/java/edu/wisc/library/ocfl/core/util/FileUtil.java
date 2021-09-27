@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import org.slf4j.Logger;
@@ -107,7 +108,7 @@ public final class FileUtil {
         } catch (FileAlreadyExistsException e) {
             throw e;
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
 
         try {
@@ -115,7 +116,7 @@ public final class FileUtil {
         } catch (FileAlreadyExistsException e) {
             throw e;
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
 
         try {
@@ -145,7 +146,7 @@ public final class FileUtil {
                 }
             });
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -172,7 +173,7 @@ public final class FileUtil {
                 }
             });
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -183,7 +184,7 @@ public final class FileUtil {
             }
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -194,7 +195,7 @@ public final class FileUtil {
             }
             Files.move(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -209,7 +210,7 @@ public final class FileUtil {
                     .filter(f -> !f.equals(root))
                     .forEach(UncheckedFiles::delete);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -225,7 +226,7 @@ public final class FileUtil {
                     .filter(FileUtil::isDirEmpty)
                     .forEach(UncheckedFiles::delete);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -248,21 +249,21 @@ public final class FileUtil {
      * @param path the path to delete
      */
     public static void safeDeleteDirectory(Path path) {
-        if (Files.exists(path)) {
-            try (var paths = Files.walk(path)) {
-                paths.sorted(Comparator.reverseOrder())
-                        .forEach(f -> {
-                            try {
-                                Files.delete(f);
-                            } catch (NoSuchFileException e) {
-                                // Ignore
-                            } catch (IOException e) {
-                                LOG.warn("Failed to delete file: {}", f, e);
-                            }
-                        });
-            } catch (IOException e) {
-                LOG.warn("Failed to delete directory: {}", path, e);
-            }
+        try (var paths = Files.walk(path)) {
+            paths.sorted(Comparator.reverseOrder())
+                    .forEach(f -> {
+                        try {
+                            Files.delete(f);
+                        } catch (NoSuchFileException e) {
+                            // Ignore
+                        } catch (IOException e) {
+                            LOG.warn("Failed to delete file: {}", f, e);
+                        }
+                    });
+        } catch (NoSuchFileException e) {
+            // ignore
+        } catch (IOException e) {
+            LOG.warn("Failed to delete directory: {}", path, e);
         }
     }
 
@@ -288,20 +289,22 @@ public final class FileUtil {
     public static void deleteDirectory(Path directory) {
         var hasErrors = new AtomicBoolean(false);
 
-        if (Files.exists(directory)) {
-            try (var paths = Files.walk(directory)) {
-                paths.sorted(Comparator.reverseOrder())
-                        .forEach(f -> {
-                            try {
-                                Files.delete(f);
-                            } catch (IOException e) {
-                                LOG.warn("Failed to delete file: {}", f, e);
-                                hasErrors.set(true);
-                            }
-                        });
-            } catch (IOException e) {
-                throw new OcflIOException(e);
-            }
+        try (var paths = Files.walk(directory)) {
+            paths.sorted(Comparator.reverseOrder())
+                    .forEach(f -> {
+                        try {
+                            Files.delete(f);
+                        } catch (NoSuchFileException e) {
+                            // ignore
+                        } catch (IOException e) {
+                            LOG.warn("Failed to delete file: {}", f, e);
+                            hasErrors.set(true);
+                        }
+                    });
+        } catch (NoSuchFileException e) {
+            // ignore
+        } catch (IOException e) {
+            throw new OcflIOException(e);
         }
 
         if (hasErrors.get()) {
@@ -313,7 +316,7 @@ public final class FileUtil {
         try (var stream = Files.newDirectoryStream(path)) {
             return !stream.iterator().hasNext();
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -325,7 +328,7 @@ public final class FileUtil {
                 paths.filter(Files::isRegularFile)
                         .forEach(files::add);
             } catch (IOException e) {
-                throw new OcflIOException(e);
+                throw OcflIOException.from(e);
             }
         } else {
             files.add(path);
@@ -342,10 +345,11 @@ public final class FileUtil {
     }
 
     public static boolean hasChildren(Path path) {
-        if (Files.exists(path) && Files.isDirectory(path)) {
+        try {
             return !FileUtil.isDirEmpty(path);
+        } catch (OcflNoSuchFileException e) {
+            return false;
         }
-        return false;
     }
 
     /**

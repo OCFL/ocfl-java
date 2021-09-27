@@ -45,7 +45,7 @@ public final class UncheckedFiles {
         try {
             return Files.createDirectories(path);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -53,7 +53,7 @@ public final class UncheckedFiles {
         try {
             return Files.createDirectory(path);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -61,7 +61,7 @@ public final class UncheckedFiles {
         try {
             Files.copy(src, dst, copyOptions);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -69,7 +69,7 @@ public final class UncheckedFiles {
         try {
             Files.copy(input, dst, copyOptions);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -77,7 +77,7 @@ public final class UncheckedFiles {
         try {
             Files.delete(path);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 
@@ -85,7 +85,7 @@ public final class UncheckedFiles {
         try {
             return Files.size(path);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 

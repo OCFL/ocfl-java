@@ -37,7 +37,6 @@ import edu.wisc.library.ocfl.core.db.OcflObjectDetails;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.util.DigestUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +84,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
             if (inventory != null) {
                 try {
                     var inventoryBytes = delegate.getInventoryBytes(inventory.getId(), inventory.getHead());
-                    objectDetailsDb.addObjectDetails(inventory, inventory.getCurrentDigest(), inventoryBytes);
+                    objectDetailsDb.addObjectDetails(inventory, inventory.getInventoryDigest(), inventoryBytes);
                 } catch (Exception e) {
                     LOG.warn("Failed to cache inventory for object <{}>", objectId, e);
                 }
@@ -290,7 +289,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     private void updateDetails(Inventory inventory, Path stagingDir, Runnable runnable) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
         var sidecarPath = ObjectPaths.inventorySidecarPath(stagingDir, inventory);
-        var digest = SidecarMapper.readDigest(sidecarPath);
+        var digest = SidecarMapper.readDigestRequired(sidecarPath);
         try {
             objectDetailsDb.updateObjectDetails(inventory, digest, inventoryPath, runnable);
         } catch (ObjectOutOfSyncException e) {
@@ -310,19 +309,21 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     }
 
     private Inventory parseInventory(OcflObjectDetails details) {
-        var actualDigest = DigestUtil.computeDigestHex(details.getDigestAlgorithm(), details.getInventoryBytes());
-
-        if (!details.getInventoryDigest().equalsIgnoreCase(actualDigest)) {
-            throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
-                    details.getDigestAlgorithm(), details.getInventoryDigest(), actualDigest));
-        }
+        Inventory inventory;
 
         if (details.getRevisionNum() == null) {
-            return inventoryMapper.read(details.getObjectRootPath(), details.getInventoryDigest(), new ByteArrayInputStream(details.getInventoryBytes()));
+            inventory = inventoryMapper.read(details.getObjectRootPath(), details.getDigestAlgorithm(), new ByteArrayInputStream(details.getInventoryBytes()));
         } else {
-            return inventoryMapper.readMutableHead(details.getObjectRootPath(), details.getInventoryDigest(),
-                    details.getRevisionNum(), new ByteArrayInputStream(details.getInventoryBytes()));
+            inventory = inventoryMapper.readMutableHead(details.getObjectRootPath(), details.getRevisionNum(),
+                    details.getDigestAlgorithm(), new ByteArrayInputStream(details.getInventoryBytes()));
         }
+
+        if (!details.getInventoryDigest().equalsIgnoreCase(inventory.getInventoryDigest())) {
+            throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
+                    details.getDigestAlgorithm(), details.getInventoryDigest(), inventory.getInventoryDigest()));
+        }
+
+        return inventory;
     }
 
 }

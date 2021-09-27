@@ -24,38 +24,23 @@
 
 package edu.wisc.library.ocfl.api.exception;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 
 /**
- * This exception is a wrapper around an IOException
+ * This exception is a wrapper around NoSuchFileException and FileNotFoundException
  */
-public class OcflIOException extends OcflJavaException {
+public class OcflNoSuchFileException extends OcflIOException {
 
     private IOException cause;
     private boolean hasMessage = false;
 
-    /**
-     * Wraps an IO exception in the appropriate wrapper class. For example, NoSuchFileException to OcflNoSuchFileException.
-     *
-     * @param e the base exception
-     * @return wrapped exception
-     */
-    public static OcflIOException from(IOException e) {
-        if (e instanceof NoSuchFileException || e instanceof FileNotFoundException) {
-            return new OcflNoSuchFileException(e);
-        }
-
-        return new OcflIOException(e);
-    }
-
-    public OcflIOException(IOException cause) {
+    public OcflNoSuchFileException(IOException cause) {
         super(cause);
         this.cause = cause;
     }
 
-    public OcflIOException(String message, IOException cause) {
+    public OcflNoSuchFileException(String message, IOException cause) {
         super(message, cause);
         this.cause = cause;
         this.hasMessage = true;

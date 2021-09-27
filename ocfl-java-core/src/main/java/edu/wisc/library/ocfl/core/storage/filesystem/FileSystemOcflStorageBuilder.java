@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorageBuilder;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
@@ -39,10 +40,11 @@ public class FileSystemOcflStorageBuilder {
     private Path repositoryRoot;
     private ObjectMapper objectMapper;
     private FileSystemOcflStorageInitializer initializer;
+    private boolean verifyInventoryDigest;
 
     public FileSystemOcflStorageBuilder() {
         objectMapper = ObjectMappers.prettyPrintMapper();
-
+        verifyInventoryDigest = true;
     }
 
     /**
@@ -79,6 +81,18 @@ public class FileSystemOcflStorageBuilder {
     }
 
     /**
+     * Configures whether inventory digests should be verified on read. This means computing the digest of the inventory
+     * file and comparing it with the digest in the inventory's sidecar. Default: true.
+     *
+     * @param verifyInventoryDigest true if inventory digests should be verified on read
+     * @return builder
+     */
+    public FileSystemOcflStorageBuilder verifyInventoryDigest(boolean verifyInventoryDigest) {
+        this.verifyInventoryDigest = verifyInventoryDigest;
+        return this;
+    }
+
+    /**
      * Builds a new FileSystemOcflStorage object
      *
      * @return file system storage
@@ -89,7 +103,7 @@ public class FileSystemOcflStorageBuilder {
             init = new FileSystemOcflStorageInitializer(objectMapper);
         }
 
-        return new FileSystemOcflStorage(repositoryRoot, init);
+        return new FileSystemOcflStorage(repositoryRoot, verifyInventoryDigest, init);
     }
 
 }

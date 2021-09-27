@@ -165,6 +165,8 @@ Use `FileSystemOcflStorage.builder()` to create and configure an
 
 * **repositoryRoot**: Required, path to the OCFL storage root
   directory.
+* **verifyInventoryDigest**: Whether to verify inventory digests on
+  read. Default: `true`.
 
 **Example**
 
@@ -227,6 +229,8 @@ Use `CloudOcflStorage.builder()` to create and configure an
 
 * **cloudClient**: Required, sets the `CloudClient` implementation to
   use. For Amazon S3, use `OcflS3Client.builder()`.
+* **verifyInventoryDigest**: Whether to verify inventory digests on
+  read. Default: `true`.
 
 **Example**
 
