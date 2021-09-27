@@ -1,8 +1,6 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import edu.wisc.library.ocfl.api.OcflConstants;
-import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
-import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
@@ -32,7 +30,6 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

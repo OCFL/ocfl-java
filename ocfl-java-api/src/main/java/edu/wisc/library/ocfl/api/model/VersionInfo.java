@@ -24,8 +24,6 @@
 
 package edu.wisc.library.ocfl.api.model;
 
-import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
