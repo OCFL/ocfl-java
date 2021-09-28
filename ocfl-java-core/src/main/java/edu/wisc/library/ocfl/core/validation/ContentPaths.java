@@ -44,7 +44,7 @@ class ContentPaths {
     private final Map<VersionNum, Set<String>> contentPaths;
 
     public ContentPaths(Collection<String> contentPaths) {
-        Enforce.notNull(contentPaths, "contentPaths cannto be null");
+        Enforce.notNull(contentPaths, "contentPaths cannot be null");
         this.contentPaths = new HashMap<>();
 
         contentPaths.forEach(path -> {

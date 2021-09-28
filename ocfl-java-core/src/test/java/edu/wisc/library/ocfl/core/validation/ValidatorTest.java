@@ -748,9 +748,9 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 3);
-        assertHasError(results, ValidationCode.E066, "In E066_inconsistent_version_state/v1/inventory.json version v1's state contains a path that does not exist in the root inventory: 1.txt");
-        assertHasError(results, ValidationCode.E066, "In E066_inconsistent_version_state/v1/inventory.json version v1's state contains a path that does not exist in the root inventory: 2.txt");
-        assertHasError(results, ValidationCode.E066, "In E066_inconsistent_version_state/v1/inventory.json version v1's state contains a path that does not exist in the root inventory: 3.txt");
+        assertHasError(results, ValidationCode.E066, "In E066_inconsistent_version_state/v1/inventory.json version v1's state contains a path that does not exist in later inventories: 1.txt");
+        assertHasError(results, ValidationCode.E066, "In E066_inconsistent_version_state/v1/inventory.json version v1's state contains a path that does not exist in later inventories: 2.txt");
+        assertHasError(results, ValidationCode.E066, "In E066_inconsistent_version_state/v1/inventory.json version v1's state contains a path that does not exist in later inventories: 3.txt");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -809,6 +809,19 @@ public class ValidatorTest {
     }
 
     @Test
+    public void errorOnMissingFileNoInv() {
+        var name = "E092_missing_file_no_inv";
+        var validator = createValidator(CUSTOM_BAD_FIXTURES);
+
+        var results = validator.validateObject(name, true);
+
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E092, "Inventory manifest in E092_missing_file_no_inv/inventory.json contains a content path that does not exist: v1/content/file-2.txt");
+        assertWarningsCount(results, 2);
+        assertInfoCount(results, 0);
+    }
+
+    @Test
     public void errorOnDigestChangeStateMismatch() {
         var name = "E066_algorithm_change_state_mismatch";
         var validator = createValidator(CUSTOM_BAD_FIXTURES);
@@ -816,10 +829,10 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 4);
-        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state contains a path that is inconsistent with the root inventory: file-2.txt");
-        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state contains a path that is inconsistent with the root inventory: file-3.txt");
-        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state is missing a path that exist in the root inventory: changed");
-        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state contains a path that does not exist in the root inventory: file-1.txt");
+        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state contains a path that is inconsistent with later inventories: file-2.txt");
+        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state contains a path that is inconsistent with later inventories: file-3.txt");
+        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state is missing a path that exist in later inventories: changed");
+        assertHasError(results, ValidationCode.E066, "In E066_algorithm_change_state_mismatch/v1/inventory.json version v1's state contains a path that does not exist in later inventories: file-1.txt");
         assertWarningsCount(results, 1);
         assertInfoCount(results, 0);
     }
@@ -847,7 +860,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 2);
-        assertHasError(results, ValidationCode.E066, "In E066_E092_old_manifest_digest_incorrect/v1/inventory.json version v1's state contains a path that is inconsistent with the root inventory: file-1.txt");
+        assertHasError(results, ValidationCode.E066, "In E066_E092_old_manifest_digest_incorrect/v1/inventory.json version v1's state contains a path that is inconsistent with later inventories: file-1.txt");
         assertHasError(results, ValidationCode.E092, "Inventory manifest entry in E066_E092_old_manifest_digest_incorrect/v1/inventory.json for content path v1/content/file-1.txt differs from later versions. Expected: 07e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1; Found: 17e41ccb166d21a5327d5a2ae1bb48192b8470e1357266c9d119c294cb1e95978569472c9de64fb6d93cbd4dd0aed0bf1e7c47fd1920de17b038a08a85eb4fa1");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
