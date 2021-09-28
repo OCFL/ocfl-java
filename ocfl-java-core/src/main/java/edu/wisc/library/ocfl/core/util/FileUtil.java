@@ -238,7 +238,7 @@ public final class FileUtil {
      */
     public static void deleteDirAndParentsIfEmpty(Path path) {
         if (FileUtil.isDirEmpty(path)) {
-            UncheckedFiles.delete(path);
+            UncheckedFiles.deleteIfExists(path);
             FileUtil.deleteDirAndParentsIfEmpty(path.getParent());
         }
     }

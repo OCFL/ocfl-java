@@ -81,6 +81,14 @@ public final class UncheckedFiles {
         }
     }
 
+    public static void deleteIfExists(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            throw OcflIOException.from(e);
+        }
+    }
+
     public static long size(Path path) {
         try {
             return Files.size(path);

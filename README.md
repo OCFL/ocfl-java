@@ -103,7 +103,7 @@ zero-padding width, and content directory. The defaults are `1.0`,
 * **verifyStaging**: Determines whether the contents of staged
   versions should be verified immediately prior to installing them.
   This is enabled by default, but can be safely disabled if you are
-  concerned with performance on slow filesystems.
+  concerned about performance on particularly slow filesystems.
 * **prettyPrintJson**: Enables pretty print JSON in newly written
  inventory files. By default, pretty printing is disabled to reduce
  inventory file size.
