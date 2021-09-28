@@ -43,7 +43,6 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExt
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
-import edu.wisc.library.ocfl.core.validation.model.SimpleVersion;
 import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
 import edu.wisc.library.ocfl.core.validation.storage.Storage;
 import org.slf4j.Logger;
@@ -63,7 +62,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS;
@@ -210,16 +208,20 @@ public class Validator {
             var contentFiles = findAllContentFiles(objectRootPath, rootInventory, results);
             var manifests = new Manifests(rootInventory);
 
+            validateContentFiles(inventoryPath, rootInventory, contentFiles, manifests, results);
+
+            // maps digest algorithms to the most recent inventory that uses that algorithm
+            var inventoryMap = new HashMap<String, SimpleInventory>();
+            inventoryMap.put(rootInventory.getDigestAlgorithm(), rootInventory);
+
             // This MUST be done in reverse order
             seenVersions.values().forEach(versionStr -> {
                 if (Objects.equals(rootInventory.getHead(), versionStr)) {
                     validateHeadVersion(objectRootPath, rootInventory, rootDigest, results);
                 } else {
-                    validateVersion(objectRootPath, versionStr, rootInventory, contentFiles, manifests, results);
+                    validateVersion(objectRootPath, versionStr, rootInventory, contentFiles, manifests, inventoryMap, results);
                 }
             });
-
-            validateContentFiles(inventoryPath, rootInventory, contentFiles, manifests, results);
 
             if (contentFixityCheck) {
                 // TODO digests from the non-root fixity blocks are not validated
@@ -235,6 +237,7 @@ public class Validator {
                                  SimpleInventory rootInventory,
                                  ContentPaths contentFiles,
                                  Manifests manifests,
+                                 Map<String, SimpleInventory> inventoryMap,
                                  ValidationResultsBuilder results) {
         var versionPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr);
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
@@ -247,7 +250,8 @@ public class Validator {
             ignoreFiles.add(OcflConstants.INVENTORY_FILE);
 
             var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
-            parseResult.inventory.ifPresent(inventory -> {
+            if (parseResult.inventory.isPresent()) {
+                var inventory = parseResult.inventory.get();
                 var validationResults = inventoryValidator.validateInventory(inventory, inventoryPath);
                 results.addAll(validationResults);
 
@@ -271,12 +275,13 @@ public class Validator {
                     if (!Objects.equals(rootInventory.getDigestAlgorithm(), inventory.getDigestAlgorithm())
                             && !manifests.containsAlgorithm(inventory.getDigestAlgorithm())) {
                         manifests.addManifest(inventory);
+                        inventoryMap.put(inventory.getDigestAlgorithm(), inventory);
                     }
 
-                    validateVersionIsConsistent(versionStr, rootInventory, inventory, inventoryPath, results);
+                    validateVersionIsConsistent(versionStr, rootInventory, inventory, inventoryPath, inventoryMap, results);
                     validateContentFiles(inventoryPath, inventory, contentFiles, manifests, results);
                 }
-            });
+            }
         } else {
             results.addIssue(ValidationCode.W010, "Every version should contain an inventory. Missing: %s", inventoryPath);
         }
@@ -325,54 +330,34 @@ public class Validator {
                                              SimpleInventory rootInventory,
                                              SimpleInventory inventory,
                                              String inventoryPath,
+                                             Map<String, SimpleInventory> inventoryMap,
                                              ValidationResultsBuilder results) {
         var currentVersionNum = VersionNum.fromString(versionStr);
-        var rootManifest = rootInventory.getManifest();
-        var childManifest = inventory.getManifest();
-
-        BiFunction<String, String, Boolean> stateComparator = (child, root) -> root.equalsIgnoreCase(child);
-
-        if (!Objects.equals(rootInventory.getDigestAlgorithm(), inventory.getDigestAlgorithm())) {
-            var translationMap = new HashMap<String, String>(inventory.getManifest().size());
-            stateComparator = (child, root) -> {
-                var mapped = translationMap.get(child);
-
-                if (mapped != null) {
-                    return root.equalsIgnoreCase(mapped);
-                }
-
-                var childPaths = childManifest.get(child);
-                var rootPaths = rootManifest.get(root);
-
-                for (var path : childPaths) {
-                    if (rootPaths.contains(path)) {
-                        translationMap.put(child, root);
-                        return true;
-                    }
-                }
-
-                return false;
-            };
+        var comparingInventory = inventoryMap.get(inventory.getDigestAlgorithm());
+        var compareDigests = true;
+        if (comparingInventory.getHead().equals(inventory.getHead())) {
+            compareDigests = false;
+            comparingInventory = rootInventory;
         }
 
         while (true) {
             var currentVersionStr = currentVersionNum.toString();
             var rootVersion = rootInventory.getVersions().get(currentVersionStr);
-            var childVersion = inventory.getVersions().get(currentVersionStr);
+            var otherVersion = inventory.getVersions().get(currentVersionStr);
 
-            if (childVersion == null) {
+            if (otherVersion == null) {
                 results.addIssue(ValidationCode.E066,
                         "Inventory is missing version %s in %s", currentVersionStr, inventoryPath);
             } else {
-                validateVersionState(rootVersion, childVersion, currentVersionStr, inventoryPath, stateComparator, results);
+                validateVersionState(comparingInventory, inventory, currentVersionNum, inventoryPath, compareDigests, results);
 
-                results.addIssue(areEqual(rootVersion.getCreated(), childVersion.getCreated(), ValidationCode.W011,
+                results.addIssue(areEqual(rootVersion.getCreated(), otherVersion.getCreated(), ValidationCode.W011,
                                 "The version created timestamp of version %s in %s is inconsistent with the root inventory",
                                 currentVersionStr, inventoryPath))
-                        .addIssue(areEqual(rootVersion.getMessage(), childVersion.getMessage(), ValidationCode.W011,
+                        .addIssue(areEqual(rootVersion.getMessage(), otherVersion.getMessage(), ValidationCode.W011,
                                 "The version message of version %s in %s is inconsistent with the root inventory",
                                 currentVersionStr, inventoryPath))
-                        .addIssue(areEqual(rootVersion.getUser(), childVersion.getUser(), ValidationCode.W011,
+                        .addIssue(areEqual(rootVersion.getUser(), otherVersion.getUser(), ValidationCode.W011,
                                 "The version user of version %s in %s is inconsistent with the root inventory",
                                 currentVersionStr, inventoryPath));
             }
@@ -385,33 +370,64 @@ public class Validator {
         }
     }
 
-    private void validateVersionState(SimpleVersion rootVersion,
-                                      SimpleVersion childVersion,
-                                      String currentVersionStr,
+    private void validateVersionState(SimpleInventory comparingInventory,
+                                      SimpleInventory inventory,
+                                      VersionNum currentVersion,
                                       String inventoryPath,
-                                      BiFunction<String, String, Boolean> stateComparator,
+                                      boolean compareDigests,
                                       ValidationResultsBuilder results) {
-        var invertedRootState = new HashMap<>(rootVersion.getInvertedState());
+        var comparingVersion = comparingInventory.getVersions().get(currentVersion.toString());
+        var version = inventory.getVersions().get(currentVersion.toString());
+        var invertedComparingState = new HashMap<>(comparingVersion.getInvertedState());
 
-        childVersion.getState().forEach((childDigest, childPaths) -> {
-            childPaths.forEach(childPath -> {
-                var rootDigest = invertedRootState.remove(childPath);
-                if (rootDigest == null) {
+        version.getState().forEach((digest, paths) -> {
+            paths.forEach(path -> {
+                var comparingDigest = invertedComparingState.remove(path);
+                if (comparingDigest == null) {
                     results.addIssue(ValidationCode.E066,
-                            "In %s version %s's state contains a path that does not exist in the root inventory: %s",
-                            inventoryPath, currentVersionStr, childPath);
-                } else if (!stateComparator.apply(childDigest, rootDigest)){
-                    results.addIssue(ValidationCode.E066,
-                            "In %s version %s's state contains a path that is inconsistent with the root inventory: %s",
-                            inventoryPath, currentVersionStr, childPath);
+                            "In %s version %s's state contains a path that does not exist in later inventories: %s",
+                            inventoryPath, currentVersion.toString(), path);
+                } else {
+                    if (compareDigests) {
+                        if (!digest.equalsIgnoreCase(comparingDigest)) {
+                            results.addIssue(ValidationCode.E066,
+                                    "In %s version %s's state contains a path that is inconsistent with later inventories: %s",
+                                    inventoryPath, currentVersion.toString(), path);
+                        }
+                    } else {
+                        var comparingContentPaths = comparingInventory.getManifest().get(comparingDigest);
+                        var contentPaths = inventory.getManifest().get(digest);
+
+                        if (comparingContentPaths.size() == 1) {
+                            if (!comparingContentPaths.equals(contentPaths)) {
+                                results.addIssue(ValidationCode.E066,
+                                        "In %s version %s's state contains a path that is inconsistent with later inventories: %s",
+                                        inventoryPath, currentVersion.toString(), path);
+                            }
+                        } else {
+                            var filteredPaths = new HashSet<String>();
+                            for (var contentPath : comparingContentPaths) {
+                                var num = VersionNum.fromString(contentPath.substring(0, contentPath.indexOf('/')));
+                                if (num.compareTo(currentVersion) <= 0) {
+                                    filteredPaths.add(contentPath);
+                                }
+                            }
+
+                            if (!filteredPaths.equals(new HashSet<>(contentPaths))) {
+                                results.addIssue(ValidationCode.E066,
+                                        "In %s version %s's state contains a path that is inconsistent with later inventories: %s",
+                                        inventoryPath, currentVersion.toString(), path);
+                            }
+                        }
+                    }
                 }
             });
         });
 
-        invertedRootState.keySet().forEach(path -> {
+        invertedComparingState.keySet().forEach(path -> {
             results.addIssue(ValidationCode.E066,
-                    "In %s version %s's state is missing a path that exist in the root inventory: %s",
-                    inventoryPath, currentVersionStr, path);
+                    "In %s version %s's state is missing a path that exist in later inventories: %s",
+                    inventoryPath, currentVersion.toString(), path);
         });
     }
 
@@ -481,7 +497,10 @@ public class Validator {
         return new ContentPaths(files);
     }
 
-    private void fixityCheck(String objectRootPath, SimpleInventory inventory, Manifests manifests, ValidationResultsBuilder results) {
+    private void fixityCheck(String objectRootPath,
+                             SimpleInventory inventory,
+                             Manifests manifests,
+                             ValidationResultsBuilder results) {
         var invertedFixityMap = invertFixity(inventory);
         var contentAlgorithm = DigestAlgorithmRegistry.getAlgorithm(inventory.getDigestAlgorithm());
         var contentAlgorithms = new HashSet<DigestAlgorithm>();
