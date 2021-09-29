@@ -57,6 +57,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -2367,6 +2368,41 @@ public abstract class OcflITest {
 
         assertEquals(0, results.getErrors().size(), () -> results.getErrors().toString());
         assertEquals(0, results.getWarnings().size(), () -> results.getWarnings().toString());
+    }
+
+    @Test
+    public void writingDupFileShouldNotLeaveEmptyDirs() {
+        var repoName = "no-empty-dirs";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "obj1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.writeFile(streamString("file1"), "file1");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.writeFile(streamString("file1"), "a/file1");
+            updater.writeFile(streamString("file2"), "file2");
+        });
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.addPath(writeFile("file1"), "b/c/file1");
+            updater.writeFile(streamString("file3"), "file3");
+        });
+
+        var results = repo.validateObject(objectId, false);
+
+        assertEquals(0, results.getErrors().size(), () -> results.getErrors().toString());
+    }
+
+    private Path writeFile(String content) {
+        try {
+            return Files.writeString(Files.createDirectories(tempRoot.resolve("files"))
+                    .resolve(UUID.randomUUID().toString()), content);
+        } catch (IOException e) {
+            throw new OcflIOException(e);
+        }
     }
 
     private void assertStream(String expected, OcflObjectVersionFile actual) throws IOException {

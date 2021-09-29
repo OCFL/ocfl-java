@@ -152,6 +152,7 @@ public class AddFileProcessor {
                         } else {
                             LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", stagingFullPath, digest);
                             Files.delete(stagingFullPath);
+                            FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
                         }
                     } catch (IOException e) {
                         throw new OcflIOException(e);

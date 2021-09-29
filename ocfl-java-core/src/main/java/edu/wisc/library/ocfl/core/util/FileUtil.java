@@ -244,6 +244,23 @@ public final class FileUtil {
     }
 
     /**
+     * Deletes the specified path and all of its ancestors until the stop directory is reached
+     *
+     * @param path directory to delete
+     * @param stop directory to stop at
+     */
+    public static void deleteDirAndParentsIfEmpty(Path path, Path stop) {
+        if (path.equals(stop)) {
+            return;
+        }
+
+        if (FileUtil.isDirEmpty(path)) {
+            UncheckedFiles.deleteIfExists(path);
+            deleteDirAndParentsIfEmpty(path.getParent(), stop);
+        }
+    }
+
+    /**
      * Deletes the path and all of its children. Any exception that is thrown is logged as a warning.
      *
      * @param path the path to delete
