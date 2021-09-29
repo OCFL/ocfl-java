@@ -137,6 +137,9 @@ public class AddFileProcessor {
                         UncheckedFiles.createDirectories(stagingFullPath.getParent());
                     }
 
+                    String digest;
+                    InventoryUpdater.AddFileResult result;
+
                     try (var stream = new DigestOutputStream(new BufferedOutputStream(
                             Files.newOutputStream(stagingFullPath,
                                     StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)),
@@ -144,18 +147,18 @@ public class AddFileProcessor {
                         LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
                         Files.copy(file, stream);
 
-                        var digest = Bytes.wrap(stream.getMessageDigest().digest()).encodeHex();
-                        var result = inventoryUpdater.addFile(digest, logicalPath, options);
-
-                        if (result.isNew()) {
-                            results.put(logicalPath, stagingFullPath);
-                        } else {
-                            LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", stagingFullPath, digest);
-                            Files.delete(stagingFullPath);
-                            FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
-                        }
+                        digest = Bytes.wrap(stream.getMessageDigest().digest()).encodeHex();
+                        result = inventoryUpdater.addFile(digest, logicalPath, options);
                     } catch (IOException e) {
                         throw new OcflIOException(e);
+                    }
+
+                    if (result.isNew()) {
+                        results.put(logicalPath, stagingFullPath);
+                    } else {
+                        LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", stagingFullPath, digest);
+                        UncheckedFiles.delete(stagingFullPath);
+                        FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
                     }
                 }
             });
