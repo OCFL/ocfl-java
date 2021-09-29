@@ -44,6 +44,7 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
 import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
+import edu.wisc.library.ocfl.core.validation.storage.Listing;
 import edu.wisc.library.ocfl.core.validation.storage.Storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,16 +138,16 @@ public class Validator {
 
         // TODO figure out how to handle links
 
-        // TODO this is only true for OCFL 1.0
-        var namasteFile = ObjectPaths.objectNamastePath(objectRootPath);
-        validateNamaste(namasteFile, results);
+        var files = storage.listDirectory(objectRootPath, false);
+
+        validateNamaste(objectRootPath, files, results);
 
         var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
 
-        if (storage.fileExists(inventoryPath)) {
+        if (files.contains(Listing.file(OcflConstants.INVENTORY_FILE))) {
             var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
             parseResult.inventory.ifPresent(inventory ->
-                    validateObjectWithInventory(objectRootPath, inventoryPath, inventory,
+                    validateObjectWithInventory(objectRootPath, files, inventoryPath, inventory,
                             parseResult.digests, parseResult.isValid, contentFixityCheck, results));
         } else {
             results.addIssue(ValidationCode.E063,
@@ -181,6 +182,7 @@ public class Validator {
     }
 
     private void validateObjectWithInventory(String objectRootPath,
+                                             List<Listing> rootFiles,
                                              String inventoryPath,
                                              SimpleInventory rootInventory,
                                              Map<DigestAlgorithm, String> inventoryDigests,
@@ -195,7 +197,7 @@ public class Validator {
         validateSidecar(inventoryPath, rootInventory, inventoryDigests, results)
                 .ifPresent(ignoreFiles::add);
 
-        var seenVersions = validateObjectRootContents(objectRootPath, ignoreFiles, rootInventory, results);
+        var seenVersions = validateObjectRootContents(objectRootPath, rootFiles, ignoreFiles, rootInventory, results);
 
         if (inventoryIsValid && !validationResults.hasErrors()) {
             rootInventory.getVersions().keySet().stream()
@@ -243,10 +245,12 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
+        var files = storage.listDirectory(versionPath, false);
+
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
 
-        if (storage.fileExists(inventoryPath)) {
+        if (files.contains(Listing.file(OcflConstants.INVENTORY_FILE))) {
             ignoreFiles.add(OcflConstants.INVENTORY_FILE);
 
             var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
@@ -286,7 +290,7 @@ public class Validator {
             results.addIssue(ValidationCode.W010, "Every version should contain an inventory. Missing: %s", inventoryPath);
         }
 
-        validateVersionDirContents(objectRootPath, versionStr, versionPath, contentDir, ignoreFiles, results);
+        validateVersionDirContents(objectRootPath, versionStr, contentDir, files, ignoreFiles, results);
     }
 
     private void validateHeadVersion(String objectRootPath,
@@ -298,10 +302,12 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
+        var files = storage.listDirectory(versionPath, false);
+
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
 
-        if (storage.fileExists(inventoryPath)) {
+        if (files.contains(Listing.file(OcflConstants.INVENTORY_FILE))) {
             ignoreFiles.add(OcflConstants.INVENTORY_FILE);
             ignoreFiles.add(OcflConstants.INVENTORY_SIDECAR_PREFIX + rootInventory.getDigestAlgorithm());
 
@@ -323,7 +329,7 @@ public class Validator {
             results.addIssue(ValidationCode.W010, "Every version should contain an inventory. Missing: %s", inventoryPath);
         }
 
-        validateVersionDirContents(objectRootPath, versionStr, versionPath, contentDir, ignoreFiles, results);
+        validateVersionDirContents(objectRootPath, versionStr, contentDir, files, ignoreFiles, results);
     }
 
     private void validateVersionIsConsistent(String versionStr,
@@ -563,13 +569,12 @@ public class Validator {
 
     private void validateVersionDirContents(String objectRootPath,
                                             String versionStr,
-                                            String versionPath,
-                                            String contentDirPath,
+                                            String contentDir,
+                                            List<Listing> files,
                                             Set<String> ignoreFiles,
                                             ValidationResultsBuilder results) {
-        var files = storage.listDirectory(versionPath, false);
-
-        if (storage.fileExists(contentDirPath) && storage.listDirectory(contentDirPath, false).isEmpty()) {
+        var contentDirPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr, contentDir);
+        if (files.contains(Listing.directory(contentDir)) && storage.listDirectory(contentDirPath, false).isEmpty()) {
             results.addIssue(ValidationCode.W003,
                     "Version content directory exists at %s, but is empty.", contentDirPath);
         }
@@ -593,17 +598,23 @@ public class Validator {
         }
     }
 
-    private void validateNamaste(String namasteFile, ValidationResultsBuilder results) {
-        try (var stream = storage.readFile(namasteFile)) {
-            var contents = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
-            // TODO there are technically multiple different codes that could be used here
-            if (!OBJECT_NAMASTE_CONTENTS.equals(contents)) {
-                results.addIssue(ValidationCode.E007,
-                        "OCFL object version declaration must be '%s' in %s",
-                        OcflConstants.OBJECT_NAMASTE_1_0, namasteFile);
+    private void validateNamaste(String objectRootPath, List<Listing> files, ValidationResultsBuilder results) {
+        // TODO this is only true for OCFL 1.0
+        var namasteFile = ObjectPaths.objectNamastePath(objectRootPath);
+
+        if (files.contains(Listing.file(OcflConstants.OBJECT_NAMASTE_1_0))) {
+            try (var stream = storage.readFile(namasteFile)) {
+                var contents = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+                // TODO there are technically multiple different codes that could be used here
+                if (!OBJECT_NAMASTE_CONTENTS.equals(contents)) {
+                    results.addIssue(ValidationCode.E007,
+                            "OCFL object version declaration must be '%s' in %s",
+                            OcflConstants.OBJECT_NAMASTE_1_0, namasteFile);
+                }
+            } catch (IOException e) {
+                throw new OcflIOException(e);
             }
-        } catch (Exception e) {
-            LOG.info("Expected file to exist: {}", namasteFile, e);
+        } else {
             results.addIssue(ValidationCode.E003, "OCFL object version declaration must exist at %s", namasteFile);
         }
     }
@@ -634,10 +645,10 @@ public class Validator {
     }
 
     private Map<VersionNum, String> validateObjectRootContents(String objectRootPath,
-                                                   Set<String> ignoreFiles,
-                                                   SimpleInventory inventory,
-                                                   ValidationResultsBuilder results) {
-        var files = storage.listDirectory(objectRootPath, false);
+                                                               List<Listing> files,
+                                                               Set<String> ignoreFiles,
+                                                               SimpleInventory inventory,
+                                                               ValidationResultsBuilder results) {
         // It is essential that the order is reversed here so that we later validate versions in reverse order
         var seenVersions = new TreeMap<VersionNum, String>(Comparator.<VersionNum>naturalOrder().reversed());
 

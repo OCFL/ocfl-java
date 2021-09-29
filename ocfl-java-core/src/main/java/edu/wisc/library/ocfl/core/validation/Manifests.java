@@ -75,7 +75,7 @@ class Manifests {
 
     /**
      * @param contentPath the content path
-     * @return map of digest algorithms to digests that map to the apth
+     * @return map of digest algorithms to digests that map to the path
      */
     public Map<String, String> getDigests(String contentPath) {
         return manifests.entrySet().stream()
