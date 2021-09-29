@@ -26,6 +26,8 @@ package edu.wisc.library.ocfl.core.validation.storage;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 
+import java.util.Objects;
+
 /**
  * The result of a storage list operation
  */
@@ -82,4 +84,16 @@ public class Listing {
                 '}';
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Listing listing = (Listing) o;
+        return type == listing.type && relativePath.equals(listing.relativePath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, relativePath);
+    }
 }
