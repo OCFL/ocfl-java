@@ -140,6 +140,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
                 ((FixityCheckInputStream) input).checkFixity();
             } catch (FixityCheckException e) {
                 FileUtil.safeDelete(stagingFullPath);
+                FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
                 throw e;
             }
         }
@@ -157,6 +158,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         if (!result.isNew()) {
             LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", stagingFullPath, digest);
             UncheckedFiles.delete(stagingFullPath);
+            FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
         } else {
             stagedFileMap.put(destinationPath, stagingFullPath);
         }
