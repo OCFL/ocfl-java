@@ -32,8 +32,10 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
@@ -223,8 +225,7 @@ public final class FileUtil {
         try (var files = Files.walk(root)) {
             files.filter(f -> Files.isDirectory(f, LinkOption.NOFOLLOW_LINKS))
                     .filter(f -> !f.equals(root))
-                    .filter(FileUtil::isDirEmpty)
-                    .forEach(UncheckedFiles::delete);
+                    .forEach(FileUtil::deleteDirIfEmpty);
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }
@@ -237,9 +238,8 @@ public final class FileUtil {
      * @param path the path do delete
      */
     public static void deleteDirAndParentsIfEmpty(Path path) {
-        if (FileUtil.isDirEmpty(path)) {
-            UncheckedFiles.deleteIfExists(path);
-            FileUtil.deleteDirAndParentsIfEmpty(path.getParent());
+        if (deleteDirIfEmpty(path)) {
+            deleteDirAndParentsIfEmpty(path.getParent());
         }
     }
 
@@ -254,9 +254,28 @@ public final class FileUtil {
             return;
         }
 
-        if (FileUtil.isDirEmpty(path)) {
-            UncheckedFiles.deleteIfExists(path);
+        if (deleteDirIfEmpty(path)) {
             deleteDirAndParentsIfEmpty(path.getParent(), stop);
+        }
+    }
+
+    /**
+     * Attempts to delete the specified directory and ignores failures related to the directory not existing or
+     * not empty
+     *
+     * @param directory directory to delete
+     * @return true if the directory was deleted
+     */
+    public static boolean deleteDirIfEmpty(Path directory) {
+        try {
+            Files.delete(directory);
+            return true;
+        } catch (NoSuchFileException | FileNotFoundException e) {
+            return true;
+        } catch (DirectoryNotEmptyException e) {
+            return false;
+        } catch (IOException e) {
+            throw OcflIOException.from(e);
         }
     }
 
