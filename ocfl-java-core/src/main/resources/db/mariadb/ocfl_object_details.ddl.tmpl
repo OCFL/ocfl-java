@@ -7,4 +7,4 @@ CREATE TABLE IF NOT EXISTS %s (
   digest_algorithm VARCHAR(255) NOT NULL,
   update_timestamp TIMESTAMP NOT NULL,
   inventory BLOB
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
