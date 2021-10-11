@@ -16,9 +16,9 @@ class TableCreatorTest {
 
     @Container
     private final MariaDBContainer<?> mariaDB = new MariaDBContainer<>(DockerImageName.parse("mariadb:latest"));
+    private MariaDbDataSource dataSource;
 
     private TableCreator cut;
-    private MariaDbDataSource dataSource;
 
     @BeforeEach
     void beforeEach() throws SQLException {

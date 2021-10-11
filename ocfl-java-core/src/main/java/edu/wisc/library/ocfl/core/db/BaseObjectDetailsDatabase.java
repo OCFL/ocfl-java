@@ -63,13 +63,13 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private final String lockFailCode;
     private final String duplicateKeyCode;
 
-    private final String selectDetailsQuery;
-    private final String deleteDetailsQuery;
-    private final String rowLockQuery;
-    private final String updateDetailsQuery;
-    private final String insertDetailsQuery;
-    private final String selectDigestQuery;
-    private final String deleteAllQuery;
+    protected String selectDetailsQuery;
+    protected String deleteDetailsQuery;
+    protected String rowLockQuery;
+    protected String updateDetailsQuery;
+    protected String insertDetailsQuery;
+    protected String selectDigestQuery;
+    protected String deleteAllQuery;
 
     public BaseObjectDetailsDatabase(String tableName,
                                      DataSource dataSource,

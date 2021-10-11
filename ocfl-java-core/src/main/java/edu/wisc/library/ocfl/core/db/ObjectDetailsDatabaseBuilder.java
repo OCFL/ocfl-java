@@ -113,6 +113,9 @@ public class ObjectDetailsDatabaseBuilder {
             case POSTGRES:
                 database = new PostgresObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
+            case MARIADB:
+                database = new MariaDbObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
+                break;
             case H2:
                 database = new H2ObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
