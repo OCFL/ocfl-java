@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MariaDbObjectDetailsDatabase extends BaseObjectDetailsDatabase {
 
-    private static final String LOCK_FAIL_STATE = "40001";
+    private static final String LOCK_FAIL_STATE = "HY000";
     private static final String DUPLICATE_KEY_STATE = "23000";
 
     public MariaDbObjectDetailsDatabase(String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
@@ -42,7 +42,8 @@ public class MariaDbObjectDetailsDatabase extends BaseObjectDetailsDatabase {
     }
 
     protected void setLockWaitTimeout(Connection connection, long waitMillis) throws SQLException {
-        try (var statement = connection.prepareStatement(String.format("SET lock_wait_timeout = %s", waitMillis / 1000))) {
+        try (var statement = connection.prepareStatement(
+                String.format("SET innodb_lock_wait_timeout = %s", TimeUnit.MILLISECONDS.toSeconds(waitMillis)))) {
             statement.executeUpdate();
         }
     }
