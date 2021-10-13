@@ -113,11 +113,11 @@ public class MariaDbTest {
         // Wait a bit and start a new thread that will try to acquire the same lock, but fail
         try {
             TimeUnit.MILLISECONDS.sleep(100);
-            System.out.println("Started a second update, waiting for timeout and lock exception to happen");
+            System.out.println("Started a second update, waiting for lock exception to happen");
             database.updateObjectDetails(inventory, digest, invPath, () -> {
             });
         } catch (Exception e) {
-            System.out.printf("Got exception of type: %s, with following message: %s%n", e.getClass().getName(), e.getMessage());
+            System.out.printf("Got exception of type: %s, with message: %n%.65s...%n", e.getClass().getSimpleName(), e.getMessage());
         }
 
         // Let the thread finish its execution
@@ -148,7 +148,7 @@ public class MariaDbTest {
             database.updateObjectDetails(inventory, digest, invPath, () -> {
             });
         } catch (Exception e) {
-            System.out.printf("Got exception of type: %s, with following message: %s%n", e.getClass().getName(), e.getMessage());
+            System.out.printf("Got exception of type: %s, with message: %n%.66s...%n", e.getClass().getSimpleName(), e.getMessage());
         }
     }
 
@@ -247,13 +247,13 @@ public class MariaDbTest {
             if (details == null) {
                 System.out.printf("xxxxx No object with ID '%s' was found in the database xxxxx%n", id);
             } else {
-                System.out.printf("Object ID:        '%.47s'%n", details.getObjectId());
-                System.out.printf("Version Number:   '%.47s'%n", details.getVersionNum());
-                System.out.printf("Revision Number:  '%.47s'%n", details.getRevisionNum());
-                System.out.printf("Object Root Path: '%.47s'%n", details.getObjectRootPath());
-                System.out.printf("Inventory Digest: '%.47s...'%n", details.getInventoryDigest());
-                System.out.printf("Digest Algorithm: '%.47s'%n", details.getDigestAlgorithm().getOcflName());
-                System.out.printf("Update Timestamp: '%.47s'%n", details.getUpdateTimestamp());
+                System.out.printf("Object ID:        '%.46s'%n", details.getObjectId());
+                System.out.printf("Version Number:   '%.46s'%n", details.getVersionNum());
+                System.out.printf("Revision Number:  '%.46s'%n", details.getRevisionNum());
+                System.out.printf("Object Root Path: '%.46s'%n", details.getObjectRootPath());
+                System.out.printf("Inventory Digest: '%.46s...'%n", details.getInventoryDigest());
+                System.out.printf("Digest Algorithm: '%.46s'%n", details.getDigestAlgorithm().getOcflName());
+                System.out.printf("Update Timestamp: '%.46s'%n", details.getUpdateTimestamp());
             }
         }
         printChars('~', 69);
