@@ -14,9 +14,9 @@ public class FileSystemBadReposITest extends BadReposITest {
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .fileSystemStorage(storage -> storage
+                .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .repositoryRoot(repoDir(name))
+                        .local(repoDir(name))
                         .build())
                 .workDir(workDir)
                 .buildMutable();

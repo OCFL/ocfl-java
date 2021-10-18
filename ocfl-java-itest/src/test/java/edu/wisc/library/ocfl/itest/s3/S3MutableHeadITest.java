@@ -93,9 +93,9 @@ public class S3MutableHeadITest extends MutableHeadITest {
                 .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .cloudStorage(storage -> storage
+                .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloudClient(createCloudClient(name))
+                        .cloud(createCloudClient(name))
                         .build())
                 .workDir(workDir)
                 .buildMutable();

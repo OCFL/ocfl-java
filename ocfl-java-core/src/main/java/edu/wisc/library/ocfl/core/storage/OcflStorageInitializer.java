@@ -22,40 +22,16 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.api.exception;
+package edu.wisc.library.ocfl.core.storage;
 
-/**
- * This exception is a wrapper around NoSuchFileException and FileNotFoundException
- */
-public class OcflNoSuchFileException extends OcflIOException {
+import edu.wisc.library.ocfl.api.model.OcflVersion;
+import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
+import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 
-    private final Exception cause;
-    private final boolean hasMessage;
-
-    public OcflNoSuchFileException(String message) {
-        super(message);
-        this.cause = null;
-        this.hasMessage = true;
-    }
-
-    public OcflNoSuchFileException(Exception cause) {
-        super(cause);
-        this.cause = cause;
-        this.hasMessage = false;
-    }
-
-    public OcflNoSuchFileException(String message, Exception cause) {
-        super(message, cause);
-        this.cause = cause;
-        this.hasMessage = true;
-    }
-
-    @Override
-    public String getMessage() {
-        if (hasMessage || cause == null) {
-            return super.getMessage();
-        }
-        return cause.getClass().getSimpleName() + ": " + cause.getMessage();
-    }
-
+// TODO
+public interface OcflStorageInitializer {
+    OcflStorageLayoutExtension initializeStorage(OcflVersion ocflVersion,
+                                                 OcflExtensionConfig layoutConfig,
+                                                 ExtensionSupportEvaluator supportEvaluator);
 }

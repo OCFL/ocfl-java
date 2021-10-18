@@ -53,7 +53,7 @@ public class NamasteTypeFile {
         try {
             Files.writeString(directory.resolve(fileName()), fileContent());
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 

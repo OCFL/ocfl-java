@@ -24,56 +24,29 @@
 
 package edu.wisc.library.ocfl.api.exception;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.NoSuchFileException;
-
 /**
- * This exception is a wrapper around an IOException
+ * This exception is a wrapper around FileAlreadyExistsException
  */
-public class OcflIOException extends OcflJavaException {
+public class OcflFileAlreadyExistsException extends OcflIOException {
 
     private final Exception cause;
     private final boolean hasMessage;
 
-    /**
-     * Wraps an IO exception in the appropriate wrapper class. For example, NoSuchFileException to OcflNoSuchFileException.
-     *
-     * @param e the base exception
-     * @return wrapped exception
-     */
-    public static OcflIOException from(IOException e) {
-        if (e instanceof NoSuchFileException || e instanceof FileNotFoundException) {
-            return new OcflNoSuchFileException(e);
-        } else if (e instanceof FileAlreadyExistsException) {
-            return new OcflFileAlreadyExistsException(e);
-        }
-
-        return new OcflIOException(e);
-    }
-
-    public OcflIOException(Exception cause) {
+    public OcflFileAlreadyExistsException(Exception cause) {
         super(cause);
         this.cause = cause;
         this.hasMessage = false;
     }
 
-    public OcflIOException(String message, Exception cause) {
+    public OcflFileAlreadyExistsException(String message, Exception cause) {
         super(message, cause);
         this.cause = cause;
         this.hasMessage = true;
     }
 
-    public OcflIOException(String message) {
-        super(message);
-        this.cause = null;
-        this.hasMessage = true;
-    }
-
     @Override
     public String getMessage() {
-        if (hasMessage || cause == null) {
+        if (hasMessage) {
             return super.getMessage();
         }
         return cause.getClass().getSimpleName() + ": " + cause.getMessage();

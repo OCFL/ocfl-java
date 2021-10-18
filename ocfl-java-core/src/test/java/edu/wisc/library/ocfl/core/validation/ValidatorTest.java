@@ -2,7 +2,7 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
-import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
+import edu.wisc.library.ocfl.core.storage.filesystem.LocalFileSystem;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -1082,7 +1082,7 @@ public class ValidatorTest {
     }
 
     private Validator createValidator(String rootName) {
-        var storage = new FileSystemStorage(Paths.get("src/test/resources/fixtures", rootName));
+        var storage = new LocalFileSystem(Paths.get("src/test/resources/fixtures", rootName));
         return new Validator(storage);
     }
 

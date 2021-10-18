@@ -58,7 +58,7 @@ public class FileSystemOcflFileRetriever implements OcflFileRetriever {
         try {
             return new FixityCheckInputStream(new BufferedInputStream(Files.newInputStream(filePath)), digestAlgorithm, digestValue);
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
     }
 

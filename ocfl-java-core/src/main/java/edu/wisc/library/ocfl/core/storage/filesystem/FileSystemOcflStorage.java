@@ -133,7 +133,7 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
                 .handle(UncheckedIOException.class, IOException.class)
                 .withBackoff(5, 200, ChronoUnit.MILLIS, 1.5)
                 .withMaxRetries(5);
-        this.validator = new Validator(new FileSystemStorage(repositoryRoot));
+        this.validator = new Validator(new LocalFileSystem(repositoryRoot));
     }
 
     /**

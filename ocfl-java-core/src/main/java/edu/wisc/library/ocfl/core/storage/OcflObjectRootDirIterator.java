@@ -24,29 +24,26 @@
 
 package edu.wisc.library.ocfl.core.storage;
 
-import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+// TODO review docs
 /**
  * Iterator that iterates over OCFL object root directories. Object roots are identified by the presence of a file that's
  * prefixed with '0=ocfl_object'.
  */
 public abstract class OcflObjectRootDirIterator implements Iterator<String>, Closeable {
 
-    private final String start;
     private boolean started = false;
     private boolean closed = false;
 
     private final ArrayDeque<Directory> dirStack;
     private String next;
 
-    public OcflObjectRootDirIterator(String start) {
-        this.start = Enforce.notNull(start, "start cannot be null");
+    public OcflObjectRootDirIterator() {
         this.dirStack = new ArrayDeque<>();
     }
 
@@ -124,7 +121,7 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
 
     private String fetchNextDirectory() {
         if (!started) {
-            dirStack.push(createDirectory(start));
+            dirStack.push(createDirectory(""));
             started = true;
         }
 

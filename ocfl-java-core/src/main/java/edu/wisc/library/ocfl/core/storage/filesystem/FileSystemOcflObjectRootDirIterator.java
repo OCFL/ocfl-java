@@ -44,13 +44,15 @@ import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
  */
 public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
 
-    public FileSystemOcflObjectRootDirIterator(Path start) {
-        super(FileUtil.pathToStringStandardSeparator(start));
+    private final Path root;
+
+    public FileSystemOcflObjectRootDirIterator(Path root) {
+        this.root = root;
     }
 
     @Override
     protected boolean isObjectRoot(String path) {
-        try (var objectMarkers = Files.newDirectoryStream(Paths.get(path),
+        try (var objectMarkers = Files.newDirectoryStream(root.resolve(path),
                 p -> p.getFileName().toString().startsWith(OBJECT_NAMASTE_PREFIX))) {
             return objectMarkers.iterator().hasNext();
         } catch (IOException e) {
@@ -60,22 +62,24 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
 
     @Override
     protected boolean shouldSkip(String path) {
-        return Paths.get(path).getFileName().toString().equals(OcflConstants.EXTENSIONS_DIR);
+        return root.resolve(root).getFileName().toString().equals(OcflConstants.EXTENSIONS_DIR);
     }
 
     @Override
     protected Directory createDirectory(String path) {
-        return new FileSystemDirectory(path);
+        return new FileSystemDirectory(root, path);
     }
 
     private static class FileSystemDirectory implements Directory {
 
+        private final Path root;
         private final DirectoryStream<Path> stream;
         private final Iterator<Path> children;
 
-        FileSystemDirectory(String path) {
+        FileSystemDirectory(Path root, String path) {
             try {
-                this.stream = Files.newDirectoryStream(Paths.get(path));
+                this.root = root;
+                this.stream = Files.newDirectoryStream(root.resolve(path));
                 this.children = stream.iterator();
             } catch (IOException e) {
                 throw new OcflIOException(e);
@@ -88,7 +92,7 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
                 var child = children.next();
 
                 if (Files.isDirectory(child, LinkOption.NOFOLLOW_LINKS)) {
-                    return FileUtil.pathToStringStandardSeparator(child);
+                    return FileUtil.pathToStringStandardSeparator(root.relativize(child));
                 }
             }
             return null;

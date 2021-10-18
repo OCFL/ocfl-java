@@ -40,12 +40,12 @@ import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
+import edu.wisc.library.ocfl.core.storage.FileSystem;
+import edu.wisc.library.ocfl.core.storage.Listing;
+import edu.wisc.library.ocfl.core.storage.filesystem.LocalFileSystem;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
-import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
-import edu.wisc.library.ocfl.core.validation.storage.Listing;
-import edu.wisc.library.ocfl.core.validation.storage.Storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +72,10 @@ import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS
  */
 public class Validator {
 
+    // TODO listDirectory behavior change when does not exist
+    // TODO listing type Other
+    // TODO notfound exception changed
+
     private static final Logger LOG = LoggerFactory.getLogger(Validator.class);
 
     private static final String OBJECT_NAMASTE_CONTENTS = OcflVersion.OCFL_1_0.getOcflObjectVersion() + "\n";
@@ -91,7 +95,7 @@ public class Validator {
             OcflConstants.INIT_EXT
     );
 
-    private final Storage storage;
+    private final FileSystem fileSystem;
     private final SimpleInventoryParser inventoryParser;
     private final SimpleInventoryValidator inventoryValidator;
 
@@ -103,7 +107,7 @@ public class Validator {
      * @return the validation results
      */
     public static ValidationResults validateObject(Path objectRoot, boolean checkContentFixity) {
-        return new Validator(new FileSystemStorage(objectRoot.getParent()))
+        return new Validator(new LocalFileSystem(objectRoot.getParent()))
                 .validateObject(objectRoot.getFileName().toString(), checkContentFixity);
     }
 
@@ -114,12 +118,12 @@ public class Validator {
      * @return the validation results
      */
     public static ValidationResults validateInventory(Path inventoryPath) {
-        return new Validator(new FileSystemStorage(inventoryPath.getParent()))
+        return new Validator(new LocalFileSystem(inventoryPath.getParent()))
                 .validateInventory(inventoryPath.getFileName().toString());
     }
 
-    public Validator(Storage storage) {
-        this.storage = Enforce.notNull(storage, "storage cannot be null");
+    public Validator(FileSystem fileSystem) {
+        this.fileSystem = Enforce.notNull(fileSystem, "fileSystem cannot be null");
         this.inventoryParser = new SimpleInventoryParser();
         this.inventoryValidator = new SimpleInventoryValidator();
     }
@@ -138,7 +142,7 @@ public class Validator {
 
         // TODO figure out how to handle links
 
-        var files = storage.listDirectory(objectRootPath, false);
+        var files = fileSystem.listDirectory(objectRootPath);
 
         validateNamaste(objectRootPath, files, results);
 
@@ -166,7 +170,7 @@ public class Validator {
     public ValidationResults validateInventory(String inventoryPath) {
         Enforce.notBlank(inventoryPath, "inventoryPath cannot be blank");
 
-        if (!storage.fileExists(inventoryPath)) {
+        if (!fileSystem.fileExists(inventoryPath)) {
             throw new OcflInputException("No inventory found at: " + inventoryPath);
         }
 
@@ -245,7 +249,7 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
-        var files = storage.listDirectory(versionPath, false);
+        var files = fileSystem.listDirectory(versionPath);
 
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
@@ -302,7 +306,7 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
-        var files = storage.listDirectory(versionPath, false);
+        var files = fileSystem.listDirectory(versionPath);
 
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
@@ -484,7 +488,7 @@ public class Validator {
         inventory.getVersions().keySet().forEach(versionNum -> {
             var versionContentDir = FileUtil.pathJoinFailEmpty(versionNum, contentDir);
             var versionContentPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionContentDir);
-            var listings = storage.listDirectory(versionContentPath, true);
+            var listings = fileSystem.listRecursive(versionContentPath);
 
             listings.forEach(listing -> {
                 var fullPath = FileUtil.pathJoinIgnoreEmpty(versionContentPath, listing.getRelativePath());
@@ -539,7 +543,7 @@ public class Validator {
                     expectations.putAll(fixityDigests);
                 }
 
-                try (var contentStream = storage.readFile(storagePath)) {
+                try (var contentStream = fileSystem.read(storagePath)) {
                     var wrapped = MultiDigestInputStream.create(contentStream, expectations.keySet());
 
                     while (wrapped.read() != -1) {
@@ -574,7 +578,7 @@ public class Validator {
                                             Set<String> ignoreFiles,
                                             ValidationResultsBuilder results) {
         var contentDirPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr, contentDir);
-        if (files.contains(Listing.directory(contentDir)) && storage.listDirectory(contentDirPath, false).isEmpty()) {
+        if (files.contains(Listing.directory(contentDir)) && fileSystem.listDirectory(contentDirPath).isEmpty()) {
             results.addIssue(ValidationCode.W003,
                     "Version content directory exists at %s, but is empty.", contentDirPath);
         }
@@ -603,7 +607,7 @@ public class Validator {
         var namasteFile = ObjectPaths.objectNamastePath(objectRootPath);
 
         if (files.contains(Listing.file(OcflConstants.OBJECT_NAMASTE_1_0))) {
-            try (var stream = storage.readFile(namasteFile)) {
+            try (var stream = fileSystem.read(namasteFile)) {
                 var contents = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
                 // TODO there are technically multiple different codes that could be used here
                 if (!OBJECT_NAMASTE_CONTENTS.equals(contents)) {
@@ -620,7 +624,7 @@ public class Validator {
     }
 
     private String validateInventorySidecar(String sidecarPath, ValidationResultsBuilder results) {
-        try (var stream = storage.readFile(sidecarPath)) {
+        try (var stream = fileSystem.read(sidecarPath)) {
             var parts = new String(stream.readAllBytes(), StandardCharsets.UTF_8).split("\\s+");
 
             if (parts.length != 2) {
@@ -705,7 +709,7 @@ public class Validator {
 
     private void validateExtensionContents(String objectRootPath, ValidationResultsBuilder results) {
         var dir = FileUtil.pathJoinFailEmpty(objectRootPath, OcflConstants.EXTENSIONS_DIR);
-        var files = storage.listDirectory(dir, false);
+        var files = fileSystem.listDirectory(dir);
 
         for (var file : files) {
             if (file.isFile()) {
@@ -745,7 +749,7 @@ public class Validator {
     private ParseResult parseInventory(String inventoryPath,
                                        ValidationResultsBuilder results,
                                        DigestAlgorithm... digestAlgorithms) {
-        try (var stream = storage.readFile(inventoryPath)) {
+        try (var stream = fileSystem.read(inventoryPath)) {
             var wrapped = MultiDigestInputStream.create(stream, Arrays.asList(digestAlgorithms));
 
             var parseResult = inventoryParser.parse(wrapped, inventoryPath);
@@ -762,7 +766,7 @@ public class Validator {
     }
 
     private String computeInventoryDigest(String inventoryPath, DigestAlgorithm algorithm) {
-        try (var stream = storage.readFile(inventoryPath)) {
+        try (var stream = fileSystem.read(inventoryPath)) {
             var wrapped = MultiDigestInputStream.create(stream, List.of(algorithm));
             while (wrapped.read() > 0) {
                 // consume stream

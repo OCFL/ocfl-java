@@ -43,8 +43,7 @@ public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
 
     private final CloudClient cloudClient;
 
-    public CloudOcflObjectRootDirIterator(String start, CloudClient cloudClient) {
-        super(start);
+    public CloudOcflObjectRootDirIterator(CloudClient cloudClient) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
     }
 

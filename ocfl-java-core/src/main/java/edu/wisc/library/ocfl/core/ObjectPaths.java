@@ -261,6 +261,21 @@ public final class ObjectPaths {
         return objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_REVISIONS_PATH);
     }
 
+    // TODO
+    public static String mutableHeadCurrentRevisionContentPath(Inventory inventory) {
+        return FileUtil.pathJoinFailEmpty(
+                mutableHeadContentPath(inventory),
+                inventory.getRevisionNum().toString());
+    }
+
+    // TODO
+    public static String mutableHeadContentPath(Inventory inventory) {
+        return FileUtil.pathJoinFailEmpty(
+                inventory.getObjectRootPath(),
+                OcflConstants.MUTABLE_HEAD_VERSION_PATH,
+                inventory.resolveContentDirectory());
+    }
+
     /**
      * Creates an ObjectRoot using absolute paths
      *
@@ -321,6 +336,7 @@ public final class ObjectPaths {
         Path inventorySidecar();
     }
 
+    // TODO refactor this to use a string
     /**
      * Provides methods for navigating an OCFL object root
      */

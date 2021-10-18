@@ -155,7 +155,7 @@ public final class FileUtil {
     public static void recursiveCopy(Path src, Path dst, StandardCopyOption... copyOptions) {
         try {
             Files.createDirectories(dst);
-            Files.walkFileTree(src, Set.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<>() {
+            Files.walkFileTree(src, new SimpleFileVisitor<>() {
                 private Path dstPath(Path current) {
                     return dst.resolve(src.relativize(current));
                 }
@@ -340,11 +340,11 @@ public final class FileUtil {
         } catch (NoSuchFileException e) {
             // ignore
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
 
         if (hasErrors.get()) {
-            throw new RuntimeException(String.format("Failed to recursively delete directory %s. See logs for details.", directory));
+            throw new OcflIOException(String.format("Failed to recursively delete directory %s. See logs for details.", directory));
         }
     }
 
@@ -464,6 +464,15 @@ public final class FileUtil {
         }
 
         return pathBuilder.toString();
+    }
+
+    // TODO
+    public static String parentPath(String path) {
+        var lastIndex = path.lastIndexOf('/');
+        if (lastIndex > -1) {
+            return path.substring(0, lastIndex);
+        }
+        return "";
     }
 
     private static String stripSlashes(String path) {
