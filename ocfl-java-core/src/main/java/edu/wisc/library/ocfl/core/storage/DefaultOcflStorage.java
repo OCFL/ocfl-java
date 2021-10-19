@@ -53,16 +53,20 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.core.validation.Validator;
+import net.jodah.failsafe.Failsafe;
+import net.jodah.failsafe.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -96,6 +100,11 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     private final boolean verifyInventoryDigest;
 
     /**
+     * This retry policy is used for retrying failed inventory installs
+     */
+    private final RetryPolicy<Void> invRetry;
+
+    /**
      * Create a new builder.
      *
      * @return builder
@@ -123,6 +132,10 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.validator = new Validator(fileSystem);
+        this.invRetry = new RetryPolicy<Void>()
+                .handle(RuntimeException.class)
+                .withBackoff(10, 200, ChronoUnit.MILLIS, 1.5)
+                .withMaxRetries(10);
     }
 
     /**
@@ -385,21 +398,19 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
                 // The inventory is written to the root first so that the mutable version can be recovered if the write fails
                 copyInventoryToRootWithRollback(newInventory, stagingDir);
             } catch (RuntimeException e) {
-                // TODO rollback
+                rollbackMutableHeadVersionInstall(newInventory, versionPath);
                 throw e;
             }
 
             try {
                 copyInventoryInternal(newInventory, newInventory.getObjectRootPath(), versionPath);
             } catch (RuntimeException e) {
-                // TODO I think this is fine to log and continue
+                LOG.warn("Failed to copy the inventory into object {} version {}.", newInventory.getId(), newInventory.getHead());
             }
-
-            // TODO note that the FS impl cleans empty dirs here -- not sure if it's necessary or just conservative
         } catch (RuntimeException e) {
             try {
                 fileSystem.deleteDirectory(versionPath);
-                // TODO copy old root inv back?
+                rollbackInventory(newInventory);
             } catch (RuntimeException exception) {
                 LOG.error("Failed to rollback new version installation in object {} at {}. It must be cleaned up manually.",
                         newInventory.getId(), newInventory.getHead(), e);
@@ -593,7 +604,6 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
                 verifyPriorInventory(inventory, ObjectPaths.inventorySidecarPath(objectRootPath, inventory));
                 copyInventoryToRootWithRollback(inventory, versionPath);
             } catch (RuntimeException e) {
-                // TODO helper for these catches?
                 try {
                     fileSystem.deleteDirectory(versionPath);
                 } catch (RuntimeException e1) {
@@ -611,7 +621,6 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
                     LOG.error("Failed to rollback object {} creation", inventory.getId(), e1);
                 }
             }
-            // TODO wrap exception?
             throw e;
         }
     }
@@ -662,7 +671,6 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
                     LOG.error("Failed to rollback mutable HEAD revision marker in object {}", inventory.getId(), e1);
                 }
             }
-            // TODO wrap exception here?
             throw e;
         }
 
@@ -714,21 +722,33 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         }
     }
 
+    private void rollbackMutableHeadVersionInstall(Inventory inventory,
+                                                   String versionPath) {
+        try {
+            fileSystem.moveDirectoryInternal(versionPath, ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath()));
+        } catch (RuntimeException e) {
+            LOG.error("Failed to rollback new version installation in object {} at {}. It must be cleaned up manually.",
+                    inventory.getId(), inventory.getHead(), e);
+        }
+    }
+
     private void storeMutableHeadInventory(Inventory inventory, Path sourcePath) {
-        // TODO retry?
-        fileSystem.copyFileInto(ObjectPaths.inventoryPath(sourcePath),
-                ObjectPaths.mutableHeadInventoryPath(inventory.getObjectRootPath()), MEDIA_TYPE_JSON);
-        fileSystem.copyFileInto(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
-                ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory), MEDIA_TYPE_TEXT);
+        Failsafe.with(invRetry).run(() -> {
+            fileSystem.copyFileInto(ObjectPaths.inventoryPath(sourcePath),
+                    ObjectPaths.mutableHeadInventoryPath(inventory.getObjectRootPath()), MEDIA_TYPE_JSON);
+            fileSystem.copyFileInto(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
+                    ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory), MEDIA_TYPE_TEXT);
+        });
     }
 
     private void copyInventoryToRootWithRollback(Inventory inventory, Path stagingDir) {
         try {
-            // TODO retry?
-            fileSystem.copyFileInto(ObjectPaths.inventoryPath(stagingDir),
-                    ObjectPaths.inventoryPath(inventory.getObjectRootPath()), MEDIA_TYPE_JSON);
-            fileSystem.copyFileInto(ObjectPaths.inventorySidecarPath(stagingDir, inventory),
-                    ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory), MEDIA_TYPE_TEXT);
+            Failsafe.with(invRetry).run(() -> {
+                fileSystem.copyFileInto(ObjectPaths.inventoryPath(stagingDir),
+                        ObjectPaths.inventoryPath(inventory.getObjectRootPath()), MEDIA_TYPE_JSON);
+                fileSystem.copyFileInto(ObjectPaths.inventorySidecarPath(stagingDir, inventory),
+                        ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory), MEDIA_TYPE_TEXT);
+            });
         } catch (RuntimeException e) {
             if (!isFirstVersion(inventory)) {
                 rollbackInventory(inventory);
@@ -749,6 +769,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     private void rollbackInventory(Inventory inventory) {
         if (!isFirstVersion(inventory)) {
             try {
+                // TODO this does not work if there was an algorithm change
                 var previousVersionPath = objectVersionPath(inventory, inventory.getHead().previousVersionNum());
                 copyInventoryInternal(inventory, previousVersionPath, inventory.getObjectRootPath());
             } catch (RuntimeException e) {
@@ -759,12 +780,12 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     }
 
     private void copyInventoryInternal(Inventory inventory, String sourcePath, String destinationPath) {
-        // TODO retry?
-        fileSystem.copyFileInternal(ObjectPaths.inventoryPath(sourcePath),
-                ObjectPaths.inventoryPath(destinationPath));
-        // TODO this does not work if there was an algorithm change and rolling back
-        fileSystem.copyFileInternal(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
-                ObjectPaths.inventorySidecarPath(destinationPath, inventory));
+        Failsafe.with(invRetry).run(() -> {
+            fileSystem.copyFileInternal(ObjectPaths.inventoryPath(sourcePath),
+                    ObjectPaths.inventoryPath(destinationPath));
+            fileSystem.copyFileInternal(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
+                    ObjectPaths.inventorySidecarPath(destinationPath, inventory));
+        });
     }
 
     private void copyRootInventorySidecarToMutableHead(Inventory inventory) {

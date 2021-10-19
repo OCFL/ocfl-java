@@ -54,7 +54,6 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.core.validation.Validator;
-import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
 import org.slf4j.Logger;
