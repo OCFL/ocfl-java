@@ -384,6 +384,8 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
 
         LOG.debug("Commit mutable HEAD on object <{}>", newInventory.getId());
 
+        var objectRoot = ObjectPaths.objectRoot(newInventory);
+
         ensureRootObjectHasNotChanged(newInventory);
 
         if (!hasMutableHead(newInventory.getObjectRootPath())) {
@@ -398,9 +400,9 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         try {
             try {
                 // The inventory is written to the root first so that the mutable version can be recovered if the write fails
-                copyInventoryToRootWithRollback(newInventory, stagingDir);
+                copyInventoryToRootWithRollback(newInventory, objectRoot, stagingDir);
             } catch (RuntimeException e) {
-                rollbackMutableHeadVersionInstall(newInventory, versionPath);
+                rollbackMutableHeadVersionInstall(newInventory, objectRoot, versionPath);
                 throw e;
             }
 
@@ -586,22 +588,23 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     }
 
     private void storeNewImmutableVersion(Inventory inventory, Path stagingDir) {
-        var objectRootPath = inventory.getObjectRootPath();
-        ensureNoMutableHead(inventory.getId(), objectRootPath);
+        var objectRoot = ObjectPaths.objectRoot(inventory);
+
+        ensureNoMutableHead(inventory.getId(), objectRoot.path());
 
         var versionPath = objectVersionPath(inventory, inventory.getHead());
         var isFirstVersion = isFirstVersion(inventory);
 
         try {
             if (isFirstVersion) {
-                storage.createDirectories(objectRootPath);
-                writeObjectNamasteFile(objectRootPath);
+                storage.createDirectories(objectRoot.path());
+                writeObjectNamasteFile(objectRoot.path());
             }
 
             moveToVersionDirectory(inventory, stagingDir, versionPath);
 
             try {
-                verifyPriorInventory(inventory, ObjectPaths.inventorySidecarPath(objectRootPath, inventory));
+                verifyPriorInventory(inventory, objectRoot.inventorySidecar());
                 copyInventoryToRootWithRollback(inventory, versionPath);
             } catch (RuntimeException e) {
                 try {
@@ -626,28 +629,29 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     }
 
     private void storeNewMutableHeadVersion(Inventory inventory, Path stagingDir) {
-        var destinationDir = ObjectPaths.mutableHeadCurrentRevisionContentPath(inventory);
+        var objectRoot = ObjectPaths.objectRoot(inventory);
+        var destinationDir = objectRoot.headVersion().contentRoot().headRevisionPath();
 
         var isNewMutableHead = false;
 
         if (hasMutableHead(inventory.getObjectRootPath())) {
             ensureRootObjectHasNotChanged(inventory);
         } else {
-            copyRootInventorySidecarToMutableHead(inventory);
+            copyRootInventorySidecarToMutableHead(objectRoot);
             isNewMutableHead = true;
         }
 
         String revisionMarker = null;
 
         try {
-            revisionMarker = createRevisionMarker(inventory);
+            revisionMarker = createRevisionMarker(inventory, objectRoot);
 
-            moveToRevisionDirectory(inventory, stagingDir, destinationDir);
+            moveToRevisionDirectory(inventory, objectRoot, stagingDir, destinationDir);
 
             try {
-                verifyPriorInventoryMutable(inventory, isNewMutableHead);
+                verifyPriorInventoryMutable(inventory, objectRoot, isNewMutableHead);
                 // TODO if this fails the inventory may be left in a bad state
-                storeMutableHeadInventory(inventory, stagingDir);
+                storeMutableHeadInventory(inventory, objectRoot, stagingDir);
             } catch (RuntimeException e) {
                 try {
                     storage.deleteDirectory(destinationDir);
@@ -660,7 +664,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         } catch (RuntimeException e) {
             if (isNewMutableHead) {
                 try {
-                    storage.deleteDirectory(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()));
+                    storage.deleteDirectory(objectRoot.mutableHeadExtensionPath());
                 } catch (RuntimeException e1) {
                     LOG.error("Failed to rollback the creation of a new mutable HEAD in object {}", inventory.getId(), e1);
                 }
@@ -675,24 +679,26 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         }
 
         try {
-            deleteMutableHeadFilesNotInManifest(inventory);
+            deleteMutableHeadFilesNotInManifest(inventory, objectRoot);
         } catch (RuntimeException e) {
             LOG.error("Failed to cleanup outdated mutable HEAD content files in object {}", inventory.getId(), e);
         }
 
         try {
-            storage.deleteEmptyDirsDown(ObjectPaths.mutableHeadContentPath(inventory));
+            storage.deleteEmptyDirsDown(objectRoot.headVersion().contentPath());
         } catch (RuntimeException e) {
             LOG.error("Failed to cleanup empty mutable HEAD content directories in object {}", inventory.getId(), e);
         }
     }
 
     private void moveToRevisionDirectory(Inventory inventory,
+                                         ObjectPaths.ObjectRoot objectRoot,
                                          Path stagingDir,
                                          String destination) {
-        storage.createDirectories(ObjectPaths.mutableHeadContentPath(inventory));
+        storage.createDirectories(objectRoot.headVersion().contentPath());
         try {
-            storage.moveDirectoryInto(ObjectPaths.version(inventory, stagingDir).contentRoot().headRevisionPath(),
+            storage.moveDirectoryInto(
+                    stagingDir.resolve(inventory.resolveContentDirectory()).resolve(inventory.getRevisionNum().toString()),
                     destination);
         } catch (OcflFileAlreadyExistsException e) {
             throw new ObjectOutOfSyncException(
@@ -723,31 +729,34 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     }
 
     private void rollbackMutableHeadVersionInstall(Inventory inventory,
+                                                   ObjectPaths.ObjectRoot objectRoot,
                                                    String versionPath) {
         try {
-            storage.moveDirectoryInternal(versionPath, ObjectPaths.mutableHeadVersionPath(inventory.getObjectRootPath()));
+            storage.moveDirectoryInternal(versionPath, objectRoot.headVersionPath());
         } catch (RuntimeException e) {
             LOG.error("Failed to rollback new version installation in object {} at {}. It must be cleaned up manually.",
                     inventory.getId(), inventory.getHead(), e);
         }
     }
 
-    private void storeMutableHeadInventory(Inventory inventory, Path sourcePath) {
+    private void storeMutableHeadInventory(Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path sourcePath) {
         Failsafe.with(invRetry).run(() -> {
             storage.copyFileInto(ObjectPaths.inventoryPath(sourcePath),
-                    ObjectPaths.mutableHeadInventoryPath(inventory.getObjectRootPath()), MEDIA_TYPE_JSON);
+                    objectRoot.headVersion().inventoryFile(), MEDIA_TYPE_JSON);
             storage.copyFileInto(ObjectPaths.inventorySidecarPath(sourcePath, inventory),
-                    ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory), MEDIA_TYPE_TEXT);
+                    objectRoot.headVersion().inventorySidecar(), MEDIA_TYPE_TEXT);
         });
     }
 
-    private void copyInventoryToRootWithRollback(Inventory inventory, Path stagingDir) {
+    private void copyInventoryToRootWithRollback(Inventory inventory,
+                                                 ObjectPaths.ObjectRoot objectRoot,
+                                                 Path stagingDir) {
         try {
             Failsafe.with(invRetry).run(() -> {
                 storage.copyFileInto(ObjectPaths.inventoryPath(stagingDir),
-                        ObjectPaths.inventoryPath(inventory.getObjectRootPath()), MEDIA_TYPE_JSON);
+                        objectRoot.inventoryFile(), MEDIA_TYPE_JSON);
                 storage.copyFileInto(ObjectPaths.inventorySidecarPath(stagingDir, inventory),
-                        ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory), MEDIA_TYPE_TEXT);
+                        objectRoot.inventorySidecar(), MEDIA_TYPE_TEXT);
             });
         } catch (RuntimeException e) {
             if (!isFirstVersion(inventory)) {
@@ -788,21 +797,23 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         });
     }
 
-    private void copyRootInventorySidecarToMutableHead(Inventory inventory) {
-        var rootSidecarPath = ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory);
+    private void copyRootInventorySidecarToMutableHead(ObjectPaths.ObjectRoot objectRoot) {
+        var rootSidecarPath = objectRoot.inventorySidecar();
         var sidecarName = rootSidecarPath.substring(rootSidecarPath.lastIndexOf('/') + 1);
-        var destination = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()), "root-" + sidecarName);
-        storage.createDirectories(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()));
+        var destination = FileUtil.pathJoinFailEmpty(objectRoot.mutableHeadExtensionPath(), "root-" + sidecarName);
+        storage.createDirectories(objectRoot.mutableHeadExtensionPath());
         storage.copyFileInternal(rootSidecarPath, destination);
     }
 
-    private void verifyPriorInventoryMutable(Inventory inventory, boolean isNewMutableHead) {
+    private void verifyPriorInventoryMutable(Inventory inventory,
+                                             ObjectPaths.ObjectRoot objectRoot,
+                                             boolean isNewMutableHead) {
         String sidecarPath;
 
         if (isNewMutableHead) {
-            sidecarPath = ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory);
+            sidecarPath = objectRoot.inventorySidecar();
         } else {
-            sidecarPath = ObjectPaths.mutableHeadInventorySidecarPath(inventory.getObjectRootPath(), inventory);
+            sidecarPath = objectRoot.headVersion().inventorySidecar();
         }
 
         verifyPriorInventory(inventory, sidecarPath);
@@ -821,10 +832,12 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private Inventory parseAndVerifyInventory(String objectId, DigestAlgorithm digestAlgorithm, String objectRootPath) {
-        var remotePath = ObjectPaths.inventoryPath(objectRootPath);
+    private Inventory parseAndVerifyInventory(String objectId,
+                                              DigestAlgorithm digestAlgorithm,
+                                              String objectRootPath) {
+        var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
 
-        try (var stream = storage.read(remotePath)) {
+        try (var stream = storage.read(inventoryPath)) {
             var inventory = inventoryMapper.read(objectRootPath, digestAlgorithm, stream);
 
             if (verifyInventoryDigest) {
@@ -842,10 +855,12 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private Inventory parseAndVerifyMutableInventory(String objectId, DigestAlgorithm digestAlgorithm, String objectRootPath) {
-        var remotePath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
+    private Inventory parseAndVerifyMutableInventory(String objectId,
+                                                     DigestAlgorithm digestAlgorithm,
+                                                     String objectRootPath) {
+        var inventoryPath = ObjectPaths.mutableHeadInventoryPath(objectRootPath);
 
-        try (var stream = storage.read(remotePath)) {
+        try (var stream = storage.read(inventoryPath)) {
             var revisionNum = identifyLatestRevision(objectRootPath);
             var inventory = inventoryMapper.readMutableHead(objectRootPath, revisionNum, digestAlgorithm, stream);
 
@@ -873,9 +888,9 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         }
     }
 
-    private String createRevisionMarker(Inventory inventory) {
+    private String createRevisionMarker(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
         var revision = inventory.getRevisionNum().toString();
-        var revisionsDir = ObjectPaths.mutableHeadRevisionsPath(inventory.getObjectRootPath());
+        var revisionsDir = objectRoot.mutableHeadRevisionsPath();
         var revisionPath = FileUtil.pathJoinFailEmpty(revisionsDir, revision);
 
         storage.createDirectories(revisionsDir);
@@ -911,13 +926,11 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         return result.get();
     }
 
-    private void deleteMutableHeadFilesNotInManifest(Inventory inventory) {
-        // TODO see about not constructing the same paths so many times
-
+    private void deleteMutableHeadFilesNotInManifest(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
         List<Listing> files;
 
         try {
-            files = storage.listRecursive(ObjectPaths.mutableHeadContentPath(inventory));
+            files = storage.listRecursive(objectRoot.headVersion().contentPath());
         } catch (OcflNoSuchFileException e) {
             files = Collections.emptyList();
         }

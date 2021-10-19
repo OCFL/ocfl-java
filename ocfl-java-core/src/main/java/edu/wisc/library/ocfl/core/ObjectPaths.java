@@ -261,57 +261,15 @@ public final class ObjectPaths {
         return objectRootPath.resolve(OcflConstants.MUTABLE_HEAD_REVISIONS_PATH);
     }
 
-    // TODO
-    public static String mutableHeadCurrentRevisionContentPath(Inventory inventory) {
-        return FileUtil.pathJoinFailEmpty(
-                mutableHeadContentPath(inventory),
-                inventory.getRevisionNum().toString());
-    }
-
-    // TODO
-    public static String mutableHeadContentPath(Inventory inventory) {
-        return FileUtil.pathJoinFailEmpty(
-                inventory.getObjectRootPath(),
-                OcflConstants.MUTABLE_HEAD_VERSION_PATH,
-                inventory.resolveContentDirectory());
-    }
-
     /**
-     * Creates an ObjectRoot using absolute paths
-     *
-     * @param inventory deserialized inventory
-     * @param objectRootPath path to the root of an ocfl object
-     * @return ObjectRoot
-     */
-    public static ObjectRoot objectRoot(Inventory inventory, Path objectRootPath) {
-        Enforce.notNull(inventory, "inventory cannot be null");
-        Enforce.notNull(objectRootPath, "objectRootPath cannot be null");
-        return new ObjectRoot(inventory, objectRootPath);
-    }
-
-    /**
-     * Creates an ObjectRoot with paths relative to the object's root
+     * Creates a new ObjectRoot object
      *
      * @param inventory deserialized inventory
      * @return ObjectRoot
      */
     public static ObjectRoot objectRoot(Inventory inventory) {
         Enforce.notNull(inventory, "inventory cannot be null");
-        return new ObjectRoot(inventory, null);
-    }
-
-    /**
-     * Creates a VersionRoot object. This can be used on any valid version directory. There is no requirement for the
-     * directory to be located within the object root.
-     *
-     * @param inventory deserialized inventory
-     * @param location path to the root of the version
-     * @return VersionRoot
-     */
-    public static VersionRoot version(Inventory inventory, Path location) {
-        Enforce.notNull(inventory, "inventory cannot be null");
-        Enforce.notNull(location, "location cannot be null");
-        return new VersionRoot(inventory, location);
+        return new ObjectRoot(inventory);
     }
 
     private static Path findSidecarPathInternal(Path directory, String prefix) {
@@ -332,35 +290,34 @@ public final class ObjectPaths {
     }
 
     public interface HasInventory {
-        Path inventoryFile();
-        Path inventorySidecar();
+        String inventoryFile();
+        String inventorySidecar();
     }
 
-    // TODO refactor this to use a string
     /**
      * Provides methods for navigating an OCFL object root
      */
     public static class ObjectRoot implements HasInventory {
 
         private final Inventory inventory;
-        private final Path path;
+        private final String path;
 
-        private Path inventoryFile;
-        private Path inventorySidecar;
-        private Path headVersionPath;
-        private Path mutableHeadExtPath;
-        private Path mutableHeadPath;
-        private Path mutableHeadRevisionsPath;
+        private String inventoryFile;
+        private String inventorySidecar;
+        private String headVersionPath;
+        private String mutableHeadExtPath;
+        private String mutableHeadPath;
+        private String mutableHeadRevisionsPath;
 
         private VersionRoot headVersion;
         private VersionRoot mutableHeadVersion;
 
-        private ObjectRoot(Inventory inventory, Path path) {
+        private ObjectRoot(Inventory inventory) {
             this.inventory = inventory;
-            this.path = path == null ? Paths.get("") : path;
+            this.path = inventory.getObjectRootPath();
         }
 
-        public Path path() {
+        public String path() {
             return path;
         }
 
@@ -369,7 +326,7 @@ public final class ObjectPaths {
         }
 
         @Override
-        public Path inventoryFile() {
+        public String inventoryFile() {
             if (inventoryFile == null) {
                 inventoryFile = ObjectPaths.inventoryPath(path);
             }
@@ -377,48 +334,48 @@ public final class ObjectPaths {
         }
 
         @Override
-        public Path inventorySidecar() {
+        public String inventorySidecar() {
             if (inventorySidecar == null) {
                 inventorySidecar = ObjectPaths.inventorySidecarPath(path, inventory);
             }
             return inventorySidecar;
         }
 
-        public Path versionPath(VersionNum versionNum) {
+        public String versionPath(VersionNum versionNum) {
             if (inventory.getHead().equals(versionNum)) {
                 return headVersionPath();
             }
-            return path.resolve(versionNum.toString());
+            return FileUtil.pathJoinIgnoreEmpty(path, versionNum.toString());
         }
 
-        public Path headVersionPath() {
+        public String headVersionPath() {
             if (headVersionPath == null) {
                 if (inventory.hasMutableHead()) {
                     headVersionPath = mutableHeadPath();
                 } else {
-                    headVersionPath = path.resolve(inventory.getHead().toString());
+                    headVersionPath = FileUtil.pathJoinIgnoreEmpty(path, inventory.getHead().toString());
                 }
             }
             return headVersionPath;
         }
 
-        public Path mutableHeadExtensionPath() {
+        public String mutableHeadExtensionPath() {
             if (mutableHeadExtPath == null) {
-                mutableHeadExtPath = path.resolve(OcflConstants.MUTABLE_HEAD_EXT_PATH);
+                mutableHeadExtPath = ObjectPaths.mutableHeadExtensionRoot(path);
             }
             return mutableHeadExtPath;
         }
 
-        public Path mutableHeadPath() {
+        public String mutableHeadPath() {
             if (mutableHeadPath == null) {
-                mutableHeadPath = path.resolve(OcflConstants.MUTABLE_HEAD_VERSION_PATH);
+                mutableHeadPath = ObjectPaths.mutableHeadVersionPath(path);
             }
             return mutableHeadPath;
         }
 
-        public Path mutableHeadRevisionsPath() {
+        public String mutableHeadRevisionsPath() {
             if (mutableHeadRevisionsPath == null) {
-                mutableHeadRevisionsPath = path.resolve(OcflConstants.MUTABLE_HEAD_REVISIONS_PATH);
+                mutableHeadRevisionsPath = ObjectPaths.mutableHeadRevisionsPath(path);
             }
             return mutableHeadRevisionsPath;
         }
@@ -449,29 +406,29 @@ public final class ObjectPaths {
     public static class VersionRoot implements HasInventory {
 
         private final Inventory inventory;
-        private final Path path;
+        private final String path;
 
-        private Path inventoryFile;
-        private Path inventorySidecar;
-        private Path contentPath;
+        private String inventoryFile;
+        private String inventorySidecar;
+        private String contentPath;
 
         private ContentRoot contentRoot;
 
-        private VersionRoot(Inventory inventory, Path path) {
+        private VersionRoot(Inventory inventory, String path) {
             this.inventory = inventory;
-            this.path = path == null ? Paths.get("") : path;
+            this.path = path == null ? "" : path;
         }
 
         public String objectId() {
             return inventory.getId();
         }
 
-        public Path path() {
+        public String path() {
             return path;
         }
 
         @Override
-        public Path inventoryFile() {
+        public String inventoryFile() {
             if (inventoryFile == null) {
                 inventoryFile = ObjectPaths.inventoryPath(path);
             }
@@ -479,16 +436,16 @@ public final class ObjectPaths {
         }
 
         @Override
-        public Path inventorySidecar() {
+        public String inventorySidecar() {
             if (inventorySidecar == null) {
                 inventorySidecar = ObjectPaths.inventorySidecarPath(path, inventory);
             }
             return inventorySidecar;
         }
 
-        public Path contentPath() {
+        public String contentPath() {
             if (contentPath == null) {
-                contentPath = path.resolve(inventory.resolveContentDirectory());
+                contentPath = FileUtil.pathJoinIgnoreEmpty(path, inventory.resolveContentDirectory());
             }
             return contentPath;
         }
@@ -508,26 +465,26 @@ public final class ObjectPaths {
     public static class ContentRoot {
 
         private final Inventory inventory;
-        private final Path path;
+        private final String path;
 
-        private ContentRoot(Inventory inventory, Path path) {
+        private ContentRoot(Inventory inventory, String path) {
             this.inventory = inventory;
-            this.path = path == null ? Paths.get("") : path;
+            this.path = path == null ? "" : path;
         }
 
         public String objectId() {
             return inventory.getId();
         }
 
-        private Path path() {
+        private String path() {
             return path;
         }
 
-        public Path revisionPath(RevisionNum revisionNum) {
-            return path.resolve(revisionNum.toString());
+        public String revisionPath(RevisionNum revisionNum) {
+            return FileUtil.pathJoinIgnoreEmpty(path, revisionNum.toString());
         }
 
-        public Path headRevisionPath() {
+        public String headRevisionPath() {
             if (inventory.getRevisionNum() == null) {
                 return null;
             }
