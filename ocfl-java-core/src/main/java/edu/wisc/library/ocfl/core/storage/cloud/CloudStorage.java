@@ -30,9 +30,9 @@ import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.storage.FileSystem;
-import edu.wisc.library.ocfl.core.storage.Listing;
-import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
+import edu.wisc.library.ocfl.core.storage.common.Listing;
+import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import org.slf4j.Logger;
@@ -49,14 +49,14 @@ import java.util.Collections;
 import java.util.List;
 
 // TODO
-public class CloudFileSystem implements FileSystem {
+public class CloudStorage implements Storage {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CloudFileSystem.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CloudStorage.class);
 
     private final CloudClient client;
     private final CloudOcflFileRetriever.Builder fileRetrieverBuilder;
 
-    public CloudFileSystem(CloudClient client) {
+    public CloudStorage(CloudClient client) {
         this.client = Enforce.notNull(client, "client cannot be null");
         this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(client);
     }

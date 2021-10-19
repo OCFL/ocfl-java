@@ -40,9 +40,9 @@ import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
-import edu.wisc.library.ocfl.core.storage.FileSystem;
-import edu.wisc.library.ocfl.core.storage.Listing;
-import edu.wisc.library.ocfl.core.storage.filesystem.LocalFileSystem;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
+import edu.wisc.library.ocfl.core.storage.common.Listing;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
@@ -96,7 +96,7 @@ public class Validator {
             OcflConstants.INIT_EXT
     );
 
-    private final FileSystem fileSystem;
+    private final Storage fileSystem;
     private final SimpleInventoryParser inventoryParser;
     private final SimpleInventoryValidator inventoryValidator;
 
@@ -108,7 +108,7 @@ public class Validator {
      * @return the validation results
      */
     public static ValidationResults validateObject(Path objectRoot, boolean checkContentFixity) {
-        return new Validator(new LocalFileSystem(objectRoot.getParent()))
+        return new Validator(new FileSystemStorage(objectRoot.getParent()))
                 .validateObject(objectRoot.getFileName().toString(), checkContentFixity);
     }
 
@@ -119,11 +119,11 @@ public class Validator {
      * @return the validation results
      */
     public static ValidationResults validateInventory(Path inventoryPath) {
-        return new Validator(new LocalFileSystem(inventoryPath.getParent()))
+        return new Validator(new FileSystemStorage(inventoryPath.getParent()))
                 .validateInventory(inventoryPath.getFileName().toString());
     }
 
-    public Validator(FileSystem fileSystem) {
+    public Validator(Storage fileSystem) {
         this.fileSystem = Enforce.notNull(fileSystem, "fileSystem cannot be null");
         this.inventoryParser = new SimpleInventoryParser();
         this.inventoryValidator = new SimpleInventoryValidator();

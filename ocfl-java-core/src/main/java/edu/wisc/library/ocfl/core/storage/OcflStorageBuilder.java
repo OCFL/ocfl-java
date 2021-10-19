@@ -27,11 +27,9 @@ package edu.wisc.library.ocfl.core.storage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudFileSystem;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorageBuilder;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorageInitializer;
-import edu.wisc.library.ocfl.core.storage.filesystem.LocalFileSystem;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudStorage;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemStorage;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
@@ -44,7 +42,7 @@ import java.nio.file.Path;
 public class OcflStorageBuilder {
 
     private ObjectMapper objectMapper;
-    private FileSystem fileSystem;
+    private Storage storage;
     private OcflStorageInitializer initializer;
     private boolean verifyInventoryDigest;
 
@@ -58,18 +56,18 @@ public class OcflStorageBuilder {
     }
 
     // TODO
-    public OcflStorageBuilder fileSystem(FileSystem fileSystem) {
-        this.fileSystem = Enforce.notNull(fileSystem, "fileSystem cannot be null");
+    public OcflStorageBuilder storage(Storage storage) {
+        this.storage = Enforce.notNull(storage, "storage cannot be null");
         return this;
     }
 
-    public OcflStorageBuilder local(Path storageRoot) {
-        this.fileSystem = new LocalFileSystem(storageRoot);
+    public OcflStorageBuilder fileSystem(Path storageRoot) {
+        this.storage = new FileSystemStorage(storageRoot);
         return this;
     }
 
     public OcflStorageBuilder cloud(CloudClient cloudClient) {
-        this.fileSystem = new CloudFileSystem(cloudClient);
+        this.storage = new CloudStorage(cloudClient);
         return this;
     }
 
@@ -85,7 +83,7 @@ public class OcflStorageBuilder {
     }
 
     /**
-     * Overrides the default {@link CloudOcflStorageInitializer}. Normally, this does not need to be set.
+     * Overrides the default {@link OcflStorageInitializer}. Normally, this does not need to be set.
      *
      * @param initializer the initializer
      * @return builder
@@ -108,21 +106,17 @@ public class OcflStorageBuilder {
     }
 
     /**
-     * @return a new {@link CloudOcflStorage} object
+     * @return a new {@link OcflStorage} object
      */
     public OcflStorage build() {
-        Enforce.notNull(fileSystem, "fileSystem cannot be null");
-
-        if (fileSystem == null) {
-
-        }
+        Enforce.notNull(storage, "storage cannot be null");
 
         var init = initializer;
         if (init == null) {
-            init = new DefaultOcflStorageInitializer(fileSystem, objectMapper);
+            init = new DefaultOcflStorageInitializer(storage, objectMapper);
         }
 
-        return new DefaultOcflStorage(fileSystem, verifyInventoryDigest, init);
+        return new DefaultOcflStorage(storage, verifyInventoryDigest, init);
     }
 
 }

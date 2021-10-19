@@ -29,9 +29,9 @@ import edu.wisc.library.ocfl.api.exception.OcflFileAlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.storage.FileSystem;
-import edu.wisc.library.ocfl.core.storage.Listing;
-import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
+import edu.wisc.library.ocfl.core.storage.common.Listing;
+import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,13 +53,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 // TODO
-public class LocalFileSystem implements FileSystem {
+public class FileSystemStorage implements Storage {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LocalFileSystem.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FileSystemStorage.class);
 
     private final Path storageRoot;
 
-    public LocalFileSystem(Path storageRoot) {
+    public FileSystemStorage(Path storageRoot) {
         this.storageRoot = Enforce.notNull(storageRoot, "storageRoot cannot be null");
     }
 

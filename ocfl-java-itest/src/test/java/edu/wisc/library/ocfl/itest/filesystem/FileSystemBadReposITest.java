@@ -16,7 +16,7 @@ public class FileSystemBadReposITest extends BadReposITest {
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .local(repoDir(name))
+                        .fileSystem(repoDir(name))
                         .build())
                 .workDir(workDir)
                 .buildMutable();

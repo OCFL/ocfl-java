@@ -25,7 +25,7 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
-import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
+import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.io.IOException;

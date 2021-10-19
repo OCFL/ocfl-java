@@ -8,8 +8,6 @@ import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.cache.NoOpCache;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import io.micrometer.core.instrument.Meter;
@@ -432,9 +430,7 @@ public class LoadITest {
         return new OcflRepositoryBuilder()
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
-                .storage(FileSystemOcflStorage.builder()
-                        .repositoryRoot(UncheckedFiles.createDirectories(tempRoot.resolve("ocfl")))
-                        .build())
+                .storage(storage -> storage.fileSystem(UncheckedFiles.createDirectories(tempRoot.resolve("ocfl"))))
                 .workDir(UncheckedFiles.createDirectories(tempRoot.resolve("temp")))
                 .build();
     }
@@ -449,13 +445,13 @@ public class LoadITest {
         return new OcflRepositoryBuilder()
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
-                .storage(CloudOcflStorage.builder()
-                        .cloudClient(OcflS3Client.builder()
-                                .bucket("pwinckles-ocfl")
-                                .repoPrefix(prefix)
-                                .s3Client(s3Client)
-                                .build())
-                        .build())
+                .storage(storage -> {
+                    storage.cloud(OcflS3Client.builder()
+                            .bucket("pwinckles-ocfl")
+                            .repoPrefix(prefix)
+                            .s3Client(s3Client)
+                            .build());
+                })
                 .workDir(UncheckedFiles.createDirectories(tempRoot.resolve("temp")))
                 .buildMutable();
     }

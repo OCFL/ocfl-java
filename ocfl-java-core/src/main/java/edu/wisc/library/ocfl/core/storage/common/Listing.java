@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.storage;
+package edu.wisc.library.ocfl.core.storage.common;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 

@@ -1,4 +1,4 @@
-package edu.wisc.library.ocfl.core.storage;
+package edu.wisc.library.ocfl.core.storage.common;
 
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.OcflFileAlreadyExistsException;
@@ -13,11 +13,11 @@ import java.util.List;
 // TODO docs
 
 /**
- * Abstraction over any filesystem implementation. Paths are represented as strings because forward-slashes MUST
+ * Abstraction over any storage implementation. Paths are represented as strings because forward-slashes MUST
  * be used as path separators. All paths into and out of implementations of this interface are required to use
  * forward-slashes to separate path parts.
  */
-public interface FileSystem {
+public interface Storage {
 
     /**
      * Return a list of all of the files and directories contained in the specified directory.
@@ -99,7 +99,7 @@ public interface FileSystem {
     void createDirectories(String path);
 
     /**
-     * Recursively copy the source directory from inside this filesystem to an external destination.
+     * Recursively copy the source directory from inside this storage system to an external destination.
      *
      * @param source internal source to copy
      * @param destination external destination
@@ -108,7 +108,7 @@ public interface FileSystem {
     void copyDirectoryOutOf(String source, Path destination);
 
     /**
-     * Copy a file from outside this filesystem to a destination inside. If the destination already exists,
+     * Copy a file from outside this storage system to a destination inside. If the destination already exists,
      * then it will be overwritten.
      *
      * @param source file to copy
@@ -118,7 +118,7 @@ public interface FileSystem {
     void copyFileInto(Path source, String destination, String mediaType);
 
     /**
-     * Copy a file from inside this filesystem to another location inside. If the destination already exists,
+     * Copy a file from inside this storage system to another destination inside it. If the destination already exists,
      * then it will be overwritten.
      *
      * @param sourceFile internal file to copy
@@ -128,7 +128,7 @@ public interface FileSystem {
     void copyFileInternal(String sourceFile, String destinationFile);
 
     /**
-     * Move a directory from outside this filesystem to a destination inside. The destination MUST NOT already exist.
+     * Move a directory from outside this storage system to a destination inside. The destination MUST NOT already exist.
      *
      * @param source external source directory
      * @param destination internal destination
@@ -137,7 +137,7 @@ public interface FileSystem {
     void moveDirectoryInto(Path source, String destination);
 
     /**
-     * Move a directory from inside this filesystem to another location inside. The destination MUST NOT already exist.
+     * Move a directory from inside this storage system to another location inside. The destination MUST NOT already exist.
      *
      * @param source internal source directory
      * @param destination internal destination

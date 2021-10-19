@@ -12,6 +12,8 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
+import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.storage.OcflStorageBuilder;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -57,8 +59,8 @@ public class FileSystemOcflStorageTest {
 
     @Test
     public void shouldRejectCallsWhenNotInitialized() {
-        var storage = FileSystemOcflStorage.builder()
-                .repositoryRoot(repoDir)
+        var storage = OcflStorageBuilder.builder()
+                .fileSystem(repoDir)
                 .build();
 
         OcflAsserts.assertThrowsWithMessage(OcflStateException.class, "must be initialized", () -> {
@@ -133,9 +135,9 @@ public class FileSystemOcflStorageTest {
         return Version.builder().created(OffsetDateTime.now());
     }
 
-    private FileSystemOcflStorage newStorage() {
-        var storage = FileSystemOcflStorage.builder()
-                .repositoryRoot(repoDir)
+    private OcflStorage newStorage() {
+        var storage = OcflStorageBuilder.builder()
+                .fileSystem(repoDir)
                 .build();
         storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION,
                 layoutConfig,

@@ -25,7 +25,7 @@
 package edu.wisc.library.ocfl.core.storage.cloud;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
+import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.util.Iterator;

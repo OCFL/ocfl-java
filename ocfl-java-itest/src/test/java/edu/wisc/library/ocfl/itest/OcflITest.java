@@ -34,7 +34,6 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLa
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 import edu.wisc.library.ocfl.itest.ext.TestLayoutExtension;
 import edu.wisc.library.ocfl.itest.ext.TestLayoutExtensionConfig;
 import edu.wisc.library.ocfl.test.OcflAsserts;
@@ -834,7 +833,7 @@ public abstract class OcflITest {
             new OcflRepositoryBuilder()
                     .defaultLayoutConfig(new HashedNTupleLayoutConfig().setTupleSize(1))
                     .inventoryMapper(ITestHelper.testInventoryMapper())
-                    .storage(FileSystemOcflStorage.builder().repositoryRoot(repoDir).build())
+                    .storage(storage -> storage.fileSystem(repoDir))
                     .workDir(workDir)
                     .build();
         });

@@ -41,7 +41,7 @@ public class FileSystemMutableHeadITest extends MutableHeadITest {
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .local(repoDir)
+                        .fileSystem(repoDir)
                         .build())
                 .workDir(workDir);
 

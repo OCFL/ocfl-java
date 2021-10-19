@@ -40,6 +40,8 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflLayout;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
+import edu.wisc.library.ocfl.core.storage.common.Listing;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
@@ -66,12 +68,12 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     private static final String MEDIA_TYPE_TEXT = "text/plain; charset=UTF-8";
     private static final String MEDIA_TYPE_JSON = "application/json; charset=UTF-8";
 
-    private final FileSystem fileSystem;
+    private final Storage storage;
     private final ObjectMapper objectMapper;
 
-    public DefaultOcflStorageInitializer(FileSystem fileSystem,
+    public DefaultOcflStorageInitializer(Storage storage,
                                          ObjectMapper objectMapper) {
-        this.fileSystem = Enforce.notNull(fileSystem, "fileSystem cannot be null");
+        this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
     }
 
@@ -163,7 +165,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private String identifyRandomObjectRoot() {
-        try (var iter = fileSystem.iterateObjects()) {
+        try (var iter = storage.iterateObjects()) {
             if (iter.hasNext()) {
                 return iter.next();
             }
@@ -172,7 +174,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private String extractObjectId(String inventoryPath) {
-        try (var stream = fileSystem.read(inventoryPath)) {
+        try (var stream = storage.read(inventoryPath)) {
             var map = read(stream, Map.class);
             var id = map.get("id");
 
@@ -196,7 +198,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
         var layoutExtension = loadAndInitLayoutExtension(layoutConfig);
 
         try {
-            fileSystem.createDirectories("");
+            storage.createDirectories("");
             writeNamasteFile(ocflVersion);
             writeOcflSpec(ocflVersion);
             writeOcflLayout(layoutConfig, layoutExtension.getDescription());
@@ -206,7 +208,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository", e);
             try {
-                fileSystem.deleteDirectory("");
+                storage.deleteDirectory("");
             } catch (RuntimeException e1) {
                 LOG.error("Failed to cleanup OCFL repository root", e1);
             }
@@ -248,7 +250,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
     private void writeNamasteFile(OcflVersion ocflVersion) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
-        fileSystem.write(namasteFile.fileName(),
+        storage.write(namasteFile.fileName(),
                 namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
                 MEDIA_TYPE_TEXT);
     }
@@ -258,11 +260,11 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
                 .setExtension(layoutConfig.getExtensionName())
                 .setDescription(description);
         try {
-            fileSystem.write(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MEDIA_TYPE_JSON);
+            storage.write(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MEDIA_TYPE_JSON);
             if (layoutConfig.hasParameters()) {
-                fileSystem.createDirectories(FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR,
+                storage.createDirectories(FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR,
                         layoutConfig.getExtensionName()));
-                fileSystem.write(layoutConfigFile(layoutConfig.getExtensionName()),
+                storage.write(layoutConfigFile(layoutConfig.getExtensionName()),
                         objectMapper.writeValueAsBytes(layoutConfig), MEDIA_TYPE_JSON);
             }
         } catch (IOException e) {
@@ -283,7 +285,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private OcflLayout readOcflLayout() {
-        try (var stream = fileSystem.read(OcflConstants.OCFL_LAYOUT)) {
+        try (var stream = storage.read(OcflConstants.OCFL_LAYOUT)) {
             return read(stream, OcflLayout.class);
         } catch (OcflNoSuchFileException e) {
             return null;
@@ -293,7 +295,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private OcflExtensionConfig readLayoutConfig(OcflLayout ocflLayout, Class<? extends OcflExtensionConfig> clazz) {
-        try (var stream = fileSystem.read(layoutConfigFile(ocflLayout.getExtension()))) {
+        try (var stream = storage.read(layoutConfigFile(ocflLayout.getExtension()))) {
             return read(stream, clazz);
         } catch (OcflNoSuchFileException e) {
             // No config found, create default config object
@@ -327,7 +329,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
     private void writeStream(String remotePath, InputStream stream) {
         try {
-            fileSystem.write(remotePath, stream.readAllBytes(), MEDIA_TYPE_TEXT);
+            storage.write(remotePath, stream.readAllBytes(), MEDIA_TYPE_TEXT);
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
@@ -335,7 +337,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
     private List<Listing> list(String path) {
         try {
-            return fileSystem.listDirectory(path);
+            return storage.listDirectory(path);
         } catch (OcflNoSuchFileException e) {
             return Collections.emptyList();
         }
