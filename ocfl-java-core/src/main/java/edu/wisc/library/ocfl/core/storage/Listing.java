@@ -81,6 +81,10 @@ public class Listing {
         return type == Type.Directory;
     }
 
+    public boolean isOther() {
+        return type == Type.Other;
+    }
+
     @Override
     public String toString() {
         return "Listing{" +

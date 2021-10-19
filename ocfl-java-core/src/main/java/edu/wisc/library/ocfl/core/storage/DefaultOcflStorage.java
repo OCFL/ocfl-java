@@ -211,10 +211,10 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
             } catch (OcflNoSuchFileException e2) {
                 // Ignore missing mutable head
             } catch (IOException e2) {
-                throw new OcflIOException(e2);
+                throw OcflIOException.from(e2);
             }
         } catch (IOException e) {
-            throw new OcflIOException(e);
+            throw OcflIOException.from(e);
         }
 
         throw new NotFoundException(String.format("No inventory could be found for object %s version %s", objectId, versionNum));
@@ -583,6 +583,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     @Override
     public void close() {
         LOG.debug("Closing " + this.getClass().getName());
+        super.close();
     }
 
     private void storeNewImmutableVersion(Inventory inventory, Path stagingDir) {
@@ -1014,7 +1015,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
                 } else if (file.getRelativePath().startsWith(OcflConstants.OBJECT_NAMASTE_PREFIX)) {
                     properties.setOcflVersion(OcflVersion.fromOcflObjectVersionFilename(file.getRelativePath()));
                 }
-            } else {
+            } else if (file.isDirectory()) {
                 if (OcflConstants.EXTENSIONS_DIR.equals(file.getRelativePath())) {
                     properties.setExtensions(true);
                 }
