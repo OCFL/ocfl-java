@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.core.storage;
 
+import edu.wisc.library.ocfl.api.OcflConstants;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -54,14 +56,6 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
      * @return true if path is an object root path
      */
     abstract protected boolean isObjectRoot(String path);
-
-    /**
-     * Returns true if the path should be skipped
-     *
-     * @param path directory path
-     * @return true if path should be skipped
-     */
-    abstract protected boolean shouldSkip(String path);
 
     /**
      * Creates an object to maintain directory state
@@ -150,6 +144,10 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
                 // ignore
             }
         }
+    }
+
+    private boolean shouldSkip(String path) {
+        return OcflConstants.EXTENSIONS_DIR.equals(path);
     }
 
     /**

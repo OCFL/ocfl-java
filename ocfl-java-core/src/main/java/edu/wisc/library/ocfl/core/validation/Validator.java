@@ -26,9 +26,9 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflConstants;
-import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
+import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
@@ -54,6 +54,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -142,7 +143,7 @@ public class Validator {
 
         // TODO figure out how to handle links
 
-        var files = fileSystem.listDirectory(objectRootPath);
+        var files = listFiles(objectRootPath);
 
         validateNamaste(objectRootPath, files, results);
 
@@ -249,7 +250,7 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
-        var files = fileSystem.listDirectory(versionPath);
+        var files = listFiles(versionPath);
 
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
@@ -306,7 +307,7 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
-        var files = fileSystem.listDirectory(versionPath);
+        var files = listFiles(versionPath);
 
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
@@ -488,7 +489,7 @@ public class Validator {
         inventory.getVersions().keySet().forEach(versionNum -> {
             var versionContentDir = FileUtil.pathJoinFailEmpty(versionNum, contentDir);
             var versionContentPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionContentDir);
-            var listings = fileSystem.listRecursive(versionContentPath);
+            var listings = listFilesRecursive(versionContentPath);
 
             listings.forEach(listing -> {
                 var fullPath = FileUtil.pathJoinIgnoreEmpty(versionContentPath, listing.getRelativePath());
@@ -561,7 +562,7 @@ public class Validator {
                                     storagePath, algorithm.getOcflName(), expected, actual);
                         }
                     });
-                } catch (NotFoundException e) {
+                } catch (OcflNoSuchFileException e) {
                     // Ignore this. We already reported missing files.
                 } catch (Exception e) {
                     results.addIssue(ValidationCode.E092,
@@ -578,7 +579,7 @@ public class Validator {
                                             Set<String> ignoreFiles,
                                             ValidationResultsBuilder results) {
         var contentDirPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr, contentDir);
-        if (files.contains(Listing.directory(contentDir)) && fileSystem.listDirectory(contentDirPath).isEmpty()) {
+        if (files.contains(Listing.directory(contentDir)) && listFiles(contentDirPath).isEmpty()) {
             results.addIssue(ValidationCode.W003,
                     "Version content directory exists at %s, but is empty.", contentDirPath);
         }
@@ -709,7 +710,7 @@ public class Validator {
 
     private void validateExtensionContents(String objectRootPath, ValidationResultsBuilder results) {
         var dir = FileUtil.pathJoinFailEmpty(objectRootPath, OcflConstants.EXTENSIONS_DIR);
-        var files = fileSystem.listDirectory(dir);
+        var files = listFiles(dir);
 
         for (var file : files) {
             if (file.isFile()) {
@@ -841,6 +842,22 @@ public class Validator {
         }
 
         return new ValidationIssue(code, message);
+    }
+
+    private List<Listing> listFiles(String path) {
+        try {
+            return fileSystem.listDirectory(path);
+        } catch (OcflNoSuchFileException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<Listing> listFilesRecursive(String path) {
+        try {
+            return fileSystem.listRecursive(path);
+        } catch (OcflNoSuchFileException e) {
+            return Collections.emptyList();
+        }
     }
 
     private static class ParseResult {

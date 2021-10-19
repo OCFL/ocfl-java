@@ -482,7 +482,12 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
 
         LOG.debug("Copying <{}> to <{}>", versionRootPath, outputPath);
 
-        fileSystem.copyDirectoryOutOf(versionRootPath, outputPath);
+        try {
+            fileSystem.copyDirectoryOutOf(versionRootPath, outputPath);
+        } catch (OcflNoSuchFileException e) {
+            throw new NotFoundException(String.format("Object %s version %s was not found.",
+                    objectVersionId.getObjectId(), objectVersionId.getVersionNum()), e);
+        }
     }
 
     /**
@@ -500,7 +505,11 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
 
         LOG.debug("Copying <{}> to <{}>", objectRootPath, outputPath);
 
-        fileSystem.copyDirectoryOutOf(objectRootPath, outputPath);
+        try {
+            fileSystem.copyDirectoryOutOf(objectRootPath, outputPath);
+        } catch (OcflNoSuchFileException e) {
+            throw new NotFoundException(String.format("Object %s was not found.", objectId), e);
+        }
     }
 
     /**
@@ -514,7 +523,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
 
         LOG.debug("Importing <{}> to <{}>", objectId, objectRootPath);
 
-        fileSystem.createDirectories(objectRootPath);
+        fileSystem.createDirectories(FileUtil.parentPath(objectRootPath));
 
         try {
             fileSystem.moveDirectoryInto(objectPath, objectRootPath);
@@ -762,6 +771,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         var rootSidecarPath = ObjectPaths.inventorySidecarPath(inventory.getObjectRootPath(), inventory);
         var sidecarName = rootSidecarPath.substring(rootSidecarPath.lastIndexOf('/') + 1);
         var destination = FileUtil.pathJoinFailEmpty(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()), "root-" + sidecarName);
+        fileSystem.createDirectories(ObjectPaths.mutableHeadExtensionRoot(inventory.getObjectRootPath()));
         fileSystem.copyFileInternal(rootSidecarPath, destination);
     }
 
@@ -882,12 +892,21 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
 
     private void deleteMutableHeadFilesNotInManifest(Inventory inventory) {
         // TODO see about not constructing the same paths so many times
-        var files = fileSystem.listRecursive(ObjectPaths.mutableHeadContentPath(inventory));
+
+        List<Listing> files;
+
+        try {
+            files = fileSystem.listRecursive(ObjectPaths.mutableHeadContentPath(inventory));
+        } catch (OcflNoSuchFileException e) {
+            files = Collections.emptyList();
+        }
+
         var prefix = FileUtil.pathJoinFailEmpty(OcflConstants.MUTABLE_HEAD_VERSION_PATH, inventory.resolveContentDirectory());
 
         var toDelete = files.stream().filter(Listing::isFile)
                 .map(file -> FileUtil.pathJoinFailEmpty(prefix, file.getRelativePath()))
                 .filter(contentPath -> inventory.getFileId(contentPath) == null)
+                .map(file -> FileUtil.pathJoinFailEmpty(inventory.getObjectRootPath(), file))
                 .collect(Collectors.toList());
 
         fileSystem.deleteFiles(toDelete);

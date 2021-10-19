@@ -32,6 +32,12 @@ public class OcflFileAlreadyExistsException extends OcflIOException {
     private final Exception cause;
     private final boolean hasMessage;
 
+    public OcflFileAlreadyExistsException(String message) {
+        super(message);
+        this.cause = null;
+        this.hasMessage = true;
+    }
+
     public OcflFileAlreadyExistsException(Exception cause) {
         super(cause);
         this.cause = cause;
@@ -46,7 +52,7 @@ public class OcflFileAlreadyExistsException extends OcflIOException {
 
     @Override
     public String getMessage() {
-        if (hasMessage) {
+        if (hasMessage || cause == null) {
             return super.getMessage();
         }
         return cause.getClass().getSimpleName() + ": " + cause.getMessage();

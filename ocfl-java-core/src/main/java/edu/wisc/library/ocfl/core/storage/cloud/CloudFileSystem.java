@@ -25,6 +25,7 @@
 package edu.wisc.library.ocfl.core.storage.cloud;
 
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
+import edu.wisc.library.ocfl.api.exception.OcflFileAlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
@@ -139,7 +140,7 @@ public class CloudFileSystem implements FileSystem {
 
     @Override
     public void write(String filePath, byte[] content, String mediaType) {
-        // TODO fail on existing
+        failOnExistingFile(filePath);
         client.uploadBytes(filePath, content, mediaType);
     }
 
@@ -151,6 +152,11 @@ public class CloudFileSystem implements FileSystem {
     @Override
     public void copyDirectoryOutOf(String source, Path outputPath) {
         var objects = client.list(withTrailingSlash(source)).getObjects();
+
+        if (objects.isEmpty()) {
+            throw new OcflNoSuchFileException(String.format("Directory %s does not exist", source));
+        }
+
         objects.forEach(object -> {
             var destination = outputPath.resolve(object.getKeySuffix());
 
@@ -171,12 +177,16 @@ public class CloudFileSystem implements FileSystem {
 
     @Override
     public void copyFileInternal(String sourceFile, String destinationFile) {
-        client.copyObject(sourceFile, destinationFile);
+        try {
+            client.copyObject(sourceFile, destinationFile);
+        } catch (KeyNotFoundException e) {
+            throw new OcflNoSuchFileException(String.format("%s was not found", sourceFile), e);
+        }
     }
 
     @Override
     public void moveDirectoryInto(Path source, String destination) {
-        // TODO fail on existing
+        failOnExistingDir(destination);
 
         var objectKeys = Collections.synchronizedList(new ArrayList<String>());
 
@@ -199,10 +209,12 @@ public class CloudFileSystem implements FileSystem {
 
     @Override
     public void moveDirectoryInternal(String source, String destination) {
-        // TODO fail on existing
+        failOnExistingDir(destination);
 
         var files = listRecursive(source);
-        var objectKeys = new ArrayList<String>();
+
+        var srcKeys = new ArrayList<String>();
+        var dstKeys = new ArrayList<String>();
 
         try {
             for (var file : files) {
@@ -210,13 +222,16 @@ public class CloudFileSystem implements FileSystem {
                     var srcFile = FileUtil.pathJoinIgnoreEmpty(source, file.getRelativePath());
                     var dstFile = FileUtil.pathJoinIgnoreEmpty(destination, file.getRelativePath());
                     client.copyObject(srcFile, dstFile);
-                    objectKeys.add(dstFile);
+                    srcKeys.add(srcFile);
+                    dstKeys.add(dstFile);
                 }
             }
         } catch (RuntimeException e) {
-            client.safeDeleteObjects(objectKeys);
+            client.safeDeleteObjects(dstKeys);
             throw e;
         }
+
+        client.safeDeleteObjects(srcKeys);
     }
 
     @Override
@@ -242,6 +257,21 @@ public class CloudFileSystem implements FileSystem {
     @Override
     public void deleteEmptyDirsUp(String path) {
         // no-op
+    }
+
+    private void failOnExistingFile(String path) {
+        if (fileExists(path)) {
+            throw new OcflFileAlreadyExistsException(String.format("File %s already exists", path));
+        }
+    }
+
+    private void failOnExistingDir(String path) {
+        try {
+            listDirectory(path);
+            throw new OcflFileAlreadyExistsException(String.format("Directory %s already exists", path));
+        } catch (OcflNoSuchFileException e) {
+            // this is good -- dir does not exist
+        }
     }
 
     private String withTrailingSlash(String value) {

@@ -223,8 +223,8 @@ public class FileSystemOcflStorage extends AbstractOcflStorage {
         LOG.debug("List object ids");
 
         return findOcflObjectRootDirs(repositoryRoot).map(rootPath -> {
-            var relativeRootStr = FileUtil.pathToStringStandardSeparator(repositoryRoot.relativize(rootPath));
-            var inventoryPath = ObjectPaths.inventoryPath(rootPath);
+            var relativeRootStr = FileUtil.pathToStringStandardSeparator(repositoryRoot.resolve(rootPath));
+            var inventoryPath = ObjectPaths.inventoryPath(repositoryRoot.resolve(rootPath));
             var inventory = inventoryMapper.readNoDigest(relativeRootStr, inventoryPath);
             return inventory.getId();
         });

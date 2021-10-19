@@ -26,7 +26,6 @@ public interface FileSystem {
      * @return list of children
      * @throws OcflNoSuchFileException when the directory does not exist
      */
-    // TODO make sure not found is being handled
     List<Listing> listDirectory(String directoryPath);
 
     /**
@@ -104,6 +103,7 @@ public interface FileSystem {
      *
      * @param source internal source to copy
      * @param destination external destination
+     * @throws OcflNoSuchFileException when the source does not exist
      */
     void copyDirectoryOutOf(String source, Path destination);
 
@@ -123,6 +123,7 @@ public interface FileSystem {
      *
      * @param sourceFile internal file to copy
      * @param destinationFile internal destination
+     * @throws OcflNoSuchFileException when the source does not exist
      */
     void copyFileInternal(String sourceFile, String destinationFile);
 
@@ -141,6 +142,7 @@ public interface FileSystem {
      * @param source internal source directory
      * @param destination internal destination
      * @throws OcflFileAlreadyExistsException when the destination already exists
+     * @throws OcflNoSuchFileException when the source does not exist
      */
     void moveDirectoryInternal(String source, String destination);
 

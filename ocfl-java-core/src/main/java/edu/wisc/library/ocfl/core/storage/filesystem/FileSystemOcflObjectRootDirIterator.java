@@ -24,7 +24,6 @@
 
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
@@ -34,7 +33,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Iterator;
 
 import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
@@ -58,11 +56,6 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
-    }
-
-    @Override
-    protected boolean shouldSkip(String path) {
-        return root.resolve(root).getFileName().toString().equals(OcflConstants.EXTENSIONS_DIR);
     }
 
     @Override
