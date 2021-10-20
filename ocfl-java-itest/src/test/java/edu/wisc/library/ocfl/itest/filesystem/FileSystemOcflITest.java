@@ -166,8 +166,7 @@ public class FileSystemOcflITest extends OcflITest {
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .fileSystem(repoDir)
-                        .build())
+                        .fileSystem(repoDir))
                 .workDir(workDir);
 
         consumer.accept(builder);

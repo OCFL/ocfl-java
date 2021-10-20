@@ -204,8 +204,7 @@ public class S3OcflITest extends OcflITest {
                 .contentPathConstraints(ContentPathConstraints.cloud())
                 .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloud(createCloudClient(name))
-                        .build())
+                        .cloud(createCloudClient(name)))
                 .workDir(workDir);
 
         consumer.accept(builder);

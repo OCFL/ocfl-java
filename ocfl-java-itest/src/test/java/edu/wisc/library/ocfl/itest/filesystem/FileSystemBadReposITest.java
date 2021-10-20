@@ -16,8 +16,7 @@ public class FileSystemBadReposITest extends BadReposITest {
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .fileSystem(repoDir(name))
-                        .build())
+                        .fileSystem(repoDir(name)))
                 .workDir(workDir)
                 .buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53Z");
