@@ -27,11 +27,12 @@ package edu.wisc.library.ocfl.core.storage.filesystem;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.OcflFileAlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.storage.common.Listing;
 import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +112,7 @@ public class FileSystemStorage implements Storage {
 
                 @Override
                 public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    if (FileUtil.isDirEmpty(dir)) {
+                    if (FileUtil.isDirEmpty(dir) && !dir.equals(fullPath)) {
                         listings.add(createListing(Listing.Type.Directory, dir));
                     }
                     return super.postVisitDirectory(dir, exc);
@@ -263,6 +264,10 @@ public class FileSystemStorage implements Storage {
         var dstPath = storageRoot.resolve(destination);
         try {
             FileUtil.moveDirectory(srcPath, dstPath);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Source must exist")) {
+                throw new OcflNoSuchFileException(String.format("Directory %s does not exist", source));
+            }
         } catch (FileAlreadyExistsException e) {
             throw new OcflFileAlreadyExistsException(e);
         }

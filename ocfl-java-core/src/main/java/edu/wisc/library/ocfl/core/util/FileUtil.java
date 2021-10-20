@@ -226,6 +226,8 @@ public final class FileUtil {
             files.filter(f -> Files.isDirectory(f, LinkOption.NOFOLLOW_LINKS))
                     .filter(f -> !f.equals(root))
                     .forEach(FileUtil::deleteDirIfEmpty);
+        } catch (NoSuchFileException e) {
+            // ignore
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }
