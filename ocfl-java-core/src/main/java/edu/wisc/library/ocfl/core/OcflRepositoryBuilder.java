@@ -116,6 +116,12 @@ public class OcflRepositoryBuilder {
         return this;
     }
 
+    /**
+     * Configure the storage layer the repository should use. Required.
+     *
+     * @param configureStorage storage configurer
+     * @return builder
+     */
     public OcflRepositoryBuilder storage(Consumer<OcflStorageBuilder> configureStorage) {
         var builder = OcflStorageBuilder.builder();
         configureStorage.accept(builder);

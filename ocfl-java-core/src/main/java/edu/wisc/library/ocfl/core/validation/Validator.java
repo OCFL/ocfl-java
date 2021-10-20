@@ -73,10 +73,6 @@ import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS
  */
 public class Validator {
 
-    // TODO listDirectory behavior change when does not exist
-    // TODO listing type Other
-    // TODO notfound exception changed
-
     private static final Logger LOG = LoggerFactory.getLogger(Validator.class);
 
     private static final String OBJECT_NAMASTE_CONTENTS = OcflVersion.OCFL_1_0.getOcflObjectVersion() + "\n";
@@ -140,8 +136,6 @@ public class Validator {
         Enforce.notBlank(objectRootPath, "objectRootPath cannot be blank");
 
         var results = new ValidationResultsBuilder();
-
-        // TODO figure out how to handle links
 
         var files = listFiles(objectRootPath);
 
@@ -595,9 +589,13 @@ public class Validator {
                 results.addIssue(ValidationCode.E015,
                         "Version directory %s in %s contains an unexpected file %s",
                         versionStr, objectRootPath, fileName);
-            } else {
+            } else if (file.isDirectory()) {
                 results.addIssue(ValidationCode.W002,
                         "Version directory %s in %s contains an unexpected directory %s",
+                        versionStr, objectRootPath, fileName);
+            } else {
+                results.addIssue(ValidationCode.E090,
+                        "Version directory %s in %s contains an illegal file %s",
                         versionStr, objectRootPath, fileName);
             }
         }
@@ -665,22 +663,22 @@ public class Validator {
             }
 
             if (Objects.equals(OcflConstants.LOGS_DIR, fileName)) {
-                if (file.isFile()) {
+                if (!file.isDirectory()) {
                     results.addIssue(ValidationCode.E001,
                             "Object logs directory at %s/logs must be a directory",
                             objectRootPath);
                 }
             } else if (Objects.equals(OcflConstants.EXTENSIONS_DIR, fileName)) {
-                if (file.isFile()) {
+                if (file.isDirectory()) {
+                    validateExtensionContents(objectRootPath, results);
+                } else {
                     results.addIssue(ValidationCode.E001,
                             "Object extensions directory at %s/extensions must be a directory",
                             objectRootPath);
-                } else {
-                    validateExtensionContents(objectRootPath, results);
                 }
             } else {
                 var versionNum = parseVersionNum(fileName);
-                if (versionNum != null && file.isFile()) {
+                if (versionNum != null && !file.isDirectory()) {
                     results.addIssue(ValidationCode.E001,
                             "Object root %s contains version %s but it is a file and must be a directory",
                             objectRootPath);
@@ -713,13 +711,15 @@ public class Validator {
         var files = listFiles(dir);
 
         for (var file : files) {
-            if (file.isFile()) {
+            if (file.isDirectory()) {
+                if (!REGISTERED_EXTENSIONS.contains(file.getRelativePath())) {
+                    results.addIssue(ValidationCode.W013,
+                            "Object extensions directory %s contains unregistered extension %s",
+                            dir, file.getRelativePath());
+                }
+            } else {
                 results.addIssue(ValidationCode.E067,
                         "Object extensions directory %s cannot contain file %s",
-                        dir, file.getRelativePath());
-            } else if (!REGISTERED_EXTENSIONS.contains(file.getRelativePath())) {
-                results.addIssue(ValidationCode.W013,
-                        "Object extensions directory %s contains unregistered extension %s",
                         dir, file.getRelativePath());
             }
         }

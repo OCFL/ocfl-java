@@ -32,7 +32,6 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-// TODO review docs
 /**
  * Iterator that iterates over OCFL object root directories. Object roots are identified by the presence of a file that's
  * prefixed with '0=ocfl_object'.
@@ -155,7 +154,10 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
      */
     protected interface Directory extends Closeable {
         /**
-         * @return path to next child directory
+         * Returns the path to the directory's next child relative the storage root. Forward slashes MUST be used
+         * as path separators. If the directory has no more children, then null is returned.
+         *
+         * @return path to next child directory or null
          */
         String nextChildDirectory();
     }

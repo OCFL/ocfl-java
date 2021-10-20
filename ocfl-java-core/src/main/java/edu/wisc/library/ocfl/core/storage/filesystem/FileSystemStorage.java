@@ -52,7 +52,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// TODO
+/**
+ * Storage abstraction over the local filesystem
+ */
 public class FileSystemStorage implements Storage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemStorage.class);
@@ -63,6 +65,9 @@ public class FileSystemStorage implements Storage {
         this.storageRoot = Enforce.notNull(storageRoot, "storageRoot cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Listing> listDirectory(String directoryPath) {
         var fullPath = storageRoot.resolve(directoryPath);
@@ -83,6 +88,9 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Listing> listRecursive(String directoryPath) {
         var fullPath = storageRoot.resolve(directoryPath);
@@ -121,16 +129,25 @@ public class FileSystemStorage implements Storage {
         return listings;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectRootDirIterator iterateObjects() {
         return new FileSystemOcflObjectRootDirIterator(storageRoot);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean fileExists(String filePath) {
         return Files.exists(storageRoot.resolve(filePath));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public InputStream read(String filePath) {
         try {
@@ -140,6 +157,9 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String readToString(String filePath) {
         try {
@@ -149,12 +169,18 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflFileRetriever readLazy(String filePath, DigestAlgorithm algorithm, String digest) {
         var fullPath = storageRoot.resolve(filePath);
         return new FileSystemOcflFileRetriever(fullPath, algorithm, digest);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void write(String filePath, byte[] content, String mediaType) {
         var fullPath = storageRoot.resolve(filePath);
@@ -166,6 +192,9 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void createDirectories(String path) {
         var fullPath = storageRoot.resolve(path);
@@ -176,12 +205,18 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void copyDirectoryOutOf(String source, Path destination) {
         var fullPath = storageRoot.resolve(source);
         FileUtil.recursiveCopy(fullPath, destination);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void copyFileInto(Path source, String destination, String mediaType) {
         var dstPath = storageRoot.resolve(destination);
@@ -192,6 +227,9 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void copyFileInternal(String sourceFile, String destinationFile) {
         var srcPath = storageRoot.resolve(sourceFile);
@@ -203,6 +241,9 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void moveDirectoryInto(Path source, String destination) {
         var dstPath = storageRoot.resolve(destination);
@@ -213,6 +254,9 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void moveDirectoryInternal(String source, String destination) {
         var srcPath = storageRoot.resolve(source);
@@ -224,12 +268,18 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteDirectory(String path) {
         var fullPath = storageRoot.resolve(path);
         FileUtil.deleteDirectory(fullPath);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteFile(String path) {
         var fullPath = storageRoot.resolve(path);
@@ -240,6 +290,9 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteFiles(Collection<String> paths) {
         var failed = new ArrayList<>();
@@ -258,12 +311,18 @@ public class FileSystemStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteEmptyDirsDown(String path) {
         var fullPath = storageRoot.resolve(path);
         FileUtil.deleteEmptyDirs(fullPath);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteEmptyDirsUp(String path) {
         var fullPath = storageRoot.resolve(path);

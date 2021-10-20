@@ -48,7 +48,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-// TODO
+/**
+ * Storage abstraction over cloud storage providers.
+ */
 public class CloudStorage implements Storage {
 
     private static final Logger LOG = LoggerFactory.getLogger(CloudStorage.class);
@@ -61,6 +63,9 @@ public class CloudStorage implements Storage {
         this.fileRetrieverBuilder = CloudOcflFileRetriever.builder().cloudClient(client);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Listing> listDirectory(String directoryPath) {
         var listings = new ArrayList<Listing>();
@@ -79,7 +84,9 @@ public class CloudStorage implements Storage {
 
         return listings;
     }
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Listing> listRecursive(String directoryPath) {
         var listings = new ArrayList<Listing>();
@@ -100,11 +107,17 @@ public class CloudStorage implements Storage {
         return listings;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflObjectRootDirIterator iterateObjects() {
         return new CloudOcflObjectRootDirIterator(client);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean fileExists(String filePath) {
         try {
@@ -115,6 +128,9 @@ public class CloudStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public InputStream read(String filePath) {
         try {
@@ -124,6 +140,9 @@ public class CloudStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String readToString(String filePath) {
         try {
@@ -133,22 +152,34 @@ public class CloudStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflFileRetriever readLazy(String filePath, DigestAlgorithm algorithm, String digest) {
         return fileRetrieverBuilder.build(filePath, algorithm, digest);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void write(String filePath, byte[] content, String mediaType) {
         failOnExistingFile(filePath);
         client.uploadBytes(filePath, content, mediaType);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void createDirectories(String path) {
         // no-op
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void copyDirectoryOutOf(String source, Path outputPath) {
         var objects = client.list(withTrailingSlash(source)).getObjects();
@@ -170,11 +201,17 @@ public class CloudStorage implements Storage {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void copyFileInto(Path source, String destination, String mediaType) {
         client.uploadFile(source, destination, mediaType);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void copyFileInternal(String sourceFile, String destinationFile) {
         try {
@@ -184,6 +221,9 @@ public class CloudStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void moveDirectoryInto(Path source, String destination) {
         failOnExistingDir(destination);
@@ -207,6 +247,9 @@ public class CloudStorage implements Storage {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void moveDirectoryInternal(String source, String destination) {
         failOnExistingDir(destination);
@@ -234,26 +277,41 @@ public class CloudStorage implements Storage {
         client.safeDeleteObjects(srcKeys);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteDirectory(String path) {
         client.deletePath(path);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteFile(String path) {
         client.deleteObjects(List.of(path));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteFiles(Collection<String> paths) {
         client.deleteObjects(paths);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteEmptyDirsDown(String path) {
         // no-op
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void deleteEmptyDirsUp(String path) {
         // no-op

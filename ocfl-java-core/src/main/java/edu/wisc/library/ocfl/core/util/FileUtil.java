@@ -466,7 +466,13 @@ public final class FileUtil {
         return pathBuilder.toString();
     }
 
-    // TODO
+    /**
+     * Returns the path to the parent of the specified path, using forward slashes as path separators. If the path
+     * has no parent, then an empty string is returned.
+     *
+     * @param path path
+     * @return the path's parent
+     */
     public static String parentPath(String path) {
         var lastIndex = path.lastIndexOf('/');
         if (lastIndex > -1) {

@@ -34,10 +34,9 @@ import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.nio.file.Path;
 
-// TODO docs
 /**
- * Builder for constructing S3OcflStorage objects. It is configured with sensible defaults and can minimally be
- * used as {@code new S3OcflStorageBuilder().s3Client(s3Client).workDir(workDir).build(bucketName).}
+ * Builder for constructing {@link OcflStorage} objects. It is configured with sensible defaults and can minimally be
+ * used as {@code OcflStorageBuilder.builder().fileSystem(storageRoot).build()}.
  */
 public class OcflStorageBuilder {
 
@@ -55,17 +54,37 @@ public class OcflStorageBuilder {
         this.verifyInventoryDigest = true;
     }
 
-    // TODO
+    /**
+     * Set the storage implementation to use. This method, {@link #fileSystem(Path)}, or {@link #cloud(CloudClient)}
+     * must be used.
+     *
+     * @param storage storage implementation
+     * @return builder
+     */
     public OcflStorageBuilder storage(Storage storage) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         return this;
     }
 
+    /**
+     * Configure local filesystem based storage implementation. This method, {@link #storage(Storage)}, or {@link #cloud(CloudClient)}
+     * must be used.
+     *
+     * @param storageRoot path to the OCFL storage root directory
+     * @return builder
+     */
     public OcflStorageBuilder fileSystem(Path storageRoot) {
         this.storage = new FileSystemStorage(storageRoot);
         return this;
     }
 
+    /**
+     * Configure cloud based storage implementation. This method, {@link #storage(Storage)}, or {@link #fileSystem(Path)}
+     * must be used.
+     *
+     * @param cloudClient client to use to connect to the cloud storage
+     * @return builder
+     */
     public OcflStorageBuilder cloud(CloudClient cloudClient) {
         this.storage = new CloudStorage(cloudClient);
         return this;
@@ -106,6 +125,9 @@ public class OcflStorageBuilder {
     }
 
     /**
+     * Creates a {@link OcflStorage} object. One of {@link #storage(Storage)}, {@link #fileSystem(Path)}, or {@link #cloud(CloudClient)}
+     * must be called before calling this method.
+     *
      * @return a new {@link OcflStorage} object
      */
     public OcflStorage build() {

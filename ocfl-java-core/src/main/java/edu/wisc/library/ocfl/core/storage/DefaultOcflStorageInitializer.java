@@ -54,10 +54,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-// TODO docs
 /**
- * Initializes an OCFL repository in cloud storage. If the repository does not already exist, a new one is created. If it
- * does exist, the client configuration is verified and {@link OcflStorageLayoutExtension} is created.
+ * Initializes an OCFL repository. If the repository does not already exist, a new one is created. If it
+ * does exist, the client configuration is verified and a {@link OcflStorageLayoutExtension} is created.
  */
 public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
@@ -77,11 +76,16 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public OcflStorageLayoutExtension initializeStorage(OcflVersion ocflVersion,
                                                         OcflExtensionConfig layoutConfig,
                                                         ExtensionSupportEvaluator supportEvaluator) {
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
+        // TODO ocflVersion should be optional for existing repositories and it should verify that ocfl-java supports
+        //      whatever version it finds on disk
 
         OcflStorageLayoutExtension layoutExtension;
 

@@ -84,10 +84,10 @@ import java.util.stream.StreamSupport;
 
 import static edu.wisc.library.ocfl.api.OcflConstants.INVENTORY_SIDECAR_PREFIX;
 
-// TODO
+/**
+ * Implements the core logic for manipulating OCFL objects.
+ */
 public class DefaultOcflStorage extends AbstractOcflStorage {
-
-    // TODO listing type Other
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflStorage.class);
 

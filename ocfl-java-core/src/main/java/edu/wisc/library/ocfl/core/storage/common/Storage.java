@@ -10,8 +10,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 
-// TODO docs
-
 /**
  * Abstraction over any storage implementation. Paths are represented as strings because forward-slashes MUST
  * be used as path separators. All paths into and out of implementations of this interface are required to use
@@ -20,7 +18,7 @@ import java.util.List;
 public interface Storage {
 
     /**
-     * Return a list of all of the files and directories contained in the specified directory.
+     * Return a list of all files and directories contained in the specified directory.
      *
      * @param directoryPath the path to the directory to list
      * @return list of children
@@ -29,8 +27,8 @@ public interface Storage {
     List<Listing> listDirectory(String directoryPath);
 
     /**
-     * Return a list of all of the leaf-node descendents of the specified directory. Intermediary directories are
-     * not returned.
+     * Return a list of all leaf-node descendents of the specified directory, this includes empty leaf-node directories.
+     * Intermediary directories are not returned.
      *
      * @param directoryPath the path to the directory to list
      * @return list of children
@@ -72,7 +70,7 @@ public interface Storage {
     String readToString(String filePath);
 
     /**
-     * Returns an {@link OcflFileRetriever} that can be used to read the specified file at a later time.
+     * Return an {@link OcflFileRetriever} that can be used to read the specified file at a later time.
      *
      * @param filePath path to the file
      * @param algorithm digest algorithm used to calculate the digest
@@ -154,7 +152,7 @@ public interface Storage {
     void deleteDirectory(String path);
 
     /**
-     * Delete the specified file.
+     * Delete the specified file
      *
      * @param path file to delete
      */
