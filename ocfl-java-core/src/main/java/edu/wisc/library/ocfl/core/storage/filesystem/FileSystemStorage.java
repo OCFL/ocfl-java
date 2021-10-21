@@ -163,8 +163,8 @@ public class FileSystemStorage implements Storage {
      */
     @Override
     public String readToString(String filePath) {
-        try {
-            return new String(read(filePath).readAllBytes());
+        try (var stream = read(filePath)) {
+            return new String(stream.readAllBytes());
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }

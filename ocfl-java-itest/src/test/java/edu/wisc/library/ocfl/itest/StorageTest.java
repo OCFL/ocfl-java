@@ -116,13 +116,13 @@ public abstract class StorageTest {
     }
 
     @Test
-    public void readFileContentWhenExists() {
+    public void readFileContentWhenExists() throws IOException {
         var content = "something1";
         file("f1.txt", content);
 
-        var stream = storage.read("f1.txt");
-
-        assertEquals(content, toString(stream));
+        try (var stream = storage.read("f1.txt")) {
+            assertEquals(content, toString(stream));
+        }
     }
 
     @Test
@@ -154,13 +154,15 @@ public abstract class StorageTest {
     }
 
     @Test
-    public void readFileLazyContentWhenExists() {
+    public void readFileLazyContentWhenExists() throws IOException {
         var content = "something3";
         file("f1.txt", content);
 
         var retriever = storage.readLazy("f1.txt", DigestAlgorithm.md5, "f57c22367d47ee55c920465e8f17dc70");
 
-        assertEquals(content, toString(retriever.retrieveFile()));
+        try (var stream = retriever.retrieveFile()) {
+            assertEquals(content, toString(stream));
+        }
     }
 
     @Test
