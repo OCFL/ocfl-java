@@ -103,6 +103,8 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
     /**
      * Sets the amount of time to wait for a row lock before timing out.
+     * Keep in mind that MariaDB actually uses seconds for timeout, make sure that you
+     * use at least 1000ms as input to the method and go up in 1 second increments.
      *
      * @param connection db connection
      * @param waitMillis time to wait for the lock in millis
