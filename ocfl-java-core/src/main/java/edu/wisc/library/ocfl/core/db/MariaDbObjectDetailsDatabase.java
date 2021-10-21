@@ -24,40 +24,27 @@
 
 package edu.wisc.library.ocfl.core.db;
 
-import edu.wisc.library.ocfl.api.exception.OcflDbException;
-import edu.wisc.library.ocfl.api.exception.OcflJavaException;
-
 import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
-/**
- * This enum describes the database types that the library supports out of the box.
- */
-public enum DbType {
+public class MariaDbObjectDetailsDatabase extends BaseObjectDetailsDatabase {
 
-    POSTGRES("PostgreSQL"),
-    MARIADB("MariaDB"),
-    H2("H2");
+    private static final String LOCK_FAIL_STATE = "HY000";
+    private static final String DUPLICATE_KEY_STATE = "23000";
 
-    private String productName;
-
-    DbType(String productName) {
-        this.productName = productName;
+    public MariaDbObjectDetailsDatabase(String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
+        super(tableName, dataSource, storeInventory, waitTime, timeUnit, LOCK_FAIL_STATE, DUPLICATE_KEY_STATE);
+        super.updateDetailsQuery = String.format("UPDATE %s SET" +
+                " version_id = ?, object_root_path = ?, revision_id = ?, inventory_digest = ?, digest_algorithm = ?," +
+                " inventory = ?, update_timestamp = ? WHERE object_id = ?", tableName);
     }
 
-    public static DbType fromDataSource(DataSource dataSource) {
-        try (var connection = dataSource.getConnection()) {
-            var productName = connection.getMetaData().getDatabaseProductName();
-
-            return Arrays.stream(values())
-                    .filter(v -> Objects.equals(v.productName, productName))
-                    .findFirst()
-                    .orElseThrow(() -> new OcflJavaException(String.format("%s is not mapped to a DbType.", productName)));
-        } catch (SQLException e) {
-            throw new OcflDbException(e);
+    protected void setLockWaitTimeout(Connection connection, long waitMillis) throws SQLException {
+        try (var statement = connection.prepareStatement(
+                String.format("SET innodb_lock_wait_timeout = %s", TimeUnit.MILLISECONDS.toSeconds(waitMillis)))) {
+            statement.executeUpdate();
         }
     }
-
 }

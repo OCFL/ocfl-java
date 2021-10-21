@@ -109,9 +109,12 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
 
         // Use lowercase of delimiter and objectId, per specification
         String id = objectId.toLowerCase();
-
         int index = id.lastIndexOf(delim);
-        String dir = objectId.substring(index + delim.length());
+        String dir = objectId;
+
+        if (index > -1) {
+            dir = objectId.substring(index + delim.length());
+        }
 
         if (OcflConstants.EXTENSIONS_DIR.equals(dir) || dir.isEmpty()) {
             throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +

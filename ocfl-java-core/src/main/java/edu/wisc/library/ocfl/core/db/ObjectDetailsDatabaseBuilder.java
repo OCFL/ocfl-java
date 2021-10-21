@@ -63,7 +63,7 @@ public class ObjectDetailsDatabaseBuilder {
     /**
      * Used to override the amount of time the client will wait to obtain a lock. Default: 10 seconds.
      *
-     * @param waitTime wait time
+     * @param waitTime wait time (MariaDB uses seconds, while PostgreSQL and H2 use milliseconds)
      * @param timeUnit unit of time
      * @return builder
      */
@@ -112,6 +112,9 @@ public class ObjectDetailsDatabaseBuilder {
         switch (dbType) {
             case POSTGRES:
                 database = new PostgresObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
+                break;
+            case MARIADB:
+                database = new MariaDbObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
             case H2:
                 database = new H2ObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);

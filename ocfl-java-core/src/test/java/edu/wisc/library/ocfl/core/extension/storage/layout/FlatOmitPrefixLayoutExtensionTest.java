@@ -112,4 +112,13 @@ public class FlatOmitPrefixLayoutExtensionTest {
         assertEquals("f8.05v", result);
     }
 
+    @Test
+    public void multiCharacterDelemiterNotFound() {
+        config.setDelimiter("edu/");
+        ext.init(config);
+
+        String result = ext.mapObjectId("https://institution.gov/abc/f8.05v");
+        assertEquals("https://institution.gov/abc/f8.05v", result);
+    }
+
 }

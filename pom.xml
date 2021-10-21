@@ -163,6 +163,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.2.0</version>
+                <configuration>
+                    <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -356,6 +359,11 @@
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
                 <version>1.4.200</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mariadb.jdbc</groupId>
+                <artifactId>mariadb-java-client</artifactId>
+                <version>2.7.4</version>
             </dependency>
             <dependency>
                 <groupId>com.mchange</groupId>

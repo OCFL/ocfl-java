@@ -254,8 +254,9 @@ var repo = new OcflRepositoryBuilder()
 
 If you use a database backed object lock or the object details
 database, then you'll need to setup a database for the client to
-connect to. Currently, only PostgreSQL >= 9.3 and H2 are supported.
-The client automatically creates the tables that it needs.
+connect to. Currently, PostgreSQL >= 9.3, MariaDB >= 10.2, and H2 
+are supported. The client automatically creates the tables that 
+it needs.
 
 ## Usage Considerations
 
