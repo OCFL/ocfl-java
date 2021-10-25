@@ -52,6 +52,7 @@ public class DbObjectLock implements ObjectLock {
 
     private static final Map<DbType, String> INSERT_EXCEPTION_TEXTS = Map.of(
             DbType.H2, "Unique index or primary key violation",
+            DbType.MARIADB, "Duplicate entry '%' for key 'PRIMARY'", // % will be replaced with objectId dynamically
             DbType.POSTGRES, "duplicate key value violates unique constraint"
     );
 
@@ -126,8 +127,9 @@ public class DbObjectLock implements ObjectLock {
             statement.executeUpdate();
             return true;
         } catch (SQLException e) {
-            if (e.getMessage() != null && e.getMessage().contains(insertExceptionText)) {
+            if (e.getMessage() != null && e.getMessage().contains(insertExceptionText.replace("%", objectId))) {
                 // this happens when there is already a lock entry for the object, but the lock could be expired
+                // call to "replace" done because MariaDB uses objectId in exception message, so it gets put in dynamically
                 return updateLockRow(objectId, timestamp, connection);
             }
             throw e;
