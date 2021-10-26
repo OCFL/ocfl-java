@@ -61,7 +61,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private final long waitMillis;
 
     private final String lockFailCode;
-    private final String duplicateKeyCode;
+    private final String concurrentInsertErrorCode;
 
     protected String selectDetailsQuery;
     protected String deleteDetailsQuery;
@@ -77,12 +77,12 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                                      long waitTime,
                                      TimeUnit timeUnit,
                                      String lockFailCode,
-                                     String duplicateKeyCode) {
+                                     String concurrentInsertErrorCode) {
         this.tableName = Enforce.notBlank(tableName, "tableName cannot be blank");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.storeInventory = storeInventory;
         this.lockFailCode = Enforce.notBlank(lockFailCode, "lockFailCode cannot be blank");
-        this.duplicateKeyCode = Enforce.notBlank(duplicateKeyCode, "duplicateKeyCode cannot be blank");
+        this.concurrentInsertErrorCode = Enforce.notBlank(concurrentInsertErrorCode, "duplicateKeyCode cannot be blank");
         this.waitMillis = timeUnit.toMillis(waitTime);
 
         this.selectDetailsQuery = String.format("SELECT" +
@@ -305,7 +305,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
             insertStatement.executeUpdate();
         } catch (SQLException e) {
-            if (duplicateKeyCode.equals(e.getSQLState())) {
+            if (concurrentInsertErrorCode.equals(e.getSQLState())) {
                 throw outOfSyncException(inventory.getId());
             }
             throw e;

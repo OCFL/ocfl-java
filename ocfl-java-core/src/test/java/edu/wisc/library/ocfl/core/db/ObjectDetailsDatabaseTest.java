@@ -527,11 +527,6 @@ public class ObjectDetailsDatabaseTest {
         });
 
         phaser.arriveAndAwaitAdvance();
-        try {
-            TimeUnit.MILLISECONDS.sleep(10);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         database.addObjectDetails(inventory, digest, invBytes);
 
         future.get();
@@ -565,11 +560,6 @@ public class ObjectDetailsDatabaseTest {
         });
         var future2 = executor.submit(() -> {
             phaser.arriveAndAwaitAdvance();
-            try {
-                TimeUnit.MILLISECONDS.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             database.addObjectDetails(inventory, digest, invBytes);
         });
 
