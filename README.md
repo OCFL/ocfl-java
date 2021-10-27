@@ -211,10 +211,10 @@ critical to use this feature. If you do want to use it, configure the
 `objectDetailsDb` on the `OcflRepositoryBuilder` as shown in the
 example below.
 
-Currently, the only supported databases are PostgreSQL and H2. The
-`ocfl-java` client populates the object details database on demand.
-There is no need to pre-populate it, and the table can safely be wiped
-anytime.
+Currently, the only supported databases are PostgreSQL, MariaDB, and
+H2. The `ocfl-java` client populates the object details database on
+demand. There is no need to pre-populate it, and the table can safely
+be wiped anytime.
 
 Note, the Amazon S3 storage implementation is significantly slower
 than the file system implementation. It will likely not perform well

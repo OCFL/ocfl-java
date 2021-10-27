@@ -62,13 +62,13 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
     private final String lockFailCode;
 
-    protected String selectDetailsQuery;
-    protected String deleteDetailsQuery;
-    protected String rowLockQuery;
-    protected String updateDetailsQuery;
-    protected String insertDetailsQuery;
-    protected String selectDigestQuery;
-    protected String deleteAllQuery;
+    private final String selectDetailsQuery;
+    private final String deleteDetailsQuery;
+    private final String rowLockQuery;
+    private final String updateDetailsQuery;
+    private final String insertDetailsQuery;
+    private final String selectDigestQuery;
+    private final String deleteAllQuery;
 
     public BaseObjectDetailsDatabase(String tableName,
                                      DataSource dataSource,
@@ -82,20 +82,13 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         this.lockFailCode = Enforce.notBlank(lockFailCode, "lockFailCode cannot be blank");
         this.waitMillis = timeUnit.toMillis(waitTime);
 
-        this.selectDetailsQuery = String.format("SELECT" +
-                " object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp" +
-                " FROM %s WHERE object_id = ?", tableName);
-        this.deleteDetailsQuery = String.format("DELETE FROM %s WHERE object_id = ?", tableName);
-        this.rowLockQuery = String.format("SELECT version_id, revision_id FROM %s WHERE object_id = ? FOR UPDATE", tableName);
-        this.updateDetailsQuery = String.format("UPDATE %s SET" +
-                " (version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
-                " = (?, ?, ?, ?, ?, ?, ?)" +
-                " WHERE object_id = ?", tableName);
-        this.insertDetailsQuery = String.format("INSERT INTO %s" +
-                " (object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", tableName);
-        this.selectDigestQuery = String.format("SELECT inventory_digest FROM %s WHERE object_id = ?", tableName);
-        this.deleteAllQuery = String.format("DELETE FROM %s", tableName);
+        this.selectDetailsQuery = selectDetailsQuery(tableName);
+        this.deleteDetailsQuery = deleteDetailsQuery(tableName);
+        this.rowLockQuery = rowLockQuery(tableName);
+        this.updateDetailsQuery = updateDetailsQuery(tableName);
+        this.insertDetailsQuery = insertDetailsQuery(tableName);
+        this.selectDigestQuery = selectDigestQuery(tableName);
+        this.deleteAllQuery = deleteAllQuery(tableName);
     }
 
     /**
@@ -110,7 +103,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     protected abstract void setLockWaitTimeout(Connection connection, long waitMillis) throws SQLException;
 
     /**
-     * Checks if given exception was thrown because of concurrent write issue or somethin else.
+     * Checks if given exception was thrown because of concurrent write issue or something else.
      * Check is performed by getting the SQL State Code from exception, but since each driver
      * and vendor uses their own codes, or even several codes this check needs to be driver specific.
      * H2 for example throws a "duplicate key" state code, while MariaDB can throw either "deadlock"
@@ -120,6 +113,83 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
      * @return true if exception occurred because of concurrent write, false for any other exception
      */
     protected abstract boolean isConcurrentWriteException(SQLException exception);
+
+    /**
+     * Constructs the query for selecting object details entries
+     *
+     * @param tableName the name of the object details table
+     * @return the query string
+     */
+    protected String selectDetailsQuery(String tableName) {
+        return String.format("SELECT" +
+                " object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp" +
+                " FROM %s WHERE object_id = ?", tableName);
+    }
+
+    /**
+     * Constructs the query for deleting object details entries
+     *
+     * @param tableName the name of the object details table
+     * @return the query string
+     */
+    protected String deleteDetailsQuery(String tableName) {
+        return String.format("DELETE FROM %s WHERE object_id = ?", tableName);
+    }
+
+    /**
+     * Constructs the query for locking object details entries
+     *
+     * @param tableName the name of the object details table
+     * @return the query string
+     */
+    protected String rowLockQuery(String tableName) {
+        return String.format("SELECT version_id, revision_id FROM %s WHERE object_id = ? FOR UPDATE", tableName);
+    }
+
+    /**
+     * Constructs the query for updating object details entries
+     *
+     * @param tableName the name of the object details table
+     * @return the query string
+     */
+    protected String updateDetailsQuery(String tableName) {
+        return String.format("UPDATE %s SET" +
+                " (version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
+                " = (?, ?, ?, ?, ?, ?, ?)" +
+                " WHERE object_id = ?", tableName);
+    }
+
+    /**
+     * Constructs the query for inserting object details entries
+     *
+     * @param tableName the name of the object details table
+     * @return the query string
+     */
+    protected String insertDetailsQuery(String tableName) {
+        return String.format("INSERT INTO %s" +
+                " (object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", tableName);
+    }
+
+    /**
+     * Constructs the query for selecting inventory digests
+     *
+     * @param tableName the name of the object details table
+     * @return the query string
+     */
+    protected String selectDigestQuery(String tableName) {
+        return String.format("SELECT inventory_digest FROM %s WHERE object_id = ?", tableName);
+    }
+
+    /**
+     * Constructs the query for deleting all object details entries
+     *
+     * @param tableName the name of the object details table
+     * @return the query string
+     */
+    protected String deleteAllQuery(String tableName) {
+        return String.format("DELETE FROM %s", tableName);
+    }
 
     /**
      * {@inheritDoc}
