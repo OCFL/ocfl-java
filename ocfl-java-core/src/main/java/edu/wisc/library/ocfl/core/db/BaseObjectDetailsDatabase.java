@@ -61,7 +61,6 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private final long waitMillis;
 
     private final String lockFailCode;
-    private final String concurrentInsertErrorCode;
 
     protected String selectDetailsQuery;
     protected String deleteDetailsQuery;
@@ -76,13 +75,11 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
                                      boolean storeInventory,
                                      long waitTime,
                                      TimeUnit timeUnit,
-                                     String lockFailCode,
-                                     String concurrentInsertErrorCode) {
+                                     String lockFailCode) {
         this.tableName = Enforce.notBlank(tableName, "tableName cannot be blank");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.storeInventory = storeInventory;
         this.lockFailCode = Enforce.notBlank(lockFailCode, "lockFailCode cannot be blank");
-        this.concurrentInsertErrorCode = Enforce.notBlank(concurrentInsertErrorCode, "duplicateKeyCode cannot be blank");
         this.waitMillis = timeUnit.toMillis(waitTime);
 
         this.selectDetailsQuery = String.format("SELECT" +
@@ -111,6 +108,18 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
      * @throws SQLException on sql error
      */
     protected abstract void setLockWaitTimeout(Connection connection, long waitMillis) throws SQLException;
+
+    /**
+     * Checks if given exception was thrown because of concurrent write issue or somethin else.
+     * Check is performed by getting the SQL State Code from exception, but since each driver
+     * and vendor uses their own codes, or even several codes this check needs to be driver specific.
+     * H2 for example throws a "duplicate key" state code, while MariaDB can throw either "deadlock"
+     * or "duplicate key" state codes.
+     *
+     * @param exception instance of an SQLException class to check
+     * @return true if exception occurred because of concurrent write, false for any other exception
+     */
+    protected abstract boolean isConcurrentWriteException(SQLException exception);
 
     /**
      * {@inheritDoc}
@@ -305,7 +314,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
             insertStatement.executeUpdate();
         } catch (SQLException e) {
-            if (concurrentInsertErrorCode.equals(e.getSQLState())) {
+            if (isConcurrentWriteException(e)) {
                 throw outOfSyncException(inventory.getId());
             }
             throw e;
