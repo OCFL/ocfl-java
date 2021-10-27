@@ -61,28 +61,25 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private final long waitMillis;
 
     private final String lockFailCode;
-    private final String duplicateKeyCode;
 
-    private final String selectDetailsQuery;
-    private final String deleteDetailsQuery;
-    private final String rowLockQuery;
-    private final String updateDetailsQuery;
-    private final String insertDetailsQuery;
-    private final String selectDigestQuery;
-    private final String deleteAllQuery;
+    protected String selectDetailsQuery;
+    protected String deleteDetailsQuery;
+    protected String rowLockQuery;
+    protected String updateDetailsQuery;
+    protected String insertDetailsQuery;
+    protected String selectDigestQuery;
+    protected String deleteAllQuery;
 
     public BaseObjectDetailsDatabase(String tableName,
                                      DataSource dataSource,
                                      boolean storeInventory,
                                      long waitTime,
                                      TimeUnit timeUnit,
-                                     String lockFailCode,
-                                     String duplicateKeyCode) {
+                                     String lockFailCode) {
         this.tableName = Enforce.notBlank(tableName, "tableName cannot be blank");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.storeInventory = storeInventory;
         this.lockFailCode = Enforce.notBlank(lockFailCode, "lockFailCode cannot be blank");
-        this.duplicateKeyCode = Enforce.notBlank(duplicateKeyCode, "duplicateKeyCode cannot be blank");
         this.waitMillis = timeUnit.toMillis(waitTime);
 
         this.selectDetailsQuery = String.format("SELECT" +
@@ -103,12 +100,26 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
     /**
      * Sets the amount of time to wait for a row lock before timing out.
+     * Keep in mind that MariaDB actually uses seconds for timeout, make sure that you
+     * use at least 1000ms as input to the method and go up in 1 second increments.
      *
      * @param connection db connection
      * @param waitMillis time to wait for the lock in millis
      * @throws SQLException on sql error
      */
     protected abstract void setLockWaitTimeout(Connection connection, long waitMillis) throws SQLException;
+
+    /**
+     * Checks if given exception was thrown because of concurrent write issue or somethin else.
+     * Check is performed by getting the SQL State Code from exception, but since each driver
+     * and vendor uses their own codes, or even several codes this check needs to be driver specific.
+     * H2 for example throws a "duplicate key" state code, while MariaDB can throw either "deadlock"
+     * or "duplicate key" state codes.
+     *
+     * @param exception instance of an SQLException class to check
+     * @return true if exception occurred because of concurrent write, false for any other exception
+     */
+    protected abstract boolean isConcurrentWriteException(SQLException exception);
 
     /**
      * {@inheritDoc}
@@ -303,7 +314,7 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
             insertStatement.executeUpdate();
         } catch (SQLException e) {
-            if (duplicateKeyCode.equals(e.getSQLState())) {
+            if (isConcurrentWriteException(e)) {
                 throw outOfSyncException(inventory.getId());
             }
             throw e;

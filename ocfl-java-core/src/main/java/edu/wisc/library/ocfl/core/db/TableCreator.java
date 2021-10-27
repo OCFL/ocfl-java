@@ -49,6 +49,7 @@ public class TableCreator {
 
     private final Map<DbType, String> dbScriptDir = Map.of(
             DbType.POSTGRES, "db/postgresql",
+            DbType.MARIADB, "db/mariadb",
             DbType.H2, "db/h2"
     );
 

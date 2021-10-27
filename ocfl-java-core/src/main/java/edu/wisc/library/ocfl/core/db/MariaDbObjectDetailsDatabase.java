@@ -30,13 +30,17 @@ import java.sql.SQLException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class H2ObjectDetailsDatabase extends BaseObjectDetailsDatabase {
+public class MariaDbObjectDetailsDatabase extends BaseObjectDetailsDatabase {
 
-    private static final String LOCK_FAIL_STATE = "HYT00";
-    private static final String DUPLICATE_KEY_STATE = "23505";
+    private static final String LOCK_FAIL_STATE = "HY000";
+    private static final String DEADLOCK_STATE = "40001";
+    private static final String DUPLICATE_KEY_STATE = "23000";
 
-    public H2ObjectDetailsDatabase(String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
+    public MariaDbObjectDetailsDatabase(String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
         super(tableName, dataSource, storeInventory, waitTime, timeUnit, LOCK_FAIL_STATE);
+        super.updateDetailsQuery = String.format("UPDATE %s SET" +
+                " version_id = ?, object_root_path = ?, revision_id = ?, inventory_digest = ?, digest_algorithm = ?," +
+                " inventory = ?, update_timestamp = ? WHERE object_id = ?", tableName);
     }
 
     /**
@@ -44,7 +48,8 @@ public class H2ObjectDetailsDatabase extends BaseObjectDetailsDatabase {
      */
     @Override
     protected void setLockWaitTimeout(Connection connection, long waitMillis) throws SQLException {
-        try (var statement = connection.prepareStatement(String.format("SET LOCK_TIMEOUT %s", waitMillis))) {
+        try (var statement = connection.prepareStatement(
+                String.format("SET innodb_lock_wait_timeout = %s", TimeUnit.MILLISECONDS.toSeconds(waitMillis)))) {
             statement.executeUpdate();
         }
     }
@@ -54,7 +59,7 @@ public class H2ObjectDetailsDatabase extends BaseObjectDetailsDatabase {
      */
     @Override
     protected boolean isConcurrentWriteException(SQLException exception) {
-        return Objects.equals(exception.getSQLState(), DUPLICATE_KEY_STATE);
+        return Objects.equals(exception.getSQLState(), DEADLOCK_STATE)
+                || Objects.equals(exception.getSQLState(), DUPLICATE_KEY_STATE);
     }
-
 }

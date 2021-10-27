@@ -510,7 +510,7 @@ public class ObjectDetailsDatabaseTest {
     @Test
     public void shouldSucceedWhenConcurrentAddAndSameDigest() throws InterruptedException, ExecutionException {
         database = new ObjectDetailsDatabaseBuilder()
-                .waitTime(500, TimeUnit.MILLISECONDS)
+                .waitTime(1000, TimeUnit.MILLISECONDS)
                 .dataSource(dataSource)
                 .tableName(tableName)
                 .build();
@@ -527,7 +527,6 @@ public class ObjectDetailsDatabaseTest {
         });
 
         phaser.arriveAndAwaitAdvance();
-
         database.addObjectDetails(inventory, digest, invBytes);
 
         future.get();
