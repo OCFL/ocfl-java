@@ -50,10 +50,10 @@ public class DbObjectLock implements ObjectLock {
 
     private static final Logger LOG = LoggerFactory.getLogger(DbObjectLock.class);
 
-    private static final Map<DbType, String> INSERT_EXCEPTION_TEXTS = Map.of(
-            DbType.H2, "Unique index or primary key violation",
-            DbType.MARIADB, "Duplicate entry '%' for key 'PRIMARY'", // % will be replaced with objectId dynamically
-            DbType.POSTGRES, "duplicate key value violates unique constraint"
+    private static final Map<DbType, String> DUPLICATE_STATE_CODES = Map.of(
+            DbType.H2, "23505",
+            DbType.MARIADB, "23000",
+            DbType.POSTGRES, "23505"
     );
 
     private final String tableName;
@@ -64,7 +64,7 @@ public class DbObjectLock implements ObjectLock {
     private final String updateRowLockQuery;
     private final String deleteRowLockQuery;
 
-    private final String insertExceptionText;
+    private final String duplicateStateCode;
 
     public DbObjectLock(DbType dbType, String tableName, DataSource dataSource, Duration maxLockDuration) {
         Enforce.notNull(dbType, "dbType cannot be null");
@@ -72,7 +72,7 @@ public class DbObjectLock implements ObjectLock {
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.lockDuration = Enforce.notNull(maxLockDuration, "maxLockDuration cannot be null");
 
-        this.insertExceptionText = Enforce.notBlank(INSERT_EXCEPTION_TEXTS.get(dbType), "insert exception text cannot be blank");
+        this.duplicateStateCode = Enforce.notBlank(DUPLICATE_STATE_CODES.get(dbType), "duplicate state code cannot be blank");
 
         this.createRowLockQuery = String.format("INSERT INTO %s (object_id, acquired_timestamp) VALUES (?, ?)", tableName);
         this.updateRowLockQuery = String.format("UPDATE %s SET acquired_timestamp = ? WHERE object_id = ? AND acquired_timestamp <= ?", tableName);
@@ -127,9 +127,8 @@ public class DbObjectLock implements ObjectLock {
             statement.executeUpdate();
             return true;
         } catch (SQLException e) {
-            if (e.getMessage() != null && e.getMessage().contains(insertExceptionText.replace("%", objectId))) {
+            if (duplicateStateCode.equals(e.getSQLState())) {
                 // this happens when there is already a lock entry for the object, but the lock could be expired
-                // call to "replace" done because MariaDB uses objectId in exception message, so it gets put in dynamically
                 return updateLockRow(objectId, timestamp, connection);
             }
             throw e;

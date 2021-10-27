@@ -38,7 +38,11 @@ public class MariaDbObjectDetailsDatabase extends BaseObjectDetailsDatabase {
 
     public MariaDbObjectDetailsDatabase(String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
         super(tableName, dataSource, storeInventory, waitTime, timeUnit, LOCK_FAIL_STATE);
-        super.updateDetailsQuery = String.format("UPDATE %s SET" +
+    }
+
+    @Override
+    protected String updateDetailsQuery(String tableName) {
+        return String.format("UPDATE %s SET" +
                 " version_id = ?, object_root_path = ?, revision_id = ?, inventory_digest = ?, digest_algorithm = ?," +
                 " inventory = ?, update_timestamp = ? WHERE object_id = ?", tableName);
     }
