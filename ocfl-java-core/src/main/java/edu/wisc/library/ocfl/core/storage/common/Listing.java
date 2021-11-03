@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.validation.storage;
+package edu.wisc.library.ocfl.core.storage.common;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 
@@ -36,17 +36,41 @@ public class Listing {
     public enum Type {
         Directory,
         File,
+        Other,
     }
 
     private final Type type;
     private final String relativePath;
 
+    /**
+     * Creates a file listing. The path MUST use forward slashes as path separators.
+     *
+     * @param relativePath relative path to the file
+     * @return file listing
+     */
     public static Listing file(String relativePath) {
         return new Listing(Type.File, relativePath);
     }
 
+    /**
+     * Creates a directory listing. The path MUST use forward slashes as path separators.
+     *
+     * @param relativePath relative path to the directory
+     * @return directory listing
+     */
     public static Listing directory(String relativePath) {
         return new Listing(Type.Directory, relativePath);
+    }
+
+    /**
+     * Creates a listing for a file that is neither a regular file nor directory, such as a symbolic link.
+     * The path MUST use forward slashes as path separators.
+     *
+     * @param relativePath relative path to the file
+     * @return file listing
+     */
+    public static Listing other(String relativePath) {
+        return new Listing(Type.Other, relativePath);
     }
 
     public Listing(Type type, String relativePath) {
@@ -74,6 +98,10 @@ public class Listing {
 
     public boolean isDirectory() {
         return type == Type.Directory;
+    }
+
+    public boolean isOther() {
+        return type == Type.Other;
     }
 
     @Override

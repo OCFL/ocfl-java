@@ -24,9 +24,8 @@
 
 package edu.wisc.library.ocfl.core.storage.cloud;
 
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.storage.OcflObjectRootDirIterator;
+import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 
 import java.util.Iterator;
@@ -38,13 +37,9 @@ import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
  */
 public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
 
-    private static final String EXT_SUFFIX = "/" + OcflConstants.EXTENSIONS_DIR;
-    private static final String EXT_PREFIX = OcflConstants.EXTENSIONS_DIR + "/";
-
     private final CloudClient cloudClient;
 
-    public CloudOcflObjectRootDirIterator(String start, CloudClient cloudClient) {
-        super(start);
+    public CloudOcflObjectRootDirIterator(CloudClient cloudClient) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
     }
 
@@ -52,11 +47,6 @@ public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
     protected boolean isObjectRoot(String path) {
         var listResult = cloudClient.list(FileUtil.pathJoinFailEmpty(path, OBJECT_NAMASTE_PREFIX));
         return !listResult.getObjects().isEmpty();
-    }
-
-    @Override
-    protected boolean shouldSkip(String path) {
-        return path.endsWith(EXT_SUFFIX) || EXT_PREFIX.equals(path);
     }
 
     @Override
@@ -76,7 +66,9 @@ public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
         @Override
         public String nextChildDirectory() {
             if (childDirectories.hasNext()) {
-                return childDirectories.next().getPath();
+                // the path will have a trailing `/`
+                var path = childDirectories.next().getPath();
+                return path.substring(0, path.length() - 1);
             }
             return null;
         }

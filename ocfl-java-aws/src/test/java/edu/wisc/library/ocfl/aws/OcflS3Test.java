@@ -9,7 +9,6 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -215,9 +214,9 @@ public class OcflS3Test {
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .prettyPrintJson()
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .storage(CloudOcflStorage.builder()
-                        .cloudClient(cloudClient)
-                        .build())
+                .storage(storage -> {
+                    storage.cloud(cloudClient);
+                })
                 .workDir(tempDir)
                 .buildMutable();
     }

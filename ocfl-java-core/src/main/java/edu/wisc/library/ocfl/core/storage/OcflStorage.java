@@ -36,7 +36,6 @@ import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -48,7 +47,7 @@ import java.util.stream.Stream;
  *
  * <p>{@link #initializeStorage} MUST be called before the object may be used.
  *
- * @see FileSystemOcflStorage
+ * @see DefaultOcflStorage
  */
 public interface OcflStorage {
 

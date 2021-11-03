@@ -52,10 +52,7 @@ import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.CachingOcflStorage;
 import edu.wisc.library.ocfl.core.storage.ObjectDetailsDbOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorageBuilder;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorageBuilder;
+import edu.wisc.library.ocfl.core.storage.OcflStorageBuilder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,26 +117,13 @@ public class OcflRepositoryBuilder {
     }
 
     /**
-     * Configures the repository to use file system based storage.
+     * Configure the storage layer the repository should use. Required.
      *
-     * @param configureStorage configure the storage settings
+     * @param configureStorage storage configurer
      * @return builder
      */
-    public OcflRepositoryBuilder fileSystemStorage(Consumer<FileSystemOcflStorageBuilder> configureStorage) {
-        var builder = FileSystemOcflStorage.builder();
-        configureStorage.accept(builder);
-        this.storage = builder.build();
-        return this;
-    }
-
-    /**
-     * Configures the repository to use Cloud based storage.
-     *
-     * @param configureStorage configure the storage settings
-     * @return builder
-     */
-    public OcflRepositoryBuilder cloudStorage(Consumer<CloudOcflStorageBuilder> configureStorage) {
-        var builder = CloudOcflStorage.builder();
+    public OcflRepositoryBuilder storage(Consumer<OcflStorageBuilder> configureStorage) {
+        var builder = OcflStorageBuilder.builder();
         configureStorage.accept(builder);
         this.storage = builder.build();
         return this;

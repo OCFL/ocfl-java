@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.storage;
+package edu.wisc.library.ocfl.core.storage.common;
 
-import edu.wisc.library.ocfl.api.util.Enforce;
+import edu.wisc.library.ocfl.api.OcflConstants;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -38,15 +38,13 @@ import java.util.NoSuchElementException;
  */
 public abstract class OcflObjectRootDirIterator implements Iterator<String>, Closeable {
 
-    private final String start;
     private boolean started = false;
     private boolean closed = false;
 
     private final ArrayDeque<Directory> dirStack;
     private String next;
 
-    public OcflObjectRootDirIterator(String start) {
-        this.start = Enforce.notNull(start, "start cannot be null");
+    public OcflObjectRootDirIterator() {
         this.dirStack = new ArrayDeque<>();
     }
 
@@ -57,14 +55,6 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
      * @return true if path is an object root path
      */
     abstract protected boolean isObjectRoot(String path);
-
-    /**
-     * Returns true if the path should be skipped
-     *
-     * @param path directory path
-     * @return true if path should be skipped
-     */
-    abstract protected boolean shouldSkip(String path);
 
     /**
      * Creates an object to maintain directory state
@@ -124,7 +114,7 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
 
     private String fetchNextDirectory() {
         if (!started) {
-            dirStack.push(createDirectory(start));
+            dirStack.push(createDirectory(""));
             started = true;
         }
 
@@ -155,12 +145,19 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
         }
     }
 
+    private boolean shouldSkip(String path) {
+        return OcflConstants.EXTENSIONS_DIR.equals(path);
+    }
+
     /**
      * Encapsulates a directory for iterating over its children
      */
     protected interface Directory extends Closeable {
         /**
-         * @return path to next child directory
+         * Returns the path to the directory's next child relative the storage root. Forward slashes MUST be used
+         * as path separators. If the directory has no more children, then null is returned.
+         *
+         * @return path to next child directory or null
          */
         String nextChildDirectory();
     }

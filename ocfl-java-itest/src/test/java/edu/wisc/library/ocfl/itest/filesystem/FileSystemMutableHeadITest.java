@@ -39,10 +39,9 @@ public class FileSystemMutableHeadITest extends MutableHeadITest {
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .fileSystemStorage(storage -> storage
+                .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .repositoryRoot(repoDir)
-                        .build())
+                        .fileSystem(repoDir))
                 .workDir(workDir);
 
         consumer.accept(builder);

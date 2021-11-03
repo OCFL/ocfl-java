@@ -22,13 +22,15 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.storage.cloud;
+package edu.wisc.library.ocfl.core.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
+import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -38,6 +40,8 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflLayout;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
+import edu.wisc.library.ocfl.core.storage.common.Listing;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import org.slf4j.Logger;
@@ -46,45 +50,46 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
 
 /**
- * Initializes an OCFL repository in cloud storage. If the repository does not already exist, a new one is created. If it
- * does exist, the client configuration is verified and {@link OcflStorageLayoutExtension} is created.
+ * Initializes an OCFL repository. If the repository does not already exist, a new one is created. If it
+ * does exist, the client configuration is verified and a {@link OcflStorageLayoutExtension} is created.
  */
-public class CloudOcflStorageInitializer {
+public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CloudOcflStorageInitializer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflStorageInitializer.class);
 
     private static final String SPECS_DIR = "ocfl-specs/";
     private static final String EXT_SPEC = "ocfl_extensions_1.0.md";
     private static final String MEDIA_TYPE_TEXT = "text/plain; charset=UTF-8";
     private static final String MEDIA_TYPE_JSON = "application/json; charset=UTF-8";
 
-    private final CloudClient cloudClient;
+    private final Storage storage;
     private final ObjectMapper objectMapper;
 
-    public CloudOcflStorageInitializer(CloudClient cloudClient,
-                                       ObjectMapper objectMapper) {
-        this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
+    public DefaultOcflStorageInitializer(Storage storage,
+                                         ObjectMapper objectMapper) {
+        this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public OcflStorageLayoutExtension initializeStorage(OcflVersion ocflVersion,
                                                         OcflExtensionConfig layoutConfig,
                                                         ExtensionSupportEvaluator supportEvaluator) {
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
-
-        ensureBucketExists();
+        // TODO ocflVersion should be optional for existing repositories and it should verify that ocfl-java supports
+        //      whatever version it finds on disk
 
         OcflStorageLayoutExtension layoutExtension;
 
-        if (listRootObjects().isEmpty()) {
+        if (list("").isEmpty()) {
             layoutExtension = initNewRepo(ocflVersion, layoutConfig);
         } else {
             layoutExtension = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
@@ -98,7 +103,8 @@ public class CloudOcflStorageInitializer {
         return layoutExtension;
     }
 
-    private OcflStorageLayoutExtension loadAndValidateExistingRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    private OcflStorageLayoutExtension loadAndValidateExistingRepo(OcflVersion ocflVersion,
+                                                                   OcflExtensionConfig layoutConfig) {
         validateOcflVersion(ocflVersion);
 
         var ocflLayout = readOcflLayout();
@@ -114,19 +120,16 @@ public class CloudOcflStorageInitializer {
     }
 
     private void validateOcflVersion(OcflVersion ocflVersion) {
-        OcflVersion existingOcflVersion = null;
+        var existingOcflVersion = list("").stream()
+                .filter(Listing::isFile)
+                .map(Listing::getRelativePath)
+                .filter(file -> file.startsWith("0="))
+                .map(OcflVersion::fromOcflVersionFilename)
+                .findFirst();
 
-        for (var file : listRootObjects()) {
-            var path = file.getPath();
-            if (path.startsWith("0=")) {
-                existingOcflVersion = OcflVersion.fromOcflVersionFilename(path);
-                break;
-            }
-        }
-
-        if (existingOcflVersion == null) {
+        if (existingOcflVersion.isEmpty()) {
             throw new RepositoryConfigurationException("OCFL root is missing its namaste file, eg. 0=ocfl_1.0.");
-        } else if (existingOcflVersion != ocflVersion) {
+        } else if (existingOcflVersion.get() != ocflVersion) {
             throw new RepositoryConfigurationException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
                     ocflVersion, existingOcflVersion));
         }
@@ -141,14 +144,12 @@ public class CloudOcflStorageInitializer {
 
     private OcflStorageLayoutExtension validateLayoutByInspection(OcflExtensionConfig layoutConfig) {
         if (layoutConfig == null) {
-            throw new RepositoryConfigurationException(String.format(
-                    "No storage layout configuration is defined in the OCFL repository in bucket %s. Layout must be configured programmatically.",
-                    cloudClient.bucket()));
+            throw new RepositoryConfigurationException(
+                    "No storage layout configuration is defined in the OCFL repository. Layout must be configured programmatically.");
         }
 
         var layoutExtension = loadAndInitLayoutExtension(layoutConfig);
-
-        var objectRoot = identifyRandomObjectRoot("");
+        var objectRoot = identifyRandomObjectRoot();
 
         if (objectRoot != null) {
             var objectId = extractObjectId(ObjectPaths.inventoryPath(objectRoot));
@@ -167,28 +168,17 @@ public class CloudOcflStorageInitializer {
         return layoutExtension;
     }
 
-    private String identifyRandomObjectRoot(String prefix) {
-        var response = cloudClient.listDirectory(prefix);
-
-        for (var object : response.getObjects()) {
-            if (object.getKeySuffix().startsWith(OBJECT_NAMASTE_PREFIX)) {
-                var path = object.getKey().getPath();
-                return (String) path.subSequence(0, path.lastIndexOf('/'));
+    private String identifyRandomObjectRoot() {
+        try (var iter = storage.iterateObjects()) {
+            if (iter.hasNext()) {
+                return iter.next();
             }
+            return null;
         }
-
-        for (var dir : response.getDirectories()) {
-            var root = identifyRandomObjectRoot(dir.getPath());
-            if (root != null) {
-                return root;
-            }
-        }
-
-        return null;
     }
 
     private String extractObjectId(String inventoryPath) {
-        try (var stream = cloudClient.downloadStream(inventoryPath)) {
+        try (var stream = storage.read(inventoryPath)) {
             var map = read(stream, Map.class);
             var id = map.get("id");
 
@@ -198,87 +188,89 @@ public class CloudOcflStorageInitializer {
 
             return (String) id;
         } catch (IOException e) {
-            throw new OcflIOException(e);
-        } catch (KeyNotFoundException e) {
-            // TODO if there's not root inventory should we look for the inventory in the latest version directory?
-            throw new CorruptObjectException(String.format("Missing inventory at %s in bucket %s", inventoryPath, cloudClient.bucket()));
+            throw OcflIOException.from(e);
+        } catch (OcflNoSuchFileException e) {
+            throw new CorruptObjectException(String.format("Missing inventory at %s", inventoryPath));
         }
     }
 
     private OcflStorageLayoutExtension initNewRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
         Enforce.notNull(layoutConfig, "layoutConfig cannot be null when initializing a new repo");
 
-        LOG.info("Initializing new OCFL repository in the bucket <{}> prefix <{}>", cloudClient.bucket(), cloudClient.prefix());
+        LOG.info("Initializing new OCFL repository");
 
         var layoutExtension = loadAndInitLayoutExtension(layoutConfig);
 
-        var keys = new ArrayList<String>();
-
         try {
-            keys.add(writeNamasteFile(ocflVersion));
-            keys.add(writeOcflSpec(ocflVersion));
-            keys.addAll(writeOcflLayout(layoutConfig, layoutExtension.getDescription()));
-            keys.add(writeOcflLayoutSpec(layoutConfig));
-            keys.add(writeSpecFile(this.getClass().getClassLoader(), EXT_SPEC));
+            storage.createDirectories("");
+            writeNamasteFile(ocflVersion);
+            writeOcflSpec(ocflVersion);
+            writeOcflLayout(layoutConfig, layoutExtension.getDescription());
+            writeOcflLayoutSpec(layoutConfig);
+            writeSpecFile(this.getClass().getClassLoader(), EXT_SPEC);
             return layoutExtension;
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository", e);
-            cloudClient.safeDeleteObjects(keys);
+            try {
+                storage.deleteDirectory("");
+            } catch (RuntimeException e1) {
+                LOG.error("Failed to cleanup OCFL repository root", e1);
+            }
             throw e;
         }
     }
 
     private void loadRepositoryExtensions(ExtensionSupportEvaluator supportEvaluator) {
         // Currently, this just ensures that the repository does not use any extensions that ocfl-java does not support
-        var listResults = cloudClient.listDirectory(OcflConstants.EXTENSIONS_DIR);
-        listResults.getDirectories().forEach(dir -> {
-            supportEvaluator.checkSupport(dir.getName());
-        });
+        list(OcflConstants.EXTENSIONS_DIR).stream()
+                .filter(Listing::isDirectory).forEach(dir -> {
+                    supportEvaluator.checkSupport(dir.getRelativePath());
+                });
     }
 
-    private String writeOcflSpec(OcflVersion ocflVersion) {
-        return writeSpecFile(this.getClass().getClassLoader(), ocflVersion.getOcflVersion() + ".txt");
+    private void writeOcflSpec(OcflVersion ocflVersion) {
+        writeSpecFile(this.getClass().getClassLoader(), ocflVersion.getOcflVersion() + ".txt");
     }
 
-    private String writeOcflLayoutSpec(OcflExtensionConfig layoutConfig) {
+    private void writeOcflLayoutSpec(OcflExtensionConfig layoutConfig) {
         try {
-            return writeSpecFile(layoutConfig.getClass().getClassLoader(), layoutConfig.getExtensionName() + ".md");
+            writeSpecFile(layoutConfig.getClass().getClassLoader(), layoutConfig.getExtensionName() + ".md");
         } catch (RuntimeException e) {
             LOG.warn("Failed to write spec file for layout extension {}", layoutConfig.getExtensionName(), e);
-            return null;
         }
     }
 
-    private String writeSpecFile(ClassLoader classLoader, String fileName) {
+    private void writeSpecFile(ClassLoader classLoader, String fileName) {
         try (var stream = classLoader.getResourceAsStream(SPECS_DIR + fileName)) {
             if (stream != null) {
-                return uploadStream(fileName, stream).getPath();
+                writeStream(fileName, stream);
             } else {
-                throw new RuntimeException("No spec file found for " + fileName);
+                throw new OcflJavaException("No spec file found for " + fileName);
             }
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
     }
 
-    private String writeNamasteFile(OcflVersion ocflVersion) {
+    private void writeNamasteFile(OcflVersion ocflVersion) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
-        return cloudClient.uploadBytes(namasteFile.fileName(), namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
-                MEDIA_TYPE_TEXT).getPath();
+        storage.write(namasteFile.fileName(),
+                namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
+                MEDIA_TYPE_TEXT);
     }
 
-    private List<String> writeOcflLayout(OcflExtensionConfig layoutConfig, String description) {
-        var keys = new ArrayList<String>();
+    private void writeOcflLayout(OcflExtensionConfig layoutConfig, String description) {
         var spec = new OcflLayout()
                 .setExtension(layoutConfig.getExtensionName())
                 .setDescription(description);
         try {
-            keys.add(cloudClient.uploadBytes(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MEDIA_TYPE_JSON).getPath());
+            storage.write(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MEDIA_TYPE_JSON);
             if (layoutConfig.hasParameters()) {
-                keys.add(cloudClient.uploadBytes(layoutConfigFile(layoutConfig.getExtensionName()),
-                        objectMapper.writeValueAsBytes(layoutConfig), MEDIA_TYPE_JSON).getPath());
+                storage.createDirectories(FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR,
+                        layoutConfig.getExtensionName()));
+                storage.write(layoutConfigFile(layoutConfig.getExtensionName()),
+                        objectMapper.writeValueAsBytes(layoutConfig), MEDIA_TYPE_JSON);
             }
-            return keys;
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
@@ -297,9 +289,9 @@ public class CloudOcflStorageInitializer {
     }
 
     private OcflLayout readOcflLayout() {
-        try (var stream = cloudClient.downloadStream(OcflConstants.OCFL_LAYOUT)) {
+        try (var stream = storage.read(OcflConstants.OCFL_LAYOUT)) {
             return read(stream, OcflLayout.class);
-        } catch (KeyNotFoundException e) {
+        } catch (OcflNoSuchFileException e) {
             return null;
         } catch (IOException e) {
             throw new OcflIOException(e);
@@ -307,9 +299,9 @@ public class CloudOcflStorageInitializer {
     }
 
     private OcflExtensionConfig readLayoutConfig(OcflLayout ocflLayout, Class<? extends OcflExtensionConfig> clazz) {
-        try (var stream = cloudClient.downloadStream(layoutConfigFile(ocflLayout.getExtension()))) {
+        try (var stream = storage.read(layoutConfigFile(ocflLayout.getExtension()))) {
             return read(stream, clazz);
-        } catch (KeyNotFoundException e) {
+        } catch (OcflNoSuchFileException e) {
             // No config found, create default config object
             return initClass(clazz);
         } catch (IOException e) {
@@ -339,24 +331,20 @@ public class CloudOcflStorageInitializer {
         }
     }
 
-    private void ensureBucketExists() {
-        if (!cloudClient.bucketExists()) {
-            throw new RepositoryConfigurationException(String.format("Bucket %s does not exist or is not accessible.", cloudClient.bucket()));
-        }
-    }
-
-    private CloudObjectKey uploadStream(String remotePath, InputStream stream) {
+    private void writeStream(String remotePath, InputStream stream) {
         try {
-            return cloudClient.uploadBytes(remotePath, stream.readAllBytes(), MEDIA_TYPE_TEXT);
+            storage.write(remotePath, stream.readAllBytes(), MEDIA_TYPE_TEXT);
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
     }
 
-    private List<CloudObjectKey> listRootObjects() {
-        return cloudClient.listDirectory("").getObjects().stream()
-                .map(ListResult.ObjectListing::getKey)
-                .collect(Collectors.toList());
+    private List<Listing> list(String path) {
+        try {
+            return storage.listDirectory(path);
+        } catch (OcflNoSuchFileException e) {
+            return Collections.emptyList();
+        }
     }
 
 }

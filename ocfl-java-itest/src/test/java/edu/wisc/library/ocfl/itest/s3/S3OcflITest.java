@@ -202,10 +202,9 @@ public class S3OcflITest extends OcflITest {
                 .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .cloudStorage(cloud -> cloud
+                .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloudClient(createCloudClient(name))
-                        .build())
+                        .cloud(createCloudClient(name)))
                 .workDir(workDir);
 
         consumer.accept(builder);

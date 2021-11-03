@@ -24,22 +24,27 @@
 
 package edu.wisc.library.ocfl.api.exception;
 
-import java.io.IOException;
-
 /**
  * This exception is a wrapper around NoSuchFileException and FileNotFoundException
  */
 public class OcflNoSuchFileException extends OcflIOException {
 
-    private IOException cause;
-    private boolean hasMessage = false;
+    private final Exception cause;
+    private final boolean hasMessage;
 
-    public OcflNoSuchFileException(IOException cause) {
-        super(cause);
-        this.cause = cause;
+    public OcflNoSuchFileException(String message) {
+        super(message);
+        this.cause = null;
+        this.hasMessage = true;
     }
 
-    public OcflNoSuchFileException(String message, IOException cause) {
+    public OcflNoSuchFileException(Exception cause) {
+        super(cause);
+        this.cause = cause;
+        this.hasMessage = false;
+    }
+
+    public OcflNoSuchFileException(String message, Exception cause) {
         super(message, cause);
         this.cause = cause;
         this.hasMessage = true;
@@ -47,7 +52,7 @@ public class OcflNoSuchFileException extends OcflIOException {
 
     @Override
     public String getMessage() {
-        if (hasMessage) {
+        if (hasMessage || cause == null) {
             return super.getMessage();
         }
         return cause.getClass().getSimpleName() + ": " + cause.getMessage();

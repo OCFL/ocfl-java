@@ -39,7 +39,7 @@ var workDir = Paths.get("ocfl-work"); // This directory is used to assemble OCFL
 
 var repo = new OcflRepositoryBuilder()
         .defaultLayoutConfig(new HashedNTupleLayoutConfig())
-        .fileSystemStorage(storage -> storage.repositoryRoot(repoDir))
+        .storage(storage -> storage.fileSystem(repoDir))
         .workDir(workDir)
         .build();
 
@@ -74,8 +74,7 @@ OCFL repository that supports the [mutable HEAD extension](https://ocfl.github.i
 ### Required Properties
 
 * **storage**: Sets the storage layer implementation that the OCFL
-repository should use. Use `FileSystemOcflStorage.builder()` or
-`CloudOcflStorage.builder()` to create the `OcflStorage`
+repository should use. Use `OcflStorageBuilder.builder()` to create an
 implementation.
 * **workDir**: Sets the path to the directory that is used to assemble
 OCFL versions. If you are using filesystem storage, it is critical
@@ -160,11 +159,10 @@ storage root.
 
 ### Configuration
 
-Use `FileSystemOcflStorage.builder()` to create and configure an
+Use `OcflStorageBuilder.builder()` to create and configure an
 `OcflStorage` instance.
 
-* **repositoryRoot**: Required, path to the OCFL storage root
-  directory.
+* **fileSystem**: Required, path to the OCFL storage root directory.
 * **verifyInventoryDigest**: Whether to verify inventory digests on
   read. Default: `true`.
 
@@ -173,7 +171,7 @@ Use `FileSystemOcflStorage.builder()` to create and configure an
 ```java
 var repo = new OcflRepositoryBuilder()
         .defaultLayoutConfig(new HashedTruncatedNTupleConfig())
-        .fileSystemStorage(storage -> storage.repositoryRoot(repoDir))
+        .storage(storage -> storage.fileSystem(repoDir))
         .workDir(workDir)
         .build();
 ```
@@ -224,11 +222,11 @@ from S3 on every access.
 
 ### Configuration
 
-Use `CloudOcflStorage.builder()` to create and configure an
+Use `OcflStorageBuilder.builder()` to create and configure an
 `OcflStorage` instance.
 
-* **cloudClient**: Required, sets the `CloudClient` implementation to
-  use. For Amazon S3, use `OcflS3Client.builder()`.
+* **cloud**: Required, sets the `CloudClient` implementation to use.
+  For Amazon S3, use `OcflS3Client.builder()`.
 * **verifyInventoryDigest**: Whether to verify inventory digests on
   read. Default: `true`.
 
@@ -240,8 +238,8 @@ var repo = new OcflRepositoryBuilder()
         .contentPathConstraints(ContentPathConstraints.cloud())
         .objectLock(lock -> lock.dataSource(dataSource))
         .objectDetailsDb(db -> db.dataSource(dataSource))
-        .cloudStorage(storage -> storage
-                .cloudClient(OcflS3Client.builder()
+        .storage(storage -> storage
+                .cloud(OcflS3Client.builder()
                         .s3Client(s3Client)
                         .bucket(name)
                         .repoPrefix(prefix)

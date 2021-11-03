@@ -26,9 +26,9 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflConstants;
-import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
+import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
@@ -40,12 +40,12 @@ import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
+import edu.wisc.library.ocfl.core.storage.common.Listing;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
-import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
-import edu.wisc.library.ocfl.core.validation.storage.Listing;
-import edu.wisc.library.ocfl.core.validation.storage.Storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +54,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,7 +92,7 @@ public class Validator {
             OcflConstants.INIT_EXT
     );
 
-    private final Storage storage;
+    private final Storage fileSystem;
     private final SimpleInventoryParser inventoryParser;
     private final SimpleInventoryValidator inventoryValidator;
 
@@ -118,8 +119,8 @@ public class Validator {
                 .validateInventory(inventoryPath.getFileName().toString());
     }
 
-    public Validator(Storage storage) {
-        this.storage = Enforce.notNull(storage, "storage cannot be null");
+    public Validator(Storage fileSystem) {
+        this.fileSystem = Enforce.notNull(fileSystem, "fileSystem cannot be null");
         this.inventoryParser = new SimpleInventoryParser();
         this.inventoryValidator = new SimpleInventoryValidator();
     }
@@ -136,9 +137,7 @@ public class Validator {
 
         var results = new ValidationResultsBuilder();
 
-        // TODO figure out how to handle links
-
-        var files = storage.listDirectory(objectRootPath, false);
+        var files = listFiles(objectRootPath);
 
         validateNamaste(objectRootPath, files, results);
 
@@ -166,7 +165,7 @@ public class Validator {
     public ValidationResults validateInventory(String inventoryPath) {
         Enforce.notBlank(inventoryPath, "inventoryPath cannot be blank");
 
-        if (!storage.fileExists(inventoryPath)) {
+        if (!fileSystem.fileExists(inventoryPath)) {
             throw new OcflInputException("No inventory found at: " + inventoryPath);
         }
 
@@ -245,7 +244,7 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
-        var files = storage.listDirectory(versionPath, false);
+        var files = listFiles(versionPath);
 
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
@@ -302,7 +301,7 @@ public class Validator {
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
 
-        var files = storage.listDirectory(versionPath, false);
+        var files = listFiles(versionPath);
 
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(contentDir);
@@ -484,7 +483,7 @@ public class Validator {
         inventory.getVersions().keySet().forEach(versionNum -> {
             var versionContentDir = FileUtil.pathJoinFailEmpty(versionNum, contentDir);
             var versionContentPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionContentDir);
-            var listings = storage.listDirectory(versionContentPath, true);
+            var listings = listFilesRecursive(versionContentPath);
 
             listings.forEach(listing -> {
                 var fullPath = FileUtil.pathJoinIgnoreEmpty(versionContentPath, listing.getRelativePath());
@@ -539,7 +538,7 @@ public class Validator {
                     expectations.putAll(fixityDigests);
                 }
 
-                try (var contentStream = storage.readFile(storagePath)) {
+                try (var contentStream = fileSystem.read(storagePath)) {
                     var wrapped = MultiDigestInputStream.create(contentStream, expectations.keySet());
 
                     while (wrapped.read() != -1) {
@@ -557,7 +556,7 @@ public class Validator {
                                     storagePath, algorithm.getOcflName(), expected, actual);
                         }
                     });
-                } catch (NotFoundException e) {
+                } catch (OcflNoSuchFileException e) {
                     // Ignore this. We already reported missing files.
                 } catch (Exception e) {
                     results.addIssue(ValidationCode.E092,
@@ -574,7 +573,7 @@ public class Validator {
                                             Set<String> ignoreFiles,
                                             ValidationResultsBuilder results) {
         var contentDirPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr, contentDir);
-        if (files.contains(Listing.directory(contentDir)) && storage.listDirectory(contentDirPath, false).isEmpty()) {
+        if (files.contains(Listing.directory(contentDir)) && listFiles(contentDirPath).isEmpty()) {
             results.addIssue(ValidationCode.W003,
                     "Version content directory exists at %s, but is empty.", contentDirPath);
         }
@@ -590,9 +589,13 @@ public class Validator {
                 results.addIssue(ValidationCode.E015,
                         "Version directory %s in %s contains an unexpected file %s",
                         versionStr, objectRootPath, fileName);
-            } else {
+            } else if (file.isDirectory()) {
                 results.addIssue(ValidationCode.W002,
                         "Version directory %s in %s contains an unexpected directory %s",
+                        versionStr, objectRootPath, fileName);
+            } else {
+                results.addIssue(ValidationCode.E090,
+                        "Version directory %s in %s contains an illegal file %s",
                         versionStr, objectRootPath, fileName);
             }
         }
@@ -603,7 +606,7 @@ public class Validator {
         var namasteFile = ObjectPaths.objectNamastePath(objectRootPath);
 
         if (files.contains(Listing.file(OcflConstants.OBJECT_NAMASTE_1_0))) {
-            try (var stream = storage.readFile(namasteFile)) {
+            try (var stream = fileSystem.read(namasteFile)) {
                 var contents = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
                 // TODO there are technically multiple different codes that could be used here
                 if (!OBJECT_NAMASTE_CONTENTS.equals(contents)) {
@@ -620,7 +623,7 @@ public class Validator {
     }
 
     private String validateInventorySidecar(String sidecarPath, ValidationResultsBuilder results) {
-        try (var stream = storage.readFile(sidecarPath)) {
+        try (var stream = fileSystem.read(sidecarPath)) {
             var parts = new String(stream.readAllBytes(), StandardCharsets.UTF_8).split("\\s+");
 
             if (parts.length != 2) {
@@ -660,22 +663,22 @@ public class Validator {
             }
 
             if (Objects.equals(OcflConstants.LOGS_DIR, fileName)) {
-                if (file.isFile()) {
+                if (!file.isDirectory()) {
                     results.addIssue(ValidationCode.E001,
                             "Object logs directory at %s/logs must be a directory",
                             objectRootPath);
                 }
             } else if (Objects.equals(OcflConstants.EXTENSIONS_DIR, fileName)) {
-                if (file.isFile()) {
+                if (file.isDirectory()) {
+                    validateExtensionContents(objectRootPath, results);
+                } else {
                     results.addIssue(ValidationCode.E001,
                             "Object extensions directory at %s/extensions must be a directory",
                             objectRootPath);
-                } else {
-                    validateExtensionContents(objectRootPath, results);
                 }
             } else {
                 var versionNum = parseVersionNum(fileName);
-                if (versionNum != null && file.isFile()) {
+                if (versionNum != null && !file.isDirectory()) {
                     results.addIssue(ValidationCode.E001,
                             "Object root %s contains version %s but it is a file and must be a directory",
                             objectRootPath);
@@ -705,16 +708,18 @@ public class Validator {
 
     private void validateExtensionContents(String objectRootPath, ValidationResultsBuilder results) {
         var dir = FileUtil.pathJoinFailEmpty(objectRootPath, OcflConstants.EXTENSIONS_DIR);
-        var files = storage.listDirectory(dir, false);
+        var files = listFiles(dir);
 
         for (var file : files) {
-            if (file.isFile()) {
+            if (file.isDirectory()) {
+                if (!REGISTERED_EXTENSIONS.contains(file.getRelativePath())) {
+                    results.addIssue(ValidationCode.W013,
+                            "Object extensions directory %s contains unregistered extension %s",
+                            dir, file.getRelativePath());
+                }
+            } else {
                 results.addIssue(ValidationCode.E067,
                         "Object extensions directory %s cannot contain file %s",
-                        dir, file.getRelativePath());
-            } else if (!REGISTERED_EXTENSIONS.contains(file.getRelativePath())) {
-                results.addIssue(ValidationCode.W013,
-                        "Object extensions directory %s contains unregistered extension %s",
                         dir, file.getRelativePath());
             }
         }
@@ -745,7 +750,7 @@ public class Validator {
     private ParseResult parseInventory(String inventoryPath,
                                        ValidationResultsBuilder results,
                                        DigestAlgorithm... digestAlgorithms) {
-        try (var stream = storage.readFile(inventoryPath)) {
+        try (var stream = fileSystem.read(inventoryPath)) {
             var wrapped = MultiDigestInputStream.create(stream, Arrays.asList(digestAlgorithms));
 
             var parseResult = inventoryParser.parse(wrapped, inventoryPath);
@@ -762,7 +767,7 @@ public class Validator {
     }
 
     private String computeInventoryDigest(String inventoryPath, DigestAlgorithm algorithm) {
-        try (var stream = storage.readFile(inventoryPath)) {
+        try (var stream = fileSystem.read(inventoryPath)) {
             var wrapped = MultiDigestInputStream.create(stream, List.of(algorithm));
             while (wrapped.read() > 0) {
                 // consume stream
@@ -837,6 +842,22 @@ public class Validator {
         }
 
         return new ValidationIssue(code, message);
+    }
+
+    private List<Listing> listFiles(String path) {
+        try {
+            return fileSystem.listDirectory(path);
+        } catch (OcflNoSuchFileException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<Listing> listFilesRecursive(String path) {
+        try {
+            return fileSystem.listRecursive(path);
+        } catch (OcflNoSuchFileException e) {
+            return Collections.emptyList();
+        }
     }
 
     private static class ParseResult {

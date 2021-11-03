@@ -88,10 +88,9 @@ public class S3BadReposITest extends BadReposITest {
                 .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .cloudStorage(storage -> storage
+                .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloudClient(createCloudClient(name))
-                        .build())
+                        .cloud(createCloudClient(name)))
                 .workDir(workDir)
                 .buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53Z");

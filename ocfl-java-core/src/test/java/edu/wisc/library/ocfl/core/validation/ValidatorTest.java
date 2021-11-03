@@ -2,7 +2,7 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
-import edu.wisc.library.ocfl.core.validation.storage.FileSystemStorage;
+import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemStorage;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

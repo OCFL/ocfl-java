@@ -22,44 +22,40 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.core.validation.storage;
-
-import edu.wisc.library.ocfl.api.exception.NotFoundException;
-
-import java.io.InputStream;
-import java.util.List;
+package edu.wisc.library.ocfl.api.exception;
 
 /**
- * Storage abstraction used when validating objects
+ * This exception is a wrapper around FileAlreadyExistsException
  */
-public interface Storage {
+public class OcflFileAlreadyExistsException extends OcflIOException {
 
-    /**
-     * Return a list of all of the files an directories contained in the specified directory.
-     * An empty list is returned if the directory does not exist or has no children. If recursion
-     * is specified, then only leaf nodes are returned.
-     *
-     * @param directoryPath the path to the directory to list
-     * @param recursive if children should be recursively listed
-     * @return list of children
-     */
-    List<Listing> listDirectory(String directoryPath, boolean recursive);
+    private final Exception cause;
+    private final boolean hasMessage;
 
-    /**
-     * Indicates if the file exists
-     *
-     * @param filePath path to the file
-     * @return true if it exists
-     */
-    boolean fileExists(String filePath);
+    public OcflFileAlreadyExistsException(String message) {
+        super(message);
+        this.cause = null;
+        this.hasMessage = true;
+    }
 
-    /**
-     * Streams the content of the specified file
-     *
-     * @param filePath path to the file
-     * @return input stream of file content
-     * @throws NotFoundException when the file does not exist
-     */
-    InputStream readFile(String filePath);
+    public OcflFileAlreadyExistsException(Exception cause) {
+        super(cause);
+        this.cause = cause;
+        this.hasMessage = false;
+    }
+
+    public OcflFileAlreadyExistsException(String message, Exception cause) {
+        super(message, cause);
+        this.cause = cause;
+        this.hasMessage = true;
+    }
+
+    @Override
+    public String getMessage() {
+        if (hasMessage || cause == null) {
+            return super.getMessage();
+        }
+        return cause.getClass().getSimpleName() + ": " + cause.getMessage();
+    }
 
 }
