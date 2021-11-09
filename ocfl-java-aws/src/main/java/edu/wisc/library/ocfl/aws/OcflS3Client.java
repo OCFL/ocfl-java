@@ -443,10 +443,9 @@ public class OcflS3Client implements CloudClient {
     @Override
     public ListResult list(String prefix) {
         var prefixedPrefix = keyBuilder.buildFromPath(prefix);
-        return toListResult(s3Client.listObjectsV2(ListObjectsV2Request.builder()
+        return toListResult(ListObjectsV2Request.builder()
                 .bucket(bucket)
-                .prefix(prefixedPrefix.getKey())
-                .build()));
+                .prefix(prefixedPrefix.getKey()));
     }
 
     /**
@@ -462,11 +461,10 @@ public class OcflS3Client implements CloudClient {
 
         LOG.debug("Listing directory {} in bucket {}", prefix, bucket);
 
-        return toListResult(s3Client.listObjectsV2(ListObjectsV2Request.builder()
+        return toListResult(ListObjectsV2Request.builder()
                 .bucket(bucket)
                 .delimiter("/")
-                .prefix(prefix)
-                .build()));
+                .prefix(prefix));
     }
 
     /**
@@ -605,18 +603,40 @@ public class OcflS3Client implements CloudClient {
         return partSize;
     }
 
-    private ListResult toListResult(ListObjectsV2Response s3Result) {
-        var prefixLength = prefixLength(s3Result.prefix());
+    private ListResult toListResult(ListObjectsV2Request.Builder requestBuilder) {
+        var result = s3Client.listObjectsV2(requestBuilder.build());
+
+        var prefixLength = prefixLength(result.prefix());
         var repoPrefixLength = repoPrefix.isBlank() ? 0 : repoPrefix.length() + 1;
 
-        var objects = s3Result.contents().stream().map(o -> {
+        var objects = toObjectListings(result, prefixLength);
+        var dirs = toDirectoryListings(result, repoPrefixLength);
+
+        while (result.isTruncated()) {
+            result = s3Client.listObjectsV2(requestBuilder
+                    .continuationToken(result.nextContinuationToken())
+                    .build());
+
+            objects.addAll(toObjectListings(result, prefixLength));
+            dirs.addAll(toDirectoryListings(result, repoPrefixLength));
+        }
+
+        return new ListResult()
+                .setObjects(objects)
+                .setDirectories(dirs);
+    }
+
+    private List<ListResult.ObjectListing> toObjectListings(ListObjectsV2Response result, int prefixLength) {
+        return result.contents().stream().map(o -> {
             var key = o.key();
             return new ListResult.ObjectListing()
                     .setKey(keyBuilder.buildFromKey(key))
                     .setKeySuffix(key.substring(prefixLength));
         }).collect(Collectors.toList());
+    }
 
-        var dirs = s3Result.commonPrefixes().stream()
+    private List<ListResult.DirectoryListing> toDirectoryListings(ListObjectsV2Response result, int repoPrefixLength) {
+        return result.commonPrefixes().stream()
                 .filter(p -> p.prefix() != null)
                 .map(p -> {
                     var path = p.prefix();
@@ -624,10 +644,6 @@ public class OcflS3Client implements CloudClient {
                             .setPath(path.substring(repoPrefixLength));
                 })
                 .collect(Collectors.toList());
-
-        return new ListResult()
-                .setObjects(objects)
-                .setDirectories(dirs);
     }
 
     private int prefixLength(String prefix) {
