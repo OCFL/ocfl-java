@@ -648,7 +648,7 @@ public class OcflS3Client implements CloudClient {
 
     private int prefixLength(String prefix) {
         var prefixLength = 0;
-        if (prefix != null) {
+        if (prefix != null && !prefix.isEmpty()) {
             prefixLength = prefix.length();
             if (!prefix.endsWith("/")) {
                 prefixLength += 1;
