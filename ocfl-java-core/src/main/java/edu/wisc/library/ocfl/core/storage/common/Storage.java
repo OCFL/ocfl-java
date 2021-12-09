@@ -37,6 +37,15 @@ public interface Storage {
     List<Listing> listRecursive(String directoryPath);
 
     /**
+     * Return true if the specified directory contains no children
+     *
+     * @param directoryPath the path to the directory
+     * @return true if empty
+     * @throws OcflNoSuchFileException when the directory does not exist
+     */
+    boolean directoryIsEmpty(String directoryPath);
+
+    /**
      * Return an iterator that iterates over every OCFL object directory in the repository.
      *
      * @return object directory iterator

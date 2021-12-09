@@ -89,7 +89,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
         OcflStorageLayoutExtension layoutExtension;
 
-        if (list("").isEmpty()) {
+        if (directoryIsEmpty("")) {
             layoutExtension = initNewRepo(ocflVersion, layoutConfig);
         } else {
             layoutExtension = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
@@ -120,18 +120,23 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private void validateOcflVersion(OcflVersion ocflVersion) {
-        var existingOcflVersion = list("").stream()
-                .filter(Listing::isFile)
-                .map(Listing::getRelativePath)
-                .filter(file -> file.startsWith("0="))
-                .map(OcflVersion::fromOcflVersionFilename)
-                .findFirst();
+        var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
 
-        if (existingOcflVersion.isEmpty()) {
-            throw new RepositoryConfigurationException("OCFL root is missing its namaste file, eg. 0=ocfl_1.0.");
-        } else if (existingOcflVersion.get() != ocflVersion) {
-            throw new RepositoryConfigurationException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
-                    ocflVersion, existingOcflVersion));
+        if (!storage.fileExists(namasteFile.fileName())) {
+            // TODO This would ideally operate on a streaming list result
+            var existingOcflVersion = list("").stream()
+                    .filter(Listing::isFile)
+                    .map(Listing::getRelativePath)
+                    .filter(file -> file.startsWith("0="))
+                    .map(OcflVersion::fromOcflVersionFilename)
+                    .findFirst();
+
+            if (existingOcflVersion.isEmpty()) {
+                throw new RepositoryConfigurationException("OCFL root is missing its namaste file, eg. 0=ocfl_1.0.");
+            } else if (existingOcflVersion.get() != ocflVersion) {
+                throw new RepositoryConfigurationException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
+                        ocflVersion, existingOcflVersion));
+            }
         }
     }
 
@@ -344,6 +349,14 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
             return storage.listDirectory(path);
         } catch (OcflNoSuchFileException e) {
             return Collections.emptyList();
+        }
+    }
+
+    private boolean directoryIsEmpty(String path) {
+        try {
+            return storage.directoryIsEmpty(path);
+        } catch (OcflNoSuchFileException e) {
+            return true;
         }
     }
 

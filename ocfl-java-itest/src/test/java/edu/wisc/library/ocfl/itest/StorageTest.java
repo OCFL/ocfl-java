@@ -104,6 +104,25 @@ public abstract class StorageTest {
     }
 
     @Test
+    public void notEmptyWhenDirExistsAndHasChildren() {
+        file("some/dir/a/1.txt");
+        file("some/dir/f1.txt");
+        file("some/dir/f2.txt");
+
+        assertFalse(storage.directoryIsEmpty("some"));
+        assertFalse(storage.directoryIsEmpty("some/dir"));
+    }
+
+    @Test
+    public void exceptionWhenDirNotExists() {
+        dir("some/dir");
+
+        assertThrows(OcflNoSuchFileException.class, () -> {
+            storage.directoryIsEmpty("not-here");
+        });
+    }
+
+    @Test
     public void returnTrueWhenFileExists() {
         file("some/dir/f1.txt");
         assertTrue(storage.fileExists("some/dir/f1.txt"));

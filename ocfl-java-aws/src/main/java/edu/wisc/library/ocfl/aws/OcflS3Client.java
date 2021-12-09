@@ -471,6 +471,30 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
+    public boolean directoryExists(String path) {
+        var prefix = keyBuilder.buildFromPath(path).getKey();
+
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) {
+            prefix = prefix + "/";
+        }
+
+        LOG.debug("Checking existence of {} in bucket {}", prefix, bucket);
+
+        var response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(bucket)
+                .delimiter("/")
+                .prefix(prefix)
+                .maxKeys(1)
+                .build());
+
+        return response.contents().stream().findAny().isPresent()
+                || response.commonPrefixes().stream().findAny().isPresent();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void deletePath(String path) {
         LOG.debug("Deleting path {} in bucket {}", path, bucket);
 

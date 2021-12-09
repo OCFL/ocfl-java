@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -313,6 +314,21 @@ public class OcflS3ClientTest {
         assertObjectListingAll("d1", "d1/f4", result.getObjects().get(3));
 
         assertEquals(0, result.getDirectories().size());
+    }
+
+    @Test
+    public void directoryExistsWhenContainsObjects() {
+        client.uploadBytes("f1", bytes("1"), null);
+        client.uploadBytes("f2", bytes("2"), null);
+        client.uploadBytes("d1/f3", bytes("3"), null);
+        client.uploadBytes("d1/f4", bytes("4"), null);
+        client.uploadBytes("d1/d2/f5", bytes("5"), null);
+        client.uploadBytes("d1/d2/f6", bytes("6"), null);
+        client.uploadBytes("d1/d3/d4/f7", bytes("7"), null);
+
+        assertTrue(client.directoryExists("d1"));
+        assertTrue(client.directoryExists("d1/d3"));
+        assertFalse(client.directoryExists("d5"));
     }
 
     @Test

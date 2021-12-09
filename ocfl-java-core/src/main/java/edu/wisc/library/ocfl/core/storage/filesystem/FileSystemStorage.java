@@ -134,6 +134,20 @@ public class FileSystemStorage implements Storage {
      * {@inheritDoc}
      */
     @Override
+    public boolean directoryIsEmpty(String directoryPath) {
+        var fullPath = storageRoot.resolve(directoryPath);
+
+        try (var children = Files.list(fullPath)) {
+            return children.findAny().isEmpty();
+        } catch (IOException e) {
+            throw OcflIOException.from(e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public OcflObjectRootDirIterator iterateObjects() {
         return new FileSystemOcflObjectRootDirIterator(storageRoot);
     }
