@@ -141,6 +141,14 @@ public interface CloudClient {
     ListResult listDirectory(String path);
 
     /**
+     * Returns true if the specified virtual directory exists.
+     *
+     * @param path the key prefix to list, if it does not end in a '/' one is appended
+     * @return true if the directory exists
+     */
+    boolean directoryExists(String path);
+
+    /**
      * Deletes all of the objects under the specified path
      *
      * @param path the path prefix to delete

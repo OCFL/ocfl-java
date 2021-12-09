@@ -140,6 +140,16 @@ public class FileSystemStorageTest extends StorageTest {
         });
     }
 
+    @Test
+    public void emptyWhenDirExistsAndHasNoChildren() {
+        file("some/dir/a/1.txt");
+        file("some/dir/f1.txt");
+        file("some/dir/f2.txt");
+        dir("some/dir2");
+
+        assertTrue(storage.directoryIsEmpty("some/dir2"));
+    }
+
     protected void dir(String path) {
         UncheckedFiles.createDirectories(repoRoot.resolve(path));
     }

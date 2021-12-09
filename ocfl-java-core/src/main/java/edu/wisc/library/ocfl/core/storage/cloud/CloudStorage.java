@@ -111,6 +111,17 @@ public class CloudStorage implements Storage {
      * {@inheritDoc}
      */
     @Override
+    public boolean directoryIsEmpty(String directoryPath) {
+        if (client.directoryExists(directoryPath)) {
+            return false;
+        }
+        throw new OcflNoSuchFileException(String.format("Directory %s does not exist", directoryPath));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public OcflObjectRootDirIterator iterateObjects() {
         return new CloudOcflObjectRootDirIterator(client);
     }
