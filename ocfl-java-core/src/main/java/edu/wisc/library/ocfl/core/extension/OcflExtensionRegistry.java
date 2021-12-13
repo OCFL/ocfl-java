@@ -28,6 +28,7 @@ import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatOmitPrefixLayoutExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import org.slf4j.Logger;
@@ -55,8 +56,9 @@ public final class OcflExtensionRegistry {
             HashedNTupleLayoutExtension.EXTENSION_NAME, HashedNTupleLayoutExtension.class,
             HashedNTupleIdEncapsulationLayoutExtension.EXTENSION_NAME, HashedNTupleIdEncapsulationLayoutExtension.class,
             FlatLayoutExtension.EXTENSION_NAME, FlatLayoutExtension.class,
-            FlatOmitPrefixLayoutExtension.EXTENSION_NAME, FlatOmitPrefixLayoutExtension.class
-    ));
+            FlatOmitPrefixLayoutExtension.EXTENSION_NAME, FlatOmitPrefixLayoutExtension.class,
+            NTupleOmitPrefixStorageLayoutExtension.EXTENSION_NAME, NTupleOmitPrefixStorageLayoutExtension.class
+            ));
 
     private OcflExtensionRegistry() {
 
