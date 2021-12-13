@@ -92,6 +92,7 @@ following extensions are implemented:
   * [0003-hash-and-id-n-tuple-storage-layout](https://ocfl.github.io/extensions/0003-hash-and-id-n-tuple-storage-layout.html): `HashedNTupleIdEncapsulationLayoutConfig`
   * [0004-hashed-n-tuple-storage-layout](https://ocfl.github.io/extensions/0004-hashed-n-tuple-storage-layout.html): `HashedNTupleLayoutConfig`
   * [0006-flat-omit-prefix-storage-layout](https://ocfl.github.io/extensions/0006-flat-omit-prefix-storage-layout.html): `FlatOmitPrefixLayoutConfig`
+  * [0007-n-tuple-omit-prefix-storage-layout](https://ocfl.github.io/extensions/0007-n-tuple-omit-prefix-storage-layout.html): `NTupleOmitPrefixStorageLayoutConfig`
  
 ### Optional Properties
 
@@ -397,6 +398,9 @@ extensions:
 * [0006-flat-omit-prefix-storage-layout](https://ocfl.github.io/extensions/0006-flat-omit-prefix-storage-layout.html)
   * Configuration class: `FlatOmitPrefixLayoutConfig`
   * Implementation class: `FlatOmitPrefixLayoutExtension`
+* [0007-n-tuple-omit-prefix-storage-layout](https://ocfl.github.io/extensions/0007-n-tuple-omit-prefix-storage-layout.html)
+  * Configuration class: `NTupleOmitPrefixStorageLayoutConfig`
+  * Implementation class: `NTupleOmitPrefixStorageLayoutExtension`
 
 #### Custom Storage Layout Extensions
 
