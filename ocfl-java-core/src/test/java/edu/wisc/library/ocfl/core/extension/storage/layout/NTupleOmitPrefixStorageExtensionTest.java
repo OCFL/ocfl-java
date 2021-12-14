@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
 
@@ -49,59 +51,52 @@ public class NTupleOmitPrefixStorageExtensionTest {
 
     @Test
     public void testNullDelimiter() {
-    	assertThrows(IllegalArgumentException.class, () -> config.setDelimiter(null),
-                "Expected IllegalArgumentException");
+    	assertThrows(OcflInputException.class, () -> config.setDelimiter(null),
+                "Expected OcflInputException");
     }
 
     @Test
     public void testEmptyDelimiter() {
-    	assertThrows(IllegalArgumentException.class, () -> config.setDelimiter(""),
-                "Expected IllegalArgumentException");
+    	assertThrows(OcflInputException.class, () -> config.setDelimiter(""),
+                "Expected OcflInputException");
     }
     
     @Test
     public void testNegativeTupleSize() {
-    	assertThrows(IllegalArgumentException.class, () -> config.setTupleSize(-1),
-                "Expected IllegalArgumentException");
+    	assertThrows(OcflInputException.class, () -> config.setTupleSize(-1),
+                "Expected OcflInputException");
     }
 
     @Test
     public void testZeroTupleSize() {
-    	assertThrows(IllegalArgumentException.class, () -> config.setTupleSize(0),
-                "Expected IllegalArgumentException");
+    	assertThrows(OcflInputException.class, () -> config.setTupleSize(0),
+                "Expected OcflInputException");
     }
     
     @Test
     public void testNegativeNumberOfTuples() {
-    	assertThrows(IllegalArgumentException.class, () -> config.setNumberOfTuples(-1),
-                "Expected IllegalArgumentException");
+    	assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(-1),
+                "Expected OcflInputException");
     }
 
     @Test
     public void testZeroNumberOfTuples() {
-        assertThrows(IllegalArgumentException.class, () -> config.setNumberOfTuples(0),
-                "Expected IllegalArgumentException");
+        assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(0),
+                "Expected OcflInputException");
     }
     
     @Test
     public void testIncorrectZeroPadding() {
-        assertThrows(IllegalArgumentException.class, () -> config.setZeroPadding("some value"),
-                "Expected IllegalArgumentException");
+        assertThrows(OcflInputException.class, () -> config.setZeroPadding(null),
+                "Expected OcflInputException");
     }
     
     @Test
-    public void testZeroPaddingNoneAndShortString() {
-        config.setDelimiter(":");
-        config.setTupleSize(4);
-        config.setNumberOfTuples(2);
-        config.setZeroPadding(NTupleOmitPrefixStorageLayoutConfig.ZERO_PADDING_NONE);
+    public void testNonAsciiId() {
+    	config.setDelimiter("/");
         ext.init(config);
-        //Defaults:
-        //reverseObjectRoot: false
-
-        //String is too short for requested tuples so it will throw runtime exception
-        assertThrows(RuntimeException.class, () -> ext.mapObjectId("namespace:1288729"),
-                "Expected RuntimeException");
+    	assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("jå∫∆a/vµa2bl√øog"),
+                "Expected OcflExtensionException");
     }
 
 
@@ -115,8 +110,8 @@ public class NTupleOmitPrefixStorageExtensionTest {
         //zeroPadding: "left",
         //reverseObjectRoot: false
 
-        assertThrows(RuntimeException.class, () -> ext.mapObjectId("namespace:12887296"),
-                "Expected RuntimeException");
+        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("namespace:12887296"),
+                "Expected OcflExtensionException");
     }
 
     @Test
@@ -208,7 +203,7 @@ public class NTupleOmitPrefixStorageExtensionTest {
         config.setDelimiter(":");
         config.setTupleSize(4);
         config.setNumberOfTuples(2);
-        config.setZeroPadding(NTupleOmitPrefixStorageLayoutConfig.ZERO_PADDING_RIGHT);
+        config.setZeroPadding(NTupleOmitPrefixStorageLayoutConfig.ZeroPadding.RIGHT);
         ext.init(config);
         //Defaults:
         //reverseObjectRoot: false
@@ -218,12 +213,12 @@ public class NTupleOmitPrefixStorageExtensionTest {
     }
     
     @Test
-    public void testReverseAndLeftPadding() {
+    public void testReverseAndRightPadding() {
         config.setDelimiter(":");
         config.setTupleSize(4);
         config.setNumberOfTuples(2);
         config.setReverseObjectRoot(true);
-        config.setZeroPadding("right");
+        config.setZeroPadding(NTupleOmitPrefixStorageLayoutConfig.ZeroPadding.RIGHT);
         ext.init(config);
         
         String result = ext.mapObjectId("namespace:1288729");
@@ -240,8 +235,8 @@ public class NTupleOmitPrefixStorageExtensionTest {
         //zeroPadding: "left",
         //reverseObjectRoot: false
 
-        assertThrows(RuntimeException.class, () -> ext.mapObjectId("https://institution.edu/"),
-                "Expected RuntimeException");
+        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("https://institution.edu/"),
+                "Expected OcflExtensionException");
     }
     
     @Test
@@ -254,7 +249,7 @@ public class NTupleOmitPrefixStorageExtensionTest {
         //zeroPadding: "left",
         //reverseObjectRoot: false
         
-        assertThrows(RuntimeException.class, () -> ext.mapObjectId("https://institution.edu/344879388"),
-                "Expected RuntimeException");
+        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("https://institution.edu/344879388"),
+                "Expected OcflExtensionException");
     }
 }
