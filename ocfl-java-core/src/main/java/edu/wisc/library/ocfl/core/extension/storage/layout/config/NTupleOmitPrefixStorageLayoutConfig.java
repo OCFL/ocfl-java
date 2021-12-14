@@ -27,9 +27,8 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import org.apache.commons.lang3.StringUtils;
-
 import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
+import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 
 /**
@@ -41,14 +40,15 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
  */
 public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig {
 
-	public static final String ZERO_PADDING_LEFT = "left";
-	public static final String ZERO_PADDING_RIGHT = "right";
-	public static final String ZERO_PADDING_NONE = "none";
-
+	public enum ZeroPadding {
+		  LEFT,
+		  RIGHT
+	}
+	
 	private String delimiter;
 	private int tupleSize = 3;
 	private int numberOfTuples = 3;
-	private String zeroPadding = ZERO_PADDING_LEFT;
+	private ZeroPadding zeroPadding = ZeroPadding.LEFT;
 	private boolean reverseObjectRoot = false;
 
 	@JsonIgnore
@@ -89,7 +89,7 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 	 * return zeroPadding - Indicates whether to use left or right zero padding
 	 * for ids less than tupleSize * numberOfTuples
 	 */
-	public String getZeroPadding() {
+	public ZeroPadding getZeroPadding() {
 		return zeroPadding;
 	}
 
@@ -112,10 +112,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 	 *            marking the end of prefix
 	 */
 	public NTupleOmitPrefixStorageLayoutConfig setDelimiter(String delimiter) {
-		if (StringUtils.isBlank(delimiter)) {
-			throw new IllegalArgumentException("Arg must not be empty or null: 'delimiter'");
-		}
-		this.delimiter = delimiter;
+		this.delimiter = Enforce.expressionTrue(delimiter != null && !delimiter.isEmpty(), delimiter, "delimiter must not be empty");
+		
 		return this;
 	}
 
@@ -127,10 +125,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 	 * 
 	 */
 	public NTupleOmitPrefixStorageLayoutConfig setTupleSize(int tupleSize) {
-		if (tupleSize <= 0) {
-			throw new IllegalArgumentException("Arg must not be less than 1: 'tupleSize'. Given argument: " + tupleSize);
-		}
-		this.tupleSize = tupleSize;
+		this.tupleSize = Enforce.expressionTrue(tupleSize >=1 && tupleSize <= 32,
+                tupleSize, "tupleSize must be between 1 and 32 inclusive");
 		return this;
 	}
 
@@ -142,10 +138,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 	 * 
 	 */
 	public NTupleOmitPrefixStorageLayoutConfig setNumberOfTuples(int numberOfTuples) {
-		if (numberOfTuples <= 0) {
-			throw new IllegalArgumentException("Arg must not be less than 1: 'numberOfTuples'. Given argument: " + numberOfTuples);
-		}
-		this.numberOfTuples = numberOfTuples;
+		this.numberOfTuples= Enforce.expressionTrue(numberOfTuples>=1 && numberOfTuples<= 32,
+                numberOfTuples, "numberOfTuples must be between 1 and 32 inclusive");
 		return this;
 	}
 
@@ -156,10 +150,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 	 * @param zeroPadding
 	 *
 	 */
-	public NTupleOmitPrefixStorageLayoutConfig setZeroPadding(String zeroPadding) {
-		if (!zeroPadding.equals(ZERO_PADDING_LEFT) && !zeroPadding.equals(ZERO_PADDING_RIGHT) && !zeroPadding.equals(ZERO_PADDING_NONE)) {
-			throw new IllegalArgumentException("Arg must not 'left', 'right', or 'none': 'zeroPadding'. Given argument:" + zeroPadding);
-		}
+	public NTupleOmitPrefixStorageLayoutConfig setZeroPadding(ZeroPadding zeroPadding) {
+		Enforce.notNull(zeroPadding, "Zero padding cannot be null");
 		this.zeroPadding = zeroPadding;
 		return this;
 	}
@@ -191,7 +183,7 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(delimiter);
+		return Objects.hash(delimiter, tupleSize, numberOfTuples, reverseObjectRoot, zeroPadding);
 	}
 
 	@Override
