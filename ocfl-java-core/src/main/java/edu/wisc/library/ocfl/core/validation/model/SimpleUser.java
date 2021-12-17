@@ -67,8 +67,12 @@ public class SimpleUser {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         SimpleUser that = (SimpleUser) o;
         return Objects.equals(name, that.name)
                 && Objects.equals(address, that.address);

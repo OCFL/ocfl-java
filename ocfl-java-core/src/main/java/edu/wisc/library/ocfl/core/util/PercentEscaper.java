@@ -131,7 +131,7 @@ public final class PercentEscaper extends UnicodeEscaper {
         }
 
         private static void addToSet(String chars, Set<Character> charSet) {
-            chars.chars().forEach(c -> charSet.add((char)c));
+            chars.chars().forEach(c -> charSet.add((char) c));
         }
 
         private static void addRangeToSet(char start, char end, Set<Character> charSet) {

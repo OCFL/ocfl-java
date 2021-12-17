@@ -151,8 +151,12 @@ public class Version {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Version version = (Version) o;
         return created.equals(version.created) &&
                 Objects.equals(message, version.message) &&

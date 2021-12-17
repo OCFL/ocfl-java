@@ -150,8 +150,12 @@ public class DigestAlgorithm {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DigestAlgorithm that = (DigestAlgorithm) o;
         return ocflName.equals(that.ocflName);
     }

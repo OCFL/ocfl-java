@@ -125,8 +125,12 @@ public class VersionInfo {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         VersionInfo that = (VersionInfo) o;
         return user.equals(that.user) &&
                 Objects.equals(message, that.message) &&

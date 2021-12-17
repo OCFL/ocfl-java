@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package edu.wisc.library.ocfl.core.extension.storage.layout.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -78,8 +79,12 @@ public class FlatOmitPrefixLayoutConfig implements OcflExtensionConfig {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         FlatOmitPrefixLayoutConfig that = (FlatOmitPrefixLayoutConfig) o;
         return delimiter.equals(that.delimiter);
     }

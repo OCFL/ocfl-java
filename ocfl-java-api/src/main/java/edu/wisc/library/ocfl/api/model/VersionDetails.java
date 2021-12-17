@@ -180,8 +180,12 @@ public class VersionDetails {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         VersionDetails that = (VersionDetails) o;
         return mutable == that.mutable &&
                 Objects.equals(objectVersionId, that.objectVersionId) &&

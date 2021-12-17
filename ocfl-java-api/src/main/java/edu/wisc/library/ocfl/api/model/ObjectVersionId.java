@@ -162,8 +162,12 @@ public class ObjectVersionId {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ObjectVersionId that = (ObjectVersionId) o;
         return objectId.equals(that.objectId) &&
                 versionNum.equals(that.versionNum);

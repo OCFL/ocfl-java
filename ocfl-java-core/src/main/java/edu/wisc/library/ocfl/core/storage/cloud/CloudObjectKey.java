@@ -34,9 +34,9 @@ import java.util.Objects;
  */
 public class CloudObjectKey {
 
-    private String prefix;
-    private String path;
-    private String key;
+    private final String prefix;
+    private final String path;
+    private final String key;
 
     public static Builder builder() {
         return new Builder();
@@ -101,8 +101,12 @@ public class CloudObjectKey {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         CloudObjectKey that = (CloudObjectKey) o;
         return key.equals(that.key);
     }

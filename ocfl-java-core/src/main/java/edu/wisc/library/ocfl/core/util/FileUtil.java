@@ -65,7 +65,7 @@ public final class FileUtil {
     /**
      * Creates a new directory as a child of the parent path named: md5(objectId)-[random-long]
      *
-     * A hash is used to avoid problems with object ids that are longer than 255 characters.
+     * <p>A hash is used to avoid problems with object ids that are longer than 255 characters.
      *
      * @param parent the path to create the new directory under
      * @param objectId the object id to create the directory for

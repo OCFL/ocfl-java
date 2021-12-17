@@ -291,6 +291,7 @@ public final class ObjectPaths {
 
     public interface HasInventory {
         String inventoryFile();
+
         String inventorySidecar();
     }
 

@@ -54,7 +54,7 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
      * @param path directory path
      * @return true if path is an object root path
      */
-    abstract protected boolean isObjectRoot(String path);
+    protected abstract boolean isObjectRoot(String path);
 
     /**
      * Creates an object to maintain directory state
@@ -62,7 +62,7 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
      * @param path directory path
      * @return directory object
      */
-    abstract protected Directory createDirectory(String path);
+    protected abstract Directory createDirectory(String path);
 
     @Override
     public void close() {

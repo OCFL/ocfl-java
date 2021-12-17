@@ -735,8 +735,8 @@ public class OcflS3Client implements CloudClient {
         /**
          * Provides a hook to modify putObject requests before they are executed. It is intended to be used to set
          * object attributes such as tags.
-         * <p>
-         * The first argument is the object key the request is for, and the second is the request builder to apply
+         *
+         * <p>The first argument is the object key the request is for, and the second is the request builder to apply
          * changes to.
          *
          * @param putObjectModifier hook for modifying putObject requests
@@ -750,8 +750,8 @@ public class OcflS3Client implements CloudClient {
         /**
          * Provides a hook to modify createMultipartUpload requests before they are executed. It is intended to be used
          * to set object attributes such as tags.
-         * <p>
-         * The first argument is the object key the request is for, and the second is the request builder to apply
+         *
+         * <p>The first argument is the object key the request is for, and the second is the request builder to apply
          * changes to.
          *
          * @param createMultipartModifier hook for modifying createMultipartUpload requests

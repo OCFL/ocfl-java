@@ -331,8 +331,8 @@ public class OcflRepositoryBuilder {
      * Set the behavior when an unsupported extension is encountered. By default, ocfl-java will not operate on
      * repositories or objects that contain unsupported extensions. Set this value to WARN, if you'd like ocfl-java
      * to log a WARNing, but continue to operate instead.
-     * <p>
-     * Specific unsupported extensions may be ignored individually using {@code ignoreUnsupportedExtensions}
+     *
+     * <p>Specific unsupported extensions may be ignored individually using {@code ignoreUnsupportedExtensions}
      *
      * @param unsupportedBehavior FAIL to throw an exception or WARN to log a warning
      * @return builder
@@ -360,7 +360,7 @@ public class OcflRepositoryBuilder {
      * verification includes iterating over all of the files in the version and ensuring they match the expectations
      * in the inventory.
      *
-     * This verification is enabled by default out of conservatism. It is unlikely that there will ever be a problem
+     * <p>This verification is enabled by default out of conservatism. It is unlikely that there will ever be a problem
      * for it to uncover, and it can be safely disabled if there are concerns about performance on slower filesystems.
      *
      * @param verifyStaging true if the contents of a stage version should be double-checked

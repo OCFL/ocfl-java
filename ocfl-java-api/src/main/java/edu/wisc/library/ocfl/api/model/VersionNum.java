@@ -155,8 +155,12 @@ public class VersionNum implements Comparable<VersionNum> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         VersionNum versionNum = (VersionNum) o;
         return versionNumber == versionNum.versionNumber;
     }

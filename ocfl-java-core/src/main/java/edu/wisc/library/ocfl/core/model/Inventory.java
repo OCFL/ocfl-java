@@ -587,8 +587,12 @@ public class Inventory {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Inventory inventory = (Inventory) o;
         return mutableHead == inventory.mutableHead &&
                 id.equals(inventory.id) &&

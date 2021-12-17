@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
 import edu.wisc.library.ocfl.api.OcflConstants;
