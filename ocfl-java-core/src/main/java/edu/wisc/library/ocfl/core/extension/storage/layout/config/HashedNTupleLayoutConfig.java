@@ -104,7 +104,7 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * @return this
      */
     public HashedNTupleLayoutConfig setTupleSize(int tupleSize) {
-        this.tupleSize = Enforce.expressionTrue(tupleSize >=0 && tupleSize <= 32,
+        this.tupleSize = Enforce.expressionTrue(tupleSize >= 0 && tupleSize <= 32,
                 tupleSize, "tupleSize must be between 0 and 32 inclusive");
         return this;
     }
@@ -123,7 +123,7 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * @return this
      */
     public HashedNTupleLayoutConfig setNumberOfTuples(int numberOfTuples) {
-        this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >=0 && numberOfTuples <= 32,
+        this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 0 && numberOfTuples <= 32,
                 numberOfTuples, "numberOfTuples must be between 0 and 32 inclusive");
         return this;
     }
@@ -148,8 +148,12 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         HashedNTupleLayoutConfig that = (HashedNTupleLayoutConfig) o;
         return tupleSize == that.tupleSize &&
                 numberOfTuples == that.numberOfTuples &&

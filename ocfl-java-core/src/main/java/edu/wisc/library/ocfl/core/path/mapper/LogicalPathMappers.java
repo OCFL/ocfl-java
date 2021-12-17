@@ -39,7 +39,7 @@ public final class LogicalPathMappers {
      *     <li>Characters: &lt;&gt;:"\|?* </li>
      * </ul>
      *
-     * This should produce generally safe content paths, but they are not guaranteed safe.
+     * <p>This should produce generally safe content paths, but they are not guaranteed safe.
      *
      * @return mapper
      */
@@ -62,7 +62,7 @@ public final class LogicalPathMappers {
      *     <li>Characters:  </li>
      * </ul>
      *
-     * Linux is extremely permissive when it comes to the characters that are allowed in filenames. Some of the characters
+     * <p>Linux is extremely permissive when it comes to the characters that are allowed in filenames. Some of the characters
      * encoded here are in fact legal. However, it is often undesirable for them to appear in filenames.
      *
      * @return mapper
@@ -86,7 +86,7 @@ public final class LogicalPathMappers {
      *     <li>Characters: \#[]*? </li>
      * </ul>
      *
-     * This should produce generally safe content paths, but they are not guaranteed safe.
+     * <p>This should produce generally safe content paths, but they are not guaranteed safe.
      *
      * @return mapper
      */
@@ -110,7 +110,7 @@ public final class LogicalPathMappers {
      *     <li>Characters: &lt;&gt;:"\|?* #[]</li>
      * </ul>
      *
-     * This should produce generally safe content paths, but they are not guaranteed safe.
+     * <p>This should produce generally safe content paths, but they are not guaranteed safe.
      *
      * @return mapper
      */
@@ -126,8 +126,8 @@ public final class LogicalPathMappers {
 
     /**
      * Creates a percent-encoding that percent-encodes every character except: [a-zA-Z0-9_-].
-     * <p>
-     * This is an extremely conservative mapper that will produce content paths without problematic characters. However,
+     *
+     * <p>This is an extremely conservative mapper that will produce content paths without problematic characters. However,
      * it will also greatly inflate the size of the paths, potentially making them longer than the filesystem's filename
      * size limit.
      *

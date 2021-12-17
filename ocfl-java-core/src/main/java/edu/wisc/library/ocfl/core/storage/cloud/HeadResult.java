@@ -75,8 +75,12 @@ public class HeadResult {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         HeadResult that = (HeadResult) o;
         return Objects.equals(contentLength, that.contentLength) &&
                 Objects.equals(contentEncoding, that.contentEncoding) &&

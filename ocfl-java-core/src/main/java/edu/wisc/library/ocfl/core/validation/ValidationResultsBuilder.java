@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.validation;
 
+import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.ValidationIssue;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
@@ -88,6 +89,8 @@ public class ValidationResultsBuilder {
                 case INFO:
                     infos.add(i);
                     break;
+                default:
+                    throw new OcflJavaException("Unknown validation code type: " + i.getCode().getType());
             }
         });
         return this;

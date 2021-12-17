@@ -114,8 +114,12 @@ public class Listing {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Listing listing = (Listing) o;
         return type == listing.type && relativePath.equals(listing.relativePath);
     }

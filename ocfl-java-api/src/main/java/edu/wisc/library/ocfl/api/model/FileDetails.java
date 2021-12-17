@@ -103,8 +103,12 @@ public class FileDetails {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         FileDetails that = (FileDetails) o;
         return Objects.equals(path, that.path) &&
                 Objects.equals(storageRelativePath, that.storageRelativePath) &&

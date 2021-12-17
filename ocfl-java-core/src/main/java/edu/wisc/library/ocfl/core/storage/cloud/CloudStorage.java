@@ -84,6 +84,7 @@ public class CloudStorage implements Storage {
 
         return listings;
     }
+
     /**
      * {@inheritDoc}
      */

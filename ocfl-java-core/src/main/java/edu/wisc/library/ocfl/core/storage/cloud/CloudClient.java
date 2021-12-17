@@ -56,6 +56,7 @@ public interface CloudClient {
      * @return object key
      */
     CloudObjectKey uploadFile(Path srcPath, String dstPath);
+
     /**
      * Uploads a file to the destination, and returns the object key.
      *

@@ -35,7 +35,7 @@ import java.util.function.Function;
  * @param <K> type of cache key
  * @param <V> type of cache value
  */
-public interface Cache<K,V> {
+public interface Cache<K, V> {
 
     /**
      * Retrieves a value from the cache. If it doesn't exist, the loader is called to load the object, which is then
