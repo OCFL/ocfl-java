@@ -34,6 +34,7 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -43,6 +44,11 @@ import java.util.Map;
 public class TableCreator {
 
     private static final Logger LOG = LoggerFactory.getLogger(TableCreator.class);
+
+    private static final int MYSQL_ACCESS_DENIED_ERROR = 1142;
+    private static final int MYSQL_NO_TABLE_ERROR = 1146;
+
+    private static final String TABLE_TEST_QUERY = "SELECT 1 FROM %s LIMIT 1";
 
     private static final String LOCK_TABLE_FILE = "ocfl_object_lock.ddl.tmpl";
     private static final String OBJECT_DETAILS_TABLE_FILE = "ocfl_object_details.ddl.tmpl";
@@ -72,18 +78,41 @@ public class TableCreator {
     private void createTable(String tableName, String fileName) {
         Enforce.notBlank(tableName, "tableName cannot be blank");
         try (var connection = dataSource.getConnection()) {
-            var filePath = getSqlFilePath(fileName);
-            LOG.debug("Loading {}", filePath);
-            if (filePath != null) {
-                try (var stream = this.getClass().getResourceAsStream("/" + filePath)) {
-                    var ddlTemplate = streamToString(stream);
-                    var ddl = String.format(ddlTemplate, tableName);
-                    try (var statement = connection.prepareStatement(ddl)) {
-                        statement.executeUpdate();
+            try {
+                var filePath = getSqlFilePath(fileName);
+                LOG.debug("Loading {}", filePath);
+                if (filePath != null) {
+                    try (var stream = this.getClass().getResourceAsStream("/" + filePath)) {
+                        var ddlTemplate = streamToString(stream);
+                        var ddl = String.format(ddlTemplate, tableName);
+                        try (var statement = connection.prepareStatement(ddl)) {
+                            statement.executeUpdate();
+                        }
                     }
+                }
+            } catch (SQLException e) {
+                // MySQL/MariaDB fail create if not exists queries when the user does not have permission even if the
+                // table exists
+                if (e.getErrorCode() == MYSQL_ACCESS_DENIED_ERROR) {
+                    testTableExistence(connection, tableName);
+                } else {
+                    throw new OcflDbException(e);
                 }
             }
         } catch (SQLException | IOException e) {
+            throw new OcflDbException(e);
+        }
+    }
+
+    private void testTableExistence(Connection connection, String tableName) {
+        try (var statement = connection
+                .prepareStatement(String.format(TABLE_TEST_QUERY, tableName))) {
+            statement.execute();
+        } catch (SQLException e) {
+            if (e.getErrorCode() == MYSQL_NO_TABLE_ERROR) {
+                throw new OcflDbException(String.format(
+                        "Table %s does not exist and user does not have permission to create it.", tableName));
+            }
             throw new OcflDbException(e);
         }
     }
