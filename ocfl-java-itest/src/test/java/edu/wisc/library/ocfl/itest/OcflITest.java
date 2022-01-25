@@ -31,6 +31,7 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionRegistry;
 import edu.wisc.library.ocfl.core.extension.UnsupportedExtensionBehavior;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
@@ -1527,7 +1528,6 @@ public abstract class OcflITest {
         var repoName = "flat-layout";
         var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new FlatLayoutConfig()));
 
-
         var objectIds = List.of("o1", "object-2");
 
         objectIds.forEach(objectId -> {
@@ -2393,6 +2393,26 @@ public abstract class OcflITest {
         var results = repo.validateObject(objectId, false);
 
         assertEquals(0, results.getErrors().size(), () -> results.getErrors().toString());
+    }
+
+    @Test
+    public void ntupleOmitPrefixLayout() {
+        var repoName = "ntuple-omit-prefix-layout";
+        var repo = defaultRepo(repoName, builder -> {
+            builder.defaultLayoutConfig(new NTupleOmitPrefixStorageLayoutConfig().setDelimiter(":"));
+        });
+
+        var objectId = "urn:uuid:123e4567-e89b-12d3-a456-426614174000";
+        var versionInfo = new VersionInfo()
+                .setUser("Example", "mailto:test@example.com")
+                .setMessage("ntuple omit prefix test")
+                .setCreated(OffsetDateTime.parse("2022-01-25T10:52:24.500340725-06:00"));
+
+        repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
+            updater.writeFile(new ByteArrayInputStream("test\n".getBytes()), "f1.txt");
+        });
+
+        verifyRepo(repoName);
     }
 
     private Path writeFile(String content) {

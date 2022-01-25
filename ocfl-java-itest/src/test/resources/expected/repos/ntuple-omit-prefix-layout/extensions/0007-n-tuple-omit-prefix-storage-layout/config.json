@@ -1,0 +1,8 @@
+{
+  "delimiter" : ":",
+  "tupleSize" : 3,
+  "numberOfTuples" : 3,
+  "zeroPadding" : "left",
+  "reverseObjectRoot" : false,
+  "extensionName" : "0007-n-tuple-omit-prefix-storage-layout"
+}
