@@ -24,15 +24,14 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import edu.wisc.library.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
-import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
+import edu.wisc.library.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.regex.Pattern;
 
 /**
  * Implementation of the <a href=
@@ -43,11 +42,14 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExte
  */
 public class NTupleOmitPrefixStorageLayoutExtension implements OcflStorageLayoutExtension {
 
-    public static final String EXTENSION_NAME = "0007-n-tuple-omit-prefix-storage-layout";
-
     private static final Logger LOG = LoggerFactory.getLogger(NTupleOmitPrefixStorageLayoutExtension.class);
 
+    public static final String EXTENSION_NAME = "0007-n-tuple-omit-prefix-storage-layout";
+    private static final Pattern ASCII_ONLY = Pattern.compile("\\A\\p{ASCII}*\\z");
+
     private NTupleOmitPrefixStorageLayoutConfig config;
+    private String delimiter;
+    private boolean caseMatters;
 
     /**
      * {@inheritDoc}
@@ -62,13 +64,19 @@ public class NTupleOmitPrefixStorageLayoutExtension implements OcflStorageLayout
      */
     @Override
     public String getDescription() {
-        return "This storage root extension describes an OCFL storage layout " + "combining a pairtree-like root directory structure derived from "
-                + "prefix-omitted object identifiers, followed by the prefix-omitted " + "object identifier themselves. The OCFL object identifiers are "
-                + "expected to contain prefixes which are removed in the mapping to " + "directory names. The OCFL object identifier prefix is defined as "
-                + "all characters before and including a configurable delimiter. " + "Where the prefix-omitted identifier length is less than "
+        return "This storage root extension describes an OCFL storage layout "
+                + "combining a pairtree-like root directory structure derived from "
+                + "prefix-omitted object identifiers, followed by the prefix-omitted "
+                + "object identifier themselves. The OCFL object identifiers are "
+                + "expected to contain prefixes which are removed in the mapping to "
+                + "directory names. The OCFL object identifier prefix is defined as "
+                + "all characters before and including a configurable delimiter. "
+                + "Where the prefix-omitted identifier length is less than "
                 + "tuple size * number of tuples, the remaining object id (prefix omitted) "
-                + "is left or right-side, zero-padded (configurable, left default), " + "or not padded (none), and optionally reversed (default false). "
-                + "The object id is then divided into N n-tuple segments, and used " + "to create nested paths under the OCFL storage root, followed by "
+                + "is left or right-side, zero-padded (configurable, left default), "
+                + "or not padded (none), and optionally reversed (default false). "
+                + "The object id is then divided into N n-tuple segments, and used "
+                + "to create nested paths under the OCFL storage root, followed by "
                 + "the prefix-omitted object id directory.";
     }
 
@@ -80,12 +88,13 @@ public class NTupleOmitPrefixStorageLayoutExtension implements OcflStorageLayout
         Enforce.notNull(config, "configFile cannot be null");
 
         if (!(config instanceof NTupleOmitPrefixStorageLayoutConfig)) {
-            throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s", getExtensionConfigClass(), config));
+            throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s",
+                    getExtensionConfigClass(), config));
         }
 
-        NTupleOmitPrefixStorageLayoutConfig castConfig = (NTupleOmitPrefixStorageLayoutConfig) config;
-
-        this.config = castConfig;
+        this.config = (NTupleOmitPrefixStorageLayoutConfig) config;
+        this.delimiter = this.config.getDelimiter().toLowerCase();
+        this.caseMatters = !this.delimiter.equals(this.config.getDelimiter());
     }
 
     @Override
@@ -101,44 +110,40 @@ public class NTupleOmitPrefixStorageLayoutExtension implements OcflStorageLayout
         if (config == null) {
             throw new OcflExtensionException("This extension must be initialized before it can be used.");
         }
-
-        if (!objectId.matches("\\A\\p{ASCII}*\\z")) {
+        if (!ASCII_ONLY.matcher(objectId).matches()) {
             throw new OcflExtensionException(String.format("This id %s must contain only ASCII characters.", objectId));
         }
-        // Split by delimiter and get the last part
-        String id = objectId.toLowerCase();
-        int index = id.lastIndexOf(config.getDelimiter());
-        String section = objectId;
-        String baseObjectId = "";
 
-        if (index > -1) {
-            section = objectId.substring(index + config.getDelimiter().length());
-            baseObjectId = section;
-        } else {
-            throw new OcflExtensionException(String.format("The delimiter %s cannot be found in %s.", config.getDelimiter(), objectId));
+        // Split by delimiter and get the last part
+        String id = caseMatters ? objectId.toLowerCase() : objectId;
+        int index = id.lastIndexOf(delimiter);
+
+        if (index == -1) {
+            throw new OcflExtensionException(String.format("The delimiter %s cannot be found in %s.", delimiter, objectId));
         }
 
-        if (OcflConstants.EXTENSIONS_DIR.equals(section) || section.isEmpty()) {
+        String section = objectId.substring(index + delimiter.length());
+        String baseObjectId = section;
+
+        if (section.isEmpty()) {
             throw new OcflExtensionException(String.format(
-                    "The object id <%s> is incompatible with layout extension " + "%s because it is empty or conflicts with the extensions directory.",
+                    "The object id <%s> is incompatible with layout extension %s because it produces an empty value.",
                     objectId, EXTENSION_NAME));
         }
-        if (section.length() == 0) {
-            throw new OcflExtensionException(String.format("The delimiter %s is only found at the end of %s.", config.getDelimiter(), objectId));
-        }
 
-        if (config.reverseObjectRoot()) {
+        if (config.isReverseObjectRoot()) {
             // Reverse the section
             section = new StringBuilder(section).reverse().toString();
         }
         // Add padding if needed and requested
         if (section.length() < config.getTupleSize() * config.getNumberOfTuples()) {
-
             int paddingAmount = config.getTupleSize() * config.getNumberOfTuples();
-            if (config.getZeroPadding().equals(NTupleOmitPrefixStorageLayoutConfig.ZeroPadding.LEFT)) {
-                section = "0".repeat(paddingAmount - section.length()) + section;
-            } else if (config.getZeroPadding().equals(NTupleOmitPrefixStorageLayoutConfig.ZeroPadding.RIGHT)) {
-                section = section + "0".repeat(paddingAmount - section.length());
+            String padding = "0".repeat(paddingAmount - section.length());
+
+            if (config.getZeroPadding() == NTupleOmitPrefixStorageLayoutConfig.ZeroPadding.RIGHT) {
+                section = section + padding;
+            } else {
+                section = padding + section;
             }
         }
         StringBuilder pathBuilder = new StringBuilder();

@@ -1,0 +1,4 @@
+{
+  "extension" : "0007-n-tuple-omit-prefix-storage-layout",
+  "description" : "This storage root extension describes an OCFL storage layout combining a pairtree-like root directory structure derived from prefix-omitted object identifiers, followed by the prefix-omitted object identifier themselves. The OCFL object identifiers are expected to contain prefixes which are removed in the mapping to directory names. The OCFL object identifier prefix is defined as all characters before and including a configurable delimiter. Where the prefix-omitted identifier length is less than tuple size * number of tuples, the remaining object id (prefix omitted) is left or right-side, zero-padded (configurable, left default), or not padded (none), and optionally reversed (default false). The object id is then divided into N n-tuple segments, and used to create nested paths under the OCFL storage root, followed by the prefix-omitted object id directory."
+}

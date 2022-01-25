@@ -24,13 +24,13 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout.config;
 
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
+import com.fasterxml.jackson.annotation.JsonValue;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
+import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
+
+import java.util.Objects;
 
 /**
  * Configuration for the <a href=
@@ -43,7 +43,12 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig {
 
     public enum ZeroPadding {
-        LEFT, RIGHT
+        LEFT, RIGHT;
+
+        @JsonValue
+        public String toJson() {
+            return name().toLowerCase();
+        }
     }
 
     private String delimiter;
@@ -52,7 +57,6 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
     private ZeroPadding zeroPadding = ZeroPadding.LEFT;
     private boolean reverseObjectRoot = false;
 
-    @JsonIgnore
     @Override
     public String getExtensionName() {
         return NTupleOmitPrefixStorageLayoutExtension.EXTENSION_NAME;
@@ -98,7 +102,7 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      * return true or false, indicates that the prefix-omitted, padded object
      * identifier should be reversed
      */
-    public boolean reverseObjectRoot() {
+    public boolean isReverseObjectRoot() {
         return reverseObjectRoot;
     }
 
@@ -113,7 +117,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *            marking the end of prefix
      */
     public NTupleOmitPrefixStorageLayoutConfig setDelimiter(String delimiter) {
-        this.delimiter = Enforce.expressionTrue(delimiter != null && !delimiter.isEmpty(), delimiter, "delimiter must not be empty");
+        this.delimiter = Enforce.expressionTrue(delimiter != null && !delimiter.isEmpty(),
+                delimiter, "delimiter must not be empty");
 
         return this;
     }
@@ -126,7 +131,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      * 
      */
     public NTupleOmitPrefixStorageLayoutConfig setTupleSize(int tupleSize) {
-        this.tupleSize = Enforce.expressionTrue(tupleSize >= 1 && tupleSize <= 32, tupleSize, "tupleSize must be between 1 and 32 inclusive");
+        this.tupleSize = Enforce.expressionTrue(tupleSize >= 1 && tupleSize <= 32, tupleSize,
+                "tupleSize must be between 1 and 32 inclusive");
         return this;
     }
 
@@ -179,7 +185,10 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
             return false;
         }
         NTupleOmitPrefixStorageLayoutConfig that = (NTupleOmitPrefixStorageLayoutConfig) o;
-        return delimiter.equals(that.delimiter) && tupleSize == that.tupleSize && numberOfTuples == that.numberOfTuples && zeroPadding == that.zeroPadding
+        return delimiter.equals(that.delimiter)
+                && tupleSize == that.tupleSize
+                && numberOfTuples == that.numberOfTuples
+                && zeroPadding == that.zeroPadding
                 && reverseObjectRoot == that.reverseObjectRoot;
     }
 
@@ -190,8 +199,11 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 
     @Override
     public String toString() {
-        return "NTupleOmitPrefixStorageLayoutConfig{ delimiter='" + delimiter + "', tupleSize='" + tupleSize + "', numberOfTuples='" + numberOfTuples
-                + "', zeroPadding='" + zeroPadding + "', reverseObjectRoot='" + reverseObjectRoot + "' }";
+        return "NTupleOmitPrefixStorageLayoutConfig{ delimiter='" + delimiter
+                + "', tupleSize='" + tupleSize
+                + "', numberOfTuples='" + numberOfTuples
+                + "', zeroPadding='" + zeroPadding
+                + "', reverseObjectRoot='" + reverseObjectRoot + "' }";
     }
 
 }

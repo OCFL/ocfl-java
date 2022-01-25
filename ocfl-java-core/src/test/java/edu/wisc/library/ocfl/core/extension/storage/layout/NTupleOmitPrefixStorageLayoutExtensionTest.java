@@ -31,14 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
-import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
 
 /**
  * @author vcrema
  * @since 2021-10-25
  */
-public class NTupleOmitPrefixStorageExtensionTest {
+public class NTupleOmitPrefixStorageLayoutExtensionTest {
 
     private NTupleOmitPrefixStorageLayoutExtension ext;
     private NTupleOmitPrefixStorageLayoutConfig config;
@@ -166,6 +165,20 @@ public class NTupleOmitPrefixStorageExtensionTest {
         //zeroPadding: "left",
         //reverseObjectRoot: false
         
+        String result = ext.mapObjectId("https://institution.edu/344879388");
+        assertEquals("344/879/388/344879388", result);
+    }
+
+    @Test
+    public void testOneOccurrenceOfMultiCharDelimiterCaseInsensitive() {
+        config.setDelimiter("EDU/");
+        ext.init(config);
+        //Defaults:
+        //tupleSize: 3
+        //numberOfTuples: 3,
+        //zeroPadding: "left",
+        //reverseObjectRoot: false
+
         String result = ext.mapObjectId("https://institution.edu/344879388");
         assertEquals("344/879/388/344879388", result);
     }
