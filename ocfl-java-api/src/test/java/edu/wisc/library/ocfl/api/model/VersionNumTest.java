@@ -40,10 +40,10 @@ public class VersionNumTest {
 
     @Test
     public void shouldIncrementVersionWhenHasPadding() {
-        var versionNum = VersionNum.fromString("v03");
+        var versionNum = VersionNum.fromString("v00039");
         var nextVersion = versionNum.nextVersionNum();
-        assertEquals("v03", versionNum.toString());
-        assertEquals("v04", nextVersion.toString());
+        assertEquals("v00039", versionNum.toString());
+        assertEquals("v00040", nextVersion.toString());
     }
 
     @Test
@@ -70,7 +70,7 @@ public class VersionNumTest {
 
     @Test
     public void shouldFailIncrementWhenNextVersionIsIllegalPaddedNumber() {
-        var versionNum = VersionNum.fromString("v09");
+        var versionNum = VersionNum.fromString("v09999");
         assertThrows(InvalidVersionException.class, versionNum::nextVersionNum);
     }
 
