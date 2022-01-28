@@ -107,7 +107,7 @@ public class VersionNum implements Comparable<VersionNum> {
         if (zeroPaddingWidth == 0) {
             maxVersion = Long.MAX_VALUE;
         } else {
-            maxVersion = (10 * (zeroPaddingWidth - 1)) - 1;
+            maxVersion = (long) Math.pow(10, zeroPaddingWidth - 1) - 1;
         }
     }
 
