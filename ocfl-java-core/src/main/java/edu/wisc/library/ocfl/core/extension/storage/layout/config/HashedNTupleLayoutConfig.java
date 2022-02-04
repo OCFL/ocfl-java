@@ -39,6 +39,11 @@ import java.util.Objects;
  */
 public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
 
+    private static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha256;
+    private static final int DEFAULT_TUPLE_SIZE = 3;
+    private static final int DEFAULT_NUM_TUPLES = 3;
+    private static final boolean DEFAULT_SHORT_OBJ_ROOT = false;
+
     private DigestAlgorithm digestAlgorithm;
     private int tupleSize;
     private int numberOfTuples;
@@ -48,10 +53,10 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * Creates a new config object with all of the default values set.
      */
     public HashedNTupleLayoutConfig() {
-        digestAlgorithm = DigestAlgorithm.sha256;
-        tupleSize = 3;
-        numberOfTuples = 3;
-        shortObjectRoot = false;
+        digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
+        tupleSize = DEFAULT_TUPLE_SIZE;
+        numberOfTuples = DEFAULT_NUM_TUPLES;
+        shortObjectRoot = DEFAULT_SHORT_OBJ_ROOT;
     }
 
     @Override
@@ -86,7 +91,11 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * @return this
      */
     public HashedNTupleLayoutConfig setDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
-        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        if (digestAlgorithm == null) {
+            this.digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
+        } else {
+            this.digestAlgorithm = digestAlgorithm;
+        }
         return this;
     }
 
@@ -103,9 +112,13 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * @param tupleSize size of tuples in characters
      * @return this
      */
-    public HashedNTupleLayoutConfig setTupleSize(int tupleSize) {
-        this.tupleSize = Enforce.expressionTrue(tupleSize >= 0 && tupleSize <= 32,
-                tupleSize, "tupleSize must be between 0 and 32 inclusive");
+    public HashedNTupleLayoutConfig setTupleSize(Integer tupleSize) {
+        if (tupleSize == null) {
+            this.tupleSize = DEFAULT_TUPLE_SIZE;
+        } else {
+            this.tupleSize = Enforce.expressionTrue(tupleSize >= 0 && tupleSize <= 32,
+                    tupleSize, "tupleSize must be between 0 and 32 inclusive");
+        }
         return this;
     }
 
@@ -122,9 +135,13 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * @param numberOfTuples number of tuples
      * @return this
      */
-    public HashedNTupleLayoutConfig setNumberOfTuples(int numberOfTuples) {
-        this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 0 && numberOfTuples <= 32,
-                numberOfTuples, "numberOfTuples must be between 0 and 32 inclusive");
+    public HashedNTupleLayoutConfig setNumberOfTuples(Integer numberOfTuples) {
+        if (numberOfTuples == null) {
+            this.numberOfTuples = DEFAULT_NUM_TUPLES;
+        } else {
+            this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 0 && numberOfTuples <= 32,
+                    numberOfTuples, "numberOfTuples must be between 0 and 32 inclusive");
+        }
         return this;
     }
 
@@ -141,8 +158,12 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * @param shortObjectRoot whether or not to use a short object root
      * @return this
      */
-    public HashedNTupleLayoutConfig setShortObjectRoot(boolean shortObjectRoot) {
-        this.shortObjectRoot = shortObjectRoot;
+    public HashedNTupleLayoutConfig setShortObjectRoot(Boolean shortObjectRoot) {
+        if (shortObjectRoot == null) {
+            this.shortObjectRoot = DEFAULT_SHORT_OBJ_ROOT;
+        } else {
+            this.shortObjectRoot = shortObjectRoot;
+        }
         return this;
     }
 

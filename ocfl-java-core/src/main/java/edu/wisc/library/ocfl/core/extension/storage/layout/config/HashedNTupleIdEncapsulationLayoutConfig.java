@@ -39,6 +39,10 @@ import java.util.Objects;
  */
 public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionConfig {
 
+    private static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha256;
+    private static final int DEFAULT_TUPLE_SIZE = 3;
+    private static final int DEFAULT_NUM_TUPLES = 3;
+
     private DigestAlgorithm digestAlgorithm;
     private int tupleSize;
     private int numberOfTuples;
@@ -47,9 +51,9 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
      * Creates a new config object with all of the default values set.
      */
     public HashedNTupleIdEncapsulationLayoutConfig() {
-        digestAlgorithm = DigestAlgorithm.sha256;
-        tupleSize = 3;
-        numberOfTuples = 3;
+        digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
+        tupleSize = DEFAULT_TUPLE_SIZE;
+        numberOfTuples = DEFAULT_NUM_TUPLES;
     }
 
     @Override
@@ -84,7 +88,11 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
      * @return this
      */
     public HashedNTupleIdEncapsulationLayoutConfig setDigestAlgorithm(DigestAlgorithm digestAlgorithm) {
-        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        if (digestAlgorithm == null) {
+            this.digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
+        } else {
+            this.digestAlgorithm = digestAlgorithm;
+        }
         return this;
     }
 
@@ -101,9 +109,13 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
      * @param tupleSize size of tuples in characters
      * @return this
      */
-    public HashedNTupleIdEncapsulationLayoutConfig setTupleSize(int tupleSize) {
-        this.tupleSize = Enforce.expressionTrue(tupleSize >= 0 && tupleSize <= 32,
-                tupleSize, "tupleSize must be between 0 and 32 inclusive");
+    public HashedNTupleIdEncapsulationLayoutConfig setTupleSize(Integer tupleSize) {
+        if (tupleSize == null) {
+            this.tupleSize = DEFAULT_TUPLE_SIZE;
+        } else {
+            this.tupleSize = Enforce.expressionTrue(tupleSize >= 0 && tupleSize <= 32,
+                    tupleSize, "tupleSize must be between 0 and 32 inclusive");
+        }
         return this;
     }
 
@@ -120,9 +132,13 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
      * @param numberOfTuples number of tuples
      * @return this
      */
-    public HashedNTupleIdEncapsulationLayoutConfig setNumberOfTuples(int numberOfTuples) {
-        this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 0 && numberOfTuples <= 32,
-                numberOfTuples, "numberOfTuples must be between 0 and 32 inclusive");
+    public HashedNTupleIdEncapsulationLayoutConfig setNumberOfTuples(Integer numberOfTuples) {
+        if (numberOfTuples == null) {
+            this.numberOfTuples = DEFAULT_NUM_TUPLES;
+        } else {
+            this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 0 && numberOfTuples <= 32,
+                    numberOfTuples, "numberOfTuples must be between 0 and 32 inclusive");
+        }
         return this;
     }
 
