@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.extension.storage.layout.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
+import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
@@ -72,6 +73,13 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
     @Override
     public String getExtensionName() {
         return NTupleOmitPrefixStorageLayoutExtension.EXTENSION_NAME;
+    }
+
+    public void setExtensionName(String extensionName) {
+        if (!Objects.equals(getExtensionName(), extensionName)) {
+            throw new OcflExtensionException(String.format("The extension name for %s must be %s; found %s.",
+                    getClass().getSimpleName(), getExtensionName(), extensionName));
+        }
     }
 
     @JsonIgnore
