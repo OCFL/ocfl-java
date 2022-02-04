@@ -51,11 +51,23 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
         }
     }
 
+    private static final int DEFAULT_TUPLE_SIZE = 3;
+    private static final int DEFAULT_NUM_TUPLES = 3;
+    private static final ZeroPadding DEFAULT_PADDING = ZeroPadding.LEFT;
+    private static final boolean DEFAULT_REVERSE_ROOT = false;
+
     private String delimiter;
-    private int tupleSize = 3;
-    private int numberOfTuples = 3;
-    private ZeroPadding zeroPadding = ZeroPadding.LEFT;
-    private boolean reverseObjectRoot = false;
+    private int tupleSize;
+    private int numberOfTuples;
+    private ZeroPadding zeroPadding;
+    private boolean reverseObjectRoot;
+
+    public NTupleOmitPrefixStorageLayoutConfig() {
+        this.tupleSize = DEFAULT_TUPLE_SIZE;
+        this.numberOfTuples = DEFAULT_NUM_TUPLES;
+        this.zeroPadding = DEFAULT_PADDING;
+        this.reverseObjectRoot = DEFAULT_REVERSE_ROOT;
+    }
 
     @Override
     public String getExtensionName() {
@@ -130,9 +142,13 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *            - the segment size (in characters) to split the digest into
      * 
      */
-    public NTupleOmitPrefixStorageLayoutConfig setTupleSize(int tupleSize) {
-        this.tupleSize = Enforce.expressionTrue(tupleSize >= 1 && tupleSize <= 32, tupleSize,
-                "tupleSize must be between 1 and 32 inclusive");
+    public NTupleOmitPrefixStorageLayoutConfig setTupleSize(Integer tupleSize) {
+        if (tupleSize == null) {
+            this.tupleSize = DEFAULT_TUPLE_SIZE;
+        } else {
+            this.tupleSize = Enforce.expressionTrue(tupleSize >= 1 && tupleSize <= 32, tupleSize,
+                    "tupleSize must be between 1 and 32 inclusive");
+        }
         return this;
     }
 
@@ -143,9 +159,13 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *            - The number of segments to use for path generation
      * 
      */
-    public NTupleOmitPrefixStorageLayoutConfig setNumberOfTuples(int numberOfTuples) {
-        this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 1 && numberOfTuples <= 32, numberOfTuples,
-                "numberOfTuples must be between 1 and 32 inclusive");
+    public NTupleOmitPrefixStorageLayoutConfig setNumberOfTuples(Integer numberOfTuples) {
+        if (numberOfTuples == null) {
+            this.numberOfTuples = DEFAULT_NUM_TUPLES;
+        } else {
+            this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 1 && numberOfTuples <= 32, numberOfTuples,
+                    "numberOfTuples must be between 1 and 32 inclusive");
+        }
         return this;
     }
 
@@ -157,8 +177,11 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *
      */
     public NTupleOmitPrefixStorageLayoutConfig setZeroPadding(ZeroPadding zeroPadding) {
-        Enforce.notNull(zeroPadding, "Zero padding cannot be null");
-        this.zeroPadding = zeroPadding;
+        if (zeroPadding == null) {
+            this.zeroPadding = DEFAULT_PADDING;
+        } else {
+            this.zeroPadding = zeroPadding;
+        }
         return this;
     }
 
@@ -171,8 +194,12 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *            should be reversed
      *
      */
-    public NTupleOmitPrefixStorageLayoutConfig setReverseObjectRoot(boolean reverseObjectRoot) {
-        this.reverseObjectRoot = reverseObjectRoot;
+    public NTupleOmitPrefixStorageLayoutConfig setReverseObjectRoot(Boolean reverseObjectRoot) {
+        if (reverseObjectRoot == null) {
+            this.reverseObjectRoot = DEFAULT_REVERSE_ROOT;
+        } else {
+            this.reverseObjectRoot = reverseObjectRoot;
+        }
         return this;
     }
 

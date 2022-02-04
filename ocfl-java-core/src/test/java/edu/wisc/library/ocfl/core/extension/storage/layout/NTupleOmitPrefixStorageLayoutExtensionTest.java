@@ -50,31 +50,31 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
 
     @Test
     public void testNullDelimiter() {
-    	assertThrows(OcflInputException.class, () -> config.setDelimiter(null),
+        assertThrows(OcflInputException.class, () -> config.setDelimiter(null),
                 "Expected OcflInputException");
     }
 
     @Test
     public void testEmptyDelimiter() {
-    	assertThrows(OcflInputException.class, () -> config.setDelimiter(""),
+        assertThrows(OcflInputException.class, () -> config.setDelimiter(""),
                 "Expected OcflInputException");
     }
     
     @Test
     public void testNegativeTupleSize() {
-    	assertThrows(OcflInputException.class, () -> config.setTupleSize(-1),
+        assertThrows(OcflInputException.class, () -> config.setTupleSize(-1),
                 "Expected OcflInputException");
     }
 
     @Test
     public void testZeroTupleSize() {
-    	assertThrows(OcflInputException.class, () -> config.setTupleSize(0),
+        assertThrows(OcflInputException.class, () -> config.setTupleSize(0),
                 "Expected OcflInputException");
     }
     
     @Test
     public void testNegativeNumberOfTuples() {
-    	assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(-1),
+        assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(-1),
                 "Expected OcflInputException");
     }
 
@@ -85,16 +85,10 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
     }
     
     @Test
-    public void testIncorrectZeroPadding() {
-        assertThrows(OcflInputException.class, () -> config.setZeroPadding(null),
-                "Expected OcflInputException");
-    }
-    
-    @Test
     public void testNonAsciiId() {
-    	config.setDelimiter("/");
+        config.setDelimiter("/");
         ext.init(config);
-    	assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("jå∫∆a/vµa2bl√øog"),
+        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("jå∫∆a/vµa2bl√øog"),
                 "Expected OcflExtensionException");
     }
 
