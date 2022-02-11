@@ -39,6 +39,7 @@ import edu.wisc.library.ocfl.itest.ext.TestLayoutExtension;
 import edu.wisc.library.ocfl.itest.ext.TestLayoutExtensionConfig;
 import edu.wisc.library.ocfl.test.OcflAsserts;
 import edu.wisc.library.ocfl.test.TestHelper;
+import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -88,6 +90,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public abstract class OcflITest {
 
@@ -858,6 +861,21 @@ public abstract class OcflITest {
         assertThat(assertThrows(OcflIOException.class, () -> {
             repo.getObject(ObjectVersionId.head("o1"));
         }).getMessage(), containsString("digestAlgorithm must be sha512 or sha256"));
+    }
+
+    @Test
+    public void failReadingObjectWhenHasMaliciousPath() {
+        var repoName = "malicious-content-paths";
+        var repoDir = sourceRepoPath(repoName);
+        var repo = existingRepo(repoName, repoDir);
+
+        assertThrows(PathConstraintException.class, () -> {
+            try (var stream = repo.getObject(ObjectVersionId.head("urn:example:bad"))
+                    .getFile("file.txt").getStream()) {
+                IOUtils.toString(stream, StandardCharsets.UTF_8);
+                fail("Should not have read file");
+            }
+        });
     }
 
     @Test

@@ -36,4 +36,13 @@ public interface ContentPathConstraintProcessor {
      */
     void apply(String contentPath, String storagePath);
 
+    /**
+     * Applies the configured path constrains to the content path and storage path. If any constraints fail,
+     * a {@link edu.wisc.library.ocfl.api.exception.PathConstraintException} is thrown.
+     *
+     * @param contentPath the content path relative a version's content directory
+     * @throws edu.wisc.library.ocfl.api.exception.PathConstraintException when a constraint fails
+     */
+    void apply(String contentPath);
+
 }

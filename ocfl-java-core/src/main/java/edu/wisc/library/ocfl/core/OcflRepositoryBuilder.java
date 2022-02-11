@@ -99,7 +99,7 @@ public class OcflRepositoryBuilder {
                 .maximumSize(512).build());
         inventoryMapper = InventoryMapper.defaultMapper();
         logicalPathMapper = LogicalPathMappers.directMapper();
-        contentPathConstraintProcessor = ContentPathConstraints.none();
+        contentPathConstraintProcessor = ContentPathConstraints.minimal();
         unsupportedBehavior = UnsupportedExtensionBehavior.FAIL;
         ignoreUnsupportedExtensions = Collections.emptySet();
         verifyStaging = true;
@@ -262,7 +262,7 @@ public class OcflRepositoryBuilder {
      *     <li>{@link ContentPathConstraints#windows()}</li>
      *     <li>{@link ContentPathConstraints#cloud()}</li>
      *     <li>{@link ContentPathConstraints#all()}</li>
-     *     <li>{@link ContentPathConstraints#none()}</li>
+     *     <li>{@link ContentPathConstraints#minimal()}</li>
      * </ul>
      *
      * <p>Constraints should be applied that target filesystems that are NOT the local filesystem. The local filesystem
