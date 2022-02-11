@@ -33,6 +33,8 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionNum;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
+import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 
 import java.io.BufferedInputStream;
@@ -43,6 +45,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.security.DigestInputStream;
+import java.util.Collection;
 
 /**
  * Wrapper around Jackson's ObjectMapper for serializing and deserializing Inventories. The ObjectMapper setup is a finicky
@@ -51,6 +54,7 @@ import java.security.DigestInputStream;
 public class InventoryMapper {
 
     private final ObjectMapper objectMapper;
+    private final ContentPathConstraintProcessor contentPathConstraints;
 
     /**
      * Creates an InventoryMapper that will pretty print JSON files. This should be used when you value human readability
@@ -79,6 +83,7 @@ public class InventoryMapper {
      */
     public InventoryMapper(ObjectMapper objectMapper) {
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
+        this.contentPathConstraints = ContentPathConstraints.minimal();
     }
 
     public void write(Path destination, Inventory inventory) {
@@ -150,7 +155,7 @@ public class InventoryMapper {
                                    String objectRootPath,
                                    ReadResult readResult) {
         try {
-            return objectMapper.reader(
+            Inventory inventory = objectMapper.reader(
                     new InjectableValues.Std()
                             .addValue("revisionNum", revisionNum)
                             .addValue("mutableHead", mutableHead)
@@ -158,6 +163,13 @@ public class InventoryMapper {
                             .addValue("inventoryDigest", readResult.digest))
                     .forType(Inventory.class)
                     .readValue(readResult.bytes);
+
+            // Ensure that all content paths are valid to avoid security problems due to malicious inventories
+            inventory.getManifest().values().stream()
+                    .flatMap(Collection::stream)
+                    .forEach(contentPathConstraints::apply);
+
+            return inventory;
         } catch (IOException e) {
             throw new OcflIOException(e);
         }

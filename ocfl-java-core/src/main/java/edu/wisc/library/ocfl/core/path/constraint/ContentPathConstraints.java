@@ -178,11 +178,19 @@ public final class ContentPathConstraints {
     }
 
     /**
-     * Constructs a ContentPathConstraintProcessor that does no special validation.
+     * Constructs a ContentPathConstraintProcessor that does the minimal content path validations as required
+     * by the OCFL spec.
+     *
+     * <ul>
+     *     <li>Cannot have a leading OR trailing /</li>
+     *     <li>Cannot contain the following filenames: '.', '..'</li>
+     *     <li>Cannot contain an empty filename</li>
+     *     <li>Windows only: Cannot contain a \</li>
+     * </ul>
      *
      * @return ContentPathConstraintProcessor
      */
-    public static ContentPathConstraintProcessor none() {
+    public static ContentPathConstraintProcessor minimal() {
         return DefaultContentPathConstraintProcessor.builder().build();
     }
 

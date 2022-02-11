@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.path.constraint;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 
+import java.nio.file.FileSystems;
 import java.util.regex.Pattern;
 
 /**
@@ -115,9 +116,12 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
         this.storagePathConstraintProcessor = Enforce.notNull(storagePathConstraintProcessor, "storagePathConstraintProcessor cannot be null");
         this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
 
+        if (filesystemUsesBackslashSeparator()) {
+            this.contentPathConstraintProcessor.prependCharConstraint(BACKSLASH_CONSTRAINT);
+        }
+
         // Add the required content path constraints to the beginning of the content path constraint processor constraint list
         this.contentPathConstraintProcessor
-                .prependCharConstraint(BACKSLASH_CONSTRAINT)
                 .prependFileNameConstraint(DOT_CONSTRAINT)
                 .prependFileNameConstraint(NON_EMPTY_CONSTRAINT)
                 .prependPathConstraint(TRAILING_SLASH_CONSTRAINT)
@@ -131,6 +135,21 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
     public void apply(String contentPath, String storagePath) {
         storagePathConstraintProcessor.apply(storagePath);
         contentPathConstraintProcessor.apply(contentPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void apply(String contentPath) {
+        contentPathConstraintProcessor.apply(contentPath);
+    }
+
+    private boolean filesystemUsesBackslashSeparator() {
+        // TODO note: this not 100% accurate because the filesystem that the repository is on may be different than the
+        //            default filesystem
+        var pathSeparator = FileSystems.getDefault().getSeparator().charAt(0);
+        return pathSeparator == '\\';
     }
 
 }

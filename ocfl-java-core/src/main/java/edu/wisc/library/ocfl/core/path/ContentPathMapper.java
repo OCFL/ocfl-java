@@ -60,7 +60,7 @@ public class ContentPathMapper {
 
         public Builder() {
             logicalPathMapper = new DirectLogicalPathMapper();
-            contentPathConstraintProcessor = ContentPathConstraints.none();
+            contentPathConstraintProcessor = ContentPathConstraints.minimal();
         }
 
         public Builder logicalPathMapper(LogicalPathMapper logicalPathMapper) {

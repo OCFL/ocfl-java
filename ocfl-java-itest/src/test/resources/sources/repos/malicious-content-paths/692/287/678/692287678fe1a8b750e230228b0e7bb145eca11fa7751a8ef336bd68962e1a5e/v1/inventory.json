@@ -1,0 +1,26 @@
+{
+  "id": "urn:example:bad",
+  "type": "https://ocfl.io/1.0/spec/#inventory",
+  "digestAlgorithm": "sha512",
+  "head": "v1",
+  "contentDirectory": "content",
+  "manifest": {
+    "0e3e75234abc68f4378a86b3f4b32a198ba301845b0cd6e50106e874345700cc6663a86c1ea125dc5e92be17c98f9a0f85ca9d5f595db2012f7cc3571945c123": [
+      "v1/content/../../../../../../0=ocfl_1.0"
+    ]
+  },
+  "versions": {
+    "v1": {
+      "created": "2022-02-11T13:36:06.106847171-06:00",
+      "state": {
+        "0e3e75234abc68f4378a86b3f4b32a198ba301845b0cd6e50106e874345700cc6663a86c1ea125dc5e92be17c98f9a0f85ca9d5f595db2012f7cc3571945c123": [
+          "file.txt"
+        ]
+      },
+      "user": {
+        "name": "Peter Winckles",
+        "address": "mailto:pwinckles@pm.me"
+      }
+    }
+  }
+}
