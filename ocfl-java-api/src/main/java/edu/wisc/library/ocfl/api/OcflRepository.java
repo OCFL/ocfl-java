@@ -166,7 +166,7 @@ public interface OcflRepository {
     void purgeObject(String objectId);
 
     /**
-     * Validates an existing object against the OCFL 1.0 spec and returns a report containing all of the issues that
+     * Validates an existing object against the OCFL spec and returns a report containing all of the issues that
      * were found with their accompanying <a href="https://ocfl.io/validation/validation-codes.html">validation code</a>.
      *
      * <p>The validation does NOT lock the object, which means that if an object is updated while the object is in

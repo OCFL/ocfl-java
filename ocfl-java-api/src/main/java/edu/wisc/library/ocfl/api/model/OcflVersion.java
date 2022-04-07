@@ -34,38 +34,53 @@ import java.util.stream.Collectors;
  */
 public enum OcflVersion {
 
-    OCFL_1_0("1.0");
+    // The order versions are defined is significant as it affects the output of compareTo
+    OCFL_1_0("1.0"),
+    OCFL_1_1("1.1");
 
     private static final String OCFL_PREFIX = "ocfl_";
     private static final String OBJECT_PREFIX = "ocfl_object_";
 
     private final String versionString;
+    private final String ocflVersion;
+    private final String ocflObjectVersion;
 
     OcflVersion(String versionString) {
         this.versionString = versionString;
+        this.ocflVersion = OCFL_PREFIX + versionString;
+        this.ocflObjectVersion = OBJECT_PREFIX + versionString;
+    }
+
+    /**
+     * @return the raw OCFL version number, eg 1.0
+     */
+    public String getRawVersion() {
+        return versionString;
     }
 
     /**
      * @return the OCFL version string as found in the Namaste file in the OCFL storage root
      */
     public String getOcflVersion() {
-        return OCFL_PREFIX + versionString;
+        return ocflVersion;
     }
 
     /**
      * @return the OCFL object version string as found in the Namaste file in the OCFL object root
      */
     public String getOcflObjectVersion() {
-        return OBJECT_PREFIX + versionString;
+        return ocflObjectVersion;
     }
 
     /**
      * @return the InventoryType as specified in an object's inventory file
      */
     public InventoryType getInventoryType() {
-        switch (versionString) {
-            case "1.0":
+        switch (this) {
+            case OCFL_1_0:
                 return InventoryType.OCFL_1_0;
+            case OCFL_1_1:
+                return InventoryType.OCFL_1_1;
             default:
                 throw new OcflJavaException("Unmapped version " + versionString);
         }

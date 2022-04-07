@@ -84,8 +84,6 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
                                                         OcflExtensionConfig layoutConfig,
                                                         ExtensionSupportEvaluator supportEvaluator) {
         Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
-        // TODO ocflVersion should be optional for existing repositories and it should verify that ocfl-java supports
-        //      whatever version it finds on disk
 
         OcflStorageLayoutExtension layoutExtension;
 
@@ -105,7 +103,11 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
     private OcflStorageLayoutExtension loadAndValidateExistingRepo(OcflVersion ocflVersion,
                                                                    OcflExtensionConfig layoutConfig) {
-        validateOcflVersion(ocflVersion);
+        var existingVersion = identifyExistingVersion();
+
+        if (existingVersion.compareTo(ocflVersion) < 0) {
+            upgradeOcflRepo(existingVersion, ocflVersion);
+        }
 
         var ocflLayout = readOcflLayout();
 
@@ -119,24 +121,39 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
         return loadLayoutByConfig(ocflLayout);
     }
 
-    private void validateOcflVersion(OcflVersion ocflVersion) {
-        var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
+    private OcflVersion identifyExistingVersion() {
+        OcflVersion foundVersion = null;
 
-        if (!storage.fileExists(namasteFile.fileName())) {
-            // TODO This would ideally operate on a streaming list result
-            var existingOcflVersion = list("").stream()
-                    .filter(Listing::isFile)
-                    .map(Listing::getRelativePath)
-                    .filter(file -> file.startsWith("0="))
-                    .map(OcflVersion::fromOcflVersionFilename)
-                    .findFirst();
-
-            if (existingOcflVersion.isEmpty()) {
-                throw new RepositoryConfigurationException("OCFL root is missing its namaste file, eg. 0=ocfl_1.0.");
-            } else if (existingOcflVersion.get() != ocflVersion) {
-                throw new RepositoryConfigurationException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
-                        ocflVersion, existingOcflVersion));
+        for (var version : OcflVersion.values()) {
+            var fileName = new NamasteTypeFile(version.getOcflVersion()).fileName();
+            try {
+                var contents = storage.readToString(fileName);
+                foundVersion = OcflVersion.fromOcflVersionString(contents);
+                break;
+            } catch (OcflNoSuchFileException e) {
+                LOG.debug("OCFL root namaste file {} does not exist", fileName);
             }
+        }
+
+        if (foundVersion == null) {
+            throw new RepositoryConfigurationException("OCFL root is missing a namaste file, eg. 0=ocfl_1.0.");
+        }
+
+        return foundVersion;
+    }
+
+    private void upgradeOcflRepo(OcflVersion currentVersion, OcflVersion newVersion) {
+        LOG.info("This is an OCFL {} repository, but was programmatically configured to create OCFL {} objects. " +
+                        "Upgrading the OCFL repository to {}. Note, existing objects will NOT be upgraded.",
+                currentVersion.getRawVersion(), newVersion.getRawVersion(), newVersion.getRawVersion());
+
+        try {
+            writeNamasteFile(newVersion);
+            writeOcflSpec(newVersion);
+            storage.deleteFile(new NamasteTypeFile(currentVersion.getOcflVersion()).fileName());
+        } catch (RuntimeException e) {
+            throw new OcflJavaException(String.format("Failed to upgrade OCFL repository to version %s",
+                    newVersion.getRawVersion()), e);
         }
     }
 

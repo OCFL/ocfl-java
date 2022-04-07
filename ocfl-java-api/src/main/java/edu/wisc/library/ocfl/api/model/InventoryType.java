@@ -31,7 +31,8 @@ import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 
 public enum InventoryType {
 
-    OCFL_1_0("https://ocfl.io/1.0/spec/#inventory");
+    OCFL_1_0("https://ocfl.io/1.0/spec/#inventory"),
+    OCFL_1_1("https://ocfl.io/1.1/spec/#inventory");
 
     private final String id;
 
@@ -46,9 +47,11 @@ public enum InventoryType {
 
     @JsonIgnore
     public OcflVersion getOcflVersion() {
-        switch (id) {
-            case "https://ocfl.io/1.0/spec/#inventory":
+        switch (this) {
+            case OCFL_1_0:
                 return OcflVersion.OCFL_1_0;
+            case OCFL_1_1:
+                return OcflVersion.OCFL_1_1;
             default:
                 throw new OcflJavaException("Unmapped inventory type " + id);
         }

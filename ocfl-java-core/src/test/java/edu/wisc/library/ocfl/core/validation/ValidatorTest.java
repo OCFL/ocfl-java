@@ -98,15 +98,14 @@ public class ValidatorTest {
     }
 
     @Test
-    public void errorOnEmptyObjectRot() {
+    public void errorOnEmptyObjectRoot() {
         var name = "E003_E034_empty";
         var validator = createValidator(OFFICIAL_BAD_FIXTURES);
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 2);
-        assertHasError(results, ValidationCode.E003, "OCFL object version declaration must exist at E003_E034_empty/0=ocfl_object_1.0");
-        assertHasError(results, ValidationCode.E063, "Object root inventory not found at E003_E034_empty/inventory.json");
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E003, "OCFL object version declaration is missing in E003_E034_empty");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -118,17 +117,9 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 7);
-        assertHasError(results, ValidationCode.E003, "OCFL object version declaration must exist at E003_no_decl/0=ocfl_object_1.0");
-        assertHasError(results, ValidationCode.E102, "Inventory version v1 cannot contain unknown property type in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E038, "Inventory type must equal 'https://ocfl.io/1.0/spec/#inventory' in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E036, "Inventory head must be set in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E048, "Inventory version v1 must contain a created timestamp in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E060, "Inventory at E003_no_decl/inventory.json does not match expected sha512 digest. Expected: 14f15a87d1f9d02c1bf9cf08d6c7f9af96d2a69a9715a8dbb2e938cba271e1f204f3b2b6d3df93ead1bb5b7b925fc23dc207207220aa190947349729c2c1f74a; Found: 1c27836424fc93b67d9eac795f234fcc8c3825d54c26ab7254dfbb47bf432a184df5e96e65bd4c1e2db4c0d5172ce2f0fc589fd6a6a30ebbec0aae7938318815");
-        assertHasError(results, ValidationCode.E061, "Inventory sidecar file at E003_no_decl/inventory.json.sha512 is in an invalid format");
-        assertWarningsCount(results, 2);
-        assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a user in E003_no_decl/inventory.json");
-        assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a message in E003_no_decl/inventory.json");
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E003, "OCFL object version declaration is missing in E003_no_decl");
+        assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
 
@@ -140,7 +131,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 1);
-        assertHasError(results, ValidationCode.E003, "OCFL object version declaration must exist at E003_no_decl/0=ocfl_object_1.0");
+        assertHasError(results, ValidationCode.E003, "OCFL object version declaration is missing in E003_no_decl");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -153,7 +144,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 1);
-        assertHasError(results, ValidationCode.E007, "OCFL object version declaration must be '0=ocfl_object_1.0' in E007_bad_declaration_contents/0=ocfl_object_1.0");
+        assertHasError(results, ValidationCode.E007, "OCFL object version declaration must be 'ocfl_object_1.0' in E007_bad_declaration_contents/0=ocfl_object_1.0");
         assertWarningsCount(results, 2);
         assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a user in E007_bad_declaration_contents/inventory.json");
         assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a message in E007_bad_declaration_contents/inventory.json");

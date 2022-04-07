@@ -38,6 +38,7 @@ import java.util.Objects;
 public class VersionDetails {
 
     private ObjectVersionId objectVersionId;
+    private OcflVersion objectOcflVersion;
     private OffsetDateTime created;
     private VersionInfo versionInfo;
     private boolean mutable;
@@ -124,6 +125,18 @@ public class VersionDetails {
     }
 
     /**
+     * @return the OCFL version the object adheres to
+     */
+    public OcflVersion getObjectOcflVersion() {
+        return objectOcflVersion;
+    }
+
+    public VersionDetails setObjectOcflVersion(OcflVersion objectOcflVersion) {
+        this.objectOcflVersion = objectOcflVersion;
+        return this;
+    }
+
+    /**
      * Collection of all of the files in this version of the object
      *
      * @return all of the files in the version
@@ -170,7 +183,8 @@ public class VersionDetails {
     @Override
     public String toString() {
         return "VersionDetails{" +
-                "objectVersionId='" + objectVersionId + '\'' +
+                "objectVersionId=" + objectVersionId +
+                ", objectOcflVersion=" + objectOcflVersion +
                 ", created=" + created +
                 ", versionInfo=" + versionInfo +
                 ", mutable=" + mutable +
@@ -187,16 +201,16 @@ public class VersionDetails {
             return false;
         }
         VersionDetails that = (VersionDetails) o;
-        return mutable == that.mutable &&
-                Objects.equals(objectVersionId, that.objectVersionId) &&
-                Objects.equals(created, that.created) &&
-                Objects.equals(versionInfo, that.versionInfo) &&
-                Objects.equals(fileMap, that.fileMap);
+        return mutable == that.mutable
+                && Objects.equals(objectVersionId, that.objectVersionId)
+                && objectOcflVersion == that.objectOcflVersion
+                && Objects.equals(created, that.created)
+                && Objects.equals(versionInfo, that.versionInfo)
+                && Objects.equals(fileMap, that.fileMap);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(objectVersionId, created, versionInfo, mutable, fileMap);
+        return Objects.hash(objectVersionId, objectOcflVersion, created, versionInfo, mutable, fileMap);
     }
-
 }

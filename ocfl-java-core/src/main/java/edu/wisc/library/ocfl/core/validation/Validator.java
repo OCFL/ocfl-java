@@ -40,11 +40,12 @@ import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
-import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.storage.common.Listing;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
+import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,18 +70,11 @@ import java.util.stream.Collectors;
 import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS;
 
 /**
- * Validates an object directory against the OCFL 1.0 spec
+ * Validates an object directory against the OCFL 1.0 and 1.1 spec
  */
 public class Validator {
 
     private static final Logger LOG = LoggerFactory.getLogger(Validator.class);
-
-    private static final String OBJECT_NAMASTE_CONTENTS = OcflVersion.OCFL_1_0.getOcflObjectVersion() + "\n";
-
-    private static final Set<String> OBJECT_ROOT_FILES = Set.of(
-            OcflConstants.OBJECT_NAMASTE_1_0,
-            OcflConstants.INVENTORY_FILE
-    );
 
     private static final Set<String> REGISTERED_EXTENSIONS = Set.of(
             HashedNTupleLayoutExtension.EXTENSION_NAME,
@@ -126,7 +120,7 @@ public class Validator {
     }
 
     /**
-     * Validates the specified directory against the OCFL 1.0 spec.
+     * Validates the specified directory against the OCFL 1.0 and 1.1 spec.
      *
      * @param objectRootPath the path to the object to validate
      * @param contentFixityCheck true if the content file digests should be validated
@@ -139,19 +133,22 @@ public class Validator {
 
         var files = listFiles(objectRootPath);
 
-        validateNamaste(objectRootPath, files, results);
+        var ocflVersion = validateNamaste(objectRootPath, files, results);
 
-        var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
+        if (ocflVersion != null) {
+            var inventoryPath = ObjectPaths.inventoryPath(objectRootPath);
 
-        if (files.contains(Listing.file(OcflConstants.INVENTORY_FILE))) {
-            var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
-            parseResult.inventory.ifPresent(inventory ->
-                    validateObjectWithInventory(objectRootPath, files, inventoryPath, inventory,
-                            parseResult.digests, parseResult.isValid, contentFixityCheck, results));
-        } else {
-            results.addIssue(ValidationCode.E063,
-                    "Object root inventory not found at %s", inventoryPath);
+            if (files.contains(Listing.file(OcflConstants.INVENTORY_FILE))) {
+                var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
+                parseResult.inventory.ifPresent(inventory ->
+                        validateObjectWithInventory(objectRootPath, ocflVersion, files, inventoryPath, inventory,
+                                parseResult.digests, parseResult.isValid, contentFixityCheck, results));
+            } else {
+                results.addIssue(ValidationCode.E063,
+                        "Object root inventory not found at %s", inventoryPath);
+            }
         }
+
 
         return results.build();
     }
@@ -173,7 +170,7 @@ public class Validator {
         var parseResults = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
 
         parseResults.inventory.ifPresent(inventory -> {
-            var validationResults = inventoryValidator.validateInventory(inventory, inventoryPath);
+            var validationResults = inventoryValidator.validateInventory(inventory, inventoryPath, null, null);
             results.addAll(validationResults);
         });
 
@@ -181,6 +178,7 @@ public class Validator {
     }
 
     private void validateObjectWithInventory(String objectRootPath,
+                                             OcflVersion ocflVersion,
                                              List<Listing> rootFiles,
                                              String inventoryPath,
                                              SimpleInventory rootInventory,
@@ -188,9 +186,14 @@ public class Validator {
                                              boolean inventoryIsValid,
                                              boolean contentFixityCheck,
                                              ValidationResultsBuilder results) {
-        var ignoreFiles = new HashSet<>(OBJECT_ROOT_FILES);
+        var ignoreFiles = new HashSet<String>();
+        ignoreFiles.add(OcflConstants.INVENTORY_FILE);
+        ignoreFiles.add(new NamasteTypeFile(ocflVersion.getOcflObjectVersion()).fileName());
 
-        var validationResults = inventoryValidator.validateInventory(rootInventory, inventoryPath);
+        var validationResults = inventoryValidator.validateInventory(rootInventory,
+                inventoryPath,
+                ocflVersion,
+                SimpleInventoryValidator.VersionEquality.EQUAL);
         results.addAll(validationResults);
 
         validateSidecar(inventoryPath, rootInventory, inventoryDigests, results)
@@ -220,7 +223,16 @@ public class Validator {
                 if (Objects.equals(rootInventory.getHead(), versionStr)) {
                     validateHeadVersion(objectRootPath, rootInventory, rootDigest, results);
                 } else {
-                    validateVersion(objectRootPath, versionStr, rootInventory, contentFiles, manifests, inventoryMap, results);
+                    // TODO 1.1 this needs to capture the version from the inventory and feed it to the next to ensure
+                    //      the versions are monotonically increasing
+                    validateVersion(objectRootPath,
+                            versionStr,
+                            rootInventory,
+                            ocflVersion,
+                            contentFiles,
+                            manifests,
+                            inventoryMap,
+                            results);
                 }
             });
 
@@ -236,6 +248,7 @@ public class Validator {
     private void validateVersion(String objectRootPath,
                                  String versionStr,
                                  SimpleInventory rootInventory,
+                                 OcflVersion ocflVersion,
                                  ContentPaths contentFiles,
                                  Manifests manifests,
                                  Map<String, SimpleInventory> inventoryMap,
@@ -255,7 +268,10 @@ public class Validator {
             var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
             if (parseResult.inventory.isPresent()) {
                 var inventory = parseResult.inventory.get();
-                var validationResults = inventoryValidator.validateInventory(inventory, inventoryPath);
+                var validationResults = inventoryValidator.validateInventory(inventory,
+                        inventoryPath,
+                        ocflVersion,
+                        SimpleInventoryValidator.VersionEquality.LESS_THAN_OR_EQUAL);
                 results.addAll(validationResults);
 
                 validateSidecar(inventoryPath, inventory, parseResult.digests, results)
@@ -601,25 +617,44 @@ public class Validator {
         }
     }
 
-    private void validateNamaste(String objectRootPath, List<Listing> files, ValidationResultsBuilder results) {
-        // TODO this is only true for OCFL 1.0
-        var namasteFile = ObjectPaths.objectNamastePath(objectRootPath);
+    /**
+     * Validates the object's namaste file and returns its OCFL version if it is valid. If it is not valid, null is
+     * returned.
+     */
+    private OcflVersion validateNamaste(String objectRootPath, List<Listing> files, ValidationResultsBuilder results) {
+        return files.stream().map(Listing::getRelativePath)
+                .filter(path -> path.startsWith(OcflConstants.OBJECT_NAMASTE_PREFIX))
+                .findFirst().map(path -> {
+                    var fullPath = FileUtil.pathJoinIgnoreEmpty(objectRootPath, path);
+                    OcflVersion version;
+                    try {
+                        version = OcflVersion.fromOcflObjectVersionFilename(path);
+                    } catch (RuntimeException e) {
+                        results.addIssue(ValidationCode.E003,
+                                "Unsupported OCFL object version declaration %s",
+                                fullPath);
+                        return null;
+                    }
 
-        if (files.contains(Listing.file(OcflConstants.OBJECT_NAMASTE_1_0))) {
-            try (var stream = fileSystem.read(namasteFile)) {
-                var contents = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
-                // TODO there are technically multiple different codes that could be used here
-                if (!OBJECT_NAMASTE_CONTENTS.equals(contents)) {
-                    results.addIssue(ValidationCode.E007,
-                            "OCFL object version declaration must be '%s' in %s",
-                            OcflConstants.OBJECT_NAMASTE_1_0, namasteFile);
-                }
-            } catch (IOException e) {
-                throw new OcflIOException(e);
-            }
-        } else {
-            results.addIssue(ValidationCode.E003, "OCFL object version declaration must exist at %s", namasteFile);
-        }
+                    var namaste = new NamasteTypeFile(version.getOcflObjectVersion());
+                    try (var stream = fileSystem.read(fullPath)) {
+                        var contents = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+                        // TODO there are technically multiple different codes that could be used here
+                        if (!namaste.fileContent().equals(contents)) {
+                            results.addIssue(ValidationCode.E007,
+                                    "OCFL object version declaration must be '%s' in %s",
+                                    namaste.fileContent().trim(), fullPath);
+                        }
+                    } catch (IOException e) {
+                        throw new OcflIOException(e);
+                    }
+
+                    return version;
+                }).orElseGet(() -> {
+                    results.addIssue(ValidationCode.E003,
+                            "OCFL object version declaration is missing in %s", objectRootPath);
+                    return null;
+                });
     }
 
     private String validateInventorySidecar(String sidecarPath, ValidationResultsBuilder results) {
