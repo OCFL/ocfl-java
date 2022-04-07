@@ -53,6 +53,7 @@ public class ResponseMapper {
         var details = new ObjectDetails()
                 .setId(inventory.getId())
                 .setDigestAlgorithm(inventory.getDigestAlgorithm())
+                .setObjectOcflVersion(inventory.getType().getOcflVersion())
                 .setHeadVersionNum(inventory.getHead());
 
         var versionMap = inventory.getVersions().entrySet().stream()
@@ -67,32 +68,11 @@ public class ResponseMapper {
     public VersionDetails mapVersion(Inventory inventory, VersionNum versionNum, Version version) {
         return new VersionDetails()
                 .setObjectVersionId(ObjectVersionId.version(inventory.getId(), versionNum))
+                .setObjectOcflVersion(inventory.getType().getOcflVersion())
                 .setCreated(version.getCreated())
                 .setMutable(inventory.hasMutableHead() && inventory.getHead().equals(versionNum))
                 .setFileMap(mapFileDetails(inventory, version))
                 .setVersionInfo(versionInfo(version));
-    }
-
-    private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
-        var fileDetailsMap = new HashMap<String, FileDetails>();
-
-        var digestAlgorithm = inventory.getDigestAlgorithm();
-
-        version.getState().forEach((digest, paths) -> {
-            paths.forEach(path -> {
-                var contentPath = inventory.getContentPath(digest);
-                var details = new FileDetails()
-                        .setPath(path)
-                        .setStorageRelativePath(inventory.storagePath(digest))
-                        .addDigest(digestAlgorithm, digest);
-
-                var digests = inventory.getFixityForContentPath(contentPath);
-                digests.forEach(details::addDigest);
-                fileDetailsMap.put(path, details);
-            });
-        });
-
-        return fileDetailsMap;
     }
 
     public FileChangeHistory fileChangeHistory(Inventory inventory, String logicalPath) {
@@ -132,6 +112,28 @@ public class ResponseMapper {
         }
 
         return new FileChangeHistory().setPath(logicalPath).setFileChanges(changes);
+    }
+
+    private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
+        var fileDetailsMap = new HashMap<String, FileDetails>();
+
+        var digestAlgorithm = inventory.getDigestAlgorithm();
+
+        version.getState().forEach((digest, paths) -> {
+            paths.forEach(path -> {
+                var contentPath = inventory.getContentPath(digest);
+                var details = new FileDetails()
+                        .setPath(path)
+                        .setStorageRelativePath(inventory.storagePath(digest))
+                        .addDigest(digestAlgorithm, digest);
+
+                var digests = inventory.getFixityForContentPath(contentPath);
+                digests.forEach(details::addDigest);
+                fileDetailsMap.put(path, details);
+            });
+        });
+
+        return fileDetailsMap;
     }
 
     private VersionInfo versionInfo(Version version) {

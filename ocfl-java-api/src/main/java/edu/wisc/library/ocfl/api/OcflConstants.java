@@ -46,7 +46,6 @@ public final class OcflConstants {
     public static final String INIT_EXT = "init";
 
     public static final String OBJECT_NAMASTE_PREFIX = "0=ocfl_object_";
-    public static final String OBJECT_NAMASTE_1_0 = "0=" + OcflVersion.OCFL_1_0.getOcflObjectVersion();
 
     public static final String DEFAULT_INITIAL_VERSION_ID = "v1";
     public static final String DEFAULT_CONTENT_DIRECTORY = "content";

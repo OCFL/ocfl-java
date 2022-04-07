@@ -38,6 +38,7 @@ public class ObjectDetails {
     private String id;
     private VersionNum headVersionNum;
     private DigestAlgorithm digestAlgorithm;
+    private OcflVersion objectOcflVersion;
     private Map<VersionNum, VersionDetails> versions;
 
     public ObjectDetails() {
@@ -93,6 +94,18 @@ public class ObjectDetails {
     }
 
     /**
+     * @return the OCFL version the object adheres to
+     */
+    public OcflVersion getObjectOcflVersion() {
+        return objectOcflVersion;
+    }
+
+    public ObjectDetails setObjectOcflVersion(OcflVersion objectOcflVersion) {
+        this.objectOcflVersion = objectOcflVersion;
+        return this;
+    }
+
+    /**
      * Map of version number to version details for all of the versions of the object.
      *
      * @return map of all of the object's versions
@@ -120,8 +133,9 @@ public class ObjectDetails {
     public String toString() {
         return "ObjectDetails{" +
                 "id='" + id + '\'' +
-                ", headVersionNum='" + headVersionNum + '\'' +
-                ", digestAlgorithm='" + digestAlgorithm + '\'' +
+                ", headVersionNum=" + headVersionNum +
+                ", digestAlgorithm=" + digestAlgorithm +
+                ", objectOcflVersion=" + objectOcflVersion +
                 ", versions=" + versions +
                 '}';
     }
@@ -135,15 +149,15 @@ public class ObjectDetails {
             return false;
         }
         ObjectDetails that = (ObjectDetails) o;
-        return Objects.equals(id, that.id) &&
-                Objects.equals(headVersionNum, that.headVersionNum) &&
-                Objects.equals(digestAlgorithm, that.digestAlgorithm) &&
-                Objects.equals(versions, that.versions);
+        return Objects.equals(id, that.id)
+                && Objects.equals(headVersionNum, that.headVersionNum)
+                && Objects.equals(digestAlgorithm, that.digestAlgorithm)
+                && objectOcflVersion == that.objectOcflVersion
+                && Objects.equals(versions, that.versions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, headVersionNum, digestAlgorithm, versions);
+        return Objects.hash(id, headVersionNum, digestAlgorithm, objectOcflVersion, versions);
     }
-
 }
