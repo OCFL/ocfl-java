@@ -21,6 +21,7 @@ public class ValidatorTest {
     private static final String OFFICIAL_BAD_FIXTURES = "official/bad-objects";
     private static final String OFFICIAL_WARN_FIXTURES = "official/warn-objects";
     private static final String CUSTOM_BAD_FIXTURES = "custom/bad-objects";
+    private static final String CUSTOM_GOOD_FIXTURES = "custom/good-objects";
 
     @BeforeAll
     public static void beforeAll() {
@@ -47,9 +48,27 @@ public class ValidatorTest {
 
     @Test
     public void validateLargeObject() {
-        var validator = createValidator("custom/good-objects");
+        var validator = createValidator(CUSTOM_GOOD_FIXTURES);
         var results = validator.validateObject("large-object", true);
         assertNoIssues(results);
+    }
+
+    @Test
+    public void validateOcflVersionUpgrade() {
+        var validator = createValidator(CUSTOM_GOOD_FIXTURES);
+        var results = validator.validateObject("ocfl_version_change", true);
+        assertNoIssues(results);
+    }
+
+    @Test
+    public void errorOnInconsistentOcflVersions() {
+        var validator = createValidator(CUSTOM_BAD_FIXTURES);
+        var results = validator.validateObject("E103_inconsistent_ocfl_versions", true);
+
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E103, "Inventory type must be for version 1.0 or lower in E103_inconsistent_ocfl_versions/v2/inventory.json. Found: https://ocfl.io/1.1/spec/#inventory");
+        assertWarningsCount(results, 0);
+        assertInfoCount(results, 0);
     }
 
     @Test

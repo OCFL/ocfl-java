@@ -203,7 +203,9 @@ public class SimpleInventoryValidator {
                         }
                     } else if (equality == VersionEquality.LESS_THAN_OR_EQUAL) {
                         if (type.compareTo(ocflVersion.getInventoryType()) > 0) {
-                            // TODO 1.1 validation -- versions must monotonically increase
+                            results.addIssue(ValidationCode.E103,
+                                    "Inventory type must be for version %s or lower in %s. Found: %s",
+                                    ocflVersion.getRawVersion(), inventoryPath, type.getId());
                         }
                     }
                 }

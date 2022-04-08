@@ -30,6 +30,7 @@ import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.ValidationIssue;
@@ -218,23 +219,27 @@ public class Validator {
             var inventoryMap = new HashMap<String, SimpleInventory>();
             inventoryMap.put(rootInventory.getDigestAlgorithm(), rootInventory);
 
+            var previousVersion = ocflVersion;
+
             // This MUST be done in reverse order
-            seenVersions.values().forEach(versionStr -> {
+            for (var versionStr : seenVersions.values()) {
                 if (Objects.equals(rootInventory.getHead(), versionStr)) {
                     validateHeadVersion(objectRootPath, rootInventory, rootDigest, results);
                 } else {
-                    // TODO 1.1 this needs to capture the version from the inventory and feed it to the next to ensure
-                    //      the versions are monotonically increasing
-                    validateVersion(objectRootPath,
+                    var currentVersion = validateVersion(objectRootPath,
                             versionStr,
                             rootInventory,
-                            ocflVersion,
+                            previousVersion,
                             contentFiles,
                             manifests,
                             inventoryMap,
                             results);
+
+                    if (currentVersion != null) {
+                        previousVersion = currentVersion;
+                    }
                 }
-            });
+            }
 
             if (contentFixityCheck) {
                 // TODO digests from the non-root fixity blocks are not validated
@@ -245,14 +250,19 @@ public class Validator {
         }
     }
 
-    private void validateVersion(String objectRootPath,
-                                 String versionStr,
-                                 SimpleInventory rootInventory,
-                                 OcflVersion ocflVersion,
-                                 ContentPaths contentFiles,
-                                 Manifests manifests,
-                                 Map<String, SimpleInventory> inventoryMap,
-                                 ValidationResultsBuilder results) {
+    /**
+     * Validates the object version and returns the OCFL version the object version adheres too, or null if the
+     * inventory is invalid.
+     */
+    private OcflVersion validateVersion(String objectRootPath,
+                                        String versionStr,
+                                        SimpleInventory rootInventory,
+                                        OcflVersion ocflVersion,
+                                        ContentPaths contentFiles,
+                                        Manifests manifests,
+                                        Map<String, SimpleInventory> inventoryMap,
+                                        ValidationResultsBuilder results) {
+        OcflVersion thisVersion = null;
         var versionPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr);
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
         var contentDir = defaultedContentDir(rootInventory);
@@ -298,6 +308,7 @@ public class Validator {
 
                     validateVersionIsConsistent(versionStr, rootInventory, inventory, inventoryPath, inventoryMap, results);
                     validateContentFiles(inventoryPath, inventory, contentFiles, manifests, results);
+                    thisVersion = InventoryType.fromValue(inventory.getType()).getOcflVersion();
                 }
             }
         } else {
@@ -305,6 +316,8 @@ public class Validator {
         }
 
         validateVersionDirContents(objectRootPath, versionStr, contentDir, files, ignoreFiles, results);
+
+        return thisVersion;
     }
 
     private void validateHeadVersion(String objectRootPath,
