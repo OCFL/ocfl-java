@@ -111,6 +111,19 @@ public class SimpleInventoryParserTest {
         assertFalse(results.getInventory().isPresent());
     }
 
+    @Test
+    public void errorWhenNullFixity() {
+        var inv = inventoryStub();
+        inv.put("fixity", null);
+
+        var results = parser.parse(toStream(inv), NAME);
+
+        assertErrorCount(results, 1);
+        assertWarnCount(results, 0);
+        assertError(results, ValidationCode.E111, "Inventory fixity must be an object in inventory.json");
+        assertTrue(results.getInventory().isPresent());
+    }
+
     private void assertErrorCount(SimpleInventoryParser.ParseSimpleInventoryResult results, int count) {
         assertEquals(count, results.getValidationResults().getErrors().size(),
                 () -> String.format("Expected %s errors. Found: %s", count, results.getValidationResults().getErrors()));
