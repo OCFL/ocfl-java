@@ -132,6 +132,15 @@ public enum ValidationCode {
     E100(Type.ERROR),
     E101(Type.ERROR),
     E102(Type.ERROR),
+    E103(Type.ERROR),
+    E104(Type.ERROR),
+    E105(Type.ERROR),
+    E106(Type.ERROR),
+    E107(Type.ERROR),
+    E108(Type.ERROR),
+    E109(Type.ERROR),
+    E110(Type.ERROR),
+    E111(Type.ERROR),
 
 
     W001(Type.WARN),
