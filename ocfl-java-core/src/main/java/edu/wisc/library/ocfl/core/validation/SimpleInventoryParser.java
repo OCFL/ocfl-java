@@ -244,7 +244,7 @@ public class SimpleInventoryParser {
                             "Inventory manifest digest %s content paths must be strings in %s",
                             digest, inventoryPath));
         } else {
-            results.addIssue(ValidationCode.E033,
+            results.addIssue(ValidationCode.E106,
                     "Inventory manifest must be an object in %s",
                     inventoryPath);
         }

@@ -299,7 +299,7 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 7);
+        assertErrorCount(results, 8);
         assertHasError(results, ValidationCode.E049, "Inventory version v1 created timestamp must be a string in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E050, "Inventory version v1 state must be an object in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E094, "Inventory version v1 message must be a string in E049_E050_E054_bad_version_block_values/inventory.json");
@@ -307,6 +307,7 @@ public class ValidatorTest {
         assertHasError(results, ValidationCode.E048, "Inventory version v1 must contain a created timestamp in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E054, "Inventory version v1 user name must be set in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E048, "Inventory version v1 must contain a state in E049_E050_E054_bad_version_block_values/inventory.json");
+        assertHasError(results, ValidationCode.E107, "Inventory manifest in E049_E050_E054_bad_version_block_values/inventory.json contains an entry that is not referenced in any version. Found: 43a43fe8a8a082d3b5343dfaf2fd0c8b8e370675b1f376e92e9994612c33ea255b11298269d72f797399ebb94edeefe53df243643676548f584fb8603ca53a0f");
         assertWarningsCount(results, 2);
         assertHasWarn(results, ValidationCode.W008, "Inventory version v1 user address should be set in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a message in E049_E050_E054_bad_version_block_values/inventory.json");
@@ -556,9 +557,10 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 2);
+        assertErrorCount(results, 3);
         assertHasError(results, ValidationCode.E096, "Inventory manifest cannot contain duplicates of digest 24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28 in E096_manifest_duplicate_digests/inventory.json");
         assertHasError(results, ValidationCode.E101, "Inventory manifest content paths must be unique in E096_manifest_duplicate_digests/inventory.json. Found: v1/content/test.txt");
+        assertHasError(results, ValidationCode.E107, "Inventory manifest in E096_manifest_duplicate_digests/inventory.json contains an entry that is not referenced in any version. Found: 24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -611,8 +613,9 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 1);
+        assertErrorCount(results, 2);
         assertHasError(results, ValidationCode.E050, "Inventory version v1 contains digest 24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28 that does not exist in the manifest in E050_manifest_digest_wrong_case/inventory.json");
+        assertHasError(results, ValidationCode.E107, "Inventory manifest in E050_manifest_digest_wrong_case/inventory.json contains an entry that is not referenced in any version. Found: 24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
