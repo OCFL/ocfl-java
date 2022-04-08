@@ -279,8 +279,7 @@ public class Validator {
 
                 var versionContentDir = defaultedContentDir(inventory);
 
-                // TODO suspect code
-                results.addIssue(areEqual(rootInventory.getId(), inventory.getId(), ValidationCode.E037,
+                results.addIssue(areEqual(rootInventory.getId(), inventory.getId(), ValidationCode.E110,
                         "Inventory id is inconsistent between versions in %s. Expected: %s; Found: %s",
                         inventoryPath, rootInventory.getId(), inventory.getId()))
                         // TODO suspect code

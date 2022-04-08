@@ -698,7 +698,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 1);
-        assertHasError(results, ValidationCode.E037, "Inventory id is inconsistent between versions in E037_inconsistent_id/v1/inventory.json. Expected: urn:example-2; Found: urn:example-two");
+        assertHasError(results, ValidationCode.E110, "Inventory id is inconsistent between versions in E037_inconsistent_id/v1/inventory.json. Expected: urn:example-2; Found: urn:example-two");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
