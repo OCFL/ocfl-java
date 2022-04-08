@@ -434,8 +434,8 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 3);
-        assertHasError(results, ValidationCode.E011, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
-        assertHasError(results, ValidationCode.E011, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
+        assertHasError(results, ValidationCode.E104, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
+        assertHasError(results, ValidationCode.E104, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
         assertHasError(results, ValidationCode.E001, "Object root E011_E001_invalid_head_version_format contains an unexpected file 1");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);

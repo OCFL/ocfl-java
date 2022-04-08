@@ -549,8 +549,7 @@ public class SimpleInventoryValidator {
         Optional<VersionNum> versionNum = Optional.empty();
 
         if (isInvalidVersionNum(num)) {
-            // TODO this is not the right code https://github.com/OCFL/spec/issues/532
-            results.addIssue(ValidationCode.E011,
+            results.addIssue(ValidationCode.E104,
                     "Inventory contains invalid version number in %s. Found: %s", inventoryPath, num);
         } else {
             var parsed = VersionNum.fromString(num);
