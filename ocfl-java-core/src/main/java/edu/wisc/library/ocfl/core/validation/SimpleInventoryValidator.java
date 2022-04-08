@@ -265,6 +265,9 @@ public class SimpleInventoryValidator {
                                            String inventoryPath,
                                            ValidationResultsBuilder results) {
         if (inventory.getVersions() != null) {
+            var manifest = inventory.getManifest() == null ? Collections.emptyMap() : inventory.getManifest();
+            var unseenDigests = new HashSet<>(manifest.keySet());
+
             for (var entry : inventory.getVersions().entrySet()) {
                 var versionNum = entry.getKey();
                 var version = entry.getValue();
@@ -309,9 +312,8 @@ public class SimpleInventoryValidator {
                 }
 
                 if (version.getState() != null) {
-                    var manifest = inventory.getManifest() == null ? Collections.emptyMap() : inventory.getManifest();
-
                     for (var digest : version.getState().keySet()) {
+                        unseenDigests.remove(digest);
                         results.addIssue(isTrue(manifest.containsKey(digest), ValidationCode.E050,
                                 "Inventory version %s contains digest %s that does not exist in the manifest in %s",
                                 versionNum, digest, inventoryPath));
@@ -339,6 +341,12 @@ public class SimpleInventoryValidator {
                             "Inventory version %s must contain a state in %s",
                             versionNum, inventoryPath);
                 }
+            }
+
+            for (var digest : unseenDigests) {
+                results.addIssue(ValidationCode.E107,
+                        "Inventory manifest in %s contains an entry that is not referenced in any version. Found: %s",
+                        inventoryPath, digest);
             }
         } else {
             results.addIssue(ValidationCode.E043,
