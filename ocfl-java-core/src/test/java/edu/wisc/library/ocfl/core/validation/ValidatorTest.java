@@ -46,17 +46,15 @@ public class ValidatorTest {
         assertNoIssues(results);
     }
 
-    @Test
-    public void validateLargeObject() {
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "large-object",
+            "ocfl-1.1-obj",
+            "ocfl_version_change",
+    })
+    public void validateCustomGoodFixtureObject(String name) {
         var validator = createValidator(CUSTOM_GOOD_FIXTURES);
-        var results = validator.validateObject("large-object", true);
-        assertNoIssues(results);
-    }
-
-    @Test
-    public void validateOcflVersionUpgrade() {
-        var validator = createValidator(CUSTOM_GOOD_FIXTURES);
-        var results = validator.validateObject("ocfl_version_change", true);
+        var results = validator.validateObject(name, true);
         assertNoIssues(results);
     }
 
