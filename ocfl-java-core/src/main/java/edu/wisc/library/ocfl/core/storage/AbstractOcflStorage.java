@@ -42,25 +42,27 @@ public abstract class AbstractOcflStorage implements OcflStorage {
 
     private boolean closed = false;
     private boolean initialized = false;
+    private InitializationResult initializationResult;
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public synchronized void initializeStorage(OcflVersion ocflVersion,
-                                               OcflExtensionConfig layoutConfig,
-                                               InventoryMapper inventoryMapper,
-                                               ExtensionSupportEvaluator supportEvaluator) {
-        if (initialized) {
-            return;
+    public synchronized InitializationResult initializeStorage(OcflVersion ocflVersion,
+                                                               OcflExtensionConfig layoutConfig,
+                                                               InventoryMapper inventoryMapper,
+                                                               ExtensionSupportEvaluator supportEvaluator) {
+        if (this.initialized) {
+            return this.initializationResult;
         }
 
         this.inventoryMapper = Enforce.notNull(inventoryMapper, "inventoryMapper cannot be null");
-        this.ocflVersion = Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
         this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
-        doInitialize(layoutConfig);
+        this.initializationResult = doInitialize(ocflVersion, layoutConfig);
+        this.ocflVersion = Enforce.notNull(this.initializationResult.getOcflVersion(), "ocflVersion cannot be null");
         this.initialized = true;
+        return initializationResult;
     }
 
     /**
@@ -90,9 +92,10 @@ public abstract class AbstractOcflStorage implements OcflStorage {
     /**
      * Does whatever is necessary to initialize OCFL repository storage.
      *
+     * @param ocflVersion the OCFL version, may be null to default to version in storage root
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
      */
-    protected abstract void doInitialize(OcflExtensionConfig layoutConfig);
+    protected abstract InitializationResult doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig);
 
     /**
      * Throws an exception if the repository has not been initialized or is closed

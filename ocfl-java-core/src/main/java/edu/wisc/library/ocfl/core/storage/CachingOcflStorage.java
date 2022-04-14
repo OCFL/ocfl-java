@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.core.storage;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -55,8 +56,8 @@ public class CachingOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    protected void doInitialize(OcflExtensionConfig layoutConfig) {
-        delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper, supportEvaluator);
+    protected InitializationResult doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+        return delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper, supportEvaluator);
     }
 
     /**

@@ -41,7 +41,7 @@ public class OcflConfig {
     private int defaultZeroPaddingWidth;
 
     public OcflConfig() {
-        ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
+        ocflVersion = null;
         defaultDigestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
         defaultContentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
         defaultZeroPaddingWidth = OcflConstants.DEFAULT_ZERO_PADDING_WIDTH;
@@ -55,13 +55,14 @@ public class OcflConfig {
     }
 
     /**
-     * Set the default OCFL version to use when creating new inventories.
+     * Set the default OCFL version to use when creating new inventories. If this value is null, then it's defaulted
+     * to the OCFL version in the storage root.
      *
      * @param ocflVersion ocfl version
      * @return config
      */
     public OcflConfig setOcflVersion(OcflVersion ocflVersion) {
-        this.ocflVersion = Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
+        this.ocflVersion = ocflVersion;
         return this;
     }
 

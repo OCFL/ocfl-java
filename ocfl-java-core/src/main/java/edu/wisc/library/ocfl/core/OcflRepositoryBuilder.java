@@ -396,10 +396,15 @@ public class OcflRepositoryBuilder {
         var supportEvaluator = new ExtensionSupportEvaluator(unsupportedBehavior, ignoreUnsupportedExtensions);
 
         var wrappedStorage = cache(db(storage));
-        wrappedStorage.initializeStorage(config.getOcflVersion(),
+        var initResult = wrappedStorage.initializeStorage(config.getOcflVersion(),
                 defaultLayoutConfig,
                 inventoryMapper,
                 supportEvaluator);
+
+        // Default the OCFL version to whatever was in the storage root
+        if (config.getOcflVersion() == null) {
+            config.setOcflVersion(initResult.getOcflVersion());
+        }
 
         Enforce.expressionTrue(Files.exists(workDir), workDir, "workDir must exist");
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");

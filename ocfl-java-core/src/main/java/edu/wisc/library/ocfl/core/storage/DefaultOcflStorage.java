@@ -583,8 +583,10 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     }
 
     @Override
-    protected void doInitialize(OcflExtensionConfig layoutConfig) {
-        this.storageLayoutExtension = this.initializer.initializeStorage(ocflVersion, layoutConfig, supportEvaluator);
+    protected InitializationResult doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+        var result = this.initializer.initializeStorage(ocflVersion, layoutConfig, supportEvaluator);
+        this.storageLayoutExtension = result.getStorageLayoutExtension();
+        return result;
     }
 
     private void storeNewImmutableVersion(Inventory inventory, Path stagingDir) {
