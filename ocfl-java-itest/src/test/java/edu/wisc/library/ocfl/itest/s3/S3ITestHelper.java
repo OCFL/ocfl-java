@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class S3ITestHelper {
 
+    private static final String OCFL_SPEC_FILE = "ocfl_1.1.txt";
+
     private S3Client s3Client;
 
     public S3ITestHelper(S3Client s3Client) {
@@ -61,7 +63,8 @@ public class S3ITestHelper {
         try (var walk = Files.walk(root)) {
             walk.filter(p -> {
                 var pStr = p.toString();
-                return !pStr.contains(".gitkeep");
+                return !pStr.contains(".gitkeep")
+                        && !pStr.equals(OCFL_SPEC_FILE);
             }).filter(Files::isRegularFile).forEach(p -> {
                 paths.add(FileUtil.pathToStringStandardSeparator(root.relativize(p)));
             });
@@ -75,7 +78,7 @@ public class S3ITestHelper {
     private byte[] getObjectContent(String bucket, String prefix, String key) {
         try (var result = s3Client.getObject(GetObjectRequest.builder()
                 .bucket(bucket)
-                .key(prefix + "/" +key)
+                .key(prefix + "/" + key)
                 .build())) {
             return result.readAllBytes();
         } catch (IOException e) {
@@ -95,6 +98,9 @@ public class S3ITestHelper {
 
         return result.contents().stream().map(S3Object::key)
                 .map(k -> k.substring(prefix.length() + 1))
+                .filter(entry -> {
+                    return !entry.equals(OCFL_SPEC_FILE);
+                })
                 .collect(Collectors.toList());
     }
 

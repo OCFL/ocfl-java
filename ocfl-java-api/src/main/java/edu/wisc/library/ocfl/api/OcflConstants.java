@@ -35,7 +35,7 @@ public final class OcflConstants {
 
     }
 
-    public static final OcflVersion DEFAULT_OCFL_VERSION = OcflVersion.OCFL_1_0;
+    public static final OcflVersion DEFAULT_OCFL_VERSION = OcflVersion.OCFL_1_1;
 
     public static final String OCFL_LAYOUT = "ocfl_layout.json";
     public static final String INVENTORY_FILE = "inventory.json";
@@ -47,7 +47,6 @@ public final class OcflConstants {
 
     public static final String OBJECT_NAMASTE_PREFIX = "0=ocfl_object_";
 
-    public static final String DEFAULT_INITIAL_VERSION_ID = "v1";
     public static final String DEFAULT_CONTENT_DIRECTORY = "content";
     public static final int DEFAULT_ZERO_PADDING_WIDTH = 0;
 

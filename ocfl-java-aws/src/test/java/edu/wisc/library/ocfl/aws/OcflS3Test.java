@@ -108,7 +108,7 @@ public class OcflS3Test {
         });
 
         assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.0",
+                "0=ocfl_object_1.1",
                 "inventory.json",
                 "inventory.json.sha512",
                 "v1/inventory.json",
@@ -126,7 +126,7 @@ public class OcflS3Test {
         repo.commitStagedChanges(objectId, versionInfo("commit", "Peter", "winckles@wisc.edu"));
 
         assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.0",
+                "0=ocfl_object_1.1",
                 "inventory.json",
                 "inventory.json.sha512",
                 "v1/inventory.json",
@@ -152,7 +152,7 @@ public class OcflS3Test {
         });
 
         assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.0",
+                "0=ocfl_object_1.1",
                 "inventory.json",
                 "inventory.json.sha512",
                 "v1/inventory.json",
@@ -166,7 +166,7 @@ public class OcflS3Test {
         });
 
         assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.0",
+                "0=ocfl_object_1.1",
                 "inventory.json",
                 "inventory.json.sha512",
                 "v1/inventory.json",

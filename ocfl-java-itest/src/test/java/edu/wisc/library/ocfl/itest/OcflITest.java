@@ -1136,7 +1136,7 @@ public abstract class OcflITest {
             repo.describeObject(objectId);
         });
 
-        assertEquals(6, listFilesInRepo(repoName).size());
+        assertEquals(5, listFilesInRepo(repoName).size());
     }
 
     @Test
@@ -1156,7 +1156,7 @@ public abstract class OcflITest {
             repo.describeObject("o4");
         });
 
-        assertEquals(13, listFilesInRepo(repoName).size());
+        assertEquals(12, listFilesInRepo(repoName).size());
     }
 
     @Test
