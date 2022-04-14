@@ -48,7 +48,7 @@ public final class SidecarMapper {
     public static void writeSidecar(Inventory inventory, String digest, Path dstDirectory) {
         try {
             var sidecarPath = ObjectPaths.inventorySidecarPath(dstDirectory, inventory);
-            Files.writeString(sidecarPath, digest + "\t" + OcflConstants.INVENTORY_FILE);
+            Files.writeString(sidecarPath, String.format("%s  %s\n", digest, OcflConstants.INVENTORY_FILE));
         } catch (IOException e) {
             throw new OcflIOException(e);
         }
