@@ -25,27 +25,45 @@
 package edu.wisc.library.ocfl.core.storage;
 
 import edu.wisc.library.ocfl.api.model.OcflVersion;
-import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
-import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 
 /**
- * Initializes an OCFL repository by either creating a new repository root or reading the configuration from an
- * existing repository.
+ * Contains OCFL version and storage layout as resolved in the OCFL storage root.
  */
-public interface OcflStorageInitializer {
+public class InitializationResult {
+
+    private OcflVersion ocflVersion;
+    private OcflStorageLayoutExtension storageLayoutExtension;
 
     /**
-     * Initializes a new OCFL storage root when the storage root does not already exist. If the storage root does exist,
-     * then the configuration is examined to ensure that it matches what was configured programmatically. If nothing
-     * was configured programmatically, then the configuration on disk is used without validation.
-     *
-     * @param ocflVersion OCFL version the repository conforms to, may be null to default to version in storage root
-     * @param layoutConfig storage layout configuration, may be null when not creating a new repository
-     * @param supportEvaluator repository extension evaluator
-     * @return details about the initialized storage root
+     * @return the OCFL version as specified in the storage root
      */
-    InitializationResult initializeStorage(OcflVersion ocflVersion,
-                                           OcflExtensionConfig layoutConfig,
-                                           ExtensionSupportEvaluator supportEvaluator);
+    public OcflVersion getOcflVersion() {
+        return ocflVersion;
+    }
+
+    public InitializationResult setOcflVersion(OcflVersion ocflVersion) {
+        this.ocflVersion = ocflVersion;
+        return this;
+    }
+
+    /**
+     * @return the storage layout extension as specified in the storage root
+     */
+    public OcflStorageLayoutExtension getStorageLayoutExtension() {
+        return storageLayoutExtension;
+    }
+
+    public InitializationResult setStorageLayoutExtension(OcflStorageLayoutExtension storageLayoutExtension) {
+        this.storageLayoutExtension = storageLayoutExtension;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "InitializationResult{" +
+                "ocflVersion=" + ocflVersion +
+                ", storageLayoutExtension=" + storageLayoutExtension +
+                '}';
+    }
 }

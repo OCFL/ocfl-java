@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.core.db;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
@@ -189,7 +190,7 @@ public class ObjectDetailsDatabaseTest {
 
         assertObjectDetails(inventory, digest, invBytes, details);
 
-        var inv2 = Inventory.builderFromStub("o2", new OcflConfig(), "o2")
+        var inv2 = Inventory.builderFromStub("o2", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o2")
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
@@ -289,7 +290,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldRejectUpdateWhenRevisionAndUpdateDifferentVersion() {
-        var inventory = Inventory.builderFromStub("o1", new OcflConfig(), "o1")
+        var inventory = Inventory.builderFromStub("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
                 .mutableHead(true)
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
@@ -346,7 +347,7 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldRejectUpdateWhenRevisionAndUpdateNotNextRevision() {
-        var inventory = Inventory.builderFromStub("o1", new OcflConfig(), "o1")
+        var inventory = Inventory.builderFromStub("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
                 .mutableHead(true)
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
@@ -587,7 +588,7 @@ public class ObjectDetailsDatabaseTest {
     }
 
     private Inventory basicInventory() {
-        return Inventory.builderFromStub("o1", new OcflConfig(), "o1")
+        return Inventory.builderFromStub("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())

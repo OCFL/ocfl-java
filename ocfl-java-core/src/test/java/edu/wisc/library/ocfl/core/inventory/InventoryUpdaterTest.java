@@ -30,7 +30,7 @@ public class InventoryUpdaterTest {
 
     @BeforeEach
     public void setup() {
-        inventory = Inventory.stubInventory("id", new OcflConfig(), "root").buildFrom()
+        inventory = Inventory.stubInventory("id", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root").buildFrom()
                 .addFileToManifest("file1", "v1/content/file1p")
                 .addFileToManifest("file2", "v1/content/file2p")
                 .addHeadVersion(Version.builder()

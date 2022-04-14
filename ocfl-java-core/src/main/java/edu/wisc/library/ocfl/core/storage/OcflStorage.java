@@ -58,15 +58,16 @@ public interface OcflStorage {
      * <p>layoutConfig may be null if the OCFL repository already exists, in which case the existing configuration is used.
      * If layoutConfig is specified for an existing repository, initialization will fail if the configurations do not match.
      *
-     * @param ocflVersion the OCFL version
+     * @param ocflVersion the OCFL version, may be null to default to version in storage root
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
      * @param inventoryMapper the mapper to use for inventory serialization
      * @param supportEvaluator the evaluator that determines what to do when unsupported extensions are encountered
+     * @return details about the initialized storage root
      */
-    void initializeStorage(OcflVersion ocflVersion,
-                           OcflExtensionConfig layoutConfig,
-                           InventoryMapper inventoryMapper,
-                           ExtensionSupportEvaluator supportEvaluator);
+    InitializationResult initializeStorage(OcflVersion ocflVersion,
+                                           OcflExtensionConfig layoutConfig,
+                                           InventoryMapper inventoryMapper,
+                                           ExtensionSupportEvaluator supportEvaluator);
 
     /**
      * Returns a verified copy of the most recent object inventory. Null is returned if the object is not found.

@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -28,7 +29,7 @@ public class ResponseMapperTest {
 
     @Test
     public void shouldIncludeSingleChangeWhenFileAddedAndNotUpdated() {
-        var inventory = Inventory.stubInventory("o1", new OcflConfig(), "o1").buildFrom()
+        var inventory = Inventory.stubInventory("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1").buildFrom()
                 .addFileToManifest("i1", "v1/content/f1")
                 .addFileToManifest("i2", "v2/content/f2")
                 .addFileToManifest("i3", "v3/content/f3")
@@ -60,7 +61,7 @@ public class ResponseMapperTest {
 
     @Test
     public void shouldIncludeRemoveChangeWhenFileAddedAndRemoved() {
-        var inventory = Inventory.stubInventory("o1", new OcflConfig(), "o1").buildFrom()
+        var inventory = Inventory.stubInventory("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1").buildFrom()
                 .addFileToManifest("i1", "v1/content/f1")
                 .addFileToManifest("i2", "v2/content/f2")
                 .addFileToManifest("i3", "v3/content/f3")
@@ -106,7 +107,7 @@ public class ResponseMapperTest {
     }
     @Test
     public void shouldIncludeMultipleUpdatesWhenContentChangs() {
-        var inventory = Inventory.stubInventory("o1", new OcflConfig(), "o1").buildFrom()
+        var inventory = Inventory.stubInventory("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1").buildFrom()
                 .addFileToManifest("i1", "v1/content/f1")
                 .addFileToManifest("i2", "v2/content/f1")
                 .addFileToManifest("i3", "v3/content/f1")

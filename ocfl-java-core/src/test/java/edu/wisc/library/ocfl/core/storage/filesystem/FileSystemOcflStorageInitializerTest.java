@@ -49,7 +49,7 @@ public class FileSystemOcflStorageInitializerTest {
         var mapper = initializer.initializeStorage(
                 OcflVersion.OCFL_1_0,
                 new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
+                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
 
         assertRootHasFiles(tempRoot);
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
@@ -64,7 +64,7 @@ public class FileSystemOcflStorageInitializerTest {
         var mapper = initializer.initializeStorage(
                 OcflVersion.OCFL_1_0,
                 new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
+                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
 
         assertRootHasFiles(tempRoot);
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
@@ -80,7 +80,7 @@ public class FileSystemOcflStorageInitializerTest {
         var mapper = initializer.initializeStorage(
                 OcflVersion.OCFL_1_0,
                 null,
-                new ExtensionSupportEvaluator());
+                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
 
         assertRootHasFiles(tempRoot);
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
@@ -91,11 +91,11 @@ public class FileSystemOcflStorageInitializerTest {
         var layoutExt1 = initializer.initializeStorage(
                 OcflVersion.OCFL_1_0,
                 new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
+                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
         var layoutExt2 = initializer.initializeStorage(
                 OcflVersion.OCFL_1_0,
                 new HashedNTupleLayoutConfig().setTupleSize(1),
-                new ExtensionSupportEvaluator());
+                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
 
         assertEquals(layoutExt1.mapObjectId("test"), layoutExt2.mapObjectId("test"));
     }
@@ -112,7 +112,7 @@ public class FileSystemOcflStorageInitializerTest {
         var mapper = initializer.initializeStorage(
                 OcflVersion.OCFL_1_0,
                 new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
+                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
     }
 
@@ -141,7 +141,7 @@ public class FileSystemOcflStorageInitializerTest {
         var mapper = initializer.initializeStorage(
                 OcflVersion.OCFL_1_0,
                 new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
+                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
     }
 

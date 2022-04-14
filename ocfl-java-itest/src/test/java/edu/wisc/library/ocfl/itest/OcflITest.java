@@ -2450,6 +2450,22 @@ public abstract class OcflITest {
     }
 
     @Test
+    public void ocfl1_0RepoShouldNotBeConvertedTo1_1WhenNoVersionSpecified() {
+        var repoName = "ocfl-1.0-repo";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot);
+
+        var objId = "1.0-obj1";
+
+        repo.updateObject(ObjectVersionId.head(objId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 1"), "file1.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objId).getObjectOcflVersion());
+    }
+
+    @Test
     public void ocfl1_1RepoShouldNotBeConvertedTo1_0() {
         var repoName = "repo-multiple-objects";
         var repoRoot = sourceRepoPath(repoName);

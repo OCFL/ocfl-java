@@ -26,7 +26,7 @@ public class MutableHeadInventoryCommitterTest {
         var date3 = OffsetDateTime.now().minusDays(1);
         var now = OffsetDateTime.now();
 
-        var original = Inventory.stubInventory("o1", new OcflConfig(), "root").buildFrom()
+        var original = Inventory.stubInventory("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root").buildFrom()
                 .addFileToManifest("f1", "v1/content/file1")
                 .addFileToManifest("f2", "v1/content/file2")
                 .addFileToManifest("f3", "v2/content/file3")
