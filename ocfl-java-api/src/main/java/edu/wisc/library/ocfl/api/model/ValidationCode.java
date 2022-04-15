@@ -97,7 +97,8 @@ public enum ValidationCode {
 //    E065(Type.ERROR),
     E066(Type.ERROR),
     E067(Type.ERROR),
-    E068(Type.ERROR),
+    // https://github.com/OCFL/spec/pull/584
+//    E068(Type.ERROR),
     E069(Type.ERROR),
     E070(Type.ERROR),
     E071(Type.ERROR),
