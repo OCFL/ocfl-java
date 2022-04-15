@@ -2,8 +2,8 @@
 
 ![build](https://github.com/UW-Madison-Library/ocfl-java/workflows/Build/badge.svg)
 
-This project is a Java implementation of the [OCFL
-spec](https://ocfl.io).
+This project is a Java implementation of the [OCFL spec](https://ocfl.io).
+It supports the following spec versions: 1.0, 1.1.
 
 This project is currently maintained by [Peter
 Winckles](https://github.com/pwinckles). Contributions in the form of
@@ -101,7 +101,7 @@ following extensions are implemented:
 
 * **ocflConfig**: Sets the following default values that are used for
 creating new OCFL objects: OCFL version, digest algorithm, version
-zero-padding width, and content directory. The defaults are `1.0`,
+zero-padding width, and content directory. The defaults are `1.1`,
 `sha512`, `0`, and `content`.
 * **verifyStaging**: Determines whether the contents of staged
   versions should be verified immediately prior to installing them.
@@ -290,6 +290,27 @@ change the algorithm by setting
 config.setDefaultDigestAlgorithm(DigestAlgorithm.sha256))`. Note, this
 only changes the digest algorithm used for *new* OCFL objects. It is
 not possible to modify existing objects.
+
+## Upgrading OCFL Repositories
+
+An existing OCFL repository can be upgraded to a later OCFL spec version
+by specifying the desired version when initializing the repository. For
+example:
+
+```java
+var repo = new OcflRepositoryBuilder()
+        .ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1))
+        .storage(storage -> storage.fileSystem(repoDir))
+        .workDir(workDir)
+        .build();
+```
+
+If the repository in the above example was an existing 1.0 repository,
+then, it would be upgraded to 1.1 and all _new_ objects would be created
+as 1.1 objects. However, all existing objects would remain as 1.0 objects.
+
+In the future, there will likely be an API for upgrading existing objects.
+Upgrading objects requires creating new object versions.
 
 ## APIs
 
