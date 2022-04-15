@@ -742,6 +742,10 @@ public class Validator {
                         }
                         seenVersions.put(versionNum, fileName);
                     }
+                } else if (fileName.startsWith(OcflConstants.OBJECT_NAMASTE_PREFIX)) {
+                    results.addIssue(ValidationCode.E003,
+                            "Object root %s contains multiple version declaration files",
+                            objectRootPath);
                 } else {
                     results.addIssue(ValidationCode.E001,
                             "Object root %s contains an unexpected file %s",

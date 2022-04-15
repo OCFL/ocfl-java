@@ -154,6 +154,19 @@ public class ValidatorTest {
     }
 
     @Test
+    public void errorOnMultipleObjectDeclarations() {
+        var name = "E003_multiple_decl";
+        var validator = createValidator(CUSTOM_BAD_FIXTURES);
+
+        var results = validator.validateObject(name, true);
+
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E003, "Object root E003_multiple_decl contains multiple version declaration files");
+        assertWarningsCount(results, 0);
+        assertInfoCount(results, 0);
+    }
+
+    @Test
     public void errorOnBadDeclarationContents() {
         var name = "E007_bad_declaration_contents";
         var validator = createValidator(OFFICIAL_BAD_FIXTURES);
