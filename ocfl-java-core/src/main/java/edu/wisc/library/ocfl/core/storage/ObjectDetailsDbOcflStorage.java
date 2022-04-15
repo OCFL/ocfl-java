@@ -62,7 +62,7 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    protected InitializationResult doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    protected RepositoryConfig doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
         return delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper, supportEvaluator);
     }
 

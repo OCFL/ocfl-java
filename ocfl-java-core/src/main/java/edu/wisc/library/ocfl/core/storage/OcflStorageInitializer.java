@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.storage;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
-import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 
 /**
  * Initializes an OCFL repository by either creating a new repository root or reading the configuration from an
@@ -43,9 +42,9 @@ public interface OcflStorageInitializer {
      * @param ocflVersion OCFL version the repository conforms to, may be null to default to version in storage root
      * @param layoutConfig storage layout configuration, may be null when not creating a new repository
      * @param supportEvaluator repository extension evaluator
-     * @return details about the initialized storage root
+     * @return the resolved repository configuration
      */
-    InitializationResult initializeStorage(OcflVersion ocflVersion,
-                                           OcflExtensionConfig layoutConfig,
-                                           ExtensionSupportEvaluator supportEvaluator);
+    RepositoryConfig initializeStorage(OcflVersion ocflVersion,
+                                       OcflExtensionConfig layoutConfig,
+                                       ExtensionSupportEvaluator supportEvaluator);
 }
