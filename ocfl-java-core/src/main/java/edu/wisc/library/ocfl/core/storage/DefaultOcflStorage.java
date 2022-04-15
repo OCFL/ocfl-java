@@ -583,7 +583,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     }
 
     @Override
-    protected InitializationResult doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    protected RepositoryConfig doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
         var result = this.initializer.initializeStorage(ocflVersion, layoutConfig, supportEvaluator);
         this.storageLayoutExtension = result.getStorageLayoutExtension();
         return result;

@@ -62,12 +62,12 @@ public interface OcflStorage {
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
      * @param inventoryMapper the mapper to use for inventory serialization
      * @param supportEvaluator the evaluator that determines what to do when unsupported extensions are encountered
-     * @return details about the initialized storage root
+     * @return the resolved repository configuration
      */
-    InitializationResult initializeStorage(OcflVersion ocflVersion,
-                                           OcflExtensionConfig layoutConfig,
-                                           InventoryMapper inventoryMapper,
-                                           ExtensionSupportEvaluator supportEvaluator);
+    RepositoryConfig initializeStorage(OcflVersion ocflVersion,
+                                       OcflExtensionConfig layoutConfig,
+                                       InventoryMapper inventoryMapper,
+                                       ExtensionSupportEvaluator supportEvaluator);
 
     /**
      * Returns a verified copy of the most recent object inventory. Null is returned if the object is not found.

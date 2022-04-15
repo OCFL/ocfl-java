@@ -25,15 +25,22 @@
 package edu.wisc.library.ocfl.core.storage;
 
 import edu.wisc.library.ocfl.api.model.OcflVersion;
+import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 
 /**
- * Contains OCFL version and storage layout as resolved in the OCFL storage root.
+ * OCFL repository configuration as defined in the storage root.
  */
-public class InitializationResult {
+public class RepositoryConfig {
 
-    private OcflVersion ocflVersion;
-    private OcflStorageLayoutExtension storageLayoutExtension;
+    private final OcflVersion ocflVersion;
+    private final OcflStorageLayoutExtension storageLayoutExtension;
+
+    public RepositoryConfig(OcflVersion ocflVersion,
+                            OcflStorageLayoutExtension storageLayoutExtension) {
+        this.ocflVersion = Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
+        this.storageLayoutExtension = Enforce.notNull(storageLayoutExtension, "storageLayoutExtension cannot be null");
+    }
 
     /**
      * @return the OCFL version as specified in the storage root
@@ -42,21 +49,11 @@ public class InitializationResult {
         return ocflVersion;
     }
 
-    public InitializationResult setOcflVersion(OcflVersion ocflVersion) {
-        this.ocflVersion = ocflVersion;
-        return this;
-    }
-
     /**
      * @return the storage layout extension as specified in the storage root
      */
     public OcflStorageLayoutExtension getStorageLayoutExtension() {
         return storageLayoutExtension;
-    }
-
-    public InitializationResult setStorageLayoutExtension(OcflStorageLayoutExtension storageLayoutExtension) {
-        this.storageLayoutExtension = storageLayoutExtension;
-        return this;
     }
 
     @Override

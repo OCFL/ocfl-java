@@ -80,35 +80,34 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
      * {@inheritDoc}
      */
     @Override
-    public InitializationResult initializeStorage(OcflVersion ocflVersion,
-                                                  OcflExtensionConfig layoutConfig,
-                                                  ExtensionSupportEvaluator supportEvaluator) {
-        InitializationResult result;
+    public RepositoryConfig initializeStorage(OcflVersion ocflVersion,
+                                              OcflExtensionConfig layoutConfig,
+                                              ExtensionSupportEvaluator supportEvaluator) {
+        RepositoryConfig config;
 
         if (directoryIsEmpty("")) {
-            result = initNewRepo(ocflVersion, layoutConfig);
+            config = initNewRepo(ocflVersion, layoutConfig);
         } else {
-            result = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
+            config = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
             // This is only validating currently and does not load anything
             loadRepositoryExtensions(supportEvaluator);
         }
 
         LOG.info("OCFL repository is configured to adhere to OCFL {} and use OCFL storage layout extension {}",
-                result.getOcflVersion().getRawVersion(),
-                result.getStorageLayoutExtension().getExtensionName());
+                config.getOcflVersion().getRawVersion(),
+                config.getStorageLayoutExtension().getExtensionName());
 
-        return result;
+        return config;
     }
 
-    private InitializationResult loadAndValidateExistingRepo(OcflVersion ocflVersion,
-                                                             OcflExtensionConfig layoutConfig) {
+    private RepositoryConfig loadAndValidateExistingRepo(OcflVersion ocflVersion,
+                                                         OcflExtensionConfig layoutConfig) {
         var existingVersion = identifyExistingVersion();
-
-        var result = new InitializationResult()
-                .setOcflVersion(existingVersion);
+        var resolvedVersion = existingVersion;
 
         if (ocflVersion != null && existingVersion.compareTo(ocflVersion) < 0) {
             upgradeOcflRepo(existingVersion, ocflVersion);
+            resolvedVersion = ocflVersion;
         }
 
         var ocflLayout = readOcflLayout();
@@ -122,7 +121,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
             extension = loadLayoutByConfig(ocflLayout);
         }
 
-        return result.setStorageLayoutExtension(extension);
+        return new RepositoryConfig(resolvedVersion, extension);
     }
 
     private OcflVersion identifyExistingVersion() {
@@ -220,7 +219,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
         }
     }
 
-    private InitializationResult initNewRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    private RepositoryConfig initNewRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
         Enforce.notNull(layoutConfig, "layoutConfig cannot be null when initializing a new repo");
 
         if (ocflVersion == null) {
@@ -238,9 +237,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
             writeOcflLayout(layoutConfig, layoutExtension.getDescription());
             writeOcflLayoutSpec(layoutConfig);
             writeSpecFile(this.getClass().getClassLoader(), EXT_SPEC);
-            return new InitializationResult()
-                    .setOcflVersion(ocflVersion)
-                    .setStorageLayoutExtension(layoutExtension);
+            return new RepositoryConfig(ocflVersion, layoutExtension);
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository", e);
             try {
