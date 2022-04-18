@@ -115,7 +115,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         try {
             objectUpdater.accept(updater);
             var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
-            writeNewVersion(newInventory, stagingDir);
+            writeNewVersion(newInventory, stagingDir, false);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -137,12 +137,13 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         var inventory = requireInventory(ObjectVersionId.head(objectId));
 
         if (inventory.hasMutableHead()) {
-            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(versionInfo), versionInfo);
+            var newInventory = MutableHeadInventoryCommitter.commit(inventory, now(versionInfo), versionInfo, config);
             var stagingDir = FileUtil.createObjectTempDir(workDir, objectId);
             var finalInventory = writeInventory(newInventory, stagingDir);
 
             try {
-                objectLock.doInWriteLock(inventory.getId(), () -> storage.commitMutableHead(inventory, finalInventory, stagingDir));
+                objectLock.doInWriteLock(inventory.getId(), () ->
+                        storage.commitMutableHead(inventory, finalInventory, stagingDir));
             } finally {
                 FileUtil.safeDeleteDirectory(stagingDir);
             }
@@ -201,7 +202,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
                             .build())
                     .build();
 
-            writeNewVersion(inventory, stagingDir);
+            writeNewVersion(inventory, stagingDir, false);
             return inventory;
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);

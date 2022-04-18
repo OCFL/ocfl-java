@@ -2525,6 +2525,27 @@ public abstract class OcflITest {
         assertEquals(OcflVersion.OCFL_1_1, repo.describeObject(objId).getObjectOcflVersion());
     }
 
+    @Test
+    public void upgradeExistingObjectOnWrite() {
+        var repoName = "ocfl-1.0-repo";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1)
+                    .setUpgradeObjectsOnWrite(true));
+        });
+
+        var objId = "obj1";
+
+        repo.updateObject(ObjectVersionId.head(objId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 10"), "file10.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_1, repo.describeObject(objId).getObjectOcflVersion());
+        var result = repo.validateObject(objId, true);
+        assertEquals(0, result.getErrors().size());
+    }
+
     private Path writeFile(String content) {
         try {
             return Files.writeString(Files.createDirectories(tempRoot.resolve("files"))

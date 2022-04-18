@@ -296,7 +296,8 @@ example:
 
 ```java
 var repo = new OcflRepositoryBuilder()
-        .ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1))
+        .ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1)
+                                    .setUpgradeObjectsOnWrite(true))
         .storage(storage -> storage.fileSystem(repoDir))
         .workDir(workDir)
         .build();
@@ -304,10 +305,9 @@ var repo = new OcflRepositoryBuilder()
 
 If the repository in the above example was an existing 1.0 repository,
 then, it would be upgraded to 1.1 and all _new_ objects would be created
-as 1.1 objects. However, all existing objects would remain as 1.0 objects.
-
-In the future, there will likely be an API for upgrading existing objects.
-Upgrading objects requires creating new object versions.
+as 1.1 objects. Additionally, anytime an existing 1.0 object was written
+to, it would be upgraded to 1.1. If `upgradeObjectsOnWrite` was set to
+`false`, then existing objects would remain on version 1.0.
 
 ## APIs
 

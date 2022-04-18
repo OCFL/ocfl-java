@@ -103,10 +103,11 @@ public interface OcflStorage {
      *
      * @param inventory the updated object inventory
      * @param stagingDir the directory that contains the composed contents of the new object version
+     * @param upgradeOcflVersion indicates if the OCFL spec version needs to be upgraded as part of the write operation
      * @throws ObjectOutOfSyncException if the version cannot be created because it already exists
      * @throws FixityCheckException if one of the files in the version fails its fixity check
      */
-    void storeNewVersion(Inventory inventory, Path stagingDir);
+    void storeNewVersion(Inventory inventory, Path stagingDir, boolean upgradeOcflVersion);
 
     /**
      * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the

@@ -388,6 +388,13 @@ public class InventoryBuilder {
         return null;
     }
 
+    /**
+     * @return the inventory's type
+     */
+    public InventoryType getType() {
+        return type;
+    }
+
     private Map<DigestAlgorithm, Map<String, Set<String>>> fixityFromBiMap() {
         var transformed = new HashMap<DigestAlgorithm, Map<String, Set<String>>>();
 
