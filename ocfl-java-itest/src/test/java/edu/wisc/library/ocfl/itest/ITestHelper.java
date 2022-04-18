@@ -75,9 +75,10 @@ public final class ITestHelper {
 
         try (var walk = Files.walk(root)) {
             walk.filter(p -> {
-                var pStr = p.toString();
-                return !pStr.contains(".gitkeep")
-                        && !p.getFileName().toString().equals(OCFL_SPEC_FILE);
+                var filename = p.getFileName().toString();
+                return !filename.equals(".gitkeep")
+                        && !filename.equals(OCFL_SPEC_FILE)
+                        && !filename.equals("ocfl_1.0.txt");
             }).filter(Files::isRegularFile).forEach(allPaths::add);
         } catch (IOException e) {
             throw new RuntimeException(e);

@@ -174,10 +174,11 @@ public class DefaultOcflRepository implements OcflRepository {
         var fileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
         fileProcessor.processPath(path, options);
 
+        var upgrade = inventoryUpdater.upgradeInventory(config);
         var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
 
         try {
-            writeNewVersion(newInventory, stagingDir);
+            writeNewVersion(newInventory, stagingDir, upgrade);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -212,8 +213,9 @@ public class DefaultOcflRepository implements OcflRepository {
 
         try {
             objectUpdater.accept(updater);
+            var upgrade = inventoryUpdater.upgradeInventory(config);
             var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
-            writeNewVersion(newInventory, stagingDir);
+            writeNewVersion(newInventory, stagingDir, upgrade);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -381,6 +383,7 @@ public class DefaultOcflRepository implements OcflRepository {
         ensureNoMutableHead(inventory);
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyState(inventory, versionNum);
+        var upgrade = inventoryUpdater.upgradeInventory(config);
         var newInventory = inventoryUpdater.buildNewInventory(now(versionInfo), versionInfo);
 
         var stagingDir = createStagingDir(objectVersionId.getObjectId());
@@ -388,7 +391,7 @@ public class DefaultOcflRepository implements OcflRepository {
         createStagingContentDir(inventory, stagingDir);
 
         try {
-            writeNewVersion(newInventory, stagingDir);
+            writeNewVersion(newInventory, stagingDir, upgrade);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -497,7 +500,8 @@ public class DefaultOcflRepository implements OcflRepository {
 
         try {
             importToStaging(versionPath, stagingDir, options);
-            objectLock.doInWriteLock(importInventory.getId(), () -> storage.storeNewVersion(importInventory, stagingDir));
+            objectLock.doInWriteLock(importInventory.getId(), () ->
+                    storage.storeNewVersion(importInventory, stagingDir, false));
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
         }
@@ -618,7 +622,7 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    protected void writeNewVersion(Inventory inventory, Path stagingDir) {
+    protected void writeNewVersion(Inventory inventory, Path stagingDir, boolean upgradedOcflVersion) {
         var finalInventory = writeInventory(inventory, stagingDir);
 
         var contentDir = stagingDir.resolve(inventory.resolveContentDirectory());
@@ -630,7 +634,8 @@ public class DefaultOcflRepository implements OcflRepository {
             versionContentCheck(inventory, stagingDir, resolveContentDir(inventory, stagingDir));
         }
 
-        objectLock.doInWriteLock(inventory.getId(), () -> storage.storeNewVersion(finalInventory, stagingDir));
+        objectLock.doInWriteLock(inventory.getId(), () ->
+                storage.storeNewVersion(finalInventory, stagingDir, upgradedOcflVersion));
     }
 
     private void versionContentCheck(Inventory inventory,

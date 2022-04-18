@@ -86,7 +86,7 @@ public class S3MutableHeadITest extends MutableHeadITest {
 
     @Override
     protected MutableOcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
-        var repo = new OcflRepositoryBuilder()
+        var builder = new OcflRepositoryBuilder()
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .objectLock(lock -> lock.dataSource(dataSource).tableName(lockTable()))
@@ -96,8 +96,13 @@ public class S3MutableHeadITest extends MutableHeadITest {
                 .storage(storage -> storage
                         .objectMapper(ITestHelper.prettyPrintMapper())
                         .cloud(createCloudClient(name)))
-                .workDir(workDir)
-                .buildMutable();
+                .workDir(workDir);
+
+        if (consumer != null) {
+            consumer.accept(builder);
+        }
+
+        var repo = builder.buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53Z");
         return repo;
     }

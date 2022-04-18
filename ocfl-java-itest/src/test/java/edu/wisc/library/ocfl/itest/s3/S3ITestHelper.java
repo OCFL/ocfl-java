@@ -64,7 +64,8 @@ public class S3ITestHelper {
             walk.filter(p -> {
                 var pStr = p.toString();
                 return !pStr.contains(".gitkeep")
-                        && !pStr.equals(OCFL_SPEC_FILE);
+                        && !pStr.equals(OCFL_SPEC_FILE)
+                        && !pStr.equals("ocfl_1.0.txt");
             }).filter(Files::isRegularFile).forEach(p -> {
                 paths.add(FileUtil.pathToStringStandardSeparator(root.relativize(p)));
             });
@@ -99,7 +100,7 @@ public class S3ITestHelper {
         return result.contents().stream().map(S3Object::key)
                 .map(k -> k.substring(prefix.length() + 1))
                 .filter(entry -> {
-                    return !entry.equals(OCFL_SPEC_FILE);
+                    return !entry.equals(OCFL_SPEC_FILE) && !entry.equals("ocfl_1.0.txt");
                 })
                 .collect(Collectors.toList());
     }

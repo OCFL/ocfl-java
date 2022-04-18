@@ -6,6 +6,7 @@ import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
@@ -519,6 +520,72 @@ public abstract class MutableHeadITest {
         assertEquals("v2", desc.getHeadVersionNum().toString());
         assertTrue(desc.getHeadVersion().containsFile("file4.txt"));
         assertFalse(desc.getHeadVersion().containsFile("file3.txt"));
+    }
+
+    @Test
+    public void upgradeOcflObjectOnCommit() {
+        var repoName = "mutable7";
+        var repo = defaultRepo(repoName, builder ->
+                builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_0)));
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 1"), "file1.txt");
+        });
+
+        repo = defaultRepo(repoName, builder ->
+                builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1)
+                        .setUpgradeObjectsOnWrite(true)));
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 2"), "file2.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objectId).getObjectOcflVersion());
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 3"), "file3.txt");
+        });
+
+        repo.commitStagedChanges(objectId, defaultVersionInfo.setMessage("commit"));
+
+        assertEquals(OcflVersion.OCFL_1_1, repo.describeObject(objectId).getObjectOcflVersion());
+
+        verifyRepo(repoName);
+    }
+
+    @Test
+    public void doNotUpgradeOcflObjectOnCommitWhenUpgradeDisabled() {
+        var repoName = "mutable8";
+        var repo = defaultRepo(repoName, builder ->
+                builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_0)));
+
+        var objectId = "o1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 1"), "file1.txt");
+        });
+
+        repo = defaultRepo(repoName, builder ->
+                builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1)
+                        .setUpgradeObjectsOnWrite(false)));
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 2"), "file2.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objectId).getObjectOcflVersion());
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 3"), "file3.txt");
+        });
+
+        repo.commitStagedChanges(objectId, defaultVersionInfo.setMessage("commit"));
+
+        assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objectId).getObjectOcflVersion());
+
+        verifyRepo(repoName);
     }
 
     private Path outputPath(String repoName, String path) {

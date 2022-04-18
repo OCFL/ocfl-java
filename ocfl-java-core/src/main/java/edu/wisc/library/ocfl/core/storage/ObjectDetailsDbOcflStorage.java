@@ -111,12 +111,13 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      *
      * @param inventory the updated object inventory
      * @param stagingDir the directory that contains the composed contents of the new object version
+     * @param upgradeOcflVersion indicates if the OCFL spec version needs to be upgraded as part of the write operation
      */
     @Override
-    public void storeNewVersion(Inventory inventory, Path stagingDir) {
+    public void storeNewVersion(Inventory inventory, Path stagingDir, boolean upgradeOcflVersion) {
         ensureOpen();
 
-        updateDetails(inventory, stagingDir, () -> delegate.storeNewVersion(inventory, stagingDir));
+        updateDetails(inventory, stagingDir, () -> delegate.storeNewVersion(inventory, stagingDir, upgradeOcflVersion));
     }
 
     /**

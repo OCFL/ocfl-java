@@ -37,7 +37,6 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 public abstract class AbstractOcflStorage implements OcflStorage {
 
     protected InventoryMapper inventoryMapper;
-    protected OcflVersion ocflVersion;
     protected ExtensionSupportEvaluator supportEvaluator;
 
     private boolean closed = false;
@@ -60,7 +59,6 @@ public abstract class AbstractOcflStorage implements OcflStorage {
         this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
         this.repositoryConfig = doInitialize(ocflVersion, layoutConfig);
-        this.ocflVersion = Enforce.notNull(this.repositoryConfig.getOcflVersion(), "ocflVersion cannot be null");
         this.initialized = true;
         return repositoryConfig;
     }
