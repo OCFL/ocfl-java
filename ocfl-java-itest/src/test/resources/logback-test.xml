@@ -10,6 +10,8 @@
 
     <logger name="software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient" level="error"/>
     <logger name="edu.wisc.library" level="warn"/>
+    <logger name="edu.wisc.library.ocfl.itest.s3.S3BadReposITest" level="info"/>
+    <logger name="edu.wisc.library.ocfl.itest.s3.S3MutableHeadITest" level="info"/>
 
     <root level="warn">
         <appender-ref ref="STDOUT" />
