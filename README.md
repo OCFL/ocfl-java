@@ -1,14 +1,18 @@
 # OCFL Java
 
+![build](https://github.com/UW-Madison-Library/ocfl-java/workflows/Build/badge.svg)
+
 This project is a Java implementation of the [OCFL
 spec](https://ocfl.io).
 
-![build](https://github.com/UW-Madison-Library/ocfl-java/workflows/Build/badge.svg)
+This project is currently maintained by [Peter
+Winckles](https://github.com/pwinckles). Contributions in the form of
+Github issues and PRs are welcome, and will be reviewed in a timely
+fashion.
 
 ## Requirements and Setup
 
-`ocfl-java` is a Java 11 project and at the minimum requires Java 11
-to run.
+`ocfl-java` requires Java 11 or greater to run, and Maven 3 to build.
 
 Add the following to your project's POM to pull in the library:
 
@@ -20,8 +24,7 @@ Add the following to your project's POM to pull in the library:
 </dependency>
 ```
 
-Add the following if you'd like to use Amazon S3 for the storage
-layer:
+If you want S3 support, you must additionally add the following dependency:
 
 ```xml
 <dependency>
@@ -454,3 +457,37 @@ version.
 * **purgeStagedChanges**: Purges a mutable HEAD version without
   creating a new OCFL version.
 * **hasStagedChanges**: Indicates if an object has a mutable HEAD.
+
+## Development
+
+`ocfl-java` requires [Maven 3](https://maven.apache.org/index.html)
+for development. The following example commands are all run in the
+project's root directory.
+
+Execute all of the unit tests:
+
+``` shell
+mvn test
+```
+
+Execute all of the unit tests, integration tests, and checkstyle:
+
+``` shell
+mvn verify
+```
+
+Build the source and install it in your local Maven cache:
+
+``` shell
+mvn install
+```
+
+## Testing
+
+`ocfl-java` is extensively tested by integration tests located in the
+`ocfl-java-itest` module. These tests run against both storage
+implementations. The CI pipeline runs all of the tests against on
+Linux and Windows, and tests against a live Amazon S3 bucket.
+`ocfl-java's` validator is tested against the [official
+fixtures](https://github.com/ocfl/fixtures) in addition to custom
+fixtures, as part of the unit tests in the `ocfl-java-core` module.
