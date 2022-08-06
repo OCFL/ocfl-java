@@ -74,7 +74,7 @@
 
         <java.version>11</java.version>
 
-        <jackson.version>2.13.1</jackson.version>
+        <jackson.version>2.13.2.1</jackson.version>
         <slf4j.version>2.0.0-alpha6</slf4j.version>
     </properties>
 
