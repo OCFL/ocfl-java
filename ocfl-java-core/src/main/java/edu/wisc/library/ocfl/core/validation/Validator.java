@@ -66,6 +66,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS;
@@ -76,6 +77,8 @@ import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS
 public class Validator {
 
     private static final Logger LOG = LoggerFactory.getLogger(Validator.class);
+
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     private static final Set<String> REGISTERED_EXTENSIONS = Set.of(
             HashedNTupleLayoutExtension.EXTENSION_NAME,
@@ -671,7 +674,7 @@ public class Validator {
 
     private String validateInventorySidecar(String sidecarPath, ValidationResultsBuilder results) {
         try (var stream = fileSystem.read(sidecarPath)) {
-            var parts = new String(stream.readAllBytes(), StandardCharsets.UTF_8).split("\\s+");
+            var parts = WHITESPACE.split(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
 
             if (parts.length != 2) {
                 results.addIssue(ValidationCode.E061,

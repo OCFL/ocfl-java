@@ -78,6 +78,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -90,6 +91,8 @@ import static edu.wisc.library.ocfl.api.OcflConstants.INVENTORY_SIDECAR_PREFIX;
 public class DefaultOcflStorage extends AbstractOcflStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultOcflStorage.class);
+
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     private static final String MEDIA_TYPE_TEXT = "text/plain; charset=UTF-8";
     private static final String MEDIA_TYPE_JSON = "application/json; charset=UTF-8";
@@ -991,7 +994,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     private String getDigestFromSidecar(String sidecarPath) {
         try {
             var sidecarContents = storage.readToString(sidecarPath);
-            var parts = sidecarContents.split("\\s");
+            var parts = WHITESPACE.split(sidecarContents);
             if (parts.length == 0) {
                 throw new CorruptObjectException("Invalid inventory sidecar file: " + sidecarPath);
             }
