@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public final class ITestHelper {
 
-    private static final String OCFL_SPEC_FILE = "ocfl_1.1.txt";
+    private static final String OCFL_SPEC_FILE = "ocfl_1.1.md";
 
     private ITestHelper() {
 

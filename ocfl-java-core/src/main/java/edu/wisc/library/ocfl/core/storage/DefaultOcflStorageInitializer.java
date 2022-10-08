@@ -258,7 +258,11 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private void writeOcflSpec(OcflVersion ocflVersion) {
-        writeSpecFile(this.getClass().getClassLoader(), ocflVersion.getOcflVersion() + ".txt");
+        var ext = ".md";
+        if (ocflVersion == OcflVersion.OCFL_1_0) {
+            ext = ".txt";
+        }
+        writeSpecFile(this.getClass().getClassLoader(), ocflVersion.getOcflVersion() + ext);
     }
 
     private void writeOcflLayoutSpec(OcflExtensionConfig layoutConfig) {

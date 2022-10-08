@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class S3ITestHelper {
 
-    private static final String OCFL_SPEC_FILE = "ocfl_1.1.txt";
+    private static final String OCFL_SPEC_FILE = "ocfl_1.1.md";
 
     private S3Client s3Client;
 
