@@ -238,7 +238,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public void storeNewVersion(Inventory inventory, Path stagingDir) {
+    public void storeNewVersion(Inventory inventory, Path stagingDir, boolean upgradeOcflVersion) {
         ensureOpen();
 
         LOG.debug("Store new version of object <{}> version <{}> revision <{}> from staging directory <{}>",
@@ -247,7 +247,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         if (inventory.hasMutableHead()) {
             storeNewMutableHeadVersion(inventory, stagingDir);
         } else {
-            storeNewImmutableVersion(inventory, stagingDir);
+            storeNewImmutableVersion(inventory, stagingDir, upgradeOcflVersion);
         }
     }
 
@@ -428,6 +428,9 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
             LOG.error("Failed to cleanup mutable HEAD of object {} at {}. It must be deleted manually.",
                     newInventory.getId(), ObjectPaths.mutableHeadExtensionRoot(newInventory.getObjectRootPath()), e);
         }
+
+        var upgradeOcflVersion = oldInventory.getType() != newInventory.getType();
+        upgradeOcflSpecVersion(newInventory, objectRoot, upgradeOcflVersion);
     }
 
     /**
@@ -583,11 +586,13 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
     }
 
     @Override
-    protected void doInitialize(OcflExtensionConfig layoutConfig) {
-        this.storageLayoutExtension = this.initializer.initializeStorage(ocflVersion, layoutConfig, supportEvaluator);
+    protected RepositoryConfig doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+        var result = this.initializer.initializeStorage(ocflVersion, layoutConfig, supportEvaluator);
+        this.storageLayoutExtension = result.getStorageLayoutExtension();
+        return result;
     }
 
-    private void storeNewImmutableVersion(Inventory inventory, Path stagingDir) {
+    private void storeNewImmutableVersion(Inventory inventory, Path stagingDir, boolean upgradeOcflVersion) {
         var objectRoot = ObjectPaths.objectRoot(inventory);
 
         ensureNoMutableHead(inventory.getId(), objectRoot.path());
@@ -598,7 +603,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         try {
             if (isFirstVersion) {
                 storage.createDirectories(objectRoot.path());
-                writeObjectNamasteFile(objectRoot.path());
+                writeObjectNamasteFile(inventory.getType().getOcflVersion(), objectRoot.path());
             }
 
             moveToVersionDirectory(inventory, stagingDir, versionPath);
@@ -626,6 +631,8 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
             }
             throw e;
         }
+
+        upgradeOcflSpecVersion(inventory, objectRoot, upgradeOcflVersion);
     }
 
     private void storeNewMutableHeadVersion(Inventory inventory, Path stagingDir) {
@@ -1002,12 +1009,32 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         return inventory.getVersions().size() == 1;
     }
 
-    private void writeObjectNamasteFile(String objectRootPath) {
+    private void writeObjectNamasteFile(OcflVersion ocflVersion, String objectRootPath) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflObjectVersion());
         var namastePath = FileUtil.pathJoinFailEmpty(objectRootPath, namasteFile.fileName());
         storage.write(namastePath,
                 namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
                 MEDIA_TYPE_TEXT);
+    }
+
+    private void upgradeOcflSpecVersion(Inventory inventory,
+                                        ObjectPaths.ObjectRoot objectRoot,
+                                        boolean upgradeOcflVersion) {
+        if (upgradeOcflVersion) {
+            LOG.info("Upgrading object {} to OCFL spec version {}",
+                    inventory.getId(), inventory.getType().getOcflVersion().getRawVersion());
+
+            try {
+                var objectProps = examineObject(objectRoot.path());
+                var namasteFile = new NamasteTypeFile(objectProps.getOcflVersion().getOcflObjectVersion()).fileName();
+                var namasteFullPath = FileUtil.pathJoinFailEmpty(objectRoot.path(), namasteFile);
+                writeObjectNamasteFile(inventory.getType().getOcflVersion(), objectRoot.path());
+                storage.deleteFile(namasteFullPath);
+            } catch (RuntimeException e) {
+                LOG.error("Failed to upgrade object {} to OCFL spec version {}. Manual intervention may be necessary.",
+                        inventory.getId(), inventory.getType().getOcflVersion().getRawVersion());
+            }
+        }
     }
 
     private ObjectProperties examineObject(String objectRootPath) {

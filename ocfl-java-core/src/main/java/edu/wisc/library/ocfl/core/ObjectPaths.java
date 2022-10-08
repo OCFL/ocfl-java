@@ -36,7 +36,6 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
 /**
@@ -46,26 +45,6 @@ public final class ObjectPaths {
 
     private ObjectPaths() {
 
-    }
-
-    /**
-     * Path to the object's namaste file.
-     *
-     * @param objectRoot path to the object root
-     * @return path to namaste file
-     */
-    public static Path objectNamastePath(Path objectRoot) {
-        return objectRoot.resolve(OcflConstants.OBJECT_NAMASTE_1_0);
-    }
-
-    /**
-     * Path to the object's namaste file.
-     *
-     * @param objectRoot path to the object root
-     * @return path to namaste file
-     */
-    public static String objectNamastePath(String objectRoot) {
-        return FileUtil.pathJoinFailEmpty(objectRoot, OcflConstants.OBJECT_NAMASTE_1_0);
     }
 
     /**

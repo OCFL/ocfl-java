@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.inventory;
 
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -52,11 +53,16 @@ public final class MutableHeadInventoryCommitter {
      * @param original the inventory that contains a mutable head that should be converted
      * @param createdTimestamp the current timestamp
      * @param versionInfo information about the version. Can be null.
+     * @param config the default OCFL configuration
      * @return A new inventory with the mutable HEAD version rewritten.
      */
-    public static Inventory commit(Inventory original, OffsetDateTime createdTimestamp, VersionInfo versionInfo) {
+    public static Inventory commit(Inventory original,
+                                   OffsetDateTime createdTimestamp,
+                                   VersionInfo versionInfo,
+                                   OcflConfig config) {
         Enforce.notNull(original, "inventory cannot be null");
         Enforce.notNull(createdTimestamp, "createdTimestamp cannot be null");
+        Enforce.notNull(config, "config cannot be null");
 
         var inventoryBuilder = new InventoryBuilder(original)
                 .mutableHead(false)
@@ -83,6 +89,11 @@ public final class MutableHeadInventoryCommitter {
                 });
             }
         });
+
+        if (config.isUpgradeObjectsOnWrite()
+                && inventoryBuilder.getType().compareTo(config.getOcflVersion().getInventoryType()) < 0) {
+            inventoryBuilder.type(config.getOcflVersion().getInventoryType());
+        }
 
         return InventoryValidator.validateShallow(inventoryBuilder
                 .putVersion(original.getHead(), versionBuilder.build())

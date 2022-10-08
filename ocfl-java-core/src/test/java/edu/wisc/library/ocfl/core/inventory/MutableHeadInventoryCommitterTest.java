@@ -3,6 +3,7 @@ package edu.wisc.library.ocfl.core.inventory;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.Inventory;
@@ -19,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class MutableHeadInventoryCommitterTest {
 
+    private OcflConfig config = new OcflConfig().setOcflVersion(OcflVersion.OCFL_1_1);
+
     @Test
     public void shouldRewriteInventoryWhenHasMutableContents() {
         var date1 = OffsetDateTime.now().minusDays(3);
@@ -26,7 +29,7 @@ public class MutableHeadInventoryCommitterTest {
         var date3 = OffsetDateTime.now().minusDays(1);
         var now = OffsetDateTime.now();
 
-        var original = Inventory.stubInventory("o1", new OcflConfig(), "root").buildFrom()
+        var original = Inventory.stubInventory("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root").buildFrom()
                 .addFileToManifest("f1", "v1/content/file1")
                 .addFileToManifest("f2", "v1/content/file2")
                 .addFileToManifest("f3", "v2/content/file3")
@@ -58,7 +61,7 @@ public class MutableHeadInventoryCommitterTest {
                 .build();
 
 
-        var newInventory = MutableHeadInventoryCommitter.commit(original, now, new VersionInfo().setMessage("commit"));
+        var newInventory = MutableHeadInventoryCommitter.commit(original, now, new VersionInfo().setMessage("commit"), config);
 
         assertEquals(VersionNum.fromString("v3"), newInventory.getHead());
         assertNull(newInventory.getRevisionNum(), "revisionNum");

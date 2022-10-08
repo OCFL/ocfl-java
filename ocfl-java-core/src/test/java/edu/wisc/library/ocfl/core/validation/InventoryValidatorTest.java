@@ -1,6 +1,7 @@
 package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.OcflConfig;
+import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -315,7 +316,9 @@ public class InventoryValidatorTest {
     }
 
     private InventoryBuilder builder(String id) {
-        return Inventory.stubInventory(id, new OcflConfig(), "root").buildFrom();
+        return Inventory.stubInventory(id,
+                new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION),
+                "root").buildFrom();
     }
 
 }

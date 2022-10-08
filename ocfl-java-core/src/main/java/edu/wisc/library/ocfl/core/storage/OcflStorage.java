@@ -58,15 +58,16 @@ public interface OcflStorage {
      * <p>layoutConfig may be null if the OCFL repository already exists, in which case the existing configuration is used.
      * If layoutConfig is specified for an existing repository, initialization will fail if the configurations do not match.
      *
-     * @param ocflVersion the OCFL version
+     * @param ocflVersion the OCFL version, may be null to default to version in storage root
      * @param layoutConfig the storage layout configuration, may be null to auto-detect existing configuration
      * @param inventoryMapper the mapper to use for inventory serialization
      * @param supportEvaluator the evaluator that determines what to do when unsupported extensions are encountered
+     * @return the resolved repository configuration
      */
-    void initializeStorage(OcflVersion ocflVersion,
-                           OcflExtensionConfig layoutConfig,
-                           InventoryMapper inventoryMapper,
-                           ExtensionSupportEvaluator supportEvaluator);
+    RepositoryConfig initializeStorage(OcflVersion ocflVersion,
+                                       OcflExtensionConfig layoutConfig,
+                                       InventoryMapper inventoryMapper,
+                                       ExtensionSupportEvaluator supportEvaluator);
 
     /**
      * Returns a verified copy of the most recent object inventory. Null is returned if the object is not found.
@@ -102,10 +103,11 @@ public interface OcflStorage {
      *
      * @param inventory the updated object inventory
      * @param stagingDir the directory that contains the composed contents of the new object version
+     * @param upgradeOcflVersion indicates if the OCFL spec version needs to be upgraded as part of the write operation
      * @throws ObjectOutOfSyncException if the version cannot be created because it already exists
      * @throws FixityCheckException if one of the files in the version fails its fixity check
      */
-    void storeNewVersion(Inventory inventory, Path stagingDir);
+    void storeNewVersion(Inventory inventory, Path stagingDir, boolean upgradeOcflVersion);
 
     /**
      * Returns a map of {@code OcflFileRetriever} objects that are used to lazy-load object files. The map keys are the

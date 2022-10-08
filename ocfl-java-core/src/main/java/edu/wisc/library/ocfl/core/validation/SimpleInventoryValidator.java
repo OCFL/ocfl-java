@@ -26,6 +26,7 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.ValidationIssue;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
@@ -116,15 +117,24 @@ public class SimpleInventoryValidator {
         }
     }
 
+    public enum VersionEquality {
+        EQUAL,
+        LESS_THAN_OR_EQUAL;
+    }
+
     /**
      * Validates the specified inventory and returns an object contain any issues that were found.
      *
      * @param inventory the inventory to validate
      * @param inventoryPath  the path to the inventory
+     * @param ocflVersion  the OCFL version the inventory should adhere to, or null if the version does not matter
+     * @param equality  how the inventory version should relate to the expected version, or null if the version does not matter
      * @return the validation results
      */
     public ValidationResults validateInventory(SimpleInventory inventory,
-                                               String inventoryPath) {
+                                               String inventoryPath,
+                                               OcflVersion ocflVersion,
+                                               VersionEquality equality) {
         Enforce.notNull(inventory, "inventory cannot be null");
         Enforce.notNull(inventoryPath, "inventoryPath cannot be null");
 
@@ -135,11 +145,10 @@ public class SimpleInventoryValidator {
                         ValidationCode.W005,
                         "Inventory id should be a URI in %s. Found: %s", inventoryPath, inventory.getId())))
                 .addIssue(notNull(inventory.getType(), ValidationCode.E036, "Inventory type must be set in %s", inventoryPath))
-                .addIssue(ifNotNull(inventory.getType(), () -> isTrue(inventory.getType().equals(InventoryType.OCFL_1_0.getId()),
-                        ValidationCode.E038,
-                        "Inventory type must equal '%s' in %s", InventoryType.OCFL_1_0.getId(), inventoryPath)))
                 .addIssue(notNull(inventory.getDigestAlgorithm(), ValidationCode.E036, "Inventory digest algorithm must be set in %s", inventoryPath))
                 .addIssue(notNull(inventory.getHead(), ValidationCode.E036, "Inventory head must be set in %s", inventoryPath));
+
+        validateType(inventory, inventoryPath, ocflVersion, equality, results);
 
         if (inventory.getDigestAlgorithm() != null) {
             if (!ALLOWED_CONTENT_DIGESTS.contains(inventory.getDigestAlgorithm())) {
@@ -174,7 +183,43 @@ public class SimpleInventoryValidator {
         return results.build();
     }
 
-    private void validateInventoryManifest(SimpleInventory inventory, String inventoryPath, ValidationResultsBuilder results) {
+    private void validateType(SimpleInventory inventory,
+                              String inventoryPath,
+                              OcflVersion ocflVersion,
+                              VersionEquality equality,
+                              ValidationResultsBuilder results) {
+        if (inventory.getType() != null) {
+            try {
+                var type = InventoryType.fromValue(inventory.getType());
+
+                if (ocflVersion != null) {
+                    Enforce.notNull(equality, "equality cannot be null");
+
+                    if (equality == VersionEquality.EQUAL) {
+                        if (type != ocflVersion.getInventoryType()) {
+                            results.addIssue(ValidationCode.E038,
+                                    "Inventory type must equal '%s' in %s",
+                                    ocflVersion.getInventoryType().getId(), inventoryPath);
+                        }
+                    } else if (equality == VersionEquality.LESS_THAN_OR_EQUAL) {
+                        if (type.compareTo(ocflVersion.getInventoryType()) > 0) {
+                            results.addIssue(ValidationCode.E103,
+                                    "Inventory type must be for version %s or lower in %s. Found: %s",
+                                    ocflVersion.getRawVersion(), inventoryPath, type.getId());
+                        }
+                    }
+                }
+            } catch (RuntimeException e) {
+                results.addIssue(ValidationCode.E038,
+                        "Invalid inventory type in %s. Found: %s",
+                        inventoryPath, inventory.getType());
+            }
+        }
+    }
+
+    private void validateInventoryManifest(SimpleInventory inventory,
+                                           String inventoryPath,
+                                           ValidationResultsBuilder results) {
         if (inventory.getManifest() != null) {
             var digests = new HashSet<String>(inventory.getManifest().size());
             for (var digest : inventory.getManifest().keySet()) {
@@ -218,8 +263,13 @@ public class SimpleInventoryValidator {
         }
     }
 
-    private void validateInventoryVersions(SimpleInventory inventory, String inventoryPath, ValidationResultsBuilder results) {
+    private void validateInventoryVersions(SimpleInventory inventory,
+                                           String inventoryPath,
+                                           ValidationResultsBuilder results) {
         if (inventory.getVersions() != null) {
+            var manifest = inventory.getManifest() == null ? Collections.emptyMap() : inventory.getManifest();
+            var unseenDigests = new HashSet<>(manifest.keySet());
+
             for (var entry : inventory.getVersions().entrySet()) {
                 var versionNum = entry.getKey();
                 var version = entry.getValue();
@@ -264,9 +314,8 @@ public class SimpleInventoryValidator {
                 }
 
                 if (version.getState() != null) {
-                    var manifest = inventory.getManifest() == null ? Collections.emptyMap() : inventory.getManifest();
-
                     for (var digest : version.getState().keySet()) {
+                        unseenDigests.remove(digest);
                         results.addIssue(isTrue(manifest.containsKey(digest), ValidationCode.E050,
                                 "Inventory version %s contains digest %s that does not exist in the manifest in %s",
                                 versionNum, digest, inventoryPath));
@@ -295,6 +344,12 @@ public class SimpleInventoryValidator {
                             versionNum, inventoryPath);
                 }
             }
+
+            for (var digest : unseenDigests) {
+                results.addIssue(ValidationCode.E107,
+                        "Inventory manifest in %s contains an entry that is not referenced in any version. Found: %s",
+                        inventoryPath, digest);
+            }
         } else {
             results.addIssue(ValidationCode.E043,
                     "Inventory versions must be set in %s",
@@ -302,7 +357,9 @@ public class SimpleInventoryValidator {
         }
     }
 
-    private void validateInventoryVersionNumbers(SimpleInventory inventory, String inventoryPath, ValidationResultsBuilder results) {
+    private void validateInventoryVersionNumbers(SimpleInventory inventory,
+                                                 String inventoryPath,
+                                                 ValidationResultsBuilder results) {
         if (inventory.getVersions() != null) {
             if (inventory.getHead() != null
                     && !inventory.getVersions().containsKey(inventory.getHead())) {
@@ -359,7 +416,9 @@ public class SimpleInventoryValidator {
         }
     }
 
-    private void validateInventoryFixity(SimpleInventory inventory, String inventoryPath, ValidationResultsBuilder results) {
+    private void validateInventoryFixity(SimpleInventory inventory,
+                                         String inventoryPath,
+                                         ValidationResultsBuilder results) {
         if (inventory.getFixity() != null) {
             var fixity = inventory.getFixity();
 
@@ -492,8 +551,7 @@ public class SimpleInventoryValidator {
         Optional<VersionNum> versionNum = Optional.empty();
 
         if (isInvalidVersionNum(num)) {
-            // TODO this is not the right code https://github.com/OCFL/spec/issues/532
-            results.addIssue(ValidationCode.E011,
+            results.addIssue(ValidationCode.E104,
                     "Inventory contains invalid version number in %s. Found: %s", inventoryPath, num);
         } else {
             var parsed = VersionNum.fromString(num);

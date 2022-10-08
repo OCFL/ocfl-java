@@ -21,6 +21,7 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
@@ -84,6 +85,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -1136,7 +1140,7 @@ public abstract class OcflITest {
             repo.describeObject(objectId);
         });
 
-        assertEquals(6, listFilesInRepo(repoName).size());
+        assertEquals(5, listFilesInRepo(repoName).size());
     }
 
     @Test
@@ -1156,7 +1160,7 @@ public abstract class OcflITest {
             repo.describeObject("o4");
         });
 
-        assertEquals(13, listFilesInRepo(repoName).size());
+        assertEquals(12, listFilesInRepo(repoName).size());
     }
 
     @Test
@@ -2431,6 +2435,115 @@ public abstract class OcflITest {
         });
 
         verifyRepo(repoName);
+    }
+
+    @Test
+    public void ocfl1_0RepoShouldBeConvertedTo1_1() {
+        var repoName = "ocfl-1.0-repo";
+        var repoRoot = sourceRepoPath(repoName);
+
+        existingRepo(repoName, repoRoot, builder -> {
+            builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1));
+        });
+
+        verifyRepo(repoName);
+    }
+
+    @Test
+    public void ocfl1_0RepoShouldNotBeConvertedTo1_1WhenNoVersionSpecified() {
+        var repoName = "ocfl-1.0-repo";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot);
+
+        var objId = "1.0-obj1";
+
+        repo.updateObject(ObjectVersionId.head(objId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 1"), "file1.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objId).getObjectOcflVersion());
+    }
+
+    @Test
+    public void ocfl1_1RepoShouldNotBeConvertedTo1_0() {
+        var repoName = "repo-multiple-objects";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_0))
+                    .unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        });
+
+        var files = listFilesInRepo(repoName);
+        assertThat(files, hasItem(endsWith("0=ocfl_1.1")));
+        assertThat(files, not(hasItem(endsWith("0=ocfl_1.0"))));
+
+        var objId = "1.0-obj1";
+
+        repo.updateObject(ObjectVersionId.head(objId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 1"), "file1.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objId).getObjectOcflVersion());
+    }
+
+    @Test
+    public void ocfl1_1RepoShouldNotUpgradeExisting1_0Objects() {
+        var repoName = "ocfl-1.0-repo";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1));
+        });
+
+        var objId = "obj1";
+
+        repo.updateObject(ObjectVersionId.head(objId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 3"), "file3.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objId).getObjectOcflVersion());
+    }
+
+    @Test
+    public void ocfl1_1RepoShouldCreateNew1_1Objects() {
+        var repoName = "repo-multiple-objects";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1))
+                    .unsupportedExtensionBehavior(UnsupportedExtensionBehavior.WARN);
+        });
+
+        var objId = "1.1-obj1";
+
+        repo.updateObject(ObjectVersionId.head(objId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 1"), "file1.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_1, repo.describeObject(objId).getObjectOcflVersion());
+    }
+
+    @Test
+    public void upgradeExistingObjectOnWrite() {
+        var repoName = "ocfl-1.0-repo";
+        var repoRoot = sourceRepoPath(repoName);
+
+        var repo = existingRepo(repoName, repoRoot, builder -> {
+            builder.ocflConfig(config -> config.setOcflVersion(OcflVersion.OCFL_1_1)
+                    .setUpgradeObjectsOnWrite(true));
+        });
+
+        var objId = "obj1";
+
+        repo.updateObject(ObjectVersionId.head(objId), defaultVersionInfo, updater -> {
+            updater.writeFile(streamString("file 10"), "file10.txt");
+        });
+
+        assertEquals(OcflVersion.OCFL_1_1, repo.describeObject(objId).getObjectOcflVersion());
+        var result = repo.validateObject(objId, true);
+        assertEquals(0, result.getErrors().size());
     }
 
     private Path writeFile(String content) {

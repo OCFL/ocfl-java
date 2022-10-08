@@ -80,63 +80,83 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
      * {@inheritDoc}
      */
     @Override
-    public OcflStorageLayoutExtension initializeStorage(OcflVersion ocflVersion,
-                                                        OcflExtensionConfig layoutConfig,
-                                                        ExtensionSupportEvaluator supportEvaluator) {
-        Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
-        // TODO ocflVersion should be optional for existing repositories and it should verify that ocfl-java supports
-        //      whatever version it finds on disk
-
-        OcflStorageLayoutExtension layoutExtension;
+    public RepositoryConfig initializeStorage(OcflVersion ocflVersion,
+                                              OcflExtensionConfig layoutConfig,
+                                              ExtensionSupportEvaluator supportEvaluator) {
+        RepositoryConfig config;
 
         if (directoryIsEmpty("")) {
-            layoutExtension = initNewRepo(ocflVersion, layoutConfig);
+            config = initNewRepo(ocflVersion, layoutConfig);
         } else {
-            layoutExtension = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
+            config = loadAndValidateExistingRepo(ocflVersion, layoutConfig);
             // This is only validating currently and does not load anything
             loadRepositoryExtensions(supportEvaluator);
         }
 
-        LOG.info("OCFL repository is configured to use OCFL storage layout extension {} implemented by {}",
-                layoutExtension.getExtensionName(), layoutExtension.getClass());
+        LOG.info("OCFL repository is configured to adhere to OCFL {} and use OCFL storage layout extension {}",
+                config.getOcflVersion().getRawVersion(),
+                config.getStorageLayoutExtension().getExtensionName());
 
-        return layoutExtension;
+        return config;
     }
 
-    private OcflStorageLayoutExtension loadAndValidateExistingRepo(OcflVersion ocflVersion,
-                                                                   OcflExtensionConfig layoutConfig) {
-        validateOcflVersion(ocflVersion);
+    private RepositoryConfig loadAndValidateExistingRepo(OcflVersion ocflVersion,
+                                                         OcflExtensionConfig layoutConfig) {
+        var existingVersion = identifyExistingVersion();
+        var resolvedVersion = existingVersion;
+
+        if (ocflVersion != null && existingVersion.compareTo(ocflVersion) < 0) {
+            upgradeOcflRepo(existingVersion, ocflVersion);
+            resolvedVersion = ocflVersion;
+        }
 
         var ocflLayout = readOcflLayout();
+        OcflStorageLayoutExtension extension;
 
         if (ocflLayout == null) {
             LOG.debug("OCFL layout extension not specified");
-            return validateLayoutByInspection(layoutConfig);
+            extension = validateLayoutByInspection(layoutConfig);
+        } else {
+            LOG.debug("Found specified OCFL layout extension: {}", ocflLayout.getExtension());
+            extension = loadLayoutByConfig(ocflLayout);
         }
 
-        LOG.debug("Found specified OCFL layout extension: {}", ocflLayout.getExtension());
-
-        return loadLayoutByConfig(ocflLayout);
+        return new RepositoryConfig(resolvedVersion, extension);
     }
 
-    private void validateOcflVersion(OcflVersion ocflVersion) {
-        var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
+    private OcflVersion identifyExistingVersion() {
+        OcflVersion foundVersion = null;
 
-        if (!storage.fileExists(namasteFile.fileName())) {
-            // TODO This would ideally operate on a streaming list result
-            var existingOcflVersion = list("").stream()
-                    .filter(Listing::isFile)
-                    .map(Listing::getRelativePath)
-                    .filter(file -> file.startsWith("0="))
-                    .map(OcflVersion::fromOcflVersionFilename)
-                    .findFirst();
-
-            if (existingOcflVersion.isEmpty()) {
-                throw new RepositoryConfigurationException("OCFL root is missing its namaste file, eg. 0=ocfl_1.0.");
-            } else if (existingOcflVersion.get() != ocflVersion) {
-                throw new RepositoryConfigurationException(String.format("OCFL version mismatch. Expected: %s; Found: %s",
-                        ocflVersion, existingOcflVersion));
+        for (var version : OcflVersion.values()) {
+            var fileName = new NamasteTypeFile(version.getOcflVersion()).fileName();
+            try {
+                var contents = storage.readToString(fileName);
+                foundVersion = OcflVersion.fromOcflVersionString(contents);
+                break;
+            } catch (OcflNoSuchFileException e) {
+                LOG.debug("OCFL root namaste file {} does not exist", fileName);
             }
+        }
+
+        if (foundVersion == null) {
+            throw new RepositoryConfigurationException("OCFL root is missing a namaste file, eg. 0=ocfl_1.0.");
+        }
+
+        return foundVersion;
+    }
+
+    private void upgradeOcflRepo(OcflVersion currentVersion, OcflVersion newVersion) {
+        LOG.info("This is an OCFL {} repository, but was programmatically configured to create OCFL {} objects. " +
+                        "Upgrading the OCFL repository to {}. Note, existing objects will NOT be upgraded.",
+                currentVersion.getRawVersion(), newVersion.getRawVersion(), newVersion.getRawVersion());
+
+        try {
+            writeNamasteFile(newVersion);
+            writeOcflSpec(newVersion);
+            storage.deleteFile(new NamasteTypeFile(currentVersion.getOcflVersion()).fileName());
+        } catch (RuntimeException e) {
+            throw new OcflJavaException(String.format("Failed to upgrade OCFL repository to version %s",
+                    newVersion.getRawVersion()), e);
         }
     }
 
@@ -199,8 +219,12 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
         }
     }
 
-    private OcflStorageLayoutExtension initNewRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+    private RepositoryConfig initNewRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
         Enforce.notNull(layoutConfig, "layoutConfig cannot be null when initializing a new repo");
+
+        if (ocflVersion == null) {
+            ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
+        }
 
         LOG.info("Initializing new OCFL repository");
 
@@ -213,7 +237,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
             writeOcflLayout(layoutConfig, layoutExtension.getDescription());
             writeOcflLayoutSpec(layoutConfig);
             writeSpecFile(this.getClass().getClassLoader(), EXT_SPEC);
-            return layoutExtension;
+            return new RepositoryConfig(ocflVersion, layoutExtension);
         } catch (RuntimeException e) {
             LOG.error("Failed to initialize OCFL repository", e);
             try {
@@ -234,7 +258,11 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private void writeOcflSpec(OcflVersion ocflVersion) {
-        writeSpecFile(this.getClass().getClassLoader(), ocflVersion.getOcflVersion() + ".txt");
+        var ext = ".md";
+        if (ocflVersion == OcflVersion.OCFL_1_0) {
+            ext = ".txt";
+        }
+        writeSpecFile(this.getClass().getClassLoader(), ocflVersion.getOcflVersion() + ext);
     }
 
     private void writeOcflLayoutSpec(OcflExtensionConfig layoutConfig) {

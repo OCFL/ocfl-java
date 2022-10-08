@@ -27,6 +27,7 @@ package edu.wisc.library.ocfl.core.storage;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.ObjectOutOfSyncException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
@@ -55,8 +56,8 @@ public class CachingOcflStorage extends AbstractOcflStorage {
      * {@inheritDoc}
      */
     @Override
-    protected void doInitialize(OcflExtensionConfig layoutConfig) {
-        delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper, supportEvaluator);
+    protected RepositoryConfig doInitialize(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
+        return delegate.initializeStorage(ocflVersion, layoutConfig, inventoryMapper, supportEvaluator);
     }
 
     /**
@@ -85,13 +86,14 @@ public class CachingOcflStorage extends AbstractOcflStorage {
      *
      * @param inventory the updated object inventory
      * @param stagingDir the directory that contains the composed contents of the new object version
+     * @param upgradeOcflVersion indicates if the OCFL spec version needs to be upgraded as part of the write operation
      */
     @Override
-    public void storeNewVersion(Inventory inventory, Path stagingDir) {
+    public void storeNewVersion(Inventory inventory, Path stagingDir, boolean upgradeOcflVersion) {
         ensureOpen();
 
         try {
-            delegate.storeNewVersion(inventory, stagingDir);
+            delegate.storeNewVersion(inventory, stagingDir, upgradeOcflVersion);
             inventoryCache.put(inventory.getId(), inventory);
         } catch (ObjectOutOfSyncException e) {
             inventoryCache.invalidate(inventory.getId());

@@ -32,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public final class ITestHelper {
 
+    private static final String OCFL_SPEC_FILE = "ocfl_1.1.md";
+
     private ITestHelper() {
 
     }
@@ -73,8 +75,10 @@ public final class ITestHelper {
 
         try (var walk = Files.walk(root)) {
             walk.filter(p -> {
-                var pStr = p.toString();
-                return !pStr.contains(".gitkeep");
+                var filename = p.getFileName().toString();
+                return !filename.equals(".gitkeep")
+                        && !filename.equals(OCFL_SPEC_FILE)
+                        && !filename.equals("ocfl_1.0.txt");
             }).filter(Files::isRegularFile).forEach(allPaths::add);
         } catch (IOException e) {
             throw new RuntimeException(e);

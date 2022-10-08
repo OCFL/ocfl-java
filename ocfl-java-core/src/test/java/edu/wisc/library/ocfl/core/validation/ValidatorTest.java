@@ -21,6 +21,7 @@ public class ValidatorTest {
     private static final String OFFICIAL_BAD_FIXTURES = "official/bad-objects";
     private static final String OFFICIAL_WARN_FIXTURES = "official/warn-objects";
     private static final String CUSTOM_BAD_FIXTURES = "custom/bad-objects";
+    private static final String CUSTOM_GOOD_FIXTURES = "custom/good-objects";
 
     @BeforeAll
     public static void beforeAll() {
@@ -45,11 +46,27 @@ public class ValidatorTest {
         assertNoIssues(results);
     }
 
-    @Test
-    public void validateLargeObject() {
-        var validator = createValidator("custom/good-objects");
-        var results = validator.validateObject("large-object", true);
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "large-object",
+            "ocfl-1.1-obj",
+            "ocfl_version_change",
+    })
+    public void validateCustomGoodFixtureObject(String name) {
+        var validator = createValidator(CUSTOM_GOOD_FIXTURES);
+        var results = validator.validateObject(name, true);
         assertNoIssues(results);
+    }
+
+    @Test
+    public void errorOnInconsistentOcflVersions() {
+        var validator = createValidator(CUSTOM_BAD_FIXTURES);
+        var results = validator.validateObject("E103_inconsistent_ocfl_versions", true);
+
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E103, "Inventory type must be for version 1.0 or lower in E103_inconsistent_ocfl_versions/v2/inventory.json. Found: https://ocfl.io/1.1/spec/#inventory");
+        assertWarningsCount(results, 0);
+        assertInfoCount(results, 0);
     }
 
     @Test
@@ -98,15 +115,14 @@ public class ValidatorTest {
     }
 
     @Test
-    public void errorOnEmptyObjectRot() {
+    public void errorOnEmptyObjectRoot() {
         var name = "E003_E034_empty";
         var validator = createValidator(OFFICIAL_BAD_FIXTURES);
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 2);
-        assertHasError(results, ValidationCode.E003, "OCFL object version declaration must exist at E003_E034_empty/0=ocfl_object_1.0");
-        assertHasError(results, ValidationCode.E063, "Object root inventory not found at E003_E034_empty/inventory.json");
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E003, "OCFL object version declaration is missing in E003_E034_empty");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -118,17 +134,9 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 7);
-        assertHasError(results, ValidationCode.E003, "OCFL object version declaration must exist at E003_no_decl/0=ocfl_object_1.0");
-        assertHasError(results, ValidationCode.E102, "Inventory version v1 cannot contain unknown property type in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E038, "Inventory type must equal 'https://ocfl.io/1.0/spec/#inventory' in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E036, "Inventory head must be set in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E048, "Inventory version v1 must contain a created timestamp in E003_no_decl/inventory.json");
-        assertHasError(results, ValidationCode.E060, "Inventory at E003_no_decl/inventory.json does not match expected sha512 digest. Expected: 14f15a87d1f9d02c1bf9cf08d6c7f9af96d2a69a9715a8dbb2e938cba271e1f204f3b2b6d3df93ead1bb5b7b925fc23dc207207220aa190947349729c2c1f74a; Found: 1c27836424fc93b67d9eac795f234fcc8c3825d54c26ab7254dfbb47bf432a184df5e96e65bd4c1e2db4c0d5172ce2f0fc589fd6a6a30ebbec0aae7938318815");
-        assertHasError(results, ValidationCode.E061, "Inventory sidecar file at E003_no_decl/inventory.json.sha512 is in an invalid format");
-        assertWarningsCount(results, 2);
-        assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a user in E003_no_decl/inventory.json");
-        assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a message in E003_no_decl/inventory.json");
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E003, "OCFL object version declaration is missing in E003_no_decl");
+        assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
 
@@ -140,7 +148,20 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 1);
-        assertHasError(results, ValidationCode.E003, "OCFL object version declaration must exist at E003_no_decl/0=ocfl_object_1.0");
+        assertHasError(results, ValidationCode.E003, "OCFL object version declaration is missing in E003_no_decl");
+        assertWarningsCount(results, 0);
+        assertInfoCount(results, 0);
+    }
+
+    @Test
+    public void errorOnMultipleObjectDeclarations() {
+        var name = "E003_multiple_decl";
+        var validator = createValidator(CUSTOM_BAD_FIXTURES);
+
+        var results = validator.validateObject(name, true);
+
+        assertErrorCount(results, 1);
+        assertHasError(results, ValidationCode.E003, "Object root E003_multiple_decl contains multiple version declaration files");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -153,7 +174,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 1);
-        assertHasError(results, ValidationCode.E007, "OCFL object version declaration must be '0=ocfl_object_1.0' in E007_bad_declaration_contents/0=ocfl_object_1.0");
+        assertHasError(results, ValidationCode.E007, "OCFL object version declaration must be 'ocfl_object_1.0' in E007_bad_declaration_contents/0=ocfl_object_1.0");
         assertWarningsCount(results, 2);
         assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a user in E007_bad_declaration_contents/inventory.json");
         assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a message in E007_bad_declaration_contents/inventory.json");
@@ -308,7 +329,7 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 7);
+        assertErrorCount(results, 8);
         assertHasError(results, ValidationCode.E049, "Inventory version v1 created timestamp must be a string in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E050, "Inventory version v1 state must be an object in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E094, "Inventory version v1 message must be a string in E049_E050_E054_bad_version_block_values/inventory.json");
@@ -316,6 +337,7 @@ public class ValidatorTest {
         assertHasError(results, ValidationCode.E048, "Inventory version v1 must contain a created timestamp in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E054, "Inventory version v1 user name must be set in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasError(results, ValidationCode.E048, "Inventory version v1 must contain a state in E049_E050_E054_bad_version_block_values/inventory.json");
+        assertHasError(results, ValidationCode.E107, "Inventory manifest in E049_E050_E054_bad_version_block_values/inventory.json contains an entry that is not referenced in any version. Found: 43a43fe8a8a082d3b5343dfaf2fd0c8b8e370675b1f376e92e9994612c33ea255b11298269d72f797399ebb94edeefe53df243643676548f584fb8603ca53a0f");
         assertWarningsCount(results, 2);
         assertHasWarn(results, ValidationCode.W008, "Inventory version v1 user address should be set in E049_E050_E054_bad_version_block_values/inventory.json");
         assertHasWarn(results, ValidationCode.W007, "Inventory version v1 should contain a message in E049_E050_E054_bad_version_block_values/inventory.json");
@@ -442,8 +464,8 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 3);
-        assertHasError(results, ValidationCode.E011, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
-        assertHasError(results, ValidationCode.E011, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
+        assertHasError(results, ValidationCode.E104, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
+        assertHasError(results, ValidationCode.E104, "Inventory contains invalid version number in E011_E001_invalid_head_version_format/inventory.json. Found: 1");
         assertHasError(results, ValidationCode.E001, "Object root E011_E001_invalid_head_version_format contains an unexpected file 1");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
@@ -565,9 +587,10 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 2);
+        assertErrorCount(results, 3);
         assertHasError(results, ValidationCode.E096, "Inventory manifest cannot contain duplicates of digest 24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28 in E096_manifest_duplicate_digests/inventory.json");
         assertHasError(results, ValidationCode.E101, "Inventory manifest content paths must be unique in E096_manifest_duplicate_digests/inventory.json. Found: v1/content/test.txt");
+        assertHasError(results, ValidationCode.E107, "Inventory manifest in E096_manifest_duplicate_digests/inventory.json contains an entry that is not referenced in any version. Found: 24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -620,8 +643,9 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 1);
+        assertErrorCount(results, 2);
         assertHasError(results, ValidationCode.E050, "Inventory version v1 contains digest 24F950AAC7B9EA9B3CB728228A0C82B67C39E96B4B344798870D5DAEE93E3AE5931BAAE8C7CACFEA4B629452C38026A81D138BC7AAD1AF3EF7BFD5EC646D6C28 that does not exist in the manifest in E050_manifest_digest_wrong_case/inventory.json");
+        assertHasError(results, ValidationCode.E107, "Inventory manifest in E050_manifest_digest_wrong_case/inventory.json contains an entry that is not referenced in any version. Found: 24f950aac7b9ea9b3cb728228a0c82b67c39e96b4b344798870d5daee93e3ae5931baae8c7cacfea4b629452c38026a81d138bc7aad1af3ef7bfd5ec646d6c28");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }
@@ -707,7 +731,7 @@ public class ValidatorTest {
         var results = validator.validateObject(name, true);
 
         assertErrorCount(results, 1);
-        assertHasError(results, ValidationCode.E037, "Inventory id is inconsistent between versions in E037_inconsistent_id/v1/inventory.json. Expected: urn:example-2; Found: urn:example-two");
+        assertHasError(results, ValidationCode.E110, "Inventory id is inconsistent between versions in E037_inconsistent_id/v1/inventory.json. Expected: urn:example-2; Found: urn:example-two");
         assertWarningsCount(results, 0);
         assertInfoCount(results, 0);
     }

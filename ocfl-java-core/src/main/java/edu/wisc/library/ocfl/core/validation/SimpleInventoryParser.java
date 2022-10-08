@@ -189,37 +189,35 @@ public class SimpleInventoryParser {
     private SimpleUser parseUser(JsonNode userNode, String versionNum, String inventoryPath, ValidationResultsBuilder results) {
         var user = new SimpleUser();
 
-        if (!userNode.isNull()) {
-            if (userNode.isObject()) {
-                userNode.fields().forEachRemaining(entry -> {
-                    var fieldName = entry.getKey();
-                    var field = entry.getValue();
+        if (userNode.isObject()) {
+            userNode.fields().forEachRemaining(entry -> {
+                var fieldName = entry.getKey();
+                var field = entry.getValue();
 
-                    switch (fieldName) {
-                        case SimpleUser.NAME_KEY:
-                            user.setName(parseString(field,
-                                    () -> results.addIssue(ValidationCode.E054,
-                                            "Inventory version %s user name must be a string in %s",
-                                            versionNum, inventoryPath)));
-                            break;
-                        case SimpleUser.ADDRESS_KEY:
-                            user.setAddress(parseString(field,
-                                    () -> results.addIssue(ValidationCode.E033,
-                                            "Inventory version %s user address must be a string in %s",
-                                            versionNum, inventoryPath)));
-                            break;
-                        default:
-                            results.addIssue(ValidationCode.E102,
-                                    "Inventory version %s user cannot contain unknown property %s in %s",
-                                    versionNum, fieldName, inventoryPath);
-                            break;
-                    }
-                });
-            } else {
-                results.addIssue(ValidationCode.E054,
-                        "Inventory version %s user must be an object in %s",
-                        versionNum, inventoryPath);
-            }
+                switch (fieldName) {
+                    case SimpleUser.NAME_KEY:
+                        user.setName(parseString(field,
+                                () -> results.addIssue(ValidationCode.E054,
+                                        "Inventory version %s user name must be a string in %s",
+                                        versionNum, inventoryPath)));
+                        break;
+                    case SimpleUser.ADDRESS_KEY:
+                        user.setAddress(parseString(field,
+                                () -> results.addIssue(ValidationCode.E033,
+                                        "Inventory version %s user address must be a string in %s",
+                                        versionNum, inventoryPath)));
+                        break;
+                    default:
+                        results.addIssue(ValidationCode.E102,
+                                "Inventory version %s user cannot contain unknown property %s in %s",
+                                versionNum, fieldName, inventoryPath);
+                        break;
+                }
+            });
+        } else {
+            results.addIssue(ValidationCode.E054,
+                    "Inventory version %s user must be an object in %s",
+                    versionNum, inventoryPath);
         }
 
         return user;
@@ -228,9 +226,7 @@ public class SimpleInventoryParser {
     private Map<String, List<String>> parseManifest(JsonNode field, String inventoryPath, ValidationResultsBuilder results) {
         Map<String, List<String>> manifest = null;
 
-        if (field.isNull()) {
-            // nothing to do
-        } else if (field.isObject()) {
+       if (field.isObject()) {
             manifest = parseDigestPathsMap(field,
                     () -> results.addIssue(ValidationCode.E096,
                             "Inventory manifest cannot contain null digests in %s",
@@ -248,7 +244,7 @@ public class SimpleInventoryParser {
                             "Inventory manifest digest %s content paths must be strings in %s",
                             digest, inventoryPath));
         } else {
-            results.addIssue(ValidationCode.E033,
+            results.addIssue(ValidationCode.E106,
                     "Inventory manifest must be an object in %s",
                     inventoryPath);
         }
@@ -259,9 +255,7 @@ public class SimpleInventoryParser {
     private Map<String, SimpleVersion> parseVersions(JsonNode field, String inventoryPath, ValidationResultsBuilder results) {
         Map<String, SimpleVersion> versions = null;
 
-        if (field.isNull()) {
-            // nothing to do
-        } else if (field.isObject()) {
+        if (field.isObject()) {
             versions = new HashMap<>();
 
             for (var it = field.fields(); it.hasNext();) {
@@ -298,9 +292,7 @@ public class SimpleInventoryParser {
     private Map<String, List<String>> parseState(JsonNode stateNode, String versionNum, String inventoryPath, ValidationResultsBuilder results) {
         Map<String, List<String>> state = null;
 
-        if (stateNode.isNull()) {
-            // Nothing to do
-        } else if (stateNode.isObject()) {
+        if (stateNode.isObject()) {
             state = parseDigestPathsMap(stateNode,
                     () -> results.addIssue(ValidationCode.E050,
                             "Inventory version %s cannot contain null digests in %s",
@@ -330,53 +322,51 @@ public class SimpleInventoryParser {
     private Map<String, Map<String, List<String>>> parseFixity(JsonNode field, String inventoryPath, ValidationResultsBuilder results) {
         Map<String, Map<String, List<String>>> fixity = null;
 
-        if (!field.isNull()) {
-            if (field.isObject()) {
-                fixity = new HashMap<>();
+        if (field.isObject()) {
+            fixity = new HashMap<>();
 
-                for (var it = field.fields(); it.hasNext();) {
-                    var entry = it.next();
-                    var algorithm = entry.getKey();
-                    var digestsNode = entry.getValue();
+            for (var it = field.fields(); it.hasNext();) {
+                var entry = it.next();
+                var algorithm = entry.getKey();
+                var digestsNode = entry.getValue();
 
-                    if (algorithm == null) {
-                        results.addIssue(ValidationCode.E056,
-                                "Inventory fixity cannot contain null digest algorithms in %s",
-                                inventoryPath);
-                    } else if (digestsNode.isNull()) {
-                        results.addIssue(ValidationCode.E057,
-                                "Inventory fixity for %s cannot be null in %s",
-                                algorithm, inventoryPath);
-                    } else if (digestsNode.isObject()) {
-                        var fixitySection = parseDigestPathsMap(digestsNode,
-                                () -> results.addIssue(ValidationCode.E057,
-                                        "Inventory fixity algorithm %s cannot contain null digests in %s",
-                                        algorithm, inventoryPath),
-                                digest -> results.addIssue(ValidationCode.E057,
-                                        "Inventory fixity algorithm %s digest %s cannot contain null content paths in %s",
-                                        algorithm, digest, inventoryPath),
-                                digest -> results.addIssue(ValidationCode.E057,
-                                        "Inventory fixity algorithm %s digest %s must reference a list value in %s",
-                                        algorithm, digest, inventoryPath),
-                                digest -> results.addIssue(ValidationCode.E057,
-                                        "Inventory fixity algorithm %s digest %s cannot contain null paths in %s",
-                                        algorithm, digest, inventoryPath),
-                                digest -> results.addIssue(ValidationCode.E057,
-                                        "Inventory fixity algorithm %s digest %s content paths must be strings in %s",
-                                        algorithm, digest, inventoryPath));
+                if (algorithm == null) {
+                    results.addIssue(ValidationCode.E056,
+                            "Inventory fixity cannot contain null digest algorithms in %s",
+                            inventoryPath);
+                } else if (digestsNode.isNull()) {
+                    results.addIssue(ValidationCode.E057,
+                            "Inventory fixity for %s cannot be null in %s",
+                            algorithm, inventoryPath);
+                } else if (digestsNode.isObject()) {
+                    var fixitySection = parseDigestPathsMap(digestsNode,
+                            () -> results.addIssue(ValidationCode.E057,
+                                    "Inventory fixity algorithm %s cannot contain null digests in %s",
+                                    algorithm, inventoryPath),
+                            digest -> results.addIssue(ValidationCode.E057,
+                                    "Inventory fixity algorithm %s digest %s cannot contain null content paths in %s",
+                                    algorithm, digest, inventoryPath),
+                            digest -> results.addIssue(ValidationCode.E057,
+                                    "Inventory fixity algorithm %s digest %s must reference a list value in %s",
+                                    algorithm, digest, inventoryPath),
+                            digest -> results.addIssue(ValidationCode.E057,
+                                    "Inventory fixity algorithm %s digest %s cannot contain null paths in %s",
+                                    algorithm, digest, inventoryPath),
+                            digest -> results.addIssue(ValidationCode.E057,
+                                    "Inventory fixity algorithm %s digest %s content paths must be strings in %s",
+                                    algorithm, digest, inventoryPath));
 
-                        fixity.put(algorithm, fixitySection);
-                    } else {
-                        results.addIssue(ValidationCode.E057,
-                                "Inventory fixity for %s must be an object in %s",
-                                algorithm, inventoryPath);
-                    }
+                    fixity.put(algorithm, fixitySection);
+                } else {
+                    results.addIssue(ValidationCode.E057,
+                            "Inventory fixity for %s must be an object in %s",
+                            algorithm, inventoryPath);
                 }
-            } else {
-                results.addIssue(ValidationCode.E056,
-                        "Inventory fixity must be an object in %s",
-                        inventoryPath);
             }
+        } else {
+            results.addIssue(ValidationCode.E111,
+                    "Inventory fixity must be an object in %s",
+                    inventoryPath);
         }
 
         return fixity;

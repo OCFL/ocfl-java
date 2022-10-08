@@ -39,12 +39,14 @@ public class OcflConfig {
     private DigestAlgorithm defaultDigestAlgorithm;
     private String defaultContentDirectory;
     private int defaultZeroPaddingWidth;
+    private boolean upgradeObjectsOnWrite;
 
     public OcflConfig() {
-        ocflVersion = OcflConstants.DEFAULT_OCFL_VERSION;
+        ocflVersion = null;
         defaultDigestAlgorithm = OcflConstants.DEFAULT_DIGEST_ALGORITHM;
         defaultContentDirectory = OcflConstants.DEFAULT_CONTENT_DIRECTORY;
         defaultZeroPaddingWidth = OcflConstants.DEFAULT_ZERO_PADDING_WIDTH;
+        upgradeObjectsOnWrite = false;
     }
 
     public OcflConfig(OcflConfig original) {
@@ -52,16 +54,18 @@ public class OcflConfig {
         defaultDigestAlgorithm = original.defaultDigestAlgorithm;
         defaultContentDirectory = original.defaultContentDirectory;
         defaultZeroPaddingWidth = original.defaultZeroPaddingWidth;
+        upgradeObjectsOnWrite = original.upgradeObjectsOnWrite;
     }
 
     /**
-     * Set the default OCFL version to use when creating new inventories.
+     * Set the default OCFL version to use when creating new inventories. If this value is null, then it's defaulted
+     * to the OCFL version in the storage root.
      *
      * @param ocflVersion ocfl version
      * @return config
      */
     public OcflConfig setOcflVersion(OcflVersion ocflVersion) {
-        this.ocflVersion = Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
+        this.ocflVersion = ocflVersion;
         return this;
     }
 
@@ -119,6 +123,23 @@ public class OcflConfig {
         return this;
     }
 
+    public boolean isUpgradeObjectsOnWrite() {
+        return upgradeObjectsOnWrite;
+    }
+
+    /**
+     * When set to true, existing objects that adhere to an older version of the OCFL spec will be upgraded to
+     * the configured OCFL version when they are written to. For example, if the repository is configured for OCFL
+     * 1.1, then existing 1.0 objects will be upgraded to 1.1 the next time they are written to. This is defaulted
+     * to false.
+     *
+     * @param upgradeObjectsOnWrite true to upgrade existing OCFL objects on write
+     */
+    public OcflConfig setUpgradeObjectsOnWrite(boolean upgradeObjectsOnWrite) {
+        this.upgradeObjectsOnWrite = upgradeObjectsOnWrite;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "OcflConfig{" +
@@ -126,6 +147,7 @@ public class OcflConfig {
                 ", defaultDigestAlgorithm=" + defaultDigestAlgorithm +
                 ", defaultContentDirectory='" + defaultContentDirectory + '\'' +
                 ", defaultZeroPaddingWidth=" + defaultZeroPaddingWidth +
+                ", upgradeObjectsOnWrite=" + upgradeObjectsOnWrite +
                 '}';
     }
 

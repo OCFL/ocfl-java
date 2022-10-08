@@ -24,6 +24,7 @@
 
 package edu.wisc.library.ocfl.core.inventory;
 
+import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
@@ -152,7 +153,9 @@ public class InventoryUpdater {
 
     }
 
-    private InventoryUpdater(Inventory inventory, InventoryBuilder inventoryBuilder, VersionBuilder versionBuilder,
+    private InventoryUpdater(Inventory inventory,
+                             InventoryBuilder inventoryBuilder,
+                             VersionBuilder versionBuilder,
                              ContentPathMapper contentPathMapper) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.inventoryBuilder = Enforce.notNull(inventoryBuilder, "inventoryBuilder cannot be null");
@@ -171,13 +174,30 @@ public class InventoryUpdater {
      * @param versionInfo information about the version
      * @return new inventory
      */
-    public Inventory buildNewInventory(OffsetDateTime createdTimestamp, VersionInfo versionInfo) {
+    public Inventory buildNewInventory(OffsetDateTime createdTimestamp,
+                                       VersionInfo versionInfo) {
         return inventoryBuilder
                 .addHeadVersion(versionBuilder
                         .versionInfo(versionInfo)
                         .created(createdTimestamp)
                         .build())
                 .build();
+    }
+
+    /**
+     * Upgrades the inventory to the current default OCFL version if applicable. An inventory is only upgraded if
+     * its version is prior to the configured default OCFL version, and object upgrades on write are enabled.
+     *
+     * @param config the OCFL configuration
+     * @return true if the inventory is upgraded; false otherwise
+     */
+    public boolean upgradeInventory(OcflConfig config) {
+        if (config.isUpgradeObjectsOnWrite()
+                && inventoryBuilder.getType().compareTo(config.getOcflVersion().getInventoryType()) < 0) {
+            inventoryBuilder.type(config.getOcflVersion().getInventoryType());
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -327,7 +347,10 @@ public class InventoryUpdater {
      * @param options options
      * @return files that were removed from the manifest
      */
-    public Set<RemoveFileResult> reinstateFile(VersionNum sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
+    public Set<RemoveFileResult> reinstateFile(VersionNum sourceVersion,
+                                               String srcLogicalPath,
+                                               String dstLogicalPath,
+                                               OcflOption... options) {
         logicalPathConstraints.apply(dstLogicalPath);
 
         var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);

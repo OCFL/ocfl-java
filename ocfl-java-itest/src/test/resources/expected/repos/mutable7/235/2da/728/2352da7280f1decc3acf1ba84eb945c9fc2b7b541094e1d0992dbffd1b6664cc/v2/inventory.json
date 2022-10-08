@@ -1,0 +1,39 @@
+{
+  "id" : "o1",
+  "type" : "https://ocfl.io/1.1/spec/#inventory",
+  "digestAlgorithm" : "sha512",
+  "head" : "v2",
+  "contentDirectory" : "content",
+  "fixity" : { },
+  "manifest" : {
+    "00f16149dee5e3d7846e4795ab9fe1cfdaef0dc0e7c4ae8368dc32b5593ab00b81a88fbc9688140565e76bfa9f9f050a418582c73d22e8eac7dc6b5624e5f01b" : [ "v2/content/r1/file2.txt" ],
+    "7b866cfcfe06bf2bcaea7086f2a059854afe8de12a6e21e4286bec4828d3da36bdef28599be8c9be49da3e45ede3ddbc049f99ee197e5244c33e294748b1a986" : [ "v2/content/r2/file3.txt" ],
+    "b81b77214f30e9f9dca7f19800a9d8c8683d2e40842dbad3027bcd828e39a19fd085b02c22f704fa865619755bbcc47fcd4de236fbbe6fd0a9451c75d562c943" : [ "v1/content/file1.txt" ]
+  },
+  "versions" : {
+    "v1" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "commit message",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "b81b77214f30e9f9dca7f19800a9d8c8683d2e40842dbad3027bcd828e39a19fd085b02c22f704fa865619755bbcc47fcd4de236fbbe6fd0a9451c75d562c943" : [ "file1.txt" ]
+      }
+    },
+    "v2" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "commit",
+      "user" : {
+        "name" : "Peter",
+        "address" : "peter@example.com"
+      },
+      "state" : {
+        "00f16149dee5e3d7846e4795ab9fe1cfdaef0dc0e7c4ae8368dc32b5593ab00b81a88fbc9688140565e76bfa9f9f050a418582c73d22e8eac7dc6b5624e5f01b" : [ "file2.txt" ],
+        "7b866cfcfe06bf2bcaea7086f2a059854afe8de12a6e21e4286bec4828d3da36bdef28599be8c9be49da3e45ede3ddbc049f99ee197e5244c33e294748b1a986" : [ "file3.txt" ],
+        "b81b77214f30e9f9dca7f19800a9d8c8683d2e40842dbad3027bcd828e39a19fd085b02c22f704fa865619755bbcc47fcd4de236fbbe6fd0a9451c75d562c943" : [ "file1.txt" ]
+      }
+    }
+  }
+}
