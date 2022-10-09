@@ -38,8 +38,11 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.regex.Pattern;
 
 public final class SidecarMapper {
+
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     private SidecarMapper() {
 
@@ -64,7 +67,7 @@ public final class SidecarMapper {
 
     public static String readDigestOptional(Path sidecarPath) {
         try {
-            var parts = Files.readString(sidecarPath).split("\\s+");
+            var parts = WHITESPACE.split(Files.readString(sidecarPath));
             if (parts.length != 2) {
                 throw new CorruptObjectException("Invalid inventory sidecar file: " + sidecarPath);
             }
