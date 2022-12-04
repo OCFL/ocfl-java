@@ -28,25 +28,19 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-
 import java.util.Objects;
 
 /**
  * OCFL user object.
  */
-@JsonPropertyOrder({
-        "name",
-        "address"
-})
+@JsonPropertyOrder({"name", "address"})
 public class User {
 
     private final String name;
     private final String address;
 
     @JsonCreator
-    public User(
-            @JsonProperty("name") String name,
-            @JsonProperty("address") String address) {
+    public User(@JsonProperty("name") String name, @JsonProperty("address") String address) {
         this.name = name;
         this.address = address;
     }
@@ -69,10 +63,7 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{" +
-                "name='" + name + '\'' +
-                ", address='" + address + '\'' +
-                '}';
+        return "User{" + "name='" + name + '\'' + ", address='" + address + '\'' + '}';
     }
 
     @Override
@@ -84,13 +75,11 @@ public class User {
             return false;
         }
         User user = (User) o;
-        return Objects.equals(name, user.name) &&
-                Objects.equals(address, user.address);
+        return Objects.equals(name, user.name) && Objects.equals(address, user.address);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(name, address);
     }
-
 }

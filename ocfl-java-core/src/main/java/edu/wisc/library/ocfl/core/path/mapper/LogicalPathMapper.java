@@ -42,5 +42,4 @@ public interface LogicalPathMapper {
      * @return content path relative version content directory
      */
     String toContentPathPart(String logicalPath);
-
 }

@@ -32,9 +32,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public final class ObjectMappers {
 
-    private ObjectMappers() {
-
-    }
+    private ObjectMappers() {}
 
     /**
      * Default Jackson mapper configured to serialize OCFL model objects correctly. Not pretty printing.
@@ -58,5 +56,4 @@ public final class ObjectMappers {
     public static ObjectMapper prettyPrintMapper() {
         return defaultMapper().configure(SerializationFeature.INDENT_OUTPUT, true);
     }
-
 }

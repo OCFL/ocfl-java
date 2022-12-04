@@ -8,16 +8,13 @@ import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.core.DefaultOcflRepository;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
 public final class ITestHelper {
 
-    private ITestHelper() {
-
-    }
+    private ITestHelper() {}
 
     public static void fixTime(OcflRepository repository, String timestamp) {
         ((DefaultOcflRepository) repository).setClock(Clock.fixed(Instant.parse(timestamp), ZoneOffset.UTC));
@@ -34,5 +31,4 @@ public final class ITestHelper {
     public static PrettyPrinter prettyPrinter() {
         return new DefaultPrettyPrinter().withObjectIndenter(new DefaultIndenter("  ", "\n"));
     }
-
 }

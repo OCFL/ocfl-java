@@ -1,14 +1,12 @@
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
-import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.test.OcflAsserts;
+import java.nio.file.FileSystems;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.nio.file.FileSystems;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FlatLayoutExtensionTest {
 
@@ -38,5 +36,4 @@ public class FlatLayoutExtensionTest {
             ext.mapObjectId(objectId);
         });
     }
-
 }

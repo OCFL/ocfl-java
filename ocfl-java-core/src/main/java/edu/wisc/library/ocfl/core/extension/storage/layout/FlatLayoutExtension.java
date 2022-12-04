@@ -28,7 +28,6 @@ import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
-
 import java.nio.file.FileSystems;
 
 /**
@@ -56,8 +55,8 @@ public class FlatLayoutExtension implements OcflStorageLayoutExtension {
 
     @Override
     public String getDescription() {
-        return "OCFL object identifiers are mapped directly to directory names" +
-                " that are direct children of the OCFL storage root.";
+        return "OCFL object identifiers are mapped directly to directory names"
+                + " that are direct children of the OCFL storage root.";
     }
 
     /**
@@ -79,14 +78,17 @@ public class FlatLayoutExtension implements OcflStorageLayoutExtension {
     @Override
     public String mapObjectId(String objectId) {
         if (objectId.indexOf(pathSeparator) != -1) {
-            throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
-                    "%s because it contains the path separator character.", objectId, EXTENSION_NAME));
+            throw new OcflExtensionException(String.format(
+                    "The object id <%s> is incompatible with layout extension "
+                            + "%s because it contains the path separator character.",
+                    objectId, EXTENSION_NAME));
         } else if (OcflConstants.EXTENSIONS_DIR.equals(objectId)) {
-            throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
-                    "%s because it conflicts with the extensions directory.", objectId, EXTENSION_NAME));
+            throw new OcflExtensionException(String.format(
+                    "The object id <%s> is incompatible with layout extension "
+                            + "%s because it conflicts with the extensions directory.",
+                    objectId, EXTENSION_NAME));
         }
 
         return objectId;
     }
-
 }

@@ -44,7 +44,6 @@ public interface OcflStorageInitializer {
      * @param supportEvaluator repository extension evaluator
      * @return the resolved repository configuration
      */
-    RepositoryConfig initializeStorage(OcflVersion ocflVersion,
-                                       OcflExtensionConfig layoutConfig,
-                                       ExtensionSupportEvaluator supportEvaluator);
+    RepositoryConfig initializeStorage(
+            OcflVersion ocflVersion, OcflExtensionConfig layoutConfig, ExtensionSupportEvaluator supportEvaluator);
 }

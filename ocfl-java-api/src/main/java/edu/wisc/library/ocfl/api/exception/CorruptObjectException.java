@@ -30,8 +30,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class CorruptObjectException extends OcflJavaException {
 
-    public CorruptObjectException() {
-    }
+    public CorruptObjectException() {}
 
     public CorruptObjectException(String message) {
         super(message);
@@ -44,5 +43,4 @@ public class CorruptObjectException extends OcflJavaException {
     public CorruptObjectException(Throwable cause) {
         super(cause);
     }
-
 }

@@ -30,7 +30,6 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
-
 import java.util.Objects;
 
 /**
@@ -63,7 +62,8 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
 
     public void setExtensionName(String extensionName) {
         if (!Objects.equals(getExtensionName(), extensionName)) {
-            throw new OcflExtensionException(String.format("The extension name for %s must be %s; found %s.",
+            throw new OcflExtensionException(String.format(
+                    "The extension name for %s must be %s; found %s.",
                     getClass().getSimpleName(), getExtensionName(), extensionName));
         }
     }
@@ -113,8 +113,8 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
         if (tupleSize == null) {
             this.tupleSize = DEFAULT_TUPLE_SIZE;
         } else {
-            this.tupleSize = Enforce.expressionTrue(tupleSize >= 0 && tupleSize <= 32,
-                    tupleSize, "tupleSize must be between 0 and 32 inclusive");
+            this.tupleSize = Enforce.expressionTrue(
+                    tupleSize >= 0 && tupleSize <= 32, tupleSize, "tupleSize must be between 0 and 32 inclusive");
         }
         return this;
     }
@@ -136,8 +136,10 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
         if (numberOfTuples == null) {
             this.numberOfTuples = DEFAULT_NUM_TUPLES;
         } else {
-            this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 0 && numberOfTuples <= 32,
-                    numberOfTuples, "numberOfTuples must be between 0 and 32 inclusive");
+            this.numberOfTuples = Enforce.expressionTrue(
+                    numberOfTuples >= 0 && numberOfTuples <= 32,
+                    numberOfTuples,
+                    "numberOfTuples must be between 0 and 32 inclusive");
         }
         return this;
     }
@@ -151,9 +153,9 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
             return false;
         }
         HashedNTupleIdEncapsulationLayoutConfig that = (HashedNTupleIdEncapsulationLayoutConfig) o;
-        return tupleSize == that.tupleSize &&
-                numberOfTuples == that.numberOfTuples &&
-                digestAlgorithm.equals(that.digestAlgorithm);
+        return tupleSize == that.tupleSize
+                && numberOfTuples == that.numberOfTuples
+                && digestAlgorithm.equals(that.digestAlgorithm);
     }
 
     @Override
@@ -163,11 +165,9 @@ public class HashedNTupleIdEncapsulationLayoutConfig implements OcflExtensionCon
 
     @Override
     public String toString() {
-        return "HashedNTupleIdEncapsulationLayoutConfig{" +
-                "digestAlgorithm=" + digestAlgorithm.getOcflName() +
-                ", tupleSize=" + tupleSize +
-                ", numberOfTuples=" + numberOfTuples +
-                '}';
+        return "HashedNTupleIdEncapsulationLayoutConfig{" + "digestAlgorithm="
+                + digestAlgorithm.getOcflName() + ", tupleSize="
+                + tupleSize + ", numberOfTuples="
+                + numberOfTuples + '}';
     }
-
 }

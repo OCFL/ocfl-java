@@ -64,10 +64,7 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{" +
-                "name='" + name + '\'' +
-                ", address='" + address + '\'' +
-                '}';
+        return "User{" + "name='" + name + '\'' + ", address='" + address + '\'' + '}';
     }
 
     @Override
@@ -79,13 +76,11 @@ public class User {
             return false;
         }
         User user = (User) o;
-        return Objects.equals(name, user.name) &&
-                Objects.equals(address, user.address);
+        return Objects.equals(name, user.name) && Objects.equals(address, user.address);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(name, address);
     }
-
 }

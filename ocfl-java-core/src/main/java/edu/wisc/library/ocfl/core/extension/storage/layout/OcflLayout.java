@@ -73,10 +73,6 @@ public class OcflLayout {
 
     @Override
     public String toString() {
-        return "OcflLayout{" +
-                "extension='" + extension + '\'' +
-                ", description='" + description + '\'' +
-                '}';
+        return "OcflLayout{" + "extension='" + extension + '\'' + ", description='" + description + '\'' + '}';
     }
-
 }

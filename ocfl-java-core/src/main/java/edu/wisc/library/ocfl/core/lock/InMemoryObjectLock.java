@@ -29,7 +29,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.wisc.library.ocfl.api.exception.LockException;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -99,5 +98,4 @@ public class InMemoryObjectLock implements ObjectLock {
             throw new LockException(e);
         }
     }
-
 }

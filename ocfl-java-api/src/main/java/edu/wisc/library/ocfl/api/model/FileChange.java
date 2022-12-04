@@ -149,15 +149,13 @@ public class FileChange {
 
     @Override
     public String toString() {
-        return "FileChange{" +
-                "objectVersionId=" + objectVersionId +
-                ", changeType=" + changeType +
-                ", path='" + path + '\'' +
-                ", storageRelativePath='" + storageRelativePath + '\'' +
-                ", fixity=" + fixity +
-                ", timestamp=" + timestamp +
-                ", versionInfo=" + versionInfo +
-                '}';
+        return "FileChange{" + "objectVersionId="
+                + objectVersionId + ", changeType="
+                + changeType + ", path='"
+                + path + '\'' + ", storageRelativePath='"
+                + storageRelativePath + '\'' + ", fixity="
+                + fixity + ", timestamp="
+                + timestamp + ", versionInfo="
+                + versionInfo + '}';
     }
-
 }

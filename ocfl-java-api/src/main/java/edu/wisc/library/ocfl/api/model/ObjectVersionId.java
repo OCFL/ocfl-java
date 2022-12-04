@@ -29,7 +29,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Objects;
 
 /**
@@ -84,8 +83,8 @@ public class ObjectVersionId {
      * @return new ObjectVersionId
      */
     @JsonCreator
-    public static ObjectVersionId version(@JsonProperty("objectId") String objectId,
-                                          @JsonProperty("versionNum") VersionNum versionNum) {
+    public static ObjectVersionId version(
+            @JsonProperty("objectId") String objectId, @JsonProperty("versionNum") VersionNum versionNum) {
         return new ObjectVersionId(objectId, versionNum);
     }
 
@@ -133,7 +132,8 @@ public class ObjectVersionId {
      */
     public ObjectVersionId nextVersion() {
         if (versionNum == null) {
-            throw new InvalidVersionException("Cannot resolve next version number because the current version number is not set.");
+            throw new InvalidVersionException(
+                    "Cannot resolve next version number because the current version number is not set.");
         }
         return ObjectVersionId.version(objectId, versionNum.nextVersionNum());
     }
@@ -147,17 +147,15 @@ public class ObjectVersionId {
      */
     public ObjectVersionId previousVersion() {
         if (versionNum == null) {
-            throw new InvalidVersionException("Cannot resolve previous version number because the current version number is not set.");
+            throw new InvalidVersionException(
+                    "Cannot resolve previous version number because the current version number is not set.");
         }
         return ObjectVersionId.version(objectId, versionNum.previousVersionNum());
     }
 
     @Override
     public String toString() {
-        return "ObjectId{" +
-                "objectId='" + objectId + '\'' +
-                ", versionNum='" + versionNum + '\'' +
-                '}';
+        return "ObjectId{" + "objectId='" + objectId + '\'' + ", versionNum='" + versionNum + '\'' + '}';
     }
 
     @Override
@@ -169,13 +167,11 @@ public class ObjectVersionId {
             return false;
         }
         ObjectVersionId that = (ObjectVersionId) o;
-        return objectId.equals(that.objectId) &&
-                versionNum.equals(that.versionNum);
+        return objectId.equals(that.objectId) && versionNum.equals(that.versionNum);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(objectId, versionNum);
     }
-
 }

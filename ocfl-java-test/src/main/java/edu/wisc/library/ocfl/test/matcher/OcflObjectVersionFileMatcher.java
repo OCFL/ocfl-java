@@ -28,11 +28,10 @@ import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
 import edu.wisc.library.ocfl.test.TestHelper;
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeMatcher;
-
 import java.util.Map;
 import java.util.Objects;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 
 public class OcflObjectVersionFileMatcher extends TypeSafeMatcher<OcflObjectVersionFile> {
 
@@ -41,7 +40,8 @@ public class OcflObjectVersionFileMatcher extends TypeSafeMatcher<OcflObjectVers
     private String content;
     private Map<DigestAlgorithm, String> fixity;
 
-    OcflObjectVersionFileMatcher(String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
+    OcflObjectVersionFileMatcher(
+            String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
         this.filePath = filePath;
         this.storagePath = storagePath;
         this.content = content;
@@ -67,7 +67,8 @@ public class OcflObjectVersionFileMatcher extends TypeSafeMatcher<OcflObjectVers
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("FileDetails{filePath=")
+        description
+                .appendText("FileDetails{filePath=")
                 .appendValue(filePath)
                 .appendText(", storagePath=")
                 .appendValue(storagePath)
@@ -76,7 +77,5 @@ public class OcflObjectVersionFileMatcher extends TypeSafeMatcher<OcflObjectVers
                 .appendText(", fixity=")
                 .appendValue(fixity)
                 .appendText("}");
-
     }
-
 }

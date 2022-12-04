@@ -28,7 +28,6 @@ import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
-
 import java.nio.file.FileSystems;
 
 /**
@@ -76,11 +75,12 @@ public class TestLayoutExtension implements OcflStorageLayoutExtension {
     @Override
     public String mapObjectId(String objectId) {
         if (objectId.indexOf(pathSeparator) != -1) {
-            throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
-                    "%s because it contains the path separator character.", objectId, EXTENSION_NAME));
+            throw new OcflExtensionException(String.format(
+                    "The object id <%s> is incompatible with layout extension "
+                            + "%s because it contains the path separator character.",
+                    objectId, EXTENSION_NAME));
         }
 
         return "test-" + objectId;
     }
-
 }

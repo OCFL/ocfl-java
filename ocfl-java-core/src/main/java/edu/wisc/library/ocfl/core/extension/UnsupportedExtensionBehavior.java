@@ -37,5 +37,4 @@ public enum UnsupportedExtensionBehavior {
      * Fails with an exception, refusing to operate on the repository or object
      */
     FAIL
-
 }

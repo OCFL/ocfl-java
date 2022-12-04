@@ -57,5 +57,4 @@ public class OcflFileAlreadyExistsException extends OcflIOException {
         }
         return cause.getClass().getSimpleName() + ": " + cause.getMessage();
     }
-
 }

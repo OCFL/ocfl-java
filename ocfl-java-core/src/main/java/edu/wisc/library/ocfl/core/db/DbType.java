@@ -26,17 +26,15 @@ package edu.wisc.library.ocfl.core.db;
 
 import edu.wisc.library.ocfl.api.exception.OcflDbException;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
-
-import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Objects;
+import javax.sql.DataSource;
 
 /**
  * This enum describes the database types that the library supports out of the box.
  */
 public enum DbType {
-
     POSTGRES("PostgreSQL"),
     MARIADB("MariaDB"),
     H2("H2");
@@ -54,10 +52,10 @@ public enum DbType {
             return Arrays.stream(values())
                     .filter(v -> Objects.equals(v.productName, productName))
                     .findFirst()
-                    .orElseThrow(() -> new OcflJavaException(String.format("%s is not mapped to a DbType.", productName)));
+                    .orElseThrow(
+                            () -> new OcflJavaException(String.format("%s is not mapped to a DbType.", productName)));
         } catch (SQLException e) {
             throw new OcflDbException(e);
         }
     }
-
 }

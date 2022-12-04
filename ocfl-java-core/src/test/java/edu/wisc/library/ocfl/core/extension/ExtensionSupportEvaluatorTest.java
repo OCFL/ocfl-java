@@ -1,19 +1,18 @@
 package edu.wisc.library.ocfl.core.extension;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
-import org.junit.jupiter.api.Test;
-
 import java.util.Collections;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 public class ExtensionSupportEvaluatorTest {
 
@@ -30,10 +29,12 @@ public class ExtensionSupportEvaluatorTest {
     public void failWhenUnsupportedAndSetToFail() {
         var evaluator = new ExtensionSupportEvaluator();
 
-        assertEquals("Extension init is not currently supported by ocfl-java.",
+        assertEquals(
+                "Extension init is not currently supported by ocfl-java.",
                 assertThrows(OcflExtensionException.class, () -> {
-            evaluator.checkSupport("init");
-        }).getMessage());
+                            evaluator.checkSupport("init");
+                        })
+                        .getMessage());
     }
 
     @Test
@@ -47,5 +48,4 @@ public class ExtensionSupportEvaluatorTest {
         var evaluator = new ExtensionSupportEvaluator(UnsupportedExtensionBehavior.FAIL, Set.of("init"));
         assertFalse(evaluator.checkSupport("init"));
     }
-
 }

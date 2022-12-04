@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,12 +44,9 @@ public final class DigestAlgorithmRegistry {
             DigestAlgorithm.blake2b160.getOcflName(), DigestAlgorithm.blake2b160,
             DigestAlgorithm.blake2b256.getOcflName(), DigestAlgorithm.blake2b256,
             DigestAlgorithm.blake2b384.getOcflName(), DigestAlgorithm.blake2b384,
-            DigestAlgorithm.sha512_256.getOcflName(), DigestAlgorithm.sha512_256
-    ));
+            DigestAlgorithm.sha512_256.getOcflName(), DigestAlgorithm.sha512_256));
 
-    private DigestAlgorithmRegistry() {
-
-    }
+    private DigestAlgorithmRegistry() {}
 
     /**
      * Adds a new algorithm to the registry
@@ -72,5 +68,4 @@ public final class DigestAlgorithmRegistry {
         Enforce.notBlank(ocflName, "ocflName cannot be blank");
         return REGISTRY.get(ocflName.toLowerCase());
     }
-
 }

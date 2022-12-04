@@ -1,5 +1,10 @@
 package edu.wisc.library.ocfl.itest.filesystem;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.core.storage.common.Listing;
 import edu.wisc.library.ocfl.core.storage.common.Storage;
@@ -7,18 +12,12 @@ import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.StorageTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class FileSystemStorageTest extends StorageTest {
 
@@ -50,13 +49,15 @@ public class FileSystemStorageTest extends StorageTest {
 
         var listing = storage.listRecursive("some/dir");
 
-        assertThat(listing, containsInAnyOrder(
-                Listing.file("f1.txt"),
-                Listing.file("f2.txt"),
-                Listing.file("a/f1.txt"),
-                Listing.file("b/f2.txt"),
-                Listing.file("1/2/f3.txt"),
-                Listing.directory("3/4")));
+        assertThat(
+                listing,
+                containsInAnyOrder(
+                        Listing.file("f1.txt"),
+                        Listing.file("f2.txt"),
+                        Listing.file("a/f1.txt"),
+                        Listing.file("b/f2.txt"),
+                        Listing.file("1/2/f3.txt"),
+                        Listing.directory("3/4")));
     }
 
     @Test
@@ -68,10 +69,8 @@ public class FileSystemStorageTest extends StorageTest {
 
         storage.deleteEmptyDirsDown("a");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("a/b/1.txt"),
-                Listing.file("a/d/e/2.txt")
-        ));
+        assertThat(
+                storage.listRecursive(""), containsInAnyOrder(Listing.file("a/b/1.txt"), Listing.file("a/d/e/2.txt")));
     }
 
     @Test
@@ -83,12 +82,13 @@ public class FileSystemStorageTest extends StorageTest {
 
         storage.deleteEmptyDirsDown("z");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("a/b/1.txt"),
-                Listing.directory("a/b/c"),
-                Listing.file("a/d/e/2.txt"),
-                Listing.directory("a/d/f")
-        ));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(
+                        Listing.file("a/b/1.txt"),
+                        Listing.directory("a/b/c"),
+                        Listing.file("a/d/e/2.txt"),
+                        Listing.directory("a/d/f")));
     }
 
     @Test
@@ -99,10 +99,9 @@ public class FileSystemStorageTest extends StorageTest {
 
         storage.deleteEmptyDirsUp("1/4/b/c");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("1/2/3/f1.txt"),
-                Listing.directory("1/4/a")
-        ));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(Listing.file("1/2/3/f1.txt"), Listing.directory("1/4/a")));
     }
 
     @Test
@@ -113,11 +112,10 @@ public class FileSystemStorageTest extends StorageTest {
 
         storage.deleteEmptyDirsUp("1/4/b/z");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("1/2/3/f1.txt"),
-                Listing.directory("1/4/a"),
-                Listing.directory("1/4/b/c")
-        ));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(
+                        Listing.file("1/2/3/f1.txt"), Listing.directory("1/4/a"), Listing.directory("1/4/b/c")));
     }
 
     @Test
@@ -174,5 +172,4 @@ public class FileSystemStorageTest extends StorageTest {
             throw new UncheckedIOException(e);
         }
     }
-
 }

@@ -29,7 +29,6 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -94,7 +93,8 @@ public class InventoryBuilder {
         this.nextHeadVersion = head.nextVersionNum();
     }
 
-    private static Map<DigestAlgorithm, PathBiMap> fixityToBiMap(Map<DigestAlgorithm, Map<String, Set<String>>> originalFixity) {
+    private static Map<DigestAlgorithm, PathBiMap> fixityToBiMap(
+            Map<DigestAlgorithm, Map<String, Set<String>>> originalFixity) {
         var fixity = new HashMap<DigestAlgorithm, PathBiMap>();
 
         originalFixity.forEach(((digestAlgorithm, map) -> {
@@ -216,8 +216,9 @@ public class InventoryBuilder {
         Enforce.notBlank(value, "value cannot be blank");
 
         if (!manifest.containsPath(contentPath)) {
-            throw new OcflInputException(
-                    String.format("Cannot add fixity information for content path %s because it is not present in the manifest.", contentPath));
+            throw new OcflInputException(String.format(
+                    "Cannot add fixity information for content path %s because it is not present in the manifest.",
+                    contentPath));
         }
 
         fixity.computeIfAbsent(algorithm, k -> new PathBiMap()).put(value, contentPath);
@@ -314,10 +315,19 @@ public class InventoryBuilder {
      * @return a new Inventory
      */
     public Inventory build() {
-        return new Inventory(id, type, digestAlgorithm,
-                head, contentDirectory, fixityFromBiMap(),
-                manifest.getFileIdToPaths(), versions, mutableHead,
-                revisionNum, objectRootPath, previousDigest,
+        return new Inventory(
+                id,
+                type,
+                digestAlgorithm,
+                head,
+                contentDirectory,
+                fixityFromBiMap(),
+                manifest.getFileIdToPaths(),
+                versions,
+                mutableHead,
+                revisionNum,
+                objectRootPath,
+                previousDigest,
                 inventoryDigest);
     }
 
@@ -404,5 +414,4 @@ public class InventoryBuilder {
 
         return transformed;
     }
-
 }

@@ -1,11 +1,10 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
-import edu.wisc.library.ocfl.api.exception.PathConstraintException;
-import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.atomic.AtomicReference;
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import edu.wisc.library.ocfl.api.exception.PathConstraintException;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.Test;
 
 public class BitSetPathCharConstraintTest {
 
@@ -62,5 +61,4 @@ public class BitSetPathCharConstraintTest {
             constraint.apply(' ', "path");
         });
     }
-
 }

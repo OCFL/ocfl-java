@@ -36,8 +36,7 @@ public class RepositoryConfig {
     private final OcflVersion ocflVersion;
     private final OcflStorageLayoutExtension storageLayoutExtension;
 
-    public RepositoryConfig(OcflVersion ocflVersion,
-                            OcflStorageLayoutExtension storageLayoutExtension) {
+    public RepositoryConfig(OcflVersion ocflVersion, OcflStorageLayoutExtension storageLayoutExtension) {
         this.ocflVersion = Enforce.notNull(ocflVersion, "ocflVersion cannot be null");
         this.storageLayoutExtension = Enforce.notNull(storageLayoutExtension, "storageLayoutExtension cannot be null");
     }
@@ -58,9 +57,8 @@ public class RepositoryConfig {
 
     @Override
     public String toString() {
-        return "InitializationResult{" +
-                "ocflVersion=" + ocflVersion +
-                ", storageLayoutExtension=" + storageLayoutExtension +
-                '}';
+        return "InitializationResult{" + "ocflVersion="
+                + ocflVersion + ", storageLayoutExtension="
+                + storageLayoutExtension + '}';
     }
 }

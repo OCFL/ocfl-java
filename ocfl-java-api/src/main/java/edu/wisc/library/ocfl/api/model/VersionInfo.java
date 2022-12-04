@@ -57,9 +57,7 @@ public class VersionInfo {
      * @return this
      */
     public VersionInfo setUser(String name, String address) {
-        this.user = new User()
-                .setName(name)
-                .setAddress(address);
+        this.user = new User().setName(name).setAddress(address);
         return this;
     }
 
@@ -116,11 +114,7 @@ public class VersionInfo {
 
     @Override
     public String toString() {
-        return "VersionInfo{" +
-                "user=" + user +
-                ", message='" + message + '\'' +
-                ", created=" + created +
-                '}';
+        return "VersionInfo{" + "user=" + user + ", message='" + message + '\'' + ", created=" + created + '}';
     }
 
     @Override
@@ -132,14 +126,11 @@ public class VersionInfo {
             return false;
         }
         VersionInfo that = (VersionInfo) o;
-        return user.equals(that.user) &&
-                Objects.equals(message, that.message) &&
-                Objects.equals(created, that.created);
+        return user.equals(that.user) && Objects.equals(message, that.message) && Objects.equals(created, that.created);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(user, message, created);
     }
-
 }

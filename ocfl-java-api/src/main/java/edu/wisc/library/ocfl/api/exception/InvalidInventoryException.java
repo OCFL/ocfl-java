@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class InvalidInventoryException extends OcflJavaException {
 
-    public InvalidInventoryException() {
-    }
+    public InvalidInventoryException() {}
 
     public InvalidInventoryException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class InvalidInventoryException extends OcflJavaException {
     public InvalidInventoryException(Throwable cause) {
         super(cause);
     }
-
 }

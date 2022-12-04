@@ -38,7 +38,6 @@ import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Comparator;
@@ -57,16 +56,7 @@ import java.util.TreeMap;
  * @see <a href="https://ocfl.io/">https://ocfl.io/</a>
  */
 @JsonDeserialize(builder = Inventory.JacksonBuilder.class)
-@JsonPropertyOrder({
-        "id",
-        "type",
-        "digestAlgorithm",
-        "head",
-        "contentDirectory",
-        "fixity",
-        "manifest",
-        "versions"
-})
+@JsonPropertyOrder({"id", "type", "digestAlgorithm", "head", "contentDirectory", "fixity", "manifest", "versions"})
 public class Inventory {
 
     private final String id;
@@ -110,11 +100,9 @@ public class Inventory {
      * @param objectRootPath path to object root
      * @return stub inventory
      */
-    public static Inventory stubInventory(
-            String id,
-            OcflConfig config,
-            String objectRootPath) {
-        return new Inventory(id,
+    public static Inventory stubInventory(String id, OcflConfig config, String objectRootPath) {
+        return new Inventory(
+                id,
                 config.getOcflVersion().getInventoryType(),
                 config.getDefaultDigestAlgorithm(),
                 config.getDefaultContentDirectory(),
@@ -175,7 +163,9 @@ public class Inventory {
         this.id = Enforce.notBlank(id, "id cannot be blank");
         this.type = Enforce.notNull(type, "type cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
-        Enforce.expressionTrue(OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm), digestAlgorithm,
+        Enforce.expressionTrue(
+                OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(digestAlgorithm),
+                digestAlgorithm,
                 "digestAlgorithm must be sha512 or sha256");
         this.head = Enforce.notNull(head, "head cannot be null");
         this.contentDirectory = contentDirectory;
@@ -233,12 +223,11 @@ public class Inventory {
      * @return inventory builder
      */
     public InventoryBuilder buildNextVersionFrom() {
-        return buildFrom()
-                .previousDigest(getInventoryDigest())
-                .inventoryDigest(null);
+        return buildFrom().previousDigest(getInventoryDigest()).inventoryDigest(null);
     }
 
-    private static Map<DigestAlgorithm, PathBiMap> createFixityBiMap(Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
+    private static Map<DigestAlgorithm, PathBiMap> createFixityBiMap(
+            Map<DigestAlgorithm, Map<String, Set<String>>> fixity) {
         var map = new HashMap<DigestAlgorithm, PathBiMap>();
 
         if (fixity != null) {
@@ -433,8 +422,7 @@ public class Inventory {
      */
     public String ensureContentPath(String fileId) {
         if (!manifestContainsFileId(fileId)) {
-            throw new NotFoundException(String.format("Missing manifest entry for %s in object %s.",
-                    fileId, id));
+            throw new NotFoundException(String.format("Missing manifest entry for %s in object %s.", fileId, id));
         }
         return getContentPath(fileId);
     }
@@ -568,21 +556,20 @@ public class Inventory {
 
     @Override
     public String toString() {
-        return "Inventory{" +
-                "id='" + id + '\'' +
-                ", type=" + type +
-                ", digestAlgorithm=" + digestAlgorithm +
-                ", head=" + head +
-                ", contentDirectory='" + contentDirectory + '\'' +
-                ", fixityBiMap=" + fixityBiMap +
-                ", manifestBiMap=" + manifestBiMap +
-                ", versions=" + versions +
-                ", revisionNum=" + revisionNum +
-                ", mutableHead=" + mutableHead +
-                ", objectRootPath='" + objectRootPath + '\'' +
-                ", previousDigest='" + previousDigest + '\'' +
-                ", inventoryDigest='" + inventoryDigest + '\'' +
-                '}';
+        return "Inventory{" + "id='"
+                + id + '\'' + ", type="
+                + type + ", digestAlgorithm="
+                + digestAlgorithm + ", head="
+                + head + ", contentDirectory='"
+                + contentDirectory + '\'' + ", fixityBiMap="
+                + fixityBiMap + ", manifestBiMap="
+                + manifestBiMap + ", versions="
+                + versions + ", revisionNum="
+                + revisionNum + ", mutableHead="
+                + mutableHead + ", objectRootPath='"
+                + objectRootPath + '\'' + ", previousDigest='"
+                + previousDigest + '\'' + ", inventoryDigest='"
+                + inventoryDigest + '\'' + '}';
     }
 
     @Override
@@ -594,27 +581,36 @@ public class Inventory {
             return false;
         }
         Inventory inventory = (Inventory) o;
-        return mutableHead == inventory.mutableHead &&
-                id.equals(inventory.id) &&
-                type == inventory.type &&
-                digestAlgorithm.equals(inventory.digestAlgorithm) &&
-                head.equals(inventory.head) &&
-                Objects.equals(contentDirectory, inventory.contentDirectory) &&
-                fixityBiMap.equals(inventory.fixityBiMap) &&
-                manifestBiMap.equals(inventory.manifestBiMap) &&
-                versions.equals(inventory.versions) &&
-                Objects.equals(revisionNum, inventory.revisionNum) &&
-                objectRootPath.equals(inventory.objectRootPath) &&
-                Objects.equals(previousDigest, inventory.previousDigest) &&
-                Objects.equals(inventoryDigest, inventory.inventoryDigest);
+        return mutableHead == inventory.mutableHead
+                && id.equals(inventory.id)
+                && type == inventory.type
+                && digestAlgorithm.equals(inventory.digestAlgorithm)
+                && head.equals(inventory.head)
+                && Objects.equals(contentDirectory, inventory.contentDirectory)
+                && fixityBiMap.equals(inventory.fixityBiMap)
+                && manifestBiMap.equals(inventory.manifestBiMap)
+                && versions.equals(inventory.versions)
+                && Objects.equals(revisionNum, inventory.revisionNum)
+                && objectRootPath.equals(inventory.objectRootPath)
+                && Objects.equals(previousDigest, inventory.previousDigest)
+                && Objects.equals(inventoryDigest, inventory.inventoryDigest);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, type, digestAlgorithm,
-                head, contentDirectory, fixityBiMap,
-                manifestBiMap, versions, revisionNum,
-                mutableHead, objectRootPath, previousDigest,
+        return Objects.hash(
+                id,
+                type,
+                digestAlgorithm,
+                head,
+                contentDirectory,
+                fixityBiMap,
+                manifestBiMap,
+                versions,
+                revisionNum,
+                mutableHead,
+                objectRootPath,
+                previousDigest,
                 inventoryDigest);
     }
 
@@ -691,13 +687,20 @@ public class Inventory {
         }
 
         public Inventory build() {
-            return new Inventory(id, type, digestAlgorithm,
-                    head, contentDirectory, fixity,
-                    manifest, versions, mutableHead,
-                    revisionNum, objectRootPath, previousDigest,
+            return new Inventory(
+                    id,
+                    type,
+                    digestAlgorithm,
+                    head,
+                    contentDirectory,
+                    fixity,
+                    manifest,
+                    versions,
+                    mutableHead,
+                    revisionNum,
+                    objectRootPath,
+                    previousDigest,
                     inventoryDigest);
         }
-
     }
-
 }

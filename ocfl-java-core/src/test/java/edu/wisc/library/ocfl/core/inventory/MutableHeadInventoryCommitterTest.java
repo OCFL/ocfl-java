@@ -1,5 +1,10 @@
 package edu.wisc.library.ocfl.core.inventory;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
@@ -9,14 +14,8 @@ import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.model.Version;
-import org.junit.jupiter.api.Test;
-
 import java.time.OffsetDateTime;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import org.junit.jupiter.api.Test;
 
 public class MutableHeadInventoryCommitterTest {
 
@@ -29,7 +28,9 @@ public class MutableHeadInventoryCommitterTest {
         var date3 = OffsetDateTime.now().minusDays(1);
         var now = OffsetDateTime.now();
 
-        var original = Inventory.stubInventory("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root").buildFrom()
+        var original = Inventory.stubInventory(
+                        "o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root")
+                .buildFrom()
                 .addFileToManifest("f1", "v1/content/file1")
                 .addFileToManifest("f2", "v1/content/file2")
                 .addFileToManifest("f3", "v2/content/file3")
@@ -60,8 +61,8 @@ public class MutableHeadInventoryCommitterTest {
                 .revisionNum(RevisionNum.fromString("r3"))
                 .build();
 
-
-        var newInventory = MutableHeadInventoryCommitter.commit(original, now, new VersionInfo().setMessage("commit"), config);
+        var newInventory =
+                MutableHeadInventoryCommitter.commit(original, now, new VersionInfo().setMessage("commit"), config);
 
         assertEquals(VersionNum.fromString("v3"), newInventory.getHead());
         assertNull(newInventory.getRevisionNum(), "revisionNum");
@@ -89,5 +90,4 @@ public class MutableHeadInventoryCommitterTest {
     private String mutableContentPath(String suffix) {
         return OcflConstants.MUTABLE_HEAD_VERSION_PATH + "/content/" + suffix;
     }
-
 }

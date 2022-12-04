@@ -44,5 +44,4 @@ public interface ContentPathConstraintProcessor {
      * @throws edu.wisc.library.ocfl.api.exception.PathConstraintException when a constraint fails
      */
     void apply(String contentPath);
-
 }

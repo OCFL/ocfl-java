@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class FixityCheckException extends OcflJavaException {
 
-    public FixityCheckException() {
-    }
+    public FixityCheckException() {}
 
     public FixityCheckException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class FixityCheckException extends OcflJavaException {
     public FixityCheckException(Throwable cause) {
         super(cause);
     }
-
 }

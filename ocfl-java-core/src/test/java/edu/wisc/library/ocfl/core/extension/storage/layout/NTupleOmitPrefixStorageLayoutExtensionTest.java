@@ -23,15 +23,14 @@
  */
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author vcrema
@@ -50,72 +49,69 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
 
     @Test
     public void testNullDelimiter() {
-        assertThrows(OcflInputException.class, () -> config.setDelimiter(null),
-                "Expected OcflInputException");
+        assertThrows(OcflInputException.class, () -> config.setDelimiter(null), "Expected OcflInputException");
     }
 
     @Test
     public void testEmptyDelimiter() {
-        assertThrows(OcflInputException.class, () -> config.setDelimiter(""),
-                "Expected OcflInputException");
+        assertThrows(OcflInputException.class, () -> config.setDelimiter(""), "Expected OcflInputException");
     }
-    
+
     @Test
     public void testNegativeTupleSize() {
-        assertThrows(OcflInputException.class, () -> config.setTupleSize(-1),
-                "Expected OcflInputException");
+        assertThrows(OcflInputException.class, () -> config.setTupleSize(-1), "Expected OcflInputException");
     }
 
     @Test
     public void testZeroTupleSize() {
-        assertThrows(OcflInputException.class, () -> config.setTupleSize(0),
-                "Expected OcflInputException");
+        assertThrows(OcflInputException.class, () -> config.setTupleSize(0), "Expected OcflInputException");
     }
-    
+
     @Test
     public void testNegativeNumberOfTuples() {
-        assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(-1),
-                "Expected OcflInputException");
+        assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(-1), "Expected OcflInputException");
     }
 
     @Test
     public void testZeroNumberOfTuples() {
-        assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(0),
-                "Expected OcflInputException");
+        assertThrows(OcflInputException.class, () -> config.setNumberOfTuples(0), "Expected OcflInputException");
     }
-    
+
     @Test
     public void testNonAsciiId() {
         config.setDelimiter("/");
         ext.init(config);
-        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("jå∫∆a/vµa2bl√øog"),
+        assertThrows(
+                OcflExtensionException.class,
+                () -> ext.mapObjectId("jå∫∆a/vµa2bl√øog"),
                 "Expected OcflExtensionException");
     }
-
 
     @Test
     public void testDelimiterNotFound() {
         config.setDelimiter("/");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
 
-        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("namespace:12887296"),
+        assertThrows(
+                OcflExtensionException.class,
+                () -> ext.mapObjectId("namespace:12887296"),
                 "Expected OcflExtensionException");
     }
 
     @Test
     public void testOneOccurrenceOfSingleCharDelimiter() {
-        config.setDelimiter(":");     
+        config.setDelimiter(":");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
 
         String result = ext.mapObjectId("namespace:128872961");
         assertEquals("128/872/961/128872961", result);
@@ -125,11 +121,11 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
     public void testTwoOccurrencesOfSingleCharDelimiter() {
         config.setDelimiter(":");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
 
         String result = ext.mapObjectId("urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66");
         assertEquals("6e8/bc4/30-/6e8bc430-9c3a-11d9-9669-0800200c9a66", result);
@@ -139,11 +135,11 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
     public void testTwoOccurrencesOfSingleCharDelimiterDRS() {
         config.setDelimiter(":");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
 
         String result = ext.mapObjectId("urn-3:HUL.DRS.OBJECT:128872961");
         assertEquals("128/872/961/128872961", result);
@@ -153,12 +149,12 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
     public void testOneOccurrenceOfMultiCharDelimiter() {
         config.setDelimiter("edu/");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
-        
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
+
         String result = ext.mapObjectId("https://institution.edu/344879388");
         assertEquals("344/879/388/344879388", result);
     }
@@ -167,11 +163,11 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
     public void testOneOccurrenceOfMultiCharDelimiterCaseInsensitive() {
         config.setDelimiter("EDU/");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
 
         String result = ext.mapObjectId("https://institution.edu/344879388");
         assertEquals("344/879/388/344879388", result);
@@ -181,30 +177,30 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
     public void testTwoOccurrencesOfMultiCharDelimiter() {
         config.setDelimiter("edu/");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
-        
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
+
         String result = ext.mapObjectId("https://institution.edu/abc/edu/f8.05v");
         assertEquals("000/f8./05v/f8.05v", result);
     }
-    
+
     @Test
     public void testTupleAndLeftPadding() {
         config.setDelimiter(":");
         config.setTupleSize(4);
         config.setNumberOfTuples(2);
         ext.init(config);
-        //Defaults:
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
+        // Defaults:
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
 
         String result = ext.mapObjectId("namespace:1288729");
         assertEquals("0128/8729/1288729", result);
     }
-    
+
     @Test
     public void testTupleAndRightPadding() {
         config.setDelimiter(":");
@@ -212,13 +208,13 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
         config.setNumberOfTuples(2);
         config.setZeroPadding(NTupleOmitPrefixStorageLayoutConfig.ZeroPadding.RIGHT);
         ext.init(config);
-        //Defaults:
-        //reverseObjectRoot: false
+        // Defaults:
+        // reverseObjectRoot: false
 
         String result = ext.mapObjectId("namespace:1288729");
         assertEquals("1288/7290/1288729", result);
     }
-    
+
     @Test
     public void testReverseAndRightPadding() {
         config.setDelimiter(":");
@@ -227,36 +223,40 @@ public class NTupleOmitPrefixStorageLayoutExtensionTest {
         config.setReverseObjectRoot(true);
         config.setZeroPadding(NTupleOmitPrefixStorageLayoutConfig.ZeroPadding.RIGHT);
         ext.init(config);
-        
+
         String result = ext.mapObjectId("namespace:1288729");
         assertEquals("9278/8210/1288729", result);
     }
-    
+
     @Test
     public void testOneOccurrenceOfMultiCharDelimiterAtEnd() {
         config.setDelimiter("edu/");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
 
-        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("https://institution.edu/"),
+        assertThrows(
+                OcflExtensionException.class,
+                () -> ext.mapObjectId("https://institution.edu/"),
                 "Expected OcflExtensionException");
     }
-    
+
     @Test
     public void testMultiCharDelimiterNotFound() {
         config.setDelimiter("com/");
         ext.init(config);
-        //Defaults:
-        //tupleSize: 3
-        //numberOfTuples: 3,
-        //zeroPadding: "left",
-        //reverseObjectRoot: false
-        
-        assertThrows(OcflExtensionException.class, () -> ext.mapObjectId("https://institution.edu/344879388"),
+        // Defaults:
+        // tupleSize: 3
+        // numberOfTuples: 3,
+        // zeroPadding: "left",
+        // reverseObjectRoot: false
+
+        assertThrows(
+                OcflExtensionException.class,
+                () -> ext.mapObjectId("https://institution.edu/344879388"),
                 "Expected OcflExtensionException");
     }
 }

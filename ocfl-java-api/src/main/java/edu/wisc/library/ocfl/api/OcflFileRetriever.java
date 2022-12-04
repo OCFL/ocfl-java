@@ -41,5 +41,4 @@ public interface OcflFileRetriever {
      * @return FixityCheckInputStream of the file's content
      */
     FixityCheckInputStream retrieveFile();
-
 }

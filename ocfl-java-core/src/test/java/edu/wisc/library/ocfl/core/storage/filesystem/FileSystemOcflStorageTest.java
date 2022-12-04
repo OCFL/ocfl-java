@@ -1,5 +1,10 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.NotFoundException;
 import edu.wisc.library.ocfl.api.exception.OcflStateException;
@@ -18,10 +23,6 @@ import edu.wisc.library.ocfl.core.test.ITestHelper;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.test.OcflAsserts;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,11 +30,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class FileSystemOcflStorageTest {
 
@@ -59,9 +58,7 @@ public class FileSystemOcflStorageTest {
 
     @Test
     public void shouldRejectCallsWhenNotInitialized() {
-        var storage = OcflStorageBuilder.builder()
-                .fileSystem(repoDir)
-                .build();
+        var storage = OcflStorageBuilder.builder().fileSystem(repoDir).build();
 
         OcflAsserts.assertThrowsWithMessage(OcflStateException.class, "must be initialized", () -> {
             storage.loadInventory("o1");
@@ -110,8 +107,9 @@ public class FileSystemOcflStorageTest {
         var storage = newStorage();
 
         var bytes = storage.getInventoryBytes("o2", VersionNum.fromInt(2));
-        assertEquals("c15f51c96fafe599dd056c1782fce5e8d6a0461017260ec5bc751d12821e2a7c2344048fc32312d57fdbdd67" +
-                "ec32e238a5f68e5127a762dd866e77fcddbaa3ce",
+        assertEquals(
+                "c15f51c96fafe599dd056c1782fce5e8d6a0461017260ec5bc751d12821e2a7c2344048fc32312d57fdbdd67"
+                        + "ec32e238a5f68e5127a762dd866e77fcddbaa3ce",
                 DigestUtil.computeDigestHex(DigestAlgorithm.sha512, bytes));
     }
 
@@ -126,7 +124,7 @@ public class FileSystemOcflStorageTest {
     private InventoryBuilder inventoryBuilder() {
         return Inventory.builder()
                 .id("o1")
-                    .type(OcflConstants.DEFAULT_OCFL_VERSION.getInventoryType())
+                .type(OcflConstants.DEFAULT_OCFL_VERSION.getInventoryType())
                 .digestAlgorithm(DigestAlgorithm.sha512)
                 .objectRootPath(FileUtil.pathToStringStandardSeparator(repoDir.resolve("o1")));
     }
@@ -136,10 +134,9 @@ public class FileSystemOcflStorageTest {
     }
 
     private OcflStorage newStorage() {
-        var storage = OcflStorageBuilder.builder()
-                .fileSystem(repoDir)
-                .build();
-        storage.initializeStorage(OcflConstants.DEFAULT_OCFL_VERSION,
+        var storage = OcflStorageBuilder.builder().fileSystem(repoDir).build();
+        storage.initializeStorage(
+                OcflConstants.DEFAULT_OCFL_VERSION,
                 layoutConfig,
                 ITestHelper.testInventoryMapper(),
                 new ExtensionSupportEvaluator());
@@ -164,5 +161,4 @@ public class FileSystemOcflStorageTest {
         }
         return target;
     }
-
 }

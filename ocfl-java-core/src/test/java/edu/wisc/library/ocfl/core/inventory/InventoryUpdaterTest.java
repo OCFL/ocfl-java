@@ -1,5 +1,11 @@
 package edu.wisc.library.ocfl.core.inventory;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
@@ -11,17 +17,10 @@ import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.test.OcflAsserts;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.time.OffsetDateTime;
 import java.util.Collections;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class InventoryUpdaterTest {
 
@@ -30,7 +29,9 @@ public class InventoryUpdaterTest {
 
     @BeforeEach
     public void setup() {
-        inventory = Inventory.stubInventory("id", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root").buildFrom()
+        inventory = Inventory.stubInventory(
+                        "id", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root")
+                .buildFrom()
                 .addFileToManifest("file1", "v1/content/file1p")
                 .addFileToManifest("file2", "v1/content/file2p")
                 .addHeadVersion(Version.builder()
@@ -229,10 +230,10 @@ public class InventoryUpdaterTest {
         });
 
         OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "invalid sequence", () -> {
-            updater.renameFile("path","./blah");
+            updater.renameFile("path", "./blah");
         });
         OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "invalid sequence", () -> {
-            updater.reinstateFile(VersionNum.fromString("v1"), "path","./blah");
+            updater.reinstateFile(VersionNum.fromString("v1"), "path", "./blah");
         });
 
         assertDoesNotThrow(() -> {
@@ -306,5 +307,4 @@ public class InventoryUpdaterTest {
         assertEquals("v3/content/" + logicalPath, result.getContentPath());
         assertEquals(logicalPath, result.getPathUnderContentDir());
     }
-
 }

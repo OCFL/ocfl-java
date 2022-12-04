@@ -29,7 +29,6 @@ import edu.wisc.library.ocfl.api.model.ValidationCode;
 import edu.wisc.library.ocfl.api.model.ValidationIssue;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -90,7 +89,8 @@ public class ValidationResultsBuilder {
                     infos.add(i);
                     break;
                 default:
-                    throw new OcflJavaException("Unknown validation code type: " + i.getCode().getType());
+                    throw new OcflJavaException(
+                            "Unknown validation code type: " + i.getCode().getType());
             }
         });
         return this;
@@ -122,10 +122,6 @@ public class ValidationResultsBuilder {
 
     @Override
     public String toString() {
-        return "ValidationResultsBuilder{" +
-                "errors=" + errors +
-                ", warnings=" + warnings +
-                ", infos=" + infos +
-                '}';
+        return "ValidationResultsBuilder{" + "errors=" + errors + ", warnings=" + warnings + ", infos=" + infos + '}';
     }
 }

@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -56,7 +55,7 @@ public class PathBiMap {
         var biMap = new PathBiMap();
 
         map.forEach((digest, paths) -> {
-           paths.forEach(path -> biMap.put(digest, path));
+            paths.forEach(path -> biMap.put(digest, path));
         });
 
         return biMap;
@@ -94,7 +93,9 @@ public class PathBiMap {
      * @param path path
      */
     public void put(String fileId, String path) {
-        fileIdToPaths.computeIfAbsent(fileId, k -> new TreeSet<>(Comparator.naturalOrder())).add(path);
+        fileIdToPaths
+                .computeIfAbsent(fileId, k -> new TreeSet<>(Comparator.naturalOrder()))
+                .add(path);
         pathToFileId.put(path, fileId);
     }
 
@@ -179,9 +180,7 @@ public class PathBiMap {
 
     @Override
     public String toString() {
-        return "PathBiMap{" +
-                "fileIdToPaths=" + fileIdToPaths +
-                '}';
+        return "PathBiMap{" + "fileIdToPaths=" + fileIdToPaths + '}';
     }
 
     @Override
@@ -200,5 +199,4 @@ public class PathBiMap {
     public int hashCode() {
         return Objects.hash(pathToFileId);
     }
-
 }

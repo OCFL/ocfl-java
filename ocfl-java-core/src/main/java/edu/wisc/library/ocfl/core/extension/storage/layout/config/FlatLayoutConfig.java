@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.extension.storage.layout.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
-
 import java.util.Objects;
 
 /**
@@ -63,9 +62,6 @@ public class FlatLayoutConfig implements OcflExtensionConfig {
 
     @Override
     public String toString() {
-        return "FlatLayoutConfig{" +
-                "extensionName=" + getExtensionName() +
-                '}';
+        return "FlatLayoutConfig{" + "extensionName=" + getExtensionName() + '}';
     }
-
 }

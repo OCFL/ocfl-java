@@ -33,12 +33,9 @@ public class ObjectProperties {
     private DigestAlgorithm digestAlgorithm;
     private boolean extensions;
 
-    public ObjectProperties() {
-    }
+    public ObjectProperties() {}
 
-    public ObjectProperties(OcflVersion ocflVersion,
-                            DigestAlgorithm digestAlgorithm,
-                            boolean extensions) {
+    public ObjectProperties(OcflVersion ocflVersion, DigestAlgorithm digestAlgorithm, boolean extensions) {
         this.ocflVersion = ocflVersion;
         this.digestAlgorithm = digestAlgorithm;
         this.extensions = extensions;
@@ -79,10 +76,9 @@ public class ObjectProperties {
 
     @Override
     public String toString() {
-        return "ObjectProperties{" +
-                "ocflVersion=" + ocflVersion +
-                ", digestAlgorithm=" + digestAlgorithm +
-                ", extensions=" + extensions +
-                '}';
+        return "ObjectProperties{" + "ocflVersion="
+                + ocflVersion + ", digestAlgorithm="
+                + digestAlgorithm + ", extensions="
+                + extensions + '}';
     }
 }

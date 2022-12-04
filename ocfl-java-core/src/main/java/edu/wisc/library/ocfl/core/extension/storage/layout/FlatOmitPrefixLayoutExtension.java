@@ -55,9 +55,9 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
      */
     @Override
     public String getDescription() {
-        return "The OCFL object identifiers are expected to contain prefixes which are removed in the mapping to " +
-                "directory names. The OCFL object identifier prefix is defined as all characters before and including a " +
-                "configurable delimiter.";
+        return "The OCFL object identifiers are expected to contain prefixes which are removed in the mapping to "
+                + "directory names. The OCFL object identifier prefix is defined as all characters before and including a "
+                + "configurable delimiter.";
     }
 
     /**
@@ -74,7 +74,8 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
             }
 
             if (!(config instanceof FlatOmitPrefixLayoutConfig)) {
-                throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s",
+                throw new OcflExtensionException(String.format(
+                        "This extension only supports %s configuration. Received: %s",
                         getExtensionConfigClass(), config));
             }
 
@@ -118,8 +119,10 @@ public class FlatOmitPrefixLayoutExtension implements OcflStorageLayoutExtension
         }
 
         if (OcflConstants.EXTENSIONS_DIR.equals(dir) || dir.isEmpty()) {
-            throw new OcflExtensionException(String.format("The object id <%s> is incompatible with layout extension " +
-                    "%s because it is empty or conflicts with the extensions directory.", objectId, EXTENSION_NAME));
+            throw new OcflExtensionException(String.format(
+                    "The object id <%s> is incompatible with layout extension "
+                            + "%s because it is empty or conflicts with the extensions directory.",
+                    objectId, EXTENSION_NAME));
         }
 
         return dir;

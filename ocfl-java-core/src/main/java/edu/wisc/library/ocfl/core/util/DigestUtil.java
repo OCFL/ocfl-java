@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.util;
 import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -39,9 +38,7 @@ public final class DigestUtil {
 
     private static final int BUFFER_SIZE = 8192;
 
-    private DigestUtil() {
-
-    }
+    private DigestUtil() {}
 
     public static String computeDigestHex(DigestAlgorithm algorithm, Path path) {
         return computeDigestHex(algorithm.getMessageDigest(), path);
@@ -101,5 +98,4 @@ public final class DigestUtil {
     public static String computeDigestHex(DigestAlgorithm algorithm, byte[] value, boolean upperCase) {
         return Bytes.wrap(value).hash(algorithm.getJavaStandardName()).encodeHex(upperCase);
     }
-
 }

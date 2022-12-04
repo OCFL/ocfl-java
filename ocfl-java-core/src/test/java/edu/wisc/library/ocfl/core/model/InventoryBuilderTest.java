@@ -1,17 +1,5 @@
 package edu.wisc.library.ocfl.core.model;
 
-import edu.wisc.library.ocfl.api.exception.OcflInputException;
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.InventoryType;
-import edu.wisc.library.ocfl.api.model.VersionNum;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.time.OffsetDateTime;
-import java.util.Collections;
-import java.util.Map;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
@@ -21,6 +9,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import edu.wisc.library.ocfl.api.exception.OcflInputException;
+import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.InventoryType;
+import edu.wisc.library.ocfl.api.model.VersionNum;
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.Map;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class InventoryBuilderTest {
 
@@ -107,17 +106,22 @@ public class InventoryBuilderTest {
 
         var inventory = builder.build();
 
-        assertFixity(inventory, "path", Map.of(
-                DigestAlgorithm.md5, "md5_123",
-                DigestAlgorithm.sha1, "sha1_123"
-        ));
+        assertFixity(
+                inventory,
+                "path",
+                Map.of(
+                        DigestAlgorithm.md5, "md5_123",
+                        DigestAlgorithm.sha1, "sha1_123"));
     }
 
     @Test
     public void shouldNotAddFixityWhenFileNotInManifest() {
-        assertThat(assertThrows(OcflInputException.class, () -> {
-            builder.addFixityForFile("path", DigestAlgorithm.md5, "md5_123");
-        }).getMessage(), Matchers.containsString("Cannot add fixity information for"));
+        assertThat(
+                assertThrows(OcflInputException.class, () -> {
+                            builder.addFixityForFile("path", DigestAlgorithm.md5, "md5_123");
+                        })
+                        .getMessage(),
+                Matchers.containsString("Cannot add fixity information for"));
     }
 
     @Test
@@ -237,5 +241,4 @@ public class InventoryBuilderTest {
         assertFalse(inventory.manifestContainsFileId(fileId), "contains " + fileId);
         assertEquals(Collections.emptySet(), inventory.getContentPaths(fileId));
     }
-
 }

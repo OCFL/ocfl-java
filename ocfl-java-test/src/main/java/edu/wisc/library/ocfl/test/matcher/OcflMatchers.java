@@ -28,14 +28,11 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
 import edu.wisc.library.ocfl.api.model.User;
-
 import java.util.Map;
 
 public class OcflMatchers {
 
-    private OcflMatchers() {
-
-    }
+    private OcflMatchers() {}
 
     public static VersionInfoMatcher versionInfo(String name, String address, String message) {
         return new VersionInfoMatcher(name, address, message);
@@ -45,25 +42,39 @@ public class OcflMatchers {
         return new VersionInfoMatcher(user.getName(), user.getAddress(), message);
     }
 
-    public static FileDetailsMatcher fileDetails(String filePath, String storagePath, Map<DigestAlgorithm, String> fixity) {
+    public static FileDetailsMatcher fileDetails(
+            String filePath, String storagePath, Map<DigestAlgorithm, String> fixity) {
         return new FileDetailsMatcher(filePath, storagePath, fixity);
     }
 
-    public static VersionDetailsMatcher versionDetails(String objectId, String versionNum, VersionInfoMatcher versionInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
+    public static VersionDetailsMatcher versionDetails(
+            String objectId,
+            String versionNum,
+            VersionInfoMatcher versionInfoMatcher,
+            FileDetailsMatcher... fileDetailsMatchers) {
         return new VersionDetailsMatcher(objectId, versionNum, versionInfoMatcher, fileDetailsMatchers);
     }
 
-    public static OcflObjectVersionFileMatcher versionFile(String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
+    public static OcflObjectVersionFileMatcher versionFile(
+            String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
         return new OcflObjectVersionFileMatcher(filePath, storagePath, content, fixity);
     }
 
-    public static OcflObjectVersionMatcher objectVersion(String objectId, String versionNum, VersionInfoMatcher versionInfoMatcher, OcflObjectVersionFileMatcher... fileMatchers) {
+    public static OcflObjectVersionMatcher objectVersion(
+            String objectId,
+            String versionNum,
+            VersionInfoMatcher versionInfoMatcher,
+            OcflObjectVersionFileMatcher... fileMatchers) {
         return new OcflObjectVersionMatcher(objectId, versionNum, versionInfoMatcher, fileMatchers);
     }
 
-    public static FileChangeMatcher fileChange(FileChangeType changeType, ObjectVersionId objectVersionId, String filePath,
-                                               String storagePath, VersionInfoMatcher versionInfoMatcher, Map<DigestAlgorithm, String> fixity) {
+    public static FileChangeMatcher fileChange(
+            FileChangeType changeType,
+            ObjectVersionId objectVersionId,
+            String filePath,
+            String storagePath,
+            VersionInfoMatcher versionInfoMatcher,
+            Map<DigestAlgorithm, String> fixity) {
         return new FileChangeMatcher(changeType, objectVersionId, filePath, storagePath, versionInfoMatcher, fixity);
     }
-
 }

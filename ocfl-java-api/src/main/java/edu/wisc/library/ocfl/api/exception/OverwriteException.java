@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class OverwriteException extends OcflJavaException {
 
-    public OverwriteException() {
-    }
+    public OverwriteException() {}
 
     public OverwriteException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class OverwriteException extends OcflJavaException {
     public OverwriteException(Throwable cause) {
         super(cause);
     }
-
 }

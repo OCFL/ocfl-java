@@ -44,15 +44,14 @@ import edu.wisc.library.ocfl.core.storage.common.Listing;
 import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Initializes an OCFL repository. If the repository does not already exist, a new one is created. If it
@@ -70,8 +69,7 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     private final Storage storage;
     private final ObjectMapper objectMapper;
 
-    public DefaultOcflStorageInitializer(Storage storage,
-                                         ObjectMapper objectMapper) {
+    public DefaultOcflStorageInitializer(Storage storage, ObjectMapper objectMapper) {
         this.storage = Enforce.notNull(storage, "storage cannot be null");
         this.objectMapper = Enforce.notNull(objectMapper, "objectMapper cannot be null");
     }
@@ -80,9 +78,8 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
      * {@inheritDoc}
      */
     @Override
-    public RepositoryConfig initializeStorage(OcflVersion ocflVersion,
-                                              OcflExtensionConfig layoutConfig,
-                                              ExtensionSupportEvaluator supportEvaluator) {
+    public RepositoryConfig initializeStorage(
+            OcflVersion ocflVersion, OcflExtensionConfig layoutConfig, ExtensionSupportEvaluator supportEvaluator) {
         RepositoryConfig config;
 
         if (directoryIsEmpty("")) {
@@ -93,15 +90,15 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
             loadRepositoryExtensions(supportEvaluator);
         }
 
-        LOG.info("OCFL repository is configured to adhere to OCFL {} and use OCFL storage layout extension {}",
+        LOG.info(
+                "OCFL repository is configured to adhere to OCFL {} and use OCFL storage layout extension {}",
                 config.getOcflVersion().getRawVersion(),
                 config.getStorageLayoutExtension().getExtensionName());
 
         return config;
     }
 
-    private RepositoryConfig loadAndValidateExistingRepo(OcflVersion ocflVersion,
-                                                         OcflExtensionConfig layoutConfig) {
+    private RepositoryConfig loadAndValidateExistingRepo(OcflVersion ocflVersion, OcflExtensionConfig layoutConfig) {
         var existingVersion = identifyExistingVersion();
         var resolvedVersion = existingVersion;
 
@@ -146,17 +143,20 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
     }
 
     private void upgradeOcflRepo(OcflVersion currentVersion, OcflVersion newVersion) {
-        LOG.info("This is an OCFL {} repository, but was programmatically configured to create OCFL {} objects. " +
-                        "Upgrading the OCFL repository to {}. Note, existing objects will NOT be upgraded.",
-                currentVersion.getRawVersion(), newVersion.getRawVersion(), newVersion.getRawVersion());
+        LOG.info(
+                "This is an OCFL {} repository, but was programmatically configured to create OCFL {} objects. "
+                        + "Upgrading the OCFL repository to {}. Note, existing objects will NOT be upgraded.",
+                currentVersion.getRawVersion(),
+                newVersion.getRawVersion(),
+                newVersion.getRawVersion());
 
         try {
             writeNamasteFile(newVersion);
             writeOcflSpec(newVersion);
             storage.deleteFile(new NamasteTypeFile(currentVersion.getOcflVersion()).fileName());
         } catch (RuntimeException e) {
-            throw new OcflJavaException(String.format("Failed to upgrade OCFL repository to version %s",
-                    newVersion.getRawVersion()), e);
+            throw new OcflJavaException(
+                    String.format("Failed to upgrade OCFL repository to version %s", newVersion.getRawVersion()), e);
         }
     }
 
@@ -182,11 +182,10 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
             if (!expectedPath.equals(objectRoot)) {
                 throw new RepositoryConfigurationException(String.format(
-                        "The OCFL client was configured to use the following layout: %s." +
-                                " This layout does not match the layout of existing objects in the repository." +
-                                " Found object %s stored at %s, but was expecting it to be stored at %s.",
-                        layoutConfig, objectId, objectRoot, expectedPath
-                ));
+                        "The OCFL client was configured to use the following layout: %s."
+                                + " This layout does not match the layout of existing objects in the repository."
+                                + " Found object %s stored at %s, but was expecting it to be stored at %s.",
+                        layoutConfig, objectId, objectRoot, expectedPath));
             }
         }
 
@@ -208,7 +207,8 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
             var id = map.get("id");
 
             if (id == null) {
-                throw new InvalidInventoryException(String.format("Inventory file at %s does not contain an id.", inventoryPath));
+                throw new InvalidInventoryException(
+                        String.format("Inventory file at %s does not contain an id.", inventoryPath));
             }
 
             return (String) id;
@@ -251,10 +251,9 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
     private void loadRepositoryExtensions(ExtensionSupportEvaluator supportEvaluator) {
         // Currently, this just ensures that the repository does not use any extensions that ocfl-java does not support
-        list(OcflConstants.EXTENSIONS_DIR).stream()
-                .filter(Listing::isDirectory).forEach(dir -> {
-                    supportEvaluator.checkSupport(dir.getRelativePath());
-                });
+        list(OcflConstants.EXTENSIONS_DIR).stream().filter(Listing::isDirectory).forEach(dir -> {
+            supportEvaluator.checkSupport(dir.getRelativePath());
+        });
     }
 
     private void writeOcflSpec(OcflVersion ocflVersion) {
@@ -287,22 +286,22 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
     private void writeNamasteFile(OcflVersion ocflVersion) {
         var namasteFile = new NamasteTypeFile(ocflVersion.getOcflVersion());
-        storage.write(namasteFile.fileName(),
-                namasteFile.fileContent().getBytes(StandardCharsets.UTF_8),
-                MEDIA_TYPE_TEXT);
+        storage.write(
+                namasteFile.fileName(), namasteFile.fileContent().getBytes(StandardCharsets.UTF_8), MEDIA_TYPE_TEXT);
     }
 
     private void writeOcflLayout(OcflExtensionConfig layoutConfig, String description) {
-        var spec = new OcflLayout()
-                .setExtension(layoutConfig.getExtensionName())
-                .setDescription(description);
+        var spec =
+                new OcflLayout().setExtension(layoutConfig.getExtensionName()).setDescription(description);
         try {
             storage.write(OcflConstants.OCFL_LAYOUT, objectMapper.writeValueAsBytes(spec), MEDIA_TYPE_JSON);
             if (layoutConfig.hasParameters()) {
-                storage.createDirectories(FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR,
-                        layoutConfig.getExtensionName()));
-                storage.write(layoutConfigFile(layoutConfig.getExtensionName()),
-                        objectMapper.writeValueAsBytes(layoutConfig), MEDIA_TYPE_JSON);
+                storage.createDirectories(
+                        FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR, layoutConfig.getExtensionName()));
+                storage.write(
+                        layoutConfigFile(layoutConfig.getExtensionName()),
+                        objectMapper.writeValueAsBytes(layoutConfig),
+                        MEDIA_TYPE_JSON);
             }
         } catch (IOException e) {
             throw new OcflIOException(e);
@@ -317,8 +316,8 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
 
     private OcflStorageLayoutExtension loadLayoutExtension(String extensionName) {
         return OcflExtensionRegistry.<OcflStorageLayoutExtension>lookup(extensionName)
-                .orElseThrow(() -> new IllegalStateException(
-                        String.format("Failed to find an implementation for storage layout extension %s", extensionName)));
+                .orElseThrow(() -> new IllegalStateException(String.format(
+                        "Failed to find an implementation for storage layout extension %s", extensionName)));
     }
 
     private OcflLayout readOcflLayout() {
@@ -346,14 +345,13 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
         try {
             return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new RepositoryConfigurationException(String.format("Failed to init OCFL storage layout extension configuration class %s", clazz), e);
+            throw new RepositoryConfigurationException(
+                    String.format("Failed to init OCFL storage layout extension configuration class %s", clazz), e);
         }
     }
 
     private String layoutConfigFile(String extensionName) {
-        return FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR,
-                extensionName,
-                OcflConstants.EXT_CONFIG_JSON);
+        return FileUtil.pathJoinFailEmpty(OcflConstants.EXTENSIONS_DIR, extensionName, OcflConstants.EXT_CONFIG_JSON);
     }
 
     private <T> T read(InputStream stream, Class<T> clazz) {
@@ -387,5 +385,4 @@ public class DefaultOcflStorageInitializer implements OcflStorageInitializer {
             return true;
         }
     }
-
 }

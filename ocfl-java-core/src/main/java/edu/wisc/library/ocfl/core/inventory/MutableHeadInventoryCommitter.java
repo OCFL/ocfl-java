@@ -32,7 +32,6 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.validation.InventoryValidator;
-
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 
@@ -42,9 +41,7 @@ import java.time.OffsetDateTime;
  */
 public final class MutableHeadInventoryCommitter {
 
-    private MutableHeadInventoryCommitter() {
-
-    }
+    private MutableHeadInventoryCommitter() {}
 
     /**
      * Converts a mutable HEAD version into a regular OCFL version. This involves rewriting the manifest and fixity fields
@@ -56,24 +53,21 @@ public final class MutableHeadInventoryCommitter {
      * @param config the default OCFL configuration
      * @return A new inventory with the mutable HEAD version rewritten.
      */
-    public static Inventory commit(Inventory original,
-                                   OffsetDateTime createdTimestamp,
-                                   VersionInfo versionInfo,
-                                   OcflConfig config) {
+    public static Inventory commit(
+            Inventory original, OffsetDateTime createdTimestamp, VersionInfo versionInfo, OcflConfig config) {
         Enforce.notNull(original, "inventory cannot be null");
         Enforce.notNull(createdTimestamp, "createdTimestamp cannot be null");
         Enforce.notNull(config, "config cannot be null");
 
-        var inventoryBuilder = new InventoryBuilder(original)
-                .mutableHead(false)
-                .revisionNum(null);
+        var inventoryBuilder = new InventoryBuilder(original).mutableHead(false).revisionNum(null);
 
         var versionBuilder = new VersionBuilder(original.getHeadVersion())
                 .created(createdTimestamp)
                 .versionInfo(versionInfo);
 
         var versionStr = original.getHead().toString();
-        var mutableHeadFileIds = original.getFileIdsForMatchingFiles(Paths.get(OcflConstants.MUTABLE_HEAD_VERSION_PATH));
+        var mutableHeadFileIds =
+                original.getFileIdsForMatchingFiles(Paths.get(OcflConstants.MUTABLE_HEAD_VERSION_PATH));
 
         mutableHeadFileIds.forEach(fileId -> {
             var originalPath = original.getContentPath(fileId);
@@ -103,5 +97,4 @@ public final class MutableHeadInventoryCommitter {
     private static String rewritePath(String path, String version) {
         return path.replace(OcflConstants.MUTABLE_HEAD_VERSION_PATH, version);
     }
-
 }

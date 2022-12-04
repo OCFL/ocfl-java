@@ -12,6 +12,10 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.BadReposITest;
 import edu.wisc.library.ocfl.itest.ITestHelper;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -19,16 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-
 public class S3BadReposITest extends BadReposITest {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3BadReposITest.class);
 
-    private static final String REPO_PREFIX = "S3BadReposITest" + ThreadLocalRandom.current().nextLong();
+    private static final String REPO_PREFIX =
+            "S3BadReposITest" + ThreadLocalRandom.current().nextLong();
 
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
@@ -88,9 +88,8 @@ public class S3BadReposITest extends BadReposITest {
                 .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .storage(storage -> storage
-                        .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloud(createCloudClient(name)))
+                .storage(storage ->
+                        storage.objectMapper(ITestHelper.prettyPrintMapper()).cloud(createCloudClient(name)))
                 .workDir(workDir)
                 .buildMutable();
         ITestHelper.fixTime(repo, "2019-08-05T15:57:53Z");
@@ -100,9 +99,11 @@ public class S3BadReposITest extends BadReposITest {
     private void copyFiles(String name) {
         var repoDir = repoDir(name);
         var client = createCloudClient(name);
-        FileUtil.findFiles(repoDir).stream().filter(f -> !f.getFileName().toString().equals(".gitkeep")).forEach(file -> {
-            client.uploadFile(file, FileUtil.pathToStringStandardSeparator(repoDir.relativize(file)));
-        });
+        FileUtil.findFiles(repoDir).stream()
+                .filter(f -> !f.getFileName().toString().equals(".gitkeep"))
+                .forEach(file -> {
+                    client.uploadFile(file, FileUtil.pathToStringStandardSeparator(repoDir.relativize(file)));
+                });
     }
 
     private String detailsTable() {
@@ -126,5 +127,4 @@ public class S3BadReposITest extends BadReposITest {
     private String prefix(String name) {
         return REPO_PREFIX + "-" + name;
     }
-
 }

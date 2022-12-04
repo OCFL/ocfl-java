@@ -1,11 +1,11 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class DefaultContentPathConstraintProcessorTest {
 
@@ -43,7 +43,9 @@ public class DefaultContentPathConstraintProcessorTest {
     public void shouldApplyConstraintToStoragePath() {
         var processor = DefaultContentPathConstraintProcessor.builder()
                 .storagePathConstraintProcessor(PathConstraintProcessor.builder()
-                        .pathConstraint(PathLengthConstraint.maxChars(5)).build()).build();
+                        .pathConstraint(PathLengthConstraint.maxChars(5))
+                        .build())
+                .build();
 
         assertThrows(PathConstraintException.class, () -> {
             processor.apply("cp", "storagePath");
@@ -54,11 +56,12 @@ public class DefaultContentPathConstraintProcessorTest {
     public void shouldApplyConstraintToContentPath() {
         var processor = DefaultContentPathConstraintProcessor.builder()
                 .contentPathConstraintProcessor(PathConstraintProcessor.builder()
-                        .pathConstraint(PathLengthConstraint.maxChars(5)).build()).build();
+                        .pathConstraint(PathLengthConstraint.maxChars(5))
+                        .build())
+                .build();
 
         assertThrows(PathConstraintException.class, () -> {
             processor.apply("contentPath", "sp");
         });
     }
-
 }

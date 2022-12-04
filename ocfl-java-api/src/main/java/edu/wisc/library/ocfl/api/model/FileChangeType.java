@@ -37,5 +37,4 @@ public enum FileChangeType {
      * Indicates the file was removed
      */
     REMOVE
-
 }

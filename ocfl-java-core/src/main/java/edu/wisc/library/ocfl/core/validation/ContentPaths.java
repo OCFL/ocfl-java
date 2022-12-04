@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,7 +63,9 @@ class ContentPaths {
     public Iterator<String> pathsForVersion(VersionNum versionNum) {
         return new Iterator<>() {
             VersionNum currentVersion = versionNum;
-            Iterator<String> currentPaths = contentPaths.getOrDefault(currentVersion, Collections.emptySet()).iterator();
+            Iterator<String> currentPaths = contentPaths
+                    .getOrDefault(currentVersion, Collections.emptySet())
+                    .iterator();
 
             @Override
             public boolean hasNext() {
@@ -72,7 +73,9 @@ class ContentPaths {
                     return true;
                 } else if (currentVersion.getVersionNum() > 1) {
                     currentVersion = currentVersion.previousVersionNum();
-                    currentPaths = contentPaths.getOrDefault(currentVersion, Collections.emptySet()).iterator();
+                    currentPaths = contentPaths
+                            .getOrDefault(currentVersion, Collections.emptySet())
+                            .iterator();
                     return hasNext();
                 }
                 return false;
@@ -87,5 +90,4 @@ class ContentPaths {
             }
         };
     }
-
 }

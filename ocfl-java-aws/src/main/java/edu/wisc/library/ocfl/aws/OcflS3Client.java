@@ -34,6 +34,20 @@ import edu.wisc.library.ocfl.core.storage.cloud.HeadResult;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -60,21 +74,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartCopyRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.utils.http.SdkHttpUtils;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 /**
  * CloudClient implementation that uses Amazon's S3 synchronous v2 client
@@ -136,11 +135,12 @@ public class OcflS3Client implements CloudClient {
      * @param putObjectModifier hook for modifying putObject requests
      * @param createMultipartModifier hook for modifying createMultipartUpload requests
      */
-    public OcflS3Client(S3Client s3Client,
-                        String bucket,
-                        String prefix,
-                        BiConsumer<String, PutObjectRequest.Builder> putObjectModifier,
-                        BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
+    public OcflS3Client(
+            S3Client s3Client,
+            String bucket,
+            String prefix,
+            BiConsumer<String, PutObjectRequest.Builder> putObjectModifier,
+            BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
         this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
         this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
         this.repoPrefix = sanitizeRepoPrefix(prefix == null ? "" : prefix);
@@ -195,7 +195,8 @@ public class OcflS3Client implements CloudClient {
         var dstKey = keyBuilder.buildFromPath(dstPath);
 
         if (fileSize >= MAX_FILE_BYTES) {
-            throw new OcflInputException(String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
+            throw new OcflInputException(
+                    String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
         }
 
         if (fileSize > maxPartBytes) {
@@ -203,16 +204,16 @@ public class OcflS3Client implements CloudClient {
         } else {
             LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
-            var builder = PutObjectRequest.builder()
-                    .contentType(contentType);
+            var builder = PutObjectRequest.builder().contentType(contentType);
 
             putObjectModifier.accept(dstKey.getKey(), builder);
 
-            s3Client.putObject(builder
-                    .bucket(bucket)
-                    .key(dstKey.getKey())
-                    .contentLength(fileSize)
-                    .build(), srcPath);
+            s3Client.putObject(
+                    builder.bucket(bucket)
+                            .key(dstKey.getKey())
+                            .contentLength(fileSize)
+                            .build(),
+                    srcPath);
         }
 
         return dstKey;
@@ -222,8 +223,13 @@ public class OcflS3Client implements CloudClient {
     private void multipartUpload(Path srcPath, CloudObjectKey dstKey, long fileSize, String contentType) {
         var partSize = determinePartSize(fileSize);
 
-        LOG.debug("Multipart upload of {} to bucket {} key {}. File size: {}; part size: {}", srcPath, bucket, dstKey,
-                fileSize, partSize);
+        LOG.debug(
+                "Multipart upload of {} to bucket {} key {}. File size: {}; part size: {}",
+                srcPath,
+                bucket,
+                dstKey,
+                fileSize,
+                partSize);
 
         var uploadId = beginMultipartUpload(dstKey, contentType);
 
@@ -237,13 +243,15 @@ public class OcflS3Client implements CloudClient {
                 while (channel.read(buffer) > 0) {
                     buffer.flip();
 
-                    var partResponse = s3Client.uploadPart(UploadPartRequest.builder()
-                            .bucket(bucket)
-                            .key(dstKey.getKey())
-                            .uploadId(uploadId)
-                            .partNumber(i)
-                            // TODO entire part is in memory. stream part to file first?
-                            .build(), RequestBody.fromByteBuffer(buffer));
+                    var partResponse = s3Client.uploadPart(
+                            UploadPartRequest.builder()
+                                    .bucket(bucket)
+                                    .key(dstKey.getKey())
+                                    .uploadId(uploadId)
+                                    .partNumber(i)
+                                    // TODO entire part is in memory. stream part to file first?
+                                    .build(),
+                            RequestBody.fromByteBuffer(buffer));
 
                     completedParts.add(CompletedPart.builder()
                             .partNumber(i)
@@ -272,15 +280,11 @@ public class OcflS3Client implements CloudClient {
         var dstKey = keyBuilder.buildFromPath(dstPath);
         LOG.debug("Writing string to bucket {} key {}", bucket, dstKey);
 
-        var builder = PutObjectRequest.builder()
-                .contentType(contentType);
+        var builder = PutObjectRequest.builder().contentType(contentType);
 
         putObjectModifier.accept(dstKey.getKey(), builder);
 
-        s3Client.putObject(builder
-                .bucket(bucket)
-                .key(dstKey.getKey())
-                .build(), RequestBody.fromBytes(bytes));
+        s3Client.putObject(builder.bucket(bucket).key(dstKey.getKey()).build(), RequestBody.fromBytes(bytes));
 
         return dstKey;
     }
@@ -320,8 +324,13 @@ public class OcflS3Client implements CloudClient {
         var fileSize = head.contentLength();
         var partSize = determinePartSize(fileSize);
 
-        LOG.debug("Multipart copy of {} to {} in bucket {}: File size {}; part size: {}", srcKey, dstKey, bucket,
-                fileSize, partSize);
+        LOG.debug(
+                "Multipart copy of {} to {} in bucket {}: File size {}; part size: {}",
+                srcKey,
+                dstKey,
+                bucket,
+                fileSize,
+                partSize);
 
         var uploadId = beginMultipartUpload(dstKey, null);
 
@@ -358,10 +367,8 @@ public class OcflS3Client implements CloudClient {
     }
 
     private HeadObjectResponse headObject(CloudObjectKey key) {
-        return s3Client.headObject(HeadObjectRequest.builder()
-                .bucket(bucket)
-                .key(key.getKey())
-                .build());
+        return s3Client.headObject(
+                HeadObjectRequest.builder().bucket(bucket).key(key.getKey()).build());
     }
 
     /**
@@ -373,10 +380,12 @@ public class OcflS3Client implements CloudClient {
         LOG.debug("Downloading bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
-            s3Client.getObject(GetObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(srcKey.getKey())
-                    .build(), dstPath);
+            s3Client.getObject(
+                    GetObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(srcKey.getKey())
+                            .build(),
+                    dstPath);
         } catch (NoSuchKeyException e) {
             throw new KeyNotFoundException(e);
         }
@@ -422,10 +431,8 @@ public class OcflS3Client implements CloudClient {
         var key = keyBuilder.buildFromPath(path);
 
         try {
-            var s3Result = s3Client.headObject(HeadObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key.getKey())
-                    .build());
+            var s3Result = s3Client.headObject(
+                    HeadObjectRequest.builder().bucket(bucket).key(key.getKey()).build());
 
             return new HeadResult()
                     .setContentEncoding(s3Result.contentEncoding())
@@ -443,9 +450,7 @@ public class OcflS3Client implements CloudClient {
     @Override
     public ListResult list(String prefix) {
         var prefixedPrefix = keyBuilder.buildFromPath(prefix);
-        return toListResult(ListObjectsV2Request.builder()
-                .bucket(bucket)
-                .prefix(prefixedPrefix.getKey()));
+        return toListResult(ListObjectsV2Request.builder().bucket(bucket).prefix(prefixedPrefix.getKey()));
     }
 
     /**
@@ -461,10 +466,8 @@ public class OcflS3Client implements CloudClient {
 
         LOG.debug("Listing directory {} in bucket {}", prefix, bucket);
 
-        return toListResult(ListObjectsV2Request.builder()
-                .bucket(bucket)
-                .delimiter("/")
-                .prefix(prefix));
+        return toListResult(
+                ListObjectsV2Request.builder().bucket(bucket).delimiter("/").prefix(prefix));
     }
 
     /**
@@ -530,9 +533,7 @@ public class OcflS3Client implements CloudClient {
 
             s3Client.deleteObjects(DeleteObjectsRequest.builder()
                     .bucket(bucket)
-                    .delete(Delete.builder()
-                            .objects(objectIds)
-                            .build())
+                    .delete(Delete.builder().objects(objectIds).build())
                     .build());
         }
     }
@@ -563,9 +564,7 @@ public class OcflS3Client implements CloudClient {
     @Override
     public boolean bucketExists() {
         try {
-            s3Client.headBucket(HeadBucketRequest.builder()
-                    .bucket(bucket)
-                    .build());
+            s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
             return true;
         } catch (NoSuchBucketException e) {
             return false;
@@ -573,15 +572,13 @@ public class OcflS3Client implements CloudClient {
     }
 
     private String beginMultipartUpload(CloudObjectKey key, String contentType) {
-        var builder = CreateMultipartUploadRequest.builder()
-                .contentType(contentType);
+        var builder = CreateMultipartUploadRequest.builder().contentType(contentType);
 
         createMultipartModifier.accept(key.getKey(), builder);
 
-        return s3Client.createMultipartUpload(builder
-                .bucket(bucket)
-                .key(key.getKey())
-                .build()).uploadId();
+        return s3Client.createMultipartUpload(
+                        builder.bucket(bucket).key(key.getKey()).build())
+                .uploadId();
     }
 
     private void completeMultipartUpload(String uploadId, CloudObjectKey key, List<CompletedPart> parts) {
@@ -589,9 +586,7 @@ public class OcflS3Client implements CloudClient {
                 .bucket(bucket)
                 .key(key.getKey())
                 .uploadId(uploadId)
-                .multipartUpload(CompletedMultipartUpload.builder()
-                        .parts(parts)
-                        .build())
+                .multipartUpload(CompletedMultipartUpload.builder().parts(parts).build())
                 .build());
     }
 
@@ -645,18 +640,18 @@ public class OcflS3Client implements CloudClient {
             dirs.addAll(toDirectoryListings(result, repoPrefixLength));
         }
 
-        return new ListResult()
-                .setObjects(objects)
-                .setDirectories(dirs);
+        return new ListResult().setObjects(objects).setDirectories(dirs);
     }
 
     private List<ListResult.ObjectListing> toObjectListings(ListObjectsV2Response result, int prefixLength) {
-        return result.contents().stream().map(o -> {
-            var key = o.key();
-            return new ListResult.ObjectListing()
-                    .setKey(keyBuilder.buildFromKey(key))
-                    .setKeySuffix(key.substring(prefixLength));
-        }).collect(Collectors.toList());
+        return result.contents().stream()
+                .map(o -> {
+                    var key = o.key();
+                    return new ListResult.ObjectListing()
+                            .setKey(keyBuilder.buildFromKey(key))
+                            .setKeySuffix(key.substring(prefixLength));
+                })
+                .collect(Collectors.toList());
     }
 
     private List<ListResult.DirectoryListing> toDirectoryListings(ListObjectsV2Response result, int repoPrefixLength) {
@@ -664,8 +659,7 @@ public class OcflS3Client implements CloudClient {
                 .filter(p -> p.prefix() != null)
                 .map(p -> {
                     var path = p.prefix();
-                    return new ListResult.DirectoryListing()
-                            .setPath(path.substring(repoPrefixLength));
+                    return new ListResult.DirectoryListing().setPath(path.substring(repoPrefixLength));
                 })
                 .collect(Collectors.toList());
     }
@@ -757,7 +751,8 @@ public class OcflS3Client implements CloudClient {
          * @param createMultipartModifier hook for modifying createMultipartUpload requests
          * @return builder
          */
-        public Builder createMultipartModifier(BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
+        public Builder createMultipartModifier(
+                BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
             this.createMultipartModifier = createMultipartModifier;
             return this;
         }
@@ -771,5 +766,4 @@ public class OcflS3Client implements CloudClient {
             return new OcflS3Client(s3Client, bucket, repoPrefix, putObjectModifier, createMultipartModifier);
         }
     }
-
 }

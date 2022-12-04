@@ -38,13 +38,12 @@ import edu.wisc.library.ocfl.core.db.OcflObjectDetails;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.SidecarMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
 
@@ -175,7 +174,8 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
     public void commitMutableHead(Inventory oldInventory, Inventory newInventory, Path stagingDir) {
         ensureOpen();
 
-        updateDetails(newInventory, stagingDir, () -> delegate.commitMutableHead(oldInventory, newInventory, stagingDir));
+        updateDetails(
+                newInventory, stagingDir, () -> delegate.commitMutableHead(oldInventory, newInventory, stagingDir));
     }
 
     /**
@@ -237,9 +237,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public void exportObject(String objectId, Path outputPath) {
-       ensureOpen();
+        ensureOpen();
 
-       delegate.exportObject(objectId, outputPath);
+        delegate.exportObject(objectId, outputPath);
     }
 
     /**
@@ -247,9 +247,9 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public void importObject(String objectId, Path objectPath) {
-       ensureOpen();
+        ensureOpen();
 
-       delegate.importObject(objectId, objectPath);
+        delegate.importObject(objectId, objectPath);
     }
 
     /**
@@ -305,8 +305,10 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         try {
             objectDetailsDb.deleteObjectDetails(objectId);
         } catch (Exception e) {
-            LOG.error("Failed to delete object details for object {}. You may need to manually remove the record from the database.",
-                    objectId, e);
+            LOG.error(
+                    "Failed to delete object details for object {}. You may need to manually remove the record from the database.",
+                    objectId,
+                    e);
         }
     }
 
@@ -314,18 +316,24 @@ public class ObjectDetailsDbOcflStorage extends AbstractOcflStorage {
         Inventory inventory;
 
         if (details.getRevisionNum() == null) {
-            inventory = inventoryMapper.read(details.getObjectRootPath(), details.getDigestAlgorithm(), new ByteArrayInputStream(details.getInventoryBytes()));
+            inventory = inventoryMapper.read(
+                    details.getObjectRootPath(),
+                    details.getDigestAlgorithm(),
+                    new ByteArrayInputStream(details.getInventoryBytes()));
         } else {
-            inventory = inventoryMapper.readMutableHead(details.getObjectRootPath(), details.getRevisionNum(),
-                    details.getDigestAlgorithm(), new ByteArrayInputStream(details.getInventoryBytes()));
+            inventory = inventoryMapper.readMutableHead(
+                    details.getObjectRootPath(),
+                    details.getRevisionNum(),
+                    details.getDigestAlgorithm(),
+                    new ByteArrayInputStream(details.getInventoryBytes()));
         }
 
         if (!details.getInventoryDigest().equalsIgnoreCase(inventory.getInventoryDigest())) {
-            throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
+            throw new FixityCheckException(String.format(
+                    "Expected %s digest: %s; Actual: %s",
                     details.getDigestAlgorithm(), details.getInventoryDigest(), inventory.getInventoryDigest()));
         }
 
         return inventory;
     }
-
 }

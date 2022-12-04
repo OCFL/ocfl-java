@@ -78,5 +78,4 @@ public class OcflIOException extends OcflJavaException {
         }
         return cause.getClass().getSimpleName() + ": " + cause.getMessage();
     }
-
 }

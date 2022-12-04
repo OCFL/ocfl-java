@@ -32,7 +32,6 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,9 +42,7 @@ import java.util.stream.Collectors;
  */
 public final class ObjectPaths {
 
-    private ObjectPaths() {
-
-    }
+    private ObjectPaths() {}
 
     /**
      * Path to an inventory file within the given directory
@@ -75,7 +72,8 @@ public final class ObjectPaths {
      * @return path to inventory sidecar
      */
     public static Path inventorySidecarPath(Path directory, Inventory inventory) {
-        return directory.resolve(OcflConstants.INVENTORY_FILE + "." + inventory.getDigestAlgorithm().getOcflName());
+        return directory.resolve(OcflConstants.INVENTORY_FILE + "."
+                + inventory.getDigestAlgorithm().getOcflName());
     }
 
     /**
@@ -86,7 +84,10 @@ public final class ObjectPaths {
      * @return path to inventory sidecar
      */
     public static String inventorySidecarPath(String directory, Inventory inventory) {
-        return FileUtil.pathJoinFailEmpty(directory, OcflConstants.INVENTORY_SIDECAR_PREFIX + inventory.getDigestAlgorithm().getOcflName());
+        return FileUtil.pathJoinFailEmpty(
+                directory,
+                OcflConstants.INVENTORY_SIDECAR_PREFIX
+                        + inventory.getDigestAlgorithm().getOcflName());
     }
 
     /**
@@ -253,12 +254,12 @@ public final class ObjectPaths {
 
     private static Path findSidecarPathInternal(Path directory, String prefix) {
         try (var files = Files.list(directory)) {
-            var sidecars = files
-                    .filter(file -> file.getFileName().toString().startsWith(prefix))
+            var sidecars = files.filter(file -> file.getFileName().toString().startsWith(prefix))
                     .collect(Collectors.toList());
 
             if (sidecars.size() != 1) {
-                throw new CorruptObjectException(String.format("Expected there to be one inventory sidecar file in %s, but found %s.",
+                throw new CorruptObjectException(String.format(
+                        "Expected there to be one inventory sidecar file in %s, but found %s.",
                         directory, sidecars.size()));
             }
 
@@ -333,7 +334,8 @@ public final class ObjectPaths {
                 if (inventory.hasMutableHead()) {
                     headVersionPath = mutableHeadPath();
                 } else {
-                    headVersionPath = FileUtil.pathJoinIgnoreEmpty(path, inventory.getHead().toString());
+                    headVersionPath = FileUtil.pathJoinIgnoreEmpty(
+                            path, inventory.getHead().toString());
                 }
             }
             return headVersionPath;
@@ -377,7 +379,6 @@ public final class ObjectPaths {
             }
             return mutableHeadVersion;
         }
-
     }
 
     /**
@@ -436,7 +437,6 @@ public final class ObjectPaths {
             }
             return contentRoot;
         }
-
     }
 
     /**
@@ -470,7 +470,5 @@ public final class ObjectPaths {
             }
             return revisionPath(inventory.getRevisionNum());
         }
-
     }
-
 }

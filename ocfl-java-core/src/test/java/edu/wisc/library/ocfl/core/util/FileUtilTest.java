@@ -1,16 +1,5 @@
 package edu.wisc.library.ocfl.core.util;
 
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -18,6 +7,16 @@ import static org.hamcrest.io.FileMatchers.anExistingDirectory;
 import static org.hamcrest.io.FileMatchers.anExistingFile;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
+import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class FileUtilTest {
 
@@ -159,9 +158,12 @@ public class FileUtilTest {
         var srcRoot = Files.createDirectories(tempRoot.resolve("src"));
         var dstRoot = tempRoot.resolve("dst/blah");
 
-        assertThat(assertThrows(IllegalArgumentException.class, () -> {
-            FileUtil.moveDirectory(srcRoot, dstRoot);
-        }).getMessage(), containsString("Parent directory of destination must exist"));
+        assertThat(
+                assertThrows(IllegalArgumentException.class, () -> {
+                            FileUtil.moveDirectory(srcRoot, dstRoot);
+                        })
+                        .getMessage(),
+                containsString("Parent directory of destination must exist"));
     }
 
     @Test
@@ -213,5 +215,4 @@ public class FileUtilTest {
         assertThat(path.toFile(), anExistingDirectory());
         assertThat(path.resolve("1").toFile(), anExistingDirectory());
     }
-
 }

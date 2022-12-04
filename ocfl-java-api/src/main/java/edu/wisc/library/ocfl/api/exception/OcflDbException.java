@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class OcflDbException extends OcflJavaException {
 
-    public OcflDbException() {
-    }
+    public OcflDbException() {}
 
     public OcflDbException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class OcflDbException extends OcflJavaException {
     public OcflDbException(Throwable cause) {
         super(cause);
     }
-
 }

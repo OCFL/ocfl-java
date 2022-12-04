@@ -35,5 +35,4 @@ public interface OcflExtension {
      * @return extension name
      */
     String getExtensionName();
-
 }

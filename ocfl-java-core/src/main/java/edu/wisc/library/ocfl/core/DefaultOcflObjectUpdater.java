@@ -39,9 +39,6 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,6 +48,8 @@ import java.security.DigestInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
@@ -68,10 +67,11 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
     private final Map<String, Path> stagedFileMap;
 
-    public DefaultOcflObjectUpdater(Inventory inventory,
-                                    InventoryUpdater inventoryUpdater,
-                                    Path stagingDir,
-                                    AddFileProcessor addFileProcessor) {
+    public DefaultOcflObjectUpdater(
+            Inventory inventory,
+            InventoryUpdater inventoryUpdater,
+            Path stagingDir,
+            AddFileProcessor addFileProcessor) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.inventoryUpdater = Enforce.notNull(inventoryUpdater, "inventoryUpdater cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
@@ -102,13 +102,18 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     }
 
     @Override
-    public OcflObjectUpdater unsafeAddPath(String digest, Path sourcePath, String destinationPath, OcflOption... options) {
+    public OcflObjectUpdater unsafeAddPath(
+            String digest, Path sourcePath, String destinationPath, OcflOption... options) {
         Enforce.notBlank(digest, "digest cannot be blank");
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
 
-        LOG.debug("Unsafe add <{}> to object <{}> at logical path <{}> with digest <{}>",
-                sourcePath, inventory.getId(), destinationPath, digest);
+        LOG.debug(
+                "Unsafe add <{}> to object <{}> at logical path <{}> with digest <{}>",
+                sourcePath,
+                inventory.getId(),
+                destinationPath,
+                digest);
 
         var newStagedFiles = addFileProcessor.processFileWithDigest(digest, sourcePath, destinationPath, options);
         stagedFileMap.putAll(newStagedFiles);
@@ -148,7 +153,9 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         String digest;
 
         if (digestInput instanceof FixityCheckInputStream) {
-            digest = ((FixityCheckInputStream) digestInput).getActualDigestValue().get();
+            digest = ((FixityCheckInputStream) digestInput)
+                    .getActualDigestValue()
+                    .get();
         } else {
             digest = Bytes.wrap(digestInput.getMessageDigest().digest()).encodeHex();
         }
@@ -156,7 +163,10 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         var result = inventoryUpdater.addFile(digest, destinationPath, options);
 
         if (!result.isNew()) {
-            LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", stagingFullPath, digest);
+            LOG.debug(
+                    "Deleting file <{}> because a file with same digest <{}> is already present in the object",
+                    stagingFullPath,
+                    digest);
             UncheckedFiles.delete(stagingFullPath);
             FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
         } else {
@@ -201,7 +211,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
      * {@inheritDoc}
      */
     @Override
-    public OcflObjectUpdater reinstateFile(VersionNum sourceVersionNum, String sourcePath, String destinationPath, OcflOption... options) {
+    public OcflObjectUpdater reinstateFile(
+            VersionNum sourceVersionNum, String sourcePath, String destinationPath, OcflOption... options) {
         Enforce.notNull(sourceVersionNum, "sourceVersionNum cannot be null");
         Enforce.notBlank(sourcePath, "sourcePath cannot be blank");
         Enforce.notBlank(destinationPath, "destinationPath cannot be blank");
@@ -233,8 +244,12 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         Enforce.notNull(algorithm, "algorithm cannot be null");
         Enforce.notBlank(value, "value cannot be null");
 
-        LOG.debug("Add file fixity for file <{}> in object <{}>: Algorithm: {}; Value: {}",
-                logicalPath, inventory.getId(), algorithm.getOcflName(), value);
+        LOG.debug(
+                "Add file fixity for file <{}> in object <{}>: Algorithm: {}; Value: {}",
+                logicalPath,
+                inventory.getId(),
+                algorithm.getOcflName(),
+                value);
 
         var digest = inventoryUpdater.getFixityDigest(logicalPath, algorithm);
         var alreadyExists = true;
@@ -243,12 +258,14 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
             alreadyExists = false;
 
             if (!stagedFileMap.containsKey(logicalPath)) {
-                throw new OcflInputException(
-                        String.format("%s was not newly added in this update. Fixity information can only be added on new files.", logicalPath));
+                throw new OcflInputException(String.format(
+                        "%s was not newly added in this update. Fixity information can only be added on new files.",
+                        logicalPath));
             }
 
             if (!algorithm.hasJavaStandardName()) {
-                throw new OcflInputException("The specified digest algorithm is not mapped to a Java name: " + algorithm);
+                throw new OcflInputException(
+                        "The specified digest algorithm is not mapped to a Java name: " + algorithm);
             }
 
             var file = stagedFileMap.get(logicalPath);
@@ -258,7 +275,8 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         }
 
         if (!value.equalsIgnoreCase(digest)) {
-            throw new FixityCheckException(String.format("Expected %s digest of %s to be %s, but was %s.",
+            throw new FixityCheckException(String.format(
+                    "Expected %s digest of %s to be %s, but was %s.",
                     algorithm.getJavaStandardName(), logicalPath, value, digest));
         }
 
@@ -307,5 +325,4 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
         return new DigestInputStream(input, inventory.getDigestAlgorithm().getMessageDigest());
     }
-
 }

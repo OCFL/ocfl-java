@@ -46,14 +46,9 @@ public class SimpleVersion {
 
     private Map<String, String> invertedState;
 
-    public SimpleVersion() {
-    }
+    public SimpleVersion() {}
 
-    public SimpleVersion(
-            String created,
-            String message,
-            SimpleUser user,
-            Map<String, List<String>> state) {
+    public SimpleVersion(String created, String message, SimpleUser user, Map<String, List<String>> state) {
         this.created = created;
         this.message = message;
         this.user = user;
@@ -116,12 +111,11 @@ public class SimpleVersion {
 
     @Override
     public String toString() {
-        return "SimpleVersion{" +
-                "created='" + created + '\'' +
-                ", message='" + message + '\'' +
-                ", user=" + user +
-                ", state=" + state +
-                '}';
+        return "SimpleVersion{" + "created='"
+                + created + '\'' + ", message='"
+                + message + '\'' + ", user="
+                + user + ", state="
+                + state + '}';
     }
 
     @Override

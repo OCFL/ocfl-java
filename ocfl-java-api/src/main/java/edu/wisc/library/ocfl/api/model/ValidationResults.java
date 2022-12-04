@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 
 /**
@@ -39,9 +38,10 @@ public class ValidationResults {
     private final List<ValidationIssue> infos;
 
     @JsonCreator
-    public ValidationResults(@JsonProperty("errors") List<ValidationIssue> errors,
-                             @JsonProperty("warnings") List<ValidationIssue> warnings,
-                             @JsonProperty("infos") List<ValidationIssue> infos) {
+    public ValidationResults(
+            @JsonProperty("errors") List<ValidationIssue> errors,
+            @JsonProperty("warnings") List<ValidationIssue> warnings,
+            @JsonProperty("infos") List<ValidationIssue> infos) {
         this.errors = errors;
         this.warnings = warnings;
         this.infos = infos;
@@ -91,10 +91,6 @@ public class ValidationResults {
 
     @Override
     public String toString() {
-        return "ValidationResults{" +
-                "errors=" + errors +
-                ", warnings=" + warnings +
-                ", infos=" + infos +
-                '}';
+        return "ValidationResults{" + "errors=" + errors + ", warnings=" + warnings + ", infos=" + infos + '}';
     }
 }

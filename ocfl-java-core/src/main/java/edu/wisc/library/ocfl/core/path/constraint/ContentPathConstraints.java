@@ -51,23 +51,23 @@ public final class ContentPathConstraints {
     private static final char ASCII_CTRL_EXT_START = 127;
     private static final char ASCII_CTRL_EXT_END = 160;
 
-    private static final FileNameConstraint NO_SPACE_OR_PERIOD_AT_END = RegexPathConstraint.mustNotContain(Pattern.compile("^.*[ .]$"));
-    private static final FileNameConstraint NO_WINDOWS_RESERVED_WORDS = RegexPathConstraint.mustNotContain(Pattern.compile(
-            "^(?:CON|PRN|AUX|NUL|" +
-                    "COM1|COM2|COM3|COM4|" +
-                    "COM5|COM6|COM7|COM8|" +
-                    "COM9|LPT1|LPT2|LPT3|" +
-                    "LPT4|LPT5|LPT6|LPT7|" +
-                    "LPT8|LPT9)(?:\\.[^.]+)?$",
-            Pattern.CASE_INSENSITIVE
-    ));
+    private static final FileNameConstraint NO_SPACE_OR_PERIOD_AT_END =
+            RegexPathConstraint.mustNotContain(Pattern.compile("^.*[ .]$"));
+    private static final FileNameConstraint NO_WINDOWS_RESERVED_WORDS =
+            RegexPathConstraint.mustNotContain(Pattern.compile(
+                    "^(?:CON|PRN|AUX|NUL|" + "COM1|COM2|COM3|COM4|"
+                            + "COM5|COM6|COM7|COM8|"
+                            + "COM9|LPT1|LPT2|LPT3|"
+                            + "LPT4|LPT5|LPT6|LPT7|"
+                            + "LPT8|LPT9)(?:\\.[^.]+)?$",
+                    Pattern.CASE_INSENSITIVE));
 
-    private static final PathCharConstraint NO_ASCII_CTRL = BitSetPathCharConstraint.blockListRange(ASCII_CTRL_START, ASCII_CTRL_END);
-    private static final PathCharConstraint NO_ASCII_EXT_CTRL = BitSetPathCharConstraint.blockListRange(ASCII_CTRL_EXT_START, ASCII_CTRL_EXT_END);
+    private static final PathCharConstraint NO_ASCII_CTRL =
+            BitSetPathCharConstraint.blockListRange(ASCII_CTRL_START, ASCII_CTRL_END);
+    private static final PathCharConstraint NO_ASCII_EXT_CTRL =
+            BitSetPathCharConstraint.blockListRange(ASCII_CTRL_EXT_START, ASCII_CTRL_EXT_END);
 
-    private ContentPathConstraints() {
-
-    }
+    private ContentPathConstraints() {}
 
     /**
      * Constructs a ContentPathConstraintProcessor that applies the minimum path constraints on a unix based filesystem.
@@ -137,7 +137,8 @@ public final class ContentPathConstraints {
                         .fileNameConstraint(NO_SPACE_OR_PERIOD_AT_END) // Azure
                         .charConstraint(NO_ASCII_CTRL) // Azure & Google
                         .charConstraint(NO_ASCII_EXT_CTRL) // Google
-                        .charConstraint(BitSetPathCharConstraint.blockList('\\', '#', '[', ']', '*', '?')) // Azure & Google (mostly Google)
+                        .charConstraint(BitSetPathCharConstraint.blockList(
+                                '\\', '#', '[', ']', '*', '?')) // Azure & Google (mostly Google)
                         .build())
                 .build();
     }
@@ -172,7 +173,7 @@ public final class ContentPathConstraints {
                         .charConstraint(NO_ASCII_EXT_CTRL) // Google
                         .charConstraint(BitSetPathCharConstraint.blockList(
                                 '<', '>', ':', '"', '\\', '|', '?', '*', '#', '[', ']' // Windows & Google
-                        ))
+                                ))
                         .build())
                 .build();
     }
@@ -193,5 +194,4 @@ public final class ContentPathConstraints {
     public static ContentPathConstraintProcessor minimal() {
         return DefaultContentPathConstraintProcessor.builder().build();
     }
-
 }

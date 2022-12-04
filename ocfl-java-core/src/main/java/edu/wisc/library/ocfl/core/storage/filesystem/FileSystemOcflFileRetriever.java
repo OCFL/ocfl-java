@@ -29,7 +29,6 @@ import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -56,10 +55,10 @@ public class FileSystemOcflFileRetriever implements OcflFileRetriever {
     @Override
     public FixityCheckInputStream retrieveFile() {
         try {
-            return new FixityCheckInputStream(new BufferedInputStream(Files.newInputStream(filePath)), digestAlgorithm, digestValue);
+            return new FixityCheckInputStream(
+                    new BufferedInputStream(Files.newInputStream(filePath)), digestAlgorithm, digestValue);
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }
     }
-
 }

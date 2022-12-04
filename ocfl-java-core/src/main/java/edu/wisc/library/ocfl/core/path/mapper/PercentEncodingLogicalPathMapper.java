@@ -29,5 +29,4 @@ public class PercentEncodingLogicalPathMapper implements LogicalPathMapper {
     public String toContentPathPart(String logicalPath) {
         return percentEscaper.escape(logicalPath);
     }
-
 }

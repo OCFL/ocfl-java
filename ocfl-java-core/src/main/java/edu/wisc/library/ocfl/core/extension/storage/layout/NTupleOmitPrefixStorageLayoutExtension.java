@@ -28,10 +28,9 @@ import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.regex.Pattern;
 
 /**
  * Implementation of the <a href=
@@ -88,8 +87,8 @@ public class NTupleOmitPrefixStorageLayoutExtension implements OcflStorageLayout
         Enforce.notNull(config, "configFile cannot be null");
 
         if (!(config instanceof NTupleOmitPrefixStorageLayoutConfig)) {
-            throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s",
-                    getExtensionConfigClass(), config));
+            throw new OcflExtensionException(String.format(
+                    "This extension only supports %s configuration. Received: %s", getExtensionConfigClass(), config));
         }
 
         this.config = (NTupleOmitPrefixStorageLayoutConfig) config;
@@ -119,7 +118,8 @@ public class NTupleOmitPrefixStorageLayoutExtension implements OcflStorageLayout
         int index = id.lastIndexOf(delimiter);
 
         if (index == -1) {
-            throw new OcflExtensionException(String.format("The delimiter %s cannot be found in %s.", delimiter, objectId));
+            throw new OcflExtensionException(
+                    String.format("The delimiter %s cannot be found in %s.", delimiter, objectId));
         }
 
         String section = objectId.substring(index + delimiter.length());
@@ -158,5 +158,4 @@ public class NTupleOmitPrefixStorageLayoutExtension implements OcflStorageLayout
         pathBuilder.append(baseObjectId);
         return pathBuilder.toString();
     }
-
 }

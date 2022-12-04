@@ -24,11 +24,11 @@
 
 package edu.wisc.library.ocfl.core.db;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 
 public class MariaDbObjectDetailsDatabase extends BaseObjectDetailsDatabase {
 
@@ -36,15 +36,18 @@ public class MariaDbObjectDetailsDatabase extends BaseObjectDetailsDatabase {
     private static final String DEADLOCK_STATE = "40001";
     private static final String DUPLICATE_KEY_STATE = "23000";
 
-    public MariaDbObjectDetailsDatabase(String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
+    public MariaDbObjectDetailsDatabase(
+            String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
         super(tableName, dataSource, storeInventory, waitTime, timeUnit, LOCK_FAIL_STATE);
     }
 
     @Override
     protected String updateDetailsQuery(String tableName) {
-        return String.format("UPDATE %s SET" +
-                " version_id = ?, object_root_path = ?, revision_id = ?, inventory_digest = ?, digest_algorithm = ?," +
-                " inventory = ?, update_timestamp = ? WHERE object_id = ?", tableName);
+        return String.format(
+                "UPDATE %s SET"
+                        + " version_id = ?, object_root_path = ?, revision_id = ?, inventory_digest = ?, digest_algorithm = ?,"
+                        + " inventory = ?, update_timestamp = ? WHERE object_id = ?",
+                tableName);
     }
 
     /**

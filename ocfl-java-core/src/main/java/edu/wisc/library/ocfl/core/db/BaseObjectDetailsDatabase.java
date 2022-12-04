@@ -33,10 +33,6 @@ import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.RevisionNum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -50,6 +46,9 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase {
 
@@ -70,12 +69,13 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
     private final String selectDigestQuery;
     private final String deleteAllQuery;
 
-    public BaseObjectDetailsDatabase(String tableName,
-                                     DataSource dataSource,
-                                     boolean storeInventory,
-                                     long waitTime,
-                                     TimeUnit timeUnit,
-                                     String lockFailCode) {
+    public BaseObjectDetailsDatabase(
+            String tableName,
+            DataSource dataSource,
+            boolean storeInventory,
+            long waitTime,
+            TimeUnit timeUnit,
+            String lockFailCode) {
         this.tableName = Enforce.notBlank(tableName, "tableName cannot be blank");
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.storeInventory = storeInventory;
@@ -121,9 +121,11 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
      * @return the query string
      */
     protected String selectDetailsQuery(String tableName) {
-        return String.format("SELECT" +
-                " object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp" +
-                " FROM %s WHERE object_id = ?", tableName);
+        return String.format(
+                "SELECT"
+                        + " object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp"
+                        + " FROM %s WHERE object_id = ?",
+                tableName);
     }
 
     /**
@@ -153,10 +155,12 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
      * @return the query string
      */
     protected String updateDetailsQuery(String tableName) {
-        return String.format("UPDATE %s SET" +
-                " (version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
-                " = (?, ?, ?, ?, ?, ?, ?)" +
-                " WHERE object_id = ?", tableName);
+        return String.format(
+                "UPDATE %s SET"
+                        + " (version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)"
+                        + " = (?, ?, ?, ?, ?, ?, ?)"
+                        + " WHERE object_id = ?",
+                tableName);
     }
 
     /**
@@ -166,9 +170,11 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
      * @return the query string
      */
     protected String insertDetailsQuery(String tableName) {
-        return String.format("INSERT INTO %s" +
-                " (object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)" +
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", tableName);
+        return String.format(
+                "INSERT INTO %s"
+                        + " (object_id, version_id, object_root_path, revision_id, inventory_digest, digest_algorithm, inventory, update_timestamp)"
+                        + " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                tableName);
     }
 
     /**
@@ -250,7 +256,8 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
      * {@inheritDoc}
      */
     @Override
-    public void updateObjectDetails(Inventory inventory, String inventoryDigest, Path inventoryFile, Runnable runnable) {
+    public void updateObjectDetails(
+            Inventory inventory, String inventoryDigest, Path inventoryFile, Runnable runnable) {
         Enforce.notNull(inventory, "inventory cannot be null");
         Enforce.notBlank(inventoryDigest, "inventoryDigest cannot be blank");
         Enforce.notNull(inventoryFile, "inventoryFile cannot be null");
@@ -307,7 +314,8 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         }
     }
 
-    private void updateObjectDetailsInternal(Inventory inventory, String inventoryDigest, InputStream inventoryStream, Runnable runnable) {
+    private void updateObjectDetailsInternal(
+            Inventory inventory, String inventoryDigest, InputStream inventoryStream, Runnable runnable) {
         try (var connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             setLockWaitTimeout(connection, waitMillis);
@@ -327,7 +335,9 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         }
     }
 
-    private void insertInventory(Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream) throws SQLException {
+    private void insertInventory(
+            Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream)
+            throws SQLException {
         try (var lockStatement = connection.prepareStatement(rowLockQuery)) {
             lockStatement.setString(1, inventory.getId());
 
@@ -348,7 +358,9 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         }
     }
 
-    private void executeUpdateDetails(Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream) throws SQLException {
+    private void executeUpdateDetails(
+            Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream)
+            throws SQLException {
         try (var insertStatement = connection.prepareStatement(updateDetailsQuery)) {
             insertStatement.setString(1, inventory.getHead().toString());
             insertStatement.setString(2, inventory.getObjectRootPath());
@@ -367,7 +379,9 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         }
     }
 
-    private void executeInsertDetails(Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream) throws SQLException {
+    private void executeInsertDetails(
+            Connection connection, Inventory inventory, String inventoryDigest, InputStream inventoryStream)
+            throws SQLException {
         try (var insertStatement = connection.prepareStatement(insertDetailsQuery)) {
             insertStatement.setString(1, inventory.getId());
             insertStatement.setString(2, inventory.getHead().toString());
@@ -420,7 +434,8 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         return RevisionNum.fromString(revisionNum);
     }
 
-    private void verifyObjectDetailsState(VersionNum existingVersionNum, RevisionNum existingRevisionNum, Inventory inventory) {
+    private void verifyObjectDetailsState(
+            VersionNum existingVersionNum, RevisionNum existingRevisionNum, Inventory inventory) {
         if (existingRevisionNum != null) {
             if (!Objects.equals(existingVersionNum, inventory.getHead())) {
                 throw outOfSyncException(inventory.getId());
@@ -431,7 +446,8 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
         } else {
             if (!Objects.equals(existingVersionNum.nextVersionNum(), inventory.getHead())) {
                 throw outOfSyncException(inventory.getId());
-            } else if (inventory.getRevisionNum() != null && !Objects.equals(RevisionNum.R1, inventory.getRevisionNum())) {
+            } else if (inventory.getRevisionNum() != null
+                    && !Objects.equals(RevisionNum.R1, inventory.getRevisionNum())) {
                 throw outOfSyncException(inventory.getId());
             }
         }
@@ -439,7 +455,8 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
 
     private ObjectOutOfSyncException outOfSyncException(String objectId) {
         throw new ObjectOutOfSyncException(String.format(
-                "Cannot update object %s because its state is out of sync with the current state in the database.", objectId));
+                "Cannot update object %s because its state is out of sync with the current state in the database.",
+                objectId));
     }
 
     private void throwLockException(SQLException e, String objectId) {
@@ -461,5 +478,4 @@ public abstract class BaseObjectDetailsDatabase implements ObjectDetailsDatabase
             LOG.warn("Failed to enable autocommit", e);
         }
     }
-
 }

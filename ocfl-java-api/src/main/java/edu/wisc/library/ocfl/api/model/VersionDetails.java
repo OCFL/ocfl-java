@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashMap;
@@ -182,14 +181,13 @@ public class VersionDetails {
 
     @Override
     public String toString() {
-        return "VersionDetails{" +
-                "objectVersionId=" + objectVersionId +
-                ", objectOcflVersion=" + objectOcflVersion +
-                ", created=" + created +
-                ", versionInfo=" + versionInfo +
-                ", mutable=" + mutable +
-                ", fileMap=" + fileMap +
-                '}';
+        return "VersionDetails{" + "objectVersionId="
+                + objectVersionId + ", objectOcflVersion="
+                + objectOcflVersion + ", created="
+                + created + ", versionInfo="
+                + versionInfo + ", mutable="
+                + mutable + ", fileMap="
+                + fileMap + '}';
     }
 
     @Override

@@ -27,14 +27,13 @@ package edu.wisc.library.ocfl.test.matcher;
 import edu.wisc.library.ocfl.api.model.FileDetails;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionNum;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Objects;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Objects;
 
 public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
 
@@ -43,7 +42,11 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
     private final VersionInfoMatcher versionInfoMatcher;
     private final Collection<Matcher<FileDetails>> fileDetailsMatchers;
 
-    VersionDetailsMatcher(String objectId, String versionNum, VersionInfoMatcher versionInfoMatcher, FileDetailsMatcher... fileDetailsMatchers) {
+    VersionDetailsMatcher(
+            String objectId,
+            String versionNum,
+            VersionInfoMatcher versionInfoMatcher,
+            FileDetailsMatcher... fileDetailsMatchers) {
         this.objectId = objectId;
         this.versionNum = VersionNum.fromString(versionNum);
         this.versionInfoMatcher = versionInfoMatcher;
@@ -61,7 +64,8 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("VersionDetails{objectId=")
+        description
+                .appendText("VersionDetails{objectId=")
                 .appendValue(objectId)
                 .appendText(", versionNum=")
                 .appendValue(versionNum)
@@ -71,5 +75,4 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
                 .appendList("[", ",", "]", fileDetailsMatchers)
                 .appendText("}");
     }
-
 }

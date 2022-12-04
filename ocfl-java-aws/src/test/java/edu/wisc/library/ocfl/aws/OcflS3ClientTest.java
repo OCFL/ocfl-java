@@ -1,10 +1,27 @@
 package edu.wisc.library.ocfl.aws;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import at.favre.lib.bytes.Bytes;
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import edu.wisc.library.ocfl.core.storage.cloud.KeyNotFoundException;
 import edu.wisc.library.ocfl.core.storage.cloud.ListResult;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,29 +38,12 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 public class OcflS3ClientTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(OcflS3ClientTest.class);
 
-    private static final String REPO_PREFIX = "OcflS3ClientTest-" + ThreadLocalRandom.current().nextLong();
+    private static final String REPO_PREFIX =
+            "OcflS3ClientTest-" + ThreadLocalRandom.current().nextLong();
 
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
@@ -65,8 +65,8 @@ public class OcflS3ClientTest {
             LOG.info("Running tests against AWS");
             awsS3Client = S3Client.builder()
                     .region(Region.US_EAST_2)
-                    .credentialsProvider(StaticCredentialsProvider.create(
-                            AwsBasicCredentials.create(accessKey, secretKey)))
+                    .credentialsProvider(
+                            StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                     .httpClientBuilder(ApacheHttpClient.builder())
                     .build();
             OcflS3ClientTest.bucket = bucket;
@@ -124,12 +124,16 @@ public class OcflS3ClientTest {
         assertObjectsExist(bucket, List.of(key1, key2));
 
         try (var response = awsS3Client.getObject(builder -> {
-            builder.bucket(bucket).key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key1)).build();
+            builder.bucket(bucket)
+                    .key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key1))
+                    .build();
         })) {
             assertEquals("text/plain", response.response().contentType());
         }
         try (var response = awsS3Client.getObject(builder -> {
-            builder.bucket(bucket).key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key2)).build();
+            builder.bucket(bucket)
+                    .key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key2))
+                    .build();
         })) {
             assertEquals("application/octet-stream", response.response().contentType());
         }
@@ -180,12 +184,16 @@ public class OcflS3ClientTest {
         assertObjectsExist(bucket, List.of(key1, key2));
 
         try (var response = awsS3Client.getObject(builder -> {
-            builder.bucket(bucket).key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key1)).build();
+            builder.bucket(bucket)
+                    .key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key1))
+                    .build();
         })) {
             assertEquals("text/plain", response.response().contentType());
         }
         try (var response = awsS3Client.getObject(builder -> {
-            builder.bucket(bucket).key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key2)).build();
+            builder.bucket(bucket)
+                    .key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key2))
+                    .build();
         })) {
             assertEquals("binary/octet-stream", response.response().contentType());
         }
@@ -390,7 +398,8 @@ public class OcflS3ClientTest {
 
     private Path createFile(String content) {
         try {
-            return Files.writeString(tempDir.resolve("temp-file-" + ThreadLocalRandom.current().nextLong()), content);
+            return Files.writeString(
+                    tempDir.resolve("temp-file-" + ThreadLocalRandom.current().nextLong()), content);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -402,13 +411,15 @@ public class OcflS3ClientTest {
 
     private void assertObjectListingDir(String key, ListResult.ObjectListing actual) {
         assertEquals(key, actual.getKey().getPath());
-        assertEquals(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key), actual.getKey().getKey());
+        assertEquals(
+                FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key), actual.getKey().getKey());
         assertEquals(key.substring(key.lastIndexOf('/') + 1), actual.getKeySuffix());
     }
 
     private void assertObjectListingAll(String searchPrefix, String key, ListResult.ObjectListing actual) {
         assertEquals(key, actual.getKey().getPath());
-        assertEquals(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key), actual.getKey().getKey());
+        assertEquals(
+                FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key), actual.getKey().getKey());
         assertEquals(key.substring(searchPrefix.length() + 1), actual.getKeySuffix());
     }
 
@@ -419,10 +430,10 @@ public class OcflS3ClientTest {
                 .build());
 
         var actualKeys = result.contents().stream().map(S3Object::key).collect(Collectors.toList());
-        var prefixedExpected = expectedKeys.stream().map(k -> FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, k))
+        var prefixedExpected = expectedKeys.stream()
+                .map(k -> FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, k))
                 .collect(Collectors.toList());
 
         assertThat(actualKeys, containsInAnyOrder(prefixedExpected.toArray(String[]::new)));
     }
-
 }

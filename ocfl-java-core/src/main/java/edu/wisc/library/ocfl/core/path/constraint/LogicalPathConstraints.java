@@ -31,14 +31,13 @@ import java.util.regex.Pattern;
  */
 public final class LogicalPathConstraints {
 
-    private LogicalPathConstraints() {
-
-    }
+    private LogicalPathConstraints() {}
 
     private static final PathConstraint LEADING_SLASH_CONSTRAINT = BeginEndPathConstraint.mustNotBeginWith("/");
     private static final PathConstraint TRAILING_SLASH_CONSTRAINT = BeginEndPathConstraint.mustNotEndWith("/");
     private static final FileNameConstraint NOT_EMPTY_CONSTRAINT = new NonEmptyFileNameConstraint();
-    private static final FileNameConstraint NO_DOTS_CONSTRAINT = RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$"));
+    private static final FileNameConstraint NO_DOTS_CONSTRAINT =
+            RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$"));
 
     private static final PathConstraintProcessor CONSTRAINTS_WITHOUT_BACKSLASH_CHECK = PathConstraintProcessor.builder()
             .pathConstraint(LEADING_SLASH_CONSTRAINT)
@@ -88,5 +87,4 @@ public final class LogicalPathConstraints {
     public static PathConstraintProcessor constraintsWithBackslashCheck() {
         return CONSTRAINTS_WITH_BACKSLASH_CHECK;
     }
-
 }

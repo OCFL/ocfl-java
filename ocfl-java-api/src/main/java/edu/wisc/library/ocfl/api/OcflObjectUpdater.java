@@ -28,7 +28,6 @@ import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OverwriteException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
-
 import java.io.InputStream;
 import java.nio.file.Path;
 
@@ -168,12 +167,13 @@ public interface OcflObjectUpdater {
      * @throws OverwriteException if there is already a file at the destinationPath and {@link OcflOption#OVERWRITE} was
      *                            not specified
      */
-    OcflObjectUpdater reinstateFile(VersionNum sourceVersionNum, String sourcePath, String destinationPath, OcflOption... options);
+    OcflObjectUpdater reinstateFile(
+            VersionNum sourceVersionNum, String sourcePath, String destinationPath, OcflOption... options);
 
     /**
      * The state of the current version of the object is cleared so that it does not reference any files. No files are deleted.
      * This can be useful to simulate {@link OcflRepository#putObject} like behavior.
-     * 
+     *
      * @return this
      */
     OcflObjectUpdater clearVersionState();
@@ -205,7 +205,7 @@ public interface OcflObjectUpdater {
      * @return this
      */
     OcflObjectUpdater clearFixityBlock();
-    
+
     // TODO add api for purging a file in an object
 
 }

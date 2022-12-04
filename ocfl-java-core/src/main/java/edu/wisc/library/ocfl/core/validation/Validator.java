@@ -24,6 +24,8 @@
 
 package edu.wisc.library.ocfl.core.validation;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS;
+
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
@@ -48,9 +50,6 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.MultiDigestInputStream;
 import edu.wisc.library.ocfl.core.util.NamasteTypeFile;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -68,8 +67,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static edu.wisc.library.ocfl.api.OcflConstants.VALID_INVENTORY_ALGORITHMS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Validates an object directory against the OCFL 1.0 and 1.1 spec
@@ -87,8 +86,7 @@ public class Validator {
             OcflConstants.MUTABLE_HEAD_EXT_NAME,
             OcflConstants.DIGEST_ALGORITHMS_EXT_NAME,
             // TODO technically the contents of this should be examined
-            OcflConstants.INIT_EXT
-    );
+            OcflConstants.INIT_EXT);
 
     private final Storage fileSystem;
     private final SimpleInventoryParser inventoryParser;
@@ -144,15 +142,20 @@ public class Validator {
 
             if (files.contains(Listing.file(OcflConstants.INVENTORY_FILE))) {
                 var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
-                parseResult.inventory.ifPresent(inventory ->
-                        validateObjectWithInventory(objectRootPath, ocflVersion, files, inventoryPath, inventory,
-                                parseResult.digests, parseResult.isValid, contentFixityCheck, results));
+                parseResult.inventory.ifPresent(inventory -> validateObjectWithInventory(
+                        objectRootPath,
+                        ocflVersion,
+                        files,
+                        inventoryPath,
+                        inventory,
+                        parseResult.digests,
+                        parseResult.isValid,
+                        contentFixityCheck,
+                        results));
             } else {
-                results.addIssue(ValidationCode.E063,
-                        "Object root inventory not found at %s", inventoryPath);
+                results.addIssue(ValidationCode.E063, "Object root inventory not found at %s", inventoryPath);
             }
         }
-
 
         return results.build();
     }
@@ -181,37 +184,39 @@ public class Validator {
         return results.build();
     }
 
-    private void validateObjectWithInventory(String objectRootPath,
-                                             OcflVersion ocflVersion,
-                                             List<Listing> rootFiles,
-                                             String inventoryPath,
-                                             SimpleInventory rootInventory,
-                                             Map<DigestAlgorithm, String> inventoryDigests,
-                                             boolean inventoryIsValid,
-                                             boolean contentFixityCheck,
-                                             ValidationResultsBuilder results) {
+    private void validateObjectWithInventory(
+            String objectRootPath,
+            OcflVersion ocflVersion,
+            List<Listing> rootFiles,
+            String inventoryPath,
+            SimpleInventory rootInventory,
+            Map<DigestAlgorithm, String> inventoryDigests,
+            boolean inventoryIsValid,
+            boolean contentFixityCheck,
+            ValidationResultsBuilder results) {
         var ignoreFiles = new HashSet<String>();
         ignoreFiles.add(OcflConstants.INVENTORY_FILE);
         ignoreFiles.add(new NamasteTypeFile(ocflVersion.getOcflObjectVersion()).fileName());
 
-        var validationResults = inventoryValidator.validateInventory(rootInventory,
-                inventoryPath,
-                ocflVersion,
-                SimpleInventoryValidator.VersionEquality.EQUAL);
+        var validationResults = inventoryValidator.validateInventory(
+                rootInventory, inventoryPath, ocflVersion, SimpleInventoryValidator.VersionEquality.EQUAL);
         results.addAll(validationResults);
 
-        validateSidecar(inventoryPath, rootInventory, inventoryDigests, results)
-                .ifPresent(ignoreFiles::add);
+        validateSidecar(inventoryPath, rootInventory, inventoryDigests, results).ifPresent(ignoreFiles::add);
 
         var seenVersions = validateObjectRootContents(objectRootPath, rootFiles, ignoreFiles, rootInventory, results);
 
         if (inventoryIsValid && !validationResults.hasErrors()) {
             rootInventory.getVersions().keySet().stream()
                     .filter(version -> !seenVersions.containsValue(version))
-                    .forEach(version -> results.addIssue(ValidationCode.E010,
-                                "Object root at %s is missing version directory %s", objectRootPath, version));
+                    .forEach(version -> results.addIssue(
+                            ValidationCode.E010,
+                            "Object root at %s is missing version directory %s",
+                            objectRootPath,
+                            version));
 
-            var rootDigest = inventoryDigests.get(DigestAlgorithmRegistry.getAlgorithm(rootInventory.getDigestAlgorithm()));
+            var rootDigest =
+                    inventoryDigests.get(DigestAlgorithmRegistry.getAlgorithm(rootInventory.getDigestAlgorithm()));
 
             var contentFiles = findAllContentFiles(objectRootPath, rootInventory, results);
             var manifests = new Manifests(rootInventory);
@@ -229,7 +234,8 @@ public class Validator {
                 if (Objects.equals(rootInventory.getHead(), versionStr)) {
                     validateHeadVersion(objectRootPath, rootInventory, rootDigest, results);
                 } else {
-                    var currentVersion = validateVersion(objectRootPath,
+                    var currentVersion = validateVersion(
+                            objectRootPath,
                             versionStr,
                             rootInventory,
                             previousVersion,
@@ -249,7 +255,8 @@ public class Validator {
                 fixityCheck(objectRootPath, rootInventory, manifests, results);
             }
         } else {
-            LOG.debug("Skipping further validation of the object at {} because its inventory is invalid", objectRootPath);
+            LOG.debug(
+                    "Skipping further validation of the object at {} because its inventory is invalid", objectRootPath);
         }
     }
 
@@ -257,14 +264,15 @@ public class Validator {
      * Validates the object version and returns the OCFL version the object version adheres too, or null if the
      * inventory is invalid.
      */
-    private OcflVersion validateVersion(String objectRootPath,
-                                        String versionStr,
-                                        SimpleInventory rootInventory,
-                                        OcflVersion ocflVersion,
-                                        ContentPaths contentFiles,
-                                        Manifests manifests,
-                                        Map<String, SimpleInventory> inventoryMap,
-                                        ValidationResultsBuilder results) {
+    private OcflVersion validateVersion(
+            String objectRootPath,
+            String versionStr,
+            SimpleInventory rootInventory,
+            OcflVersion ocflVersion,
+            ContentPaths contentFiles,
+            Manifests manifests,
+            Map<String, SimpleInventory> inventoryMap,
+            ValidationResultsBuilder results) {
         OcflVersion thisVersion = null;
         var versionPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr);
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
@@ -281,7 +289,8 @@ public class Validator {
             var parseResult = parseInventory(inventoryPath, results, VALID_INVENTORY_ALGORITHMS);
             if (parseResult.inventory.isPresent()) {
                 var inventory = parseResult.inventory.get();
-                var validationResults = inventoryValidator.validateInventory(inventory,
+                var validationResults = inventoryValidator.validateInventory(
+                        inventory,
                         inventoryPath,
                         ocflVersion,
                         SimpleInventoryValidator.VersionEquality.LESS_THAN_OR_EQUAL);
@@ -292,15 +301,30 @@ public class Validator {
 
                 var versionContentDir = defaultedContentDir(inventory);
 
-                results.addIssue(areEqual(rootInventory.getId(), inventory.getId(), ValidationCode.E110,
-                        "Inventory id is inconsistent between versions in %s. Expected: %s; Found: %s",
-                        inventoryPath, rootInventory.getId(), inventory.getId()))
+                results.addIssue(areEqual(
+                                rootInventory.getId(),
+                                inventory.getId(),
+                                ValidationCode.E110,
+                                "Inventory id is inconsistent between versions in %s. Expected: %s; Found: %s",
+                                inventoryPath,
+                                rootInventory.getId(),
+                                inventory.getId()))
                         // TODO suspect code
-                        .addIssue(areEqual(versionStr, inventory.getHead(), ValidationCode.E040,
-                                "Inventory head must be %s in %s", versionStr, inventoryPath))
-                        .addIssue(areEqual(contentDir, versionContentDir, ValidationCode.E019,
+                        .addIssue(areEqual(
+                                versionStr,
+                                inventory.getHead(),
+                                ValidationCode.E040,
+                                "Inventory head must be %s in %s",
+                                versionStr,
+                                inventoryPath))
+                        .addIssue(areEqual(
+                                contentDir,
+                                versionContentDir,
+                                ValidationCode.E019,
                                 "Inventory content directory is inconsistent between versions in %s. Expected: %s; Found: %s",
-                                inventoryPath, contentDir, versionContentDir));
+                                inventoryPath,
+                                contentDir,
+                                versionContentDir));
 
                 if (parseResult.isValid && !validationResults.hasErrors()) {
                     if (!Objects.equals(rootInventory.getDigestAlgorithm(), inventory.getDigestAlgorithm())
@@ -309,13 +333,15 @@ public class Validator {
                         inventoryMap.put(inventory.getDigestAlgorithm(), inventory);
                     }
 
-                    validateVersionIsConsistent(versionStr, rootInventory, inventory, inventoryPath, inventoryMap, results);
+                    validateVersionIsConsistent(
+                            versionStr, rootInventory, inventory, inventoryPath, inventoryMap, results);
                     validateContentFiles(inventoryPath, inventory, contentFiles, manifests, results);
                     thisVersion = InventoryType.fromValue(inventory.getType()).getOcflVersion();
                 }
             }
         } else {
-            results.addIssue(ValidationCode.W010, "Every version should contain an inventory. Missing: %s", inventoryPath);
+            results.addIssue(
+                    ValidationCode.W010, "Every version should contain an inventory. Missing: %s", inventoryPath);
         }
 
         validateVersionDirContents(objectRootPath, versionStr, contentDir, files, ignoreFiles, results);
@@ -323,10 +349,8 @@ public class Validator {
         return thisVersion;
     }
 
-    private void validateHeadVersion(String objectRootPath,
-                                     SimpleInventory rootInventory,
-                                     String rootDigest,
-                                     ValidationResultsBuilder results) {
+    private void validateHeadVersion(
+            String objectRootPath, SimpleInventory rootInventory, String rootDigest, ValidationResultsBuilder results) {
         var versionStr = rootInventory.getHead();
         var versionPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr);
         var inventoryPath = ObjectPaths.inventoryPath(versionPath);
@@ -343,31 +367,40 @@ public class Validator {
 
             var sidecarPath = inventoryPath + "." + rootInventory.getDigestAlgorithm();
             var sidecarDigest = validateInventorySidecar(sidecarPath, results);
-            var inventoryDigest = computeInventoryDigest(inventoryPath, DigestAlgorithmRegistry.getAlgorithm(rootInventory.getDigestAlgorithm()));
+            var inventoryDigest = computeInventoryDigest(
+                    inventoryPath, DigestAlgorithmRegistry.getAlgorithm(rootInventory.getDigestAlgorithm()));
 
             if (!rootDigest.equalsIgnoreCase(inventoryDigest)) {
-                results.addIssue(ValidationCode.E064,
-                        "Inventory at %s must be identical to the inventory in the object root", inventoryPath);
+                results.addIssue(
+                        ValidationCode.E064,
+                        "Inventory at %s must be identical to the inventory in the object root",
+                        inventoryPath);
             }
 
             if (sidecarDigest != null && !sidecarDigest.equalsIgnoreCase(inventoryDigest)) {
-                results.addIssue(ValidationCode.E060,
+                results.addIssue(
+                        ValidationCode.E060,
                         "Inventory at %s does not match expected %s digest. Expected: %s; Found: %s",
-                        inventoryPath, rootInventory.getDigestAlgorithm(), sidecarDigest, inventoryDigest);
+                        inventoryPath,
+                        rootInventory.getDigestAlgorithm(),
+                        sidecarDigest,
+                        inventoryDigest);
             }
         } else {
-            results.addIssue(ValidationCode.W010, "Every version should contain an inventory. Missing: %s", inventoryPath);
+            results.addIssue(
+                    ValidationCode.W010, "Every version should contain an inventory. Missing: %s", inventoryPath);
         }
 
         validateVersionDirContents(objectRootPath, versionStr, contentDir, files, ignoreFiles, results);
     }
 
-    private void validateVersionIsConsistent(String versionStr,
-                                             SimpleInventory rootInventory,
-                                             SimpleInventory inventory,
-                                             String inventoryPath,
-                                             Map<String, SimpleInventory> inventoryMap,
-                                             ValidationResultsBuilder results) {
+    private void validateVersionIsConsistent(
+            String versionStr,
+            SimpleInventory rootInventory,
+            SimpleInventory inventory,
+            String inventoryPath,
+            Map<String, SimpleInventory> inventoryMap,
+            ValidationResultsBuilder results) {
         var currentVersionNum = VersionNum.fromString(versionStr);
         var comparingInventory = inventoryMap.get(inventory.getDigestAlgorithm());
         var compareDigests = true;
@@ -382,20 +415,33 @@ public class Validator {
             var otherVersion = inventory.getVersions().get(currentVersionStr);
 
             if (otherVersion == null) {
-                results.addIssue(ValidationCode.E066,
-                        "Inventory is missing version %s in %s", currentVersionStr, inventoryPath);
+                results.addIssue(
+                        ValidationCode.E066, "Inventory is missing version %s in %s", currentVersionStr, inventoryPath);
             } else {
-                validateVersionState(comparingInventory, inventory, currentVersionNum, inventoryPath, compareDigests, results);
+                validateVersionState(
+                        comparingInventory, inventory, currentVersionNum, inventoryPath, compareDigests, results);
 
-                results.addIssue(areEqual(rootVersion.getCreated(), otherVersion.getCreated(), ValidationCode.W011,
+                results.addIssue(areEqual(
+                                rootVersion.getCreated(),
+                                otherVersion.getCreated(),
+                                ValidationCode.W011,
                                 "The version created timestamp of version %s in %s is inconsistent with the root inventory",
-                                currentVersionStr, inventoryPath))
-                        .addIssue(areEqual(rootVersion.getMessage(), otherVersion.getMessage(), ValidationCode.W011,
+                                currentVersionStr,
+                                inventoryPath))
+                        .addIssue(areEqual(
+                                rootVersion.getMessage(),
+                                otherVersion.getMessage(),
+                                ValidationCode.W011,
                                 "The version message of version %s in %s is inconsistent with the root inventory",
-                                currentVersionStr, inventoryPath))
-                        .addIssue(areEqual(rootVersion.getUser(), otherVersion.getUser(), ValidationCode.W011,
+                                currentVersionStr,
+                                inventoryPath))
+                        .addIssue(areEqual(
+                                rootVersion.getUser(),
+                                otherVersion.getUser(),
+                                ValidationCode.W011,
                                 "The version user of version %s in %s is inconsistent with the root inventory",
-                                currentVersionStr, inventoryPath));
+                                currentVersionStr,
+                                inventoryPath));
             }
 
             if (currentVersionNum.equals(VersionNum.V1)) {
@@ -406,12 +452,13 @@ public class Validator {
         }
     }
 
-    private void validateVersionState(SimpleInventory comparingInventory,
-                                      SimpleInventory inventory,
-                                      VersionNum currentVersion,
-                                      String inventoryPath,
-                                      boolean compareDigests,
-                                      ValidationResultsBuilder results) {
+    private void validateVersionState(
+            SimpleInventory comparingInventory,
+            SimpleInventory inventory,
+            VersionNum currentVersion,
+            String inventoryPath,
+            boolean compareDigests,
+            ValidationResultsBuilder results) {
         var comparingVersion = comparingInventory.getVersions().get(currentVersion.toString());
         var version = inventory.getVersions().get(currentVersion.toString());
         var invertedComparingState = new HashMap<>(comparingVersion.getInvertedState());
@@ -420,25 +467,35 @@ public class Validator {
             paths.forEach(path -> {
                 var comparingDigest = invertedComparingState.remove(path);
                 if (comparingDigest == null) {
-                    results.addIssue(ValidationCode.E066,
+                    results.addIssue(
+                            ValidationCode.E066,
                             "In %s version %s's state contains a path that does not exist in later inventories: %s",
-                            inventoryPath, currentVersion.toString(), path);
+                            inventoryPath,
+                            currentVersion.toString(),
+                            path);
                 } else {
                     if (compareDigests) {
                         if (!digest.equalsIgnoreCase(comparingDigest)) {
-                            results.addIssue(ValidationCode.E066,
+                            results.addIssue(
+                                    ValidationCode.E066,
                                     "In %s version %s's state contains a path that is inconsistent with later inventories: %s",
-                                    inventoryPath, currentVersion.toString(), path);
+                                    inventoryPath,
+                                    currentVersion.toString(),
+                                    path);
                         }
                     } else {
-                        var comparingContentPaths = comparingInventory.getManifest().get(comparingDigest);
+                        var comparingContentPaths =
+                                comparingInventory.getManifest().get(comparingDigest);
                         var contentPaths = inventory.getManifest().get(digest);
 
                         if (comparingContentPaths.size() == 1) {
                             if (!comparingContentPaths.equals(contentPaths)) {
-                                results.addIssue(ValidationCode.E066,
+                                results.addIssue(
+                                        ValidationCode.E066,
                                         "In %s version %s's state contains a path that is inconsistent with later inventories: %s",
-                                        inventoryPath, currentVersion.toString(), path);
+                                        inventoryPath,
+                                        currentVersion.toString(),
+                                        path);
                             }
                         } else {
                             var filteredPaths = new HashSet<String>();
@@ -450,9 +507,12 @@ public class Validator {
                             }
 
                             if (!filteredPaths.equals(new HashSet<>(contentPaths))) {
-                                results.addIssue(ValidationCode.E066,
+                                results.addIssue(
+                                        ValidationCode.E066,
                                         "In %s version %s's state contains a path that is inconsistent with later inventories: %s",
-                                        inventoryPath, currentVersion.toString(), path);
+                                        inventoryPath,
+                                        currentVersion.toString(),
+                                        path);
                             }
                         }
                     }
@@ -461,52 +521,67 @@ public class Validator {
         });
 
         invertedComparingState.keySet().forEach(path -> {
-            results.addIssue(ValidationCode.E066,
+            results.addIssue(
+                    ValidationCode.E066,
                     "In %s version %s's state is missing a path that exist in later inventories: %s",
-                    inventoryPath, currentVersion.toString(), path);
+                    inventoryPath,
+                    currentVersion.toString(),
+                    path);
         });
     }
 
-    private void validateContentFiles(String inventoryPath,
-                                      SimpleInventory inventory,
-                                      ContentPaths contentFiles,
-                                      Manifests manifests,
-                                      ValidationResultsBuilder results) {
+    private void validateContentFiles(
+            String inventoryPath,
+            SimpleInventory inventory,
+            ContentPaths contentFiles,
+            Manifests manifests,
+            ValidationResultsBuilder results) {
         var invertedManifest = inventory.getInvertedManifestCopy();
         var fixityPaths = getFixityPaths(inventory);
 
-        for (var it = contentFiles.pathsForVersion(VersionNum.fromString(inventory.getHead())); it.hasNext();) {
+        for (var it = contentFiles.pathsForVersion(VersionNum.fromString(inventory.getHead())); it.hasNext(); ) {
             var contentPath = it.next();
             var digest = invertedManifest.remove(contentPath);
             if (digest == null) {
-                results.addIssue(ValidationCode.E023,
+                results.addIssue(
+                        ValidationCode.E023,
                         "Object contains a file in version content that is not referenced in the manifest of %s: %s",
-                        inventoryPath, contentPath);
+                        inventoryPath,
+                        contentPath);
             } else {
                 var expectedDigest = manifests.getDigest(inventory.getDigestAlgorithm(), contentPath);
                 if (expectedDigest != null && !digest.equalsIgnoreCase(expectedDigest)) {
-                    results.addIssue(ValidationCode.E092,
+                    results.addIssue(
+                            ValidationCode.E092,
                             "Inventory manifest entry in %s for content path %s differs from later versions. Expected: %s; Found: %s",
-                            inventoryPath, contentPath, expectedDigest, digest);
+                            inventoryPath,
+                            contentPath,
+                            expectedDigest,
+                            digest);
                 }
             }
             fixityPaths.remove(contentPath);
         }
 
         invertedManifest.keySet().forEach(contentPath -> {
-            results.addIssue(ValidationCode.E092,
+            results.addIssue(
+                    ValidationCode.E092,
                     "Inventory manifest in %s contains a content path that does not exist: %s",
-                    inventoryPath, contentPath);
+                    inventoryPath,
+                    contentPath);
         });
 
         fixityPaths.forEach(contentPath -> {
-            results.addIssue(ValidationCode.E093,
+            results.addIssue(
+                    ValidationCode.E093,
                     "Inventory fixity in %s contains a content path that does not exist: %s",
-                    inventoryPath, contentPath);
+                    inventoryPath,
+                    contentPath);
         });
     }
 
-    private ContentPaths findAllContentFiles(String objectRootPath, SimpleInventory inventory, ValidationResultsBuilder results) {
+    private ContentPaths findAllContentFiles(
+            String objectRootPath, SimpleInventory inventory, ValidationResultsBuilder results) {
         var contentDir = defaultedContentDir(inventory);
 
         var files = new HashSet<String>(inventory.getManifest().size());
@@ -521,7 +596,8 @@ public class Validator {
                 var contentPath = FileUtil.pathJoinIgnoreEmpty(versionContentDir, listing.getRelativePath());
 
                 if (listing.isDirectory() && !versionContentPath.equals(contentPath)) {
-                    results.addIssue(ValidationCode.E024,
+                    results.addIssue(
+                            ValidationCode.E024,
                             "Object contains an empty directory within version content at %s",
                             fullPath);
                 } else {
@@ -533,10 +609,8 @@ public class Validator {
         return new ContentPaths(files);
     }
 
-    private void fixityCheck(String objectRootPath,
-                             SimpleInventory inventory,
-                             Manifests manifests,
-                             ValidationResultsBuilder results) {
+    private void fixityCheck(
+            String objectRootPath, SimpleInventory inventory, Manifests manifests, ValidationResultsBuilder results) {
         var invertedFixityMap = invertFixity(inventory);
         var contentAlgorithm = DigestAlgorithmRegistry.getAlgorithm(inventory.getDigestAlgorithm());
         var contentAlgorithms = new HashSet<DigestAlgorithm>();
@@ -581,32 +655,39 @@ public class Validator {
                     expectations.forEach((algorithm, expected) -> {
                         var actual = actualDigests.get(algorithm);
                         if (!expected.equalsIgnoreCase(actual)) {
-                            var code = contentAlgorithms.contains(algorithm) ? ValidationCode.E092 : ValidationCode.E093;
-                            results.addIssue(code,
+                            var code =
+                                    contentAlgorithms.contains(algorithm) ? ValidationCode.E092 : ValidationCode.E093;
+                            results.addIssue(
+                                    code,
                                     "File %s failed %s fixity check. Expected: %s; Actual: %s",
-                                    storagePath, algorithm.getOcflName(), expected, actual);
+                                    storagePath,
+                                    algorithm.getOcflName(),
+                                    expected,
+                                    actual);
                         }
                     });
                 } catch (OcflNoSuchFileException e) {
                     // Ignore this. We already reported missing files.
                 } catch (Exception e) {
-                    results.addIssue(ValidationCode.E092,
-                            "Failed to validate fixity of %s: %s", storagePath, e.getMessage());
+                    results.addIssue(
+                            ValidationCode.E092, "Failed to validate fixity of %s: %s", storagePath, e.getMessage());
                 }
             }
         }
     }
 
-    private void validateVersionDirContents(String objectRootPath,
-                                            String versionStr,
-                                            String contentDir,
-                                            List<Listing> files,
-                                            Set<String> ignoreFiles,
-                                            ValidationResultsBuilder results) {
+    private void validateVersionDirContents(
+            String objectRootPath,
+            String versionStr,
+            String contentDir,
+            List<Listing> files,
+            Set<String> ignoreFiles,
+            ValidationResultsBuilder results) {
         var contentDirPath = FileUtil.pathJoinFailEmpty(objectRootPath, versionStr, contentDir);
-        if (files.contains(Listing.directory(contentDir)) && listFiles(contentDirPath).isEmpty()) {
-            results.addIssue(ValidationCode.W003,
-                    "Version content directory exists at %s, but is empty.", contentDirPath);
+        if (files.contains(Listing.directory(contentDir))
+                && listFiles(contentDirPath).isEmpty()) {
+            results.addIssue(
+                    ValidationCode.W003, "Version content directory exists at %s, but is empty.", contentDirPath);
         }
 
         for (var file : files) {
@@ -617,17 +698,26 @@ public class Validator {
             }
 
             if (file.isFile()) {
-                results.addIssue(ValidationCode.E015,
+                results.addIssue(
+                        ValidationCode.E015,
                         "Version directory %s in %s contains an unexpected file %s",
-                        versionStr, objectRootPath, fileName);
+                        versionStr,
+                        objectRootPath,
+                        fileName);
             } else if (file.isDirectory()) {
-                results.addIssue(ValidationCode.W002,
+                results.addIssue(
+                        ValidationCode.W002,
                         "Version directory %s in %s contains an unexpected directory %s",
-                        versionStr, objectRootPath, fileName);
+                        versionStr,
+                        objectRootPath,
+                        fileName);
             } else {
-                results.addIssue(ValidationCode.E090,
+                results.addIssue(
+                        ValidationCode.E090,
                         "Version directory %s in %s contains an illegal file %s",
-                        versionStr, objectRootPath, fileName);
+                        versionStr,
+                        objectRootPath,
+                        fileName);
             }
         }
     }
@@ -637,17 +727,18 @@ public class Validator {
      * returned.
      */
     private OcflVersion validateNamaste(String objectRootPath, List<Listing> files, ValidationResultsBuilder results) {
-        return files.stream().map(Listing::getRelativePath)
+        return files.stream()
+                .map(Listing::getRelativePath)
                 .filter(path -> path.startsWith(OcflConstants.OBJECT_NAMASTE_PREFIX))
-                .findFirst().map(path -> {
+                .findFirst()
+                .map(path -> {
                     var fullPath = FileUtil.pathJoinIgnoreEmpty(objectRootPath, path);
                     OcflVersion version;
                     try {
                         version = OcflVersion.fromOcflObjectVersionFilename(path);
                     } catch (RuntimeException e) {
-                        results.addIssue(ValidationCode.E003,
-                                "Unsupported OCFL object version declaration %s",
-                                fullPath);
+                        results.addIssue(
+                                ValidationCode.E003, "Unsupported OCFL object version declaration %s", fullPath);
                         return null;
                     }
 
@@ -656,18 +747,21 @@ public class Validator {
                         var contents = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
                         // TODO there are technically multiple different codes that could be used here
                         if (!namaste.fileContent().equals(contents)) {
-                            results.addIssue(ValidationCode.E007,
+                            results.addIssue(
+                                    ValidationCode.E007,
                                     "OCFL object version declaration must be '%s' in %s",
-                                    namaste.fileContent().trim(), fullPath);
+                                    namaste.fileContent().trim(),
+                                    fullPath);
                         }
                     } catch (IOException e) {
                         throw new OcflIOException(e);
                     }
 
                     return version;
-                }).orElseGet(() -> {
-                    results.addIssue(ValidationCode.E003,
-                            "OCFL object version declaration is missing in %s", objectRootPath);
+                })
+                .orElseGet(() -> {
+                    results.addIssue(
+                            ValidationCode.E003, "OCFL object version declaration is missing in %s", objectRootPath);
                     return null;
                 });
     }
@@ -677,33 +771,34 @@ public class Validator {
             var parts = WHITESPACE.split(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
 
             if (parts.length != 2) {
-                results.addIssue(ValidationCode.E061,
-                        "Inventory sidecar file at %s is in an invalid format", sidecarPath);
+                results.addIssue(
+                        ValidationCode.E061, "Inventory sidecar file at %s is in an invalid format", sidecarPath);
 
             } else {
                 if (!OcflConstants.INVENTORY_FILE.equals(parts[1])) {
-                    results.addIssue(ValidationCode.E061,
-                            "Inventory sidecar file at %s is in an invalid format", sidecarPath);
+                    results.addIssue(
+                            ValidationCode.E061, "Inventory sidecar file at %s is in an invalid format", sidecarPath);
                 }
 
                 return parts[0];
             }
         } catch (Exception e) {
             LOG.info("Expected file to exist: {}", sidecarPath, e);
-            results.addIssue(ValidationCode.E058,
-                    "Inventory sidecar missing at %s", sidecarPath);
+            results.addIssue(ValidationCode.E058, "Inventory sidecar missing at %s", sidecarPath);
         }
 
         return null;
     }
 
-    private Map<VersionNum, String> validateObjectRootContents(String objectRootPath,
-                                                               List<Listing> files,
-                                                               Set<String> ignoreFiles,
-                                                               SimpleInventory inventory,
-                                                               ValidationResultsBuilder results) {
+    private Map<VersionNum, String> validateObjectRootContents(
+            String objectRootPath,
+            List<Listing> files,
+            Set<String> ignoreFiles,
+            SimpleInventory inventory,
+            ValidationResultsBuilder results) {
         // It is essential that the order is reversed here so that we later validate versions in reverse order
-        var seenVersions = new TreeMap<VersionNum, String>(Comparator.<VersionNum>naturalOrder().reversed());
+        var seenVersions = new TreeMap<VersionNum, String>(
+                Comparator.<VersionNum>naturalOrder().reversed());
 
         for (var file : files) {
             var fileName = file.getRelativePath();
@@ -714,7 +809,8 @@ public class Validator {
 
             if (Objects.equals(OcflConstants.LOGS_DIR, fileName)) {
                 if (!file.isDirectory()) {
-                    results.addIssue(ValidationCode.E001,
+                    results.addIssue(
+                            ValidationCode.E001,
                             "Object logs directory at %s/logs must be a directory",
                             objectRootPath);
                 }
@@ -722,37 +818,46 @@ public class Validator {
                 if (file.isDirectory()) {
                     validateExtensionContents(objectRootPath, results);
                 } else {
-                    results.addIssue(ValidationCode.E001,
+                    results.addIssue(
+                            ValidationCode.E001,
                             "Object extensions directory at %s/extensions must be a directory",
                             objectRootPath);
                 }
             } else {
                 var versionNum = parseVersionNum(fileName);
                 if (versionNum != null && !file.isDirectory()) {
-                    results.addIssue(ValidationCode.E001,
+                    results.addIssue(
+                            ValidationCode.E001,
                             "Object root %s contains version %s but it is a file and must be a directory",
                             objectRootPath);
                 } else if (inventory.getVersions() != null && versionNum != null) {
                     if (!inventory.getVersions().containsKey(fileName)) {
-                        results.addIssue(ValidationCode.E046,
+                        results.addIssue(
+                                ValidationCode.E046,
                                 "Object root %s contains version directory %s but the version does not exist in the root inventory",
-                                objectRootPath, fileName);
+                                objectRootPath,
+                                fileName);
                     } else {
                         if (versionNum.getZeroPaddingWidth() > 0) {
-                            results.addIssue(ValidationCode.W001,
+                            results.addIssue(
+                                    ValidationCode.W001,
                                     "Object contains zero-padded version %s in %s",
-                                    fileName, objectRootPath);
+                                    fileName,
+                                    objectRootPath);
                         }
                         seenVersions.put(versionNum, fileName);
                     }
                 } else if (fileName.startsWith(OcflConstants.OBJECT_NAMASTE_PREFIX)) {
-                    results.addIssue(ValidationCode.E003,
+                    results.addIssue(
+                            ValidationCode.E003,
                             "Object root %s contains multiple version declaration files",
                             objectRootPath);
                 } else {
-                    results.addIssue(ValidationCode.E001,
+                    results.addIssue(
+                            ValidationCode.E001,
                             "Object root %s contains an unexpected file %s",
-                            objectRootPath, fileName);
+                            objectRootPath,
+                            fileName);
                 }
             }
         }
@@ -767,22 +872,27 @@ public class Validator {
         for (var file : files) {
             if (file.isDirectory()) {
                 if (!REGISTERED_EXTENSIONS.contains(file.getRelativePath())) {
-                    results.addIssue(ValidationCode.W013,
+                    results.addIssue(
+                            ValidationCode.W013,
                             "Object extensions directory %s contains unregistered extension %s",
-                            dir, file.getRelativePath());
+                            dir,
+                            file.getRelativePath());
                 }
             } else {
-                results.addIssue(ValidationCode.E067,
+                results.addIssue(
+                        ValidationCode.E067,
                         "Object extensions directory %s cannot contain file %s",
-                        dir, file.getRelativePath());
+                        dir,
+                        file.getRelativePath());
             }
         }
     }
 
-    private Optional<String> validateSidecar(String inventoryPath,
-                                             SimpleInventory inventory,
-                                             Map<DigestAlgorithm, String> digests,
-                                             ValidationResultsBuilder results) {
+    private Optional<String> validateSidecar(
+            String inventoryPath,
+            SimpleInventory inventory,
+            Map<DigestAlgorithm, String> digests,
+            ValidationResultsBuilder results) {
         if (inventory.getDigestAlgorithm() != null) {
             var algorithm = DigestAlgorithmRegistry.getAlgorithm(inventory.getDigestAlgorithm());
             var digest = digests.get(algorithm);
@@ -791,9 +901,13 @@ public class Validator {
                 var sidecarPath = inventoryPath + "." + inventory.getDigestAlgorithm();
                 var expectedDigest = validateInventorySidecar(sidecarPath, results);
                 if (expectedDigest != null && !digest.equalsIgnoreCase(expectedDigest)) {
-                    results.addIssue(ValidationCode.E060,
+                    results.addIssue(
+                            ValidationCode.E060,
                             "Inventory at %s does not match expected %s digest. Expected: %s; Found: %s",
-                            inventoryPath, algorithm.getOcflName(), expectedDigest, digest);
+                            inventoryPath,
+                            algorithm.getOcflName(),
+                            expectedDigest,
+                            digest);
                 }
                 return Optional.of(OcflConstants.INVENTORY_SIDECAR_PREFIX + inventory.getDigestAlgorithm());
             }
@@ -801,9 +915,8 @@ public class Validator {
         return Optional.empty();
     }
 
-    private ParseResult parseInventory(String inventoryPath,
-                                       ValidationResultsBuilder results,
-                                       DigestAlgorithm... digestAlgorithms) {
+    private ParseResult parseInventory(
+            String inventoryPath, ValidationResultsBuilder results, DigestAlgorithm... digestAlgorithms) {
         try (var stream = fileSystem.read(inventoryPath)) {
             var wrapped = MultiDigestInputStream.create(stream, Arrays.asList(digestAlgorithms));
 
@@ -811,7 +924,9 @@ public class Validator {
 
             results.addAll(parseResult.getValidationResults());
 
-            var result = new ParseResult(parseResult.getInventory(), !parseResult.getValidationResults().hasErrors());
+            var result = new ParseResult(
+                    parseResult.getInventory(),
+                    !parseResult.getValidationResults().hasErrors());
             wrapped.getResults().forEach(result::withDigest);
 
             return result;
@@ -853,8 +968,8 @@ public class Validator {
             return new HashSet<>();
         }
 
-        return inventory.getFixity().values()
-                .stream().flatMap(e -> e.values().stream())
+        return inventory.getFixity().values().stream()
+                .flatMap(e -> e.values().stream())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
     }
@@ -871,8 +986,7 @@ public class Validator {
             if (algorithm != null) {
                 map.forEach((digest, paths) -> {
                     paths.forEach(path -> {
-                        inverted.computeIfAbsent(path, k -> new HashMap<>())
-                                .put(algorithm, digest);
+                        inverted.computeIfAbsent(path, k -> new HashMap<>()).put(algorithm, digest);
                     });
                 });
             }
@@ -881,7 +995,8 @@ public class Validator {
         return inverted;
     }
 
-    private Optional<ValidationIssue> areEqual(Object left, Object right, ValidationCode code, String messageTemplate, Object... args) {
+    private Optional<ValidationIssue> areEqual(
+            Object left, Object right, ValidationCode code, String messageTemplate, Object... args) {
         if (!Objects.equals(left, right)) {
             return Optional.of(createIssue(code, messageTemplate, args));
         }
@@ -930,5 +1045,4 @@ public class Validator {
             return this;
         }
     }
-
 }

@@ -30,8 +30,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class ObjectOutOfSyncException extends OcflJavaException {
 
-    public ObjectOutOfSyncException() {
-    }
+    public ObjectOutOfSyncException() {}
 
     public ObjectOutOfSyncException(String message) {
         super(message);
@@ -44,5 +43,4 @@ public class ObjectOutOfSyncException extends OcflJavaException {
     public ObjectOutOfSyncException(Throwable cause) {
         super(cause);
     }
-
 }

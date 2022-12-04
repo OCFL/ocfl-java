@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.model;
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Set;
@@ -91,7 +90,8 @@ public class VersionBuilder {
         if (versionInfo != null) {
             this.message = versionInfo.getMessage();
             if (versionInfo.getUser() != null && versionInfo.getUser().getName() != null) {
-                this.user = new User(versionInfo.getUser().getName(), versionInfo.getUser().getAddress());
+                this.user = new User(
+                        versionInfo.getUser().getName(), versionInfo.getUser().getAddress());
             }
         }
         return this;
@@ -205,8 +205,7 @@ public class VersionBuilder {
     }
 
     private OcflInputException conflictException(String logicalPath, String existingPath) {
-        return new OcflInputException(String.format("The logical path %s conflicts with the existing path %s.",
-                logicalPath, existingPath));
+        return new OcflInputException(
+                String.format("The logical path %s conflicts with the existing path %s.", logicalPath, existingPath));
     }
-
 }

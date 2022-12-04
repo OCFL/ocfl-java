@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -131,13 +130,12 @@ public class ObjectDetails {
 
     @Override
     public String toString() {
-        return "ObjectDetails{" +
-                "id='" + id + '\'' +
-                ", headVersionNum=" + headVersionNum +
-                ", digestAlgorithm=" + digestAlgorithm +
-                ", objectOcflVersion=" + objectOcflVersion +
-                ", versions=" + versions +
-                '}';
+        return "ObjectDetails{" + "id='"
+                + id + '\'' + ", headVersionNum="
+                + headVersionNum + ", digestAlgorithm="
+                + digestAlgorithm + ", objectOcflVersion="
+                + objectOcflVersion + ", versions="
+                + versions + '}';
     }
 
     @Override

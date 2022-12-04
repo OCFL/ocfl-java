@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.util;
 import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -49,8 +48,7 @@ public class MultiDigestInputStream extends FilterInputStream {
      * @param digestAlgorithms the algorithms to compute
      * @return the wrapped stream
      */
-    public static MultiDigestInputStream create(InputStream inputStream,
-                                                Collection<DigestAlgorithm> digestAlgorithms) {
+    public static MultiDigestInputStream create(InputStream inputStream, Collection<DigestAlgorithm> digestAlgorithms) {
         Enforce.notNull(inputStream, "inputStream cannot be null");
         Enforce.notNull(digestAlgorithms, "digestAlgorithms cannot be null");
 
@@ -80,10 +78,10 @@ public class MultiDigestInputStream extends FilterInputStream {
         var results = new HashMap<DigestAlgorithm, String>();
 
         streamMap.forEach((algorithm, stream) -> {
-            results.put(algorithm, Bytes.wrap(stream.getMessageDigest().digest()).encodeHex());
+            results.put(
+                    algorithm, Bytes.wrap(stream.getMessageDigest().digest()).encodeHex());
         });
 
         return results;
     }
-
 }

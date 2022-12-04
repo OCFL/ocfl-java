@@ -53,7 +53,6 @@ import edu.wisc.library.ocfl.core.storage.CachingOcflStorage;
 import edu.wisc.library.ocfl.core.storage.ObjectDetailsDbOcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.storage.OcflStorageBuilder;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -96,7 +95,8 @@ public class OcflRepositoryBuilder {
         objectLock = new InMemoryObjectLock(10, TimeUnit.SECONDS);
         inventoryCache = new CaffeineCache<>(Caffeine.newBuilder()
                 .expireAfterAccess(Duration.ofMinutes(10))
-                .maximumSize(512).build());
+                .maximumSize(512)
+                .build());
         inventoryMapper = InventoryMapper.defaultMapper();
         logicalPathMapper = LogicalPathMappers.directMapper();
         contentPathConstraintProcessor = ContentPathConstraints.minimal();
@@ -283,7 +283,8 @@ public class OcflRepositoryBuilder {
      * @see ContentPathConstraints
      */
     public OcflRepositoryBuilder contentPathConstraints(ContentPathConstraintProcessor contentPathConstraints) {
-        this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraints, "contentPathConstraints cannot be null");
+        this.contentPathConstraintProcessor =
+                Enforce.notNull(contentPathConstraints, "contentPathConstraints cannot be null");
         return this;
     }
 
@@ -351,7 +352,8 @@ public class OcflRepositoryBuilder {
      * @return builder
      */
     public OcflRepositoryBuilder ignoreUnsupportedExtensions(Set<String> ignoreUnsupportedExtensions) {
-        this.ignoreUnsupportedExtensions = Enforce.notNull(ignoreUnsupportedExtensions, "ignoreUnsupportedExtensions cannot be null");
+        this.ignoreUnsupportedExtensions =
+                Enforce.notNull(ignoreUnsupportedExtensions, "ignoreUnsupportedExtensions cannot be null");
         return this;
     }
 
@@ -396,10 +398,8 @@ public class OcflRepositoryBuilder {
         var supportEvaluator = new ExtensionSupportEvaluator(unsupportedBehavior, ignoreUnsupportedExtensions);
 
         var wrappedStorage = cache(db(storage));
-        var initResult = wrappedStorage.initializeStorage(config.getOcflVersion(),
-                defaultLayoutConfig,
-                inventoryMapper,
-                supportEvaluator);
+        var initResult = wrappedStorage.initializeStorage(
+                config.getOcflVersion(), defaultLayoutConfig, inventoryMapper, supportEvaluator);
 
         // Default the OCFL version to whatever was in the storage root
         if (config.getOcflVersion() == null) {
@@ -410,16 +410,26 @@ public class OcflRepositoryBuilder {
         Enforce.expressionTrue(Files.isDirectory(workDir), workDir, "workDir must be a directory");
 
         if (MutableOcflRepository.class.isAssignableFrom(clazz)) {
-            return clazz.cast(new DefaultMutableOcflRepository(wrappedStorage, workDir,
-                    objectLock, inventoryMapper,
-                    logicalPathMapper, contentPathConstraintProcessor,
-                    config, verifyStaging));
+            return clazz.cast(new DefaultMutableOcflRepository(
+                    wrappedStorage,
+                    workDir,
+                    objectLock,
+                    inventoryMapper,
+                    logicalPathMapper,
+                    contentPathConstraintProcessor,
+                    config,
+                    verifyStaging));
         }
 
-        return clazz.cast(new DefaultOcflRepository(wrappedStorage, workDir,
-                objectLock, inventoryMapper,
-                logicalPathMapper, contentPathConstraintProcessor,
-                config, verifyStaging));
+        return clazz.cast(new DefaultOcflRepository(
+                wrappedStorage,
+                workDir,
+                objectLock,
+                inventoryMapper,
+                logicalPathMapper,
+                contentPathConstraintProcessor,
+                config,
+                verifyStaging));
     }
 
     private OcflStorage cache(OcflStorage storage) {
@@ -435,5 +445,4 @@ public class OcflRepositoryBuilder {
         }
         return storage;
     }
-
 }

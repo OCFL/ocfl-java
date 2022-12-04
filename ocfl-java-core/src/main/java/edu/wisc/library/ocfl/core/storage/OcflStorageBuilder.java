@@ -31,7 +31,6 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudStorage;
 import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemStorage;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
-
 import java.nio.file.Path;
 
 /**
@@ -140,5 +139,4 @@ public class OcflStorageBuilder {
 
         return new DefaultOcflStorage(storage, verifyInventoryDigest, init);
     }
-
 }

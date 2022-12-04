@@ -25,10 +25,9 @@
 package edu.wisc.library.ocfl.test.matcher;
 
 import edu.wisc.library.ocfl.api.model.VersionInfo;
+import java.util.Objects;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
-
-import java.util.Objects;
 
 public class VersionInfoMatcher extends TypeSafeMatcher<VersionInfo> {
 
@@ -58,7 +57,8 @@ public class VersionInfoMatcher extends TypeSafeMatcher<VersionInfo> {
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("VersionInfo{message=")
+        description
+                .appendText("VersionInfo{message=")
                 .appendValue(message)
                 .appendText(", user={name=")
                 .appendValue(name)

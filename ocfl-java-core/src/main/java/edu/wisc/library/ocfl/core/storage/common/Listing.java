@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.storage.common;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Objects;
 
 /**
@@ -106,10 +105,7 @@ public class Listing {
 
     @Override
     public String toString() {
-        return "Listing{" +
-                "type=" + type +
-                ", relativePath='" + relativePath + '\'' +
-                '}';
+        return "Listing{" + "type=" + type + ", relativePath='" + relativePath + '\'' + '}';
     }
 
     @Override

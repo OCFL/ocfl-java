@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.cache;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.function.Function;
 
 /**
@@ -80,5 +79,4 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     public boolean contains(K key) {
         return cache.asMap().containsKey(key);
     }
-
 }

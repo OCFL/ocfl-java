@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class InvalidVersionException extends OcflJavaException {
 
-    public InvalidVersionException() {
-    }
+    public InvalidVersionException() {}
 
     public InvalidVersionException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class InvalidVersionException extends OcflJavaException {
     public InvalidVersionException(Throwable cause) {
         super(cause);
     }
-
 }

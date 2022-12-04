@@ -24,15 +24,14 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import static edu.wisc.library.ocfl.test.OcflAsserts.assertThrowsWithMessage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static edu.wisc.library.ocfl.test.OcflAsserts.assertThrowsWithMessage;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HashedNTupleLayoutExtensionTest {
 
@@ -59,7 +58,10 @@ public class HashedNTupleLayoutExtensionTest {
 
     @Test
     public void shouldMapIdWithLargeTuplesAndMoreTuples() {
-        ext.init(new HashedNTupleLayoutConfig().setTupleSize(6).setNumberOfTuples(6).setShortObjectRoot(true));
+        ext.init(new HashedNTupleLayoutConfig()
+                .setTupleSize(6)
+                .setNumberOfTuples(6)
+                .setShortObjectRoot(true));
         assertMapping("ed7558/5a6e8d/eef3b3/f620e5/f6d099/9908c0/9e92cad5e112aa5eac5507000d8b");
     }
 
@@ -101,19 +103,22 @@ public class HashedNTupleLayoutExtensionTest {
     @Test
     public void shouldThrowExceptionWhenTupleSizeTimesNumTuplesEqualTotalCharsAndShortRootTrue() {
         assertThrowsWithMessage(OcflExtensionException.class, "shortObjectRoot cannot be set to true", () -> {
-            ext.init(new HashedNTupleLayoutConfig().setTupleSize(4).setNumberOfTuples(16).setShortObjectRoot(true));
+            ext.init(new HashedNTupleLayoutConfig()
+                    .setTupleSize(4)
+                    .setNumberOfTuples(16)
+                    .setShortObjectRoot(true));
         });
     }
 
     @Test
     public void shouldMapIdWhenEqualTotalChars() {
         ext.init(new HashedNTupleLayoutConfig().setTupleSize(4).setNumberOfTuples(16));
-        assertMapping("ed75/585a/6e8d/eef3/b3f6/20e5/f6d0/9999/08c0/9e92/cad5/e112/aa5e/ac55/0700/0d8b/ed75585a6e8deef3b3f620e5f6d0999908c09e92cad5e112aa5eac5507000d8b");
+        assertMapping(
+                "ed75/585a/6e8d/eef3/b3f6/20e5/f6d0/9999/08c0/9e92/cad5/e112/aa5e/ac55/0700/0d8b/ed75585a6e8deef3b3f620e5f6d0999908c09e92cad5e112aa5eac5507000d8b");
     }
 
     private void assertMapping(String expectedMapping) {
         var result = ext.mapObjectId(objectId);
         assertEquals(expectedMapping, result);
     }
-
 }

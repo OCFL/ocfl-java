@@ -30,14 +30,11 @@ import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.storage.common.Listing;
 import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
+import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +44,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Storage abstraction over cloud storage providers.
@@ -350,5 +349,4 @@ public class CloudStorage implements Storage {
         }
         return value + "/";
     }
-
 }

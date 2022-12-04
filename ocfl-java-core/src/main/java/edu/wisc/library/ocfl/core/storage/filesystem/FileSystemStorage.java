@@ -34,9 +34,6 @@ import edu.wisc.library.ocfl.core.storage.common.Listing;
 import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,6 +49,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Storage abstraction over the local filesystem
@@ -75,15 +74,16 @@ public class FileSystemStorage implements Storage {
 
         try (var children = Files.list(fullPath)) {
             return children.map(child -> {
-                var name = child.getFileName().toString();
-                if (Files.isRegularFile(child)) {
-                    return Listing.file(name);
-                } else if (Files.isDirectory(child)) {
-                    return Listing.directory(name);
-                } else {
-                    return Listing.other(name);
-                }
-            }).collect(Collectors.toList());
+                        var name = child.getFileName().toString();
+                        if (Files.isRegularFile(child)) {
+                            return Listing.file(name);
+                        } else if (Files.isDirectory(child)) {
+                            return Listing.directory(name);
+                        } else {
+                            return Listing.other(name);
+                        }
+                    })
+                    .collect(Collectors.toList());
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }
@@ -347,5 +347,4 @@ public class FileSystemStorage implements Storage {
         var fullPath = storageRoot.resolve(path);
         FileUtil.deleteDirAndParentsIfEmpty(fullPath);
     }
-
 }

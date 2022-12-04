@@ -1,12 +1,11 @@
 package edu.wisc.library.ocfl.core.lock;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.exception.LockException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -15,10 +14,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class DbObjectLockTest {
 
@@ -177,7 +176,8 @@ public class DbObjectLockTest {
     }
 
     @Test
-    public void onConcurrentAcquireOnlyOneProcessShouldGetLockWhenLockExpired() throws ExecutionException, InterruptedException {
+    public void onConcurrentAcquireOnlyOneProcessShouldGetLockWhenLockExpired()
+            throws ExecutionException, InterruptedException {
         lock = createLock(Duration.ofMillis(100));
 
         var phaser = new Phaser(4);
@@ -251,5 +251,4 @@ public class DbObjectLockTest {
                 .maxLockDuration(maxLockDuration)
                 .build();
     }
-
 }

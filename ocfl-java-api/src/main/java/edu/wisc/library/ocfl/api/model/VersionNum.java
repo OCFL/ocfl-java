@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.regex.Pattern;
 
 /**
@@ -95,8 +94,10 @@ public class VersionNum implements Comparable<VersionNum> {
      * @param zeroPaddingWidth the width of zero-padding, or 0 if the version is not zero-padded
      */
     public VersionNum(long versionNumber, int zeroPaddingWidth) {
-        this.versionNumber = Enforce.expressionTrue(versionNumber >= 0, versionNumber, "versionNumber must be greater than or equal to 0");
-        this.zeroPaddingWidth = Enforce.expressionTrue(zeroPaddingWidth >= 0, zeroPaddingWidth, "zeroPaddingWidth must be greater than or equal to 0");
+        this.versionNumber = Enforce.expressionTrue(
+                versionNumber >= 0, versionNumber, "versionNumber must be greater than or equal to 0");
+        this.zeroPaddingWidth = Enforce.expressionTrue(
+                zeroPaddingWidth >= 0, zeroPaddingWidth, "zeroPaddingWidth must be greater than or equal to 0");
 
         if (zeroPaddingWidth == 0) {
             stringValue = "v" + versionNumber;
@@ -121,7 +122,8 @@ public class VersionNum implements Comparable<VersionNum> {
     public VersionNum nextVersionNum() {
         var nextVersionNum = versionNumber + 1;
         if (nextVersionNum > maxVersion) {
-            throw new InvalidVersionException("Cannot increment version number. Current version " + toString() + " is the highest possible.");
+            throw new InvalidVersionException(
+                    "Cannot increment version number. Current version " + toString() + " is the highest possible.");
         }
         return new VersionNum(nextVersionNum, zeroPaddingWidth);
     }
@@ -134,7 +136,8 @@ public class VersionNum implements Comparable<VersionNum> {
      */
     public VersionNum previousVersionNum() {
         if (versionNumber == 1) {
-            throw new InvalidVersionException("Cannot decrement version number. Current version " + toString() + " is the lowest possible.");
+            throw new InvalidVersionException(
+                    "Cannot decrement version number. Current version " + toString() + " is the lowest possible.");
         }
         return new VersionNum(versionNumber - 1, zeroPaddingWidth);
     }
@@ -180,5 +183,4 @@ public class VersionNum implements Comparable<VersionNum> {
     public int compareTo(VersionNum o) {
         return Long.compare(versionNumber, o.versionNumber);
     }
-
 }

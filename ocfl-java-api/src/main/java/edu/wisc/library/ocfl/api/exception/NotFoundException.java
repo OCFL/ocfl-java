@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class NotFoundException extends OcflJavaException {
 
-    public NotFoundException() {
-    }
+    public NotFoundException() {}
 
     public NotFoundException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class NotFoundException extends OcflJavaException {
     public NotFoundException(Throwable cause) {
         super(cause);
     }
-
 }

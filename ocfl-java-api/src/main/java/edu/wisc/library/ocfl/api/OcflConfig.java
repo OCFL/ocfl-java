@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.api;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.regex.Pattern;
 
 /**
@@ -82,7 +81,8 @@ public class OcflConfig {
     public OcflConfig setDefaultDigestAlgorithm(DigestAlgorithm defaultDigestAlgorithm) {
         Enforce.notNull(defaultDigestAlgorithm, "defaultDigestAlgorithm cannot be null");
         this.defaultDigestAlgorithm = Enforce.expressionTrue(
-                OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(defaultDigestAlgorithm), defaultDigestAlgorithm,
+                OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(defaultDigestAlgorithm),
+                defaultDigestAlgorithm,
                 "Digest algorithm must be one of: " + OcflConstants.ALLOWED_DIGEST_ALGORITHMS);
         return this;
     }
@@ -99,7 +99,9 @@ public class OcflConfig {
      */
     public OcflConfig setDefaultContentDirectory(String defaultContentDirectory) {
         Enforce.notBlank(defaultContentDirectory, "contentDirectory cannot be blank");
-        this.defaultContentDirectory = Enforce.expressionTrue(!Pattern.matches(".*[/\\\\].*", defaultContentDirectory), defaultContentDirectory,
+        this.defaultContentDirectory = Enforce.expressionTrue(
+                !Pattern.matches(".*[/\\\\].*", defaultContentDirectory),
+                defaultContentDirectory,
                 "Content directory cannot contain / or \\");
         return this;
     }
@@ -142,13 +144,11 @@ public class OcflConfig {
 
     @Override
     public String toString() {
-        return "OcflConfig{" +
-                "ocflVersion=" + ocflVersion +
-                ", defaultDigestAlgorithm=" + defaultDigestAlgorithm +
-                ", defaultContentDirectory='" + defaultContentDirectory + '\'' +
-                ", defaultZeroPaddingWidth=" + defaultZeroPaddingWidth +
-                ", upgradeObjectsOnWrite=" + upgradeObjectsOnWrite +
-                '}';
+        return "OcflConfig{" + "ocflVersion="
+                + ocflVersion + ", defaultDigestAlgorithm="
+                + defaultDigestAlgorithm + ", defaultContentDirectory='"
+                + defaultContentDirectory + '\'' + ", defaultZeroPaddingWidth="
+                + defaultZeroPaddingWidth + ", upgradeObjectsOnWrite="
+                + upgradeObjectsOnWrite + '}';
     }
-
 }

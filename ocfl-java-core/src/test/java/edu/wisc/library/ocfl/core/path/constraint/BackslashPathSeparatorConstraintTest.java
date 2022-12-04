@@ -1,11 +1,11 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class BackslashPathSeparatorConstraintTest {
 
@@ -22,5 +22,4 @@ public class BackslashPathSeparatorConstraintTest {
             new BackslashPathSeparatorConstraint().apply('\\', "path\\with\\backslashes");
         });
     }
-
 }

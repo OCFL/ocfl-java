@@ -27,11 +27,10 @@ package edu.wisc.library.ocfl.core.extension;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collections;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Evaluates if an extension is supported and acts accordingly if it is not.
@@ -40,10 +39,8 @@ public class ExtensionSupportEvaluator {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExtensionSupportEvaluator.class);
 
-    private static final Set<String> BUILTIN_EXTS = Set.of(
-            OcflConstants.MUTABLE_HEAD_EXT_NAME,
-            OcflConstants.DIGEST_ALGORITHMS_EXT_NAME
-    );
+    private static final Set<String> BUILTIN_EXTS =
+            Set.of(OcflConstants.MUTABLE_HEAD_EXT_NAME, OcflConstants.DIGEST_ALGORITHMS_EXT_NAME);
 
     private final UnsupportedExtensionBehavior behavior;
     private final Set<String> ignore;
@@ -65,8 +62,7 @@ public class ExtensionSupportEvaluator {
      * @return true if the extension is supported
      */
     public boolean checkSupport(String extensionName) {
-        if (!(OcflExtensionRegistry.isSupported(extensionName)
-                || BUILTIN_EXTS.contains(extensionName))) {
+        if (!(OcflExtensionRegistry.isSupported(extensionName) || BUILTIN_EXTS.contains(extensionName))) {
             var ignored = ignore.contains(extensionName);
             var message = String.format("Extension %s is not currently supported by ocfl-java.", extensionName);
 
@@ -85,5 +81,4 @@ public class ExtensionSupportEvaluator {
 
         return true;
     }
-
 }

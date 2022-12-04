@@ -106,10 +106,12 @@ public class BeginEndPathConstraint implements PathConstraint, FileNameConstrain
     public void apply(String path) {
         if (type.matches(value, path)) {
             if (!mustMatch) {
-                throw new PathConstraintException(String.format("The path must not %s with %s. Path: %s", type, value, path));
+                throw new PathConstraintException(
+                        String.format("The path must not %s with %s. Path: %s", type, value, path));
             }
         } else if (mustMatch) {
-            throw new PathConstraintException(String.format("The path must %s with %s but does not. Path: %s", type, value, path));
+            throw new PathConstraintException(
+                    String.format("The path must %s with %s but does not. Path: %s", type, value, path));
         }
     }
 
@@ -120,11 +122,12 @@ public class BeginEndPathConstraint implements PathConstraint, FileNameConstrain
     public void apply(String fileName, String path) {
         if (type.matches(value, fileName)) {
             if (!mustMatch) {
-                throw new PathConstraintException(String.format("The filename '%s' must not %s with %s. Path: %s", fileName, type, value, path));
+                throw new PathConstraintException(
+                        String.format("The filename '%s' must not %s with %s. Path: %s", fileName, type, value, path));
             }
         } else if (mustMatch) {
-            throw new PathConstraintException(String.format("The filename '%s' must %s with %s but does not. Path: %s", fileName, type, value, path));
+            throw new PathConstraintException(String.format(
+                    "The filename '%s' must %s with %s but does not. Path: %s", fileName, type, value, path));
         }
     }
-
 }

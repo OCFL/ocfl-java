@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class PathConstraintException extends OcflJavaException {
 
-    public PathConstraintException() {
-    }
+    public PathConstraintException() {}
 
     public PathConstraintException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class PathConstraintException extends OcflJavaException {
     public PathConstraintException(Throwable cause) {
         super(cause);
     }
-
 }

@@ -4,7 +4,6 @@ import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.exception.OcflFileAlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -189,5 +188,4 @@ public interface Storage {
      * @param path starting path
      */
     void deleteEmptyDirsUp(String path);
-
 }

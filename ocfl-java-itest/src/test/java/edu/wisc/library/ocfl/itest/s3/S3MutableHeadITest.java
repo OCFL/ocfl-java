@@ -1,5 +1,7 @@
 package edu.wisc.library.ocfl.itest.s3;
 
+import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
+
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
@@ -12,13 +14,6 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.MutableHeadITest;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.s3.S3Client;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -27,14 +22,19 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
-
-import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.s3.S3Client;
 
 public class S3MutableHeadITest extends MutableHeadITest {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3MutableHeadITest.class);
 
-    private static final String REPO_PREFIX = "S3MutableHeadITest" + ThreadLocalRandom.current().nextLong();
+    private static final String REPO_PREFIX =
+            "S3MutableHeadITest" + ThreadLocalRandom.current().nextLong();
 
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
@@ -93,9 +93,8 @@ public class S3MutableHeadITest extends MutableHeadITest {
                 .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .storage(storage -> storage
-                        .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloud(createCloudClient(name)))
+                .storage(storage ->
+                        storage.objectMapper(ITestHelper.prettyPrintMapper()).cloud(createCloudClient(name)))
                 .workDir(workDir);
 
         if (consumer != null) {
@@ -110,9 +109,11 @@ public class S3MutableHeadITest extends MutableHeadITest {
     @Override
     protected MutableOcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer) {
         var client = createCloudClient(name);
-        FileUtil.findFiles(path).stream().filter(f -> !f.getFileName().toString().equals(".gitkeep")).forEach(file -> {
-            client.uploadFile(file, FileUtil.pathToStringStandardSeparator(path.relativize(file)));
-        });
+        FileUtil.findFiles(path).stream()
+                .filter(f -> !f.getFileName().toString().equals(".gitkeep"))
+                .forEach(file -> {
+                    client.uploadFile(file, FileUtil.pathToStringStandardSeparator(path.relativize(file)));
+                });
         return defaultRepo(name, consumer);
     }
 
@@ -152,5 +153,4 @@ public class S3MutableHeadITest extends MutableHeadITest {
     private String prefix(String name) {
         return REPO_PREFIX + "-" + name;
     }
-
 }

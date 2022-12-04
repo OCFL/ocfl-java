@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -94,11 +93,10 @@ public class FileDetails {
 
     @Override
     public String toString() {
-        return "FileDetails{" +
-                "path='" + path + '\'' +
-                "storageRelativePath='" + storageRelativePath + '\'' +
-                ", fixity=" + fixity +
-                '}';
+        return "FileDetails{" + "path='"
+                + path + '\'' + "storageRelativePath='"
+                + storageRelativePath + '\'' + ", fixity="
+                + fixity + '}';
     }
 
     @Override
@@ -110,14 +108,13 @@ public class FileDetails {
             return false;
         }
         FileDetails that = (FileDetails) o;
-        return Objects.equals(path, that.path) &&
-                Objects.equals(storageRelativePath, that.storageRelativePath) &&
-                Objects.equals(fixity, that.fixity);
+        return Objects.equals(path, that.path)
+                && Objects.equals(storageRelativePath, that.storageRelativePath)
+                && Objects.equals(fixity, that.fixity);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(path, storageRelativePath, fixity);
     }
-
 }

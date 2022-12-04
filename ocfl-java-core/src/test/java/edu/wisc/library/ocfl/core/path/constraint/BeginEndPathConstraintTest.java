@@ -24,10 +24,10 @@
 
 package edu.wisc.library.ocfl.core.path.constraint;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class BeginEndPathConstraintTest {
 
@@ -78,5 +78,4 @@ public class BeginEndPathConstraintTest {
     public void shouldNotRejectPathWhenMustBeginWithPrefixAndDoes() {
         BeginEndPathConstraint.mustBeginWith("pre-").apply("pre-test");
     }
-
 }
