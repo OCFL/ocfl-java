@@ -191,7 +191,6 @@ public class ValidatorTest {
 
         var results = validator.validateObject(name, true);
 
-        assertErrorCount(results, 1);
         assertHasError(
                 results,
                 ValidationCode.E003,
