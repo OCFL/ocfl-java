@@ -1,6 +1,6 @@
 # OCFL Java
 
-![build](https://github.com/UW-Madison-Library/ocfl-java/workflows/Build/badge.svg)
+![build](https://github.com/OCFL/ocfl-java/workflows/Build/badge.svg)
 
 This project is a Java implementation of the [OCFL spec](https://ocfl.io).
 It supports the following spec versions: 1.0, 1.1.
