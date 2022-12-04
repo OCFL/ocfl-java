@@ -32,9 +32,6 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitOption;
@@ -47,6 +44,8 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Encapsulates logic for adding files to an object, both adding them to the inventory and moving them into staging.
@@ -66,10 +65,10 @@ public class AddFileProcessor {
 
     public static class Builder {
 
-        public AddFileProcessor build(InventoryUpdater inventoryUpdater, Path stagingDir, DigestAlgorithm digestAlgorithm) {
+        public AddFileProcessor build(
+                InventoryUpdater inventoryUpdater, Path stagingDir, DigestAlgorithm digestAlgorithm) {
             return new AddFileProcessor(inventoryUpdater, stagingDir, digestAlgorithm);
         }
-
     }
 
     /**
@@ -140,9 +139,12 @@ public class AddFileProcessor {
                     String digest;
                     InventoryUpdater.AddFileResult result;
 
-                    try (var stream = new DigestOutputStream(new BufferedOutputStream(
-                            Files.newOutputStream(stagingFullPath,
-                                    StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)),
+                    try (var stream = new DigestOutputStream(
+                            new BufferedOutputStream(Files.newOutputStream(
+                                    stagingFullPath,
+                                    StandardOpenOption.CREATE,
+                                    StandardOpenOption.WRITE,
+                                    StandardOpenOption.TRUNCATE_EXISTING)),
                             messageDigest)) {
                         LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
                         Files.copy(file, stream);
@@ -156,7 +158,10 @@ public class AddFileProcessor {
                     if (result.isNew()) {
                         results.put(logicalPath, stagingFullPath);
                     } else {
-                        LOG.debug("Deleting file <{}> because a file with same digest <{}> is already present in the object", stagingFullPath, digest);
+                        LOG.debug(
+                                "Deleting file <{}> because a file with same digest <{}> is already present in the object",
+                                stagingFullPath,
+                                digest);
                         UncheckedFiles.delete(stagingFullPath);
                         FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
                     }
@@ -184,10 +189,8 @@ public class AddFileProcessor {
      * @param options options for how to move the files
      * @return a map of logical paths to their corresponding file within the stagingDir for newly added files
      */
-    public Map<String, Path> processFileWithDigest(String digest,
-                                                   Path sourcePath,
-                                                   String destinationPath,
-                                                   OcflOption... options) {
+    public Map<String, Path> processFileWithDigest(
+            String digest, Path sourcePath, String destinationPath, OcflOption... options) {
         Enforce.notBlank(digest, "digest cannot be blank");
         Enforce.notNull(sourcePath, "sourcePath cannot be null");
         Enforce.notNull(destinationPath, "destinationPath cannot be null");
@@ -235,5 +238,4 @@ public class AddFileProcessor {
     private Path stagingFullPath(String pathUnderContentDir) {
         return Paths.get(FileUtil.pathJoinFailEmpty(stagingDir.toString(), pathUnderContentDir));
     }
-
 }

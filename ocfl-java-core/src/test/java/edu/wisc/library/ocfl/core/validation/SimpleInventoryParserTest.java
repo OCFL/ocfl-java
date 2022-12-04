@@ -1,24 +1,23 @@
 package edu.wisc.library.ocfl.core.validation;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.InventoryType;
 import edu.wisc.library.ocfl.api.model.ValidationCode;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SimpleInventoryParserTest {
 
@@ -102,8 +101,8 @@ public class SimpleInventoryParserTest {
 
     @Test
     public void errorWhenJsonNotParsable() {
-        var results = parser.parse(
-                new ByteArrayInputStream("{\"bad\": \"json\"".getBytes(StandardCharsets.UTF_8)), NAME);
+        var results =
+                parser.parse(new ByteArrayInputStream("{\"bad\": \"json\"".getBytes(StandardCharsets.UTF_8)), NAME);
 
         assertErrorCount(results, 1);
         assertWarnCount(results, 0);
@@ -125,34 +124,46 @@ public class SimpleInventoryParserTest {
     }
 
     private void assertErrorCount(SimpleInventoryParser.ParseSimpleInventoryResult results, int count) {
-        assertEquals(count, results.getValidationResults().getErrors().size(),
-                () -> String.format("Expected %s errors. Found: %s", count, results.getValidationResults().getErrors()));
+        assertEquals(
+                count,
+                results.getValidationResults().getErrors().size(),
+                () -> String.format(
+                        "Expected %s errors. Found: %s",
+                        count, results.getValidationResults().getErrors()));
     }
 
-    private void assertError(SimpleInventoryParser.ParseSimpleInventoryResult results, ValidationCode code, String message) {
+    private void assertError(
+            SimpleInventoryParser.ParseSimpleInventoryResult results, ValidationCode code, String message) {
         for (var error : results.getValidationResults().getErrors()) {
             if (error.getCode() == code && error.getMessage().contains(message)) {
                 return;
             }
         }
 
-        fail(String.format("Expected error <code=%s; message=%s>. Found: %s",
+        fail(String.format(
+                "Expected error <code=%s; message=%s>. Found: %s",
                 code, message, results.getValidationResults().getErrors()));
     }
 
     private void assertWarnCount(SimpleInventoryParser.ParseSimpleInventoryResult results, int count) {
-        assertEquals(count, results.getValidationResults().getWarnings().size(),
-                () -> String.format("Expected %s warnings. Found: %s", count, results.getValidationResults().getWarnings()));
+        assertEquals(
+                count,
+                results.getValidationResults().getWarnings().size(),
+                () -> String.format(
+                        "Expected %s warnings. Found: %s",
+                        count, results.getValidationResults().getWarnings()));
     }
 
-    private void assertWarn(SimpleInventoryParser.ParseSimpleInventoryResult results, ValidationCode code, String message) {
+    private void assertWarn(
+            SimpleInventoryParser.ParseSimpleInventoryResult results, ValidationCode code, String message) {
         for (var warn : results.getValidationResults().getWarnings()) {
             if (warn.getCode() == code && warn.getMessage().contains(message)) {
                 return;
             }
         }
 
-        fail(String.format("Expected warning <code=%s; message=%s>. Found: %s",
+        fail(String.format(
+                "Expected warning <code=%s; message=%s>. Found: %s",
                 code, message, results.getValidationResults().getWarnings()));
     }
 
@@ -187,5 +198,4 @@ public class SimpleInventoryParserTest {
             throw new RuntimeException(e);
         }
     }
-
 }

@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.db;
 
 import edu.wisc.library.ocfl.core.model.Inventory;
-
 import java.nio.file.Path;
 
 /**
@@ -74,5 +73,4 @@ public interface ObjectDetailsDatabase {
      * Removes all ObjectDetails from the database
      */
     void deleteAllDetails();
-
 }

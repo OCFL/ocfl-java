@@ -24,19 +24,18 @@
 
 package edu.wisc.library.ocfl.core.inventory;
 
-import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SidecarMapperTest {
 
@@ -56,6 +55,7 @@ public class SidecarMapperTest {
         var actual = SidecarMapper.readDigestRequired(writeFile(expected + "   "));
         assertEquals(expected, actual);
     }
+
     @Test
     public void parseSidecarWithSinglTab() {
         var expected = "abc123";
@@ -93,5 +93,4 @@ public class SidecarMapperTest {
         }
         return file;
     }
-
 }

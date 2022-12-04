@@ -37,5 +37,4 @@ public interface FileNameConstraint {
      * @throws edu.wisc.library.ocfl.api.exception.PathConstraintException when the constraint is not met
      */
     void apply(String fileName, String path);
-
 }

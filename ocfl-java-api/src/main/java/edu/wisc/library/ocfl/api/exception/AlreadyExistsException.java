@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class AlreadyExistsException extends OcflJavaException {
 
-    public AlreadyExistsException() {
-    }
+    public AlreadyExistsException() {}
 
     public AlreadyExistsException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class AlreadyExistsException extends OcflJavaException {
     public AlreadyExistsException(Throwable cause) {
         super(cause);
     }
-
 }

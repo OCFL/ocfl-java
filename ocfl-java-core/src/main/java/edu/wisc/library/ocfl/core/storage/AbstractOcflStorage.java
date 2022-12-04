@@ -47,10 +47,11 @@ public abstract class AbstractOcflStorage implements OcflStorage {
      * {@inheritDoc}
      */
     @Override
-    public synchronized RepositoryConfig initializeStorage(OcflVersion ocflVersion,
-                                                           OcflExtensionConfig layoutConfig,
-                                                           InventoryMapper inventoryMapper,
-                                                           ExtensionSupportEvaluator supportEvaluator) {
+    public synchronized RepositoryConfig initializeStorage(
+            OcflVersion ocflVersion,
+            OcflExtensionConfig layoutConfig,
+            InventoryMapper inventoryMapper,
+            ExtensionSupportEvaluator supportEvaluator) {
         if (this.initialized) {
             return this.repositoryConfig;
         }
@@ -107,5 +108,4 @@ public abstract class AbstractOcflStorage implements OcflStorage {
             throw new OcflStateException(this.getClass().getName() + " must be initialized before it can be used.");
         }
     }
-
 }

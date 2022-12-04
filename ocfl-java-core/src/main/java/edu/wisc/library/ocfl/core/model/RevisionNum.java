@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.model;
 
 import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -61,7 +60,8 @@ public class RevisionNum implements Comparable<RevisionNum> {
     }
 
     public RevisionNum(long revisionNumber) {
-        this.revisionNumber = Enforce.expressionTrue(revisionNumber > 0, revisionNumber, "revisionNumber must be greater than 0");
+        this.revisionNumber =
+                Enforce.expressionTrue(revisionNumber > 0, revisionNumber, "revisionNumber must be greater than 0");
         stringValue = "r" + revisionNumber;
         maxRevision = Long.MAX_VALUE;
     }
@@ -72,7 +72,8 @@ public class RevisionNum implements Comparable<RevisionNum> {
     public RevisionNum nextRevisionNum() {
         var nextVersionNum = revisionNumber + 1;
         if (nextVersionNum > maxRevision) {
-            throw new InvalidVersionException("Cannot increment revision number. Current revision " + toString() + " is the highest possible.");
+            throw new InvalidVersionException(
+                    "Cannot increment revision number. Current revision " + toString() + " is the highest possible.");
         }
         return new RevisionNum(nextVersionNum);
     }
@@ -82,7 +83,8 @@ public class RevisionNum implements Comparable<RevisionNum> {
      */
     public RevisionNum previousRevisionNum() {
         if (revisionNumber == 1) {
-            throw new InvalidVersionException("Cannot decrement revision number. Current revision " + toString() + " is the lowest possible.");
+            throw new InvalidVersionException(
+                    "Cannot decrement revision number. Current revision " + toString() + " is the lowest possible.");
         }
         return new RevisionNum(revisionNumber - 1);
     }
@@ -113,5 +115,4 @@ public class RevisionNum implements Comparable<RevisionNum> {
     public int compareTo(RevisionNum o) {
         return Long.compare(revisionNumber, o.revisionNumber);
     }
-
 }

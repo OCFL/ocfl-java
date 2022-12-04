@@ -1,9 +1,9 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class PathLengthConstraintTest {
 
@@ -32,10 +32,10 @@ public class PathLengthConstraintTest {
         PathLengthConstraint.maxChars(10).apply("1234567890", "path");
         PathLengthConstraint.maxChars(10).apply("1234567890");
     }
+
     @Test
     public void shouldAcceptPathsThatDoNotHaveTooManyBytes() {
         PathLengthConstraint.maxBytes(10).apply("¬¬¬¬¬", "path");
         PathLengthConstraint.maxBytes(10).apply("¬¬¬¬¬");
     }
-
 }

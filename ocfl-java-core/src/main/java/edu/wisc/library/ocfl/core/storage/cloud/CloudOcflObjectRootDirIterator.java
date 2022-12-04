@@ -24,13 +24,12 @@
 
 package edu.wisc.library.ocfl.core.storage.cloud;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
+
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-
 import java.util.Iterator;
-
-import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
 
 /**
  * Implementation of {@link OcflObjectRootDirIterator} that iterates over cloud objects
@@ -77,7 +76,5 @@ public class CloudOcflObjectRootDirIterator extends OcflObjectRootDirIterator {
         public void close() {
             // noop
         }
-
     }
-
 }

@@ -29,7 +29,6 @@ import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
@@ -57,7 +56,8 @@ public class FixityCheckChannel implements ByteChannel {
      */
     public FixityCheckChannel(ByteChannel delegate, DigestAlgorithm digestAlgorithm, String expectedDigestValue) {
         this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
-        this.digest = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null").getMessageDigest();
+        this.digest = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null")
+                .getMessageDigest();
         this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
     }
 
@@ -86,11 +86,11 @@ public class FixityCheckChannel implements ByteChannel {
         if (enabled) {
             var actualDigest = Bytes.wrap(digest.digest()).encodeHex();
             if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
-                throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
+                throw new FixityCheckException(String.format(
+                        "Expected %s digest: %s; Actual: %s",
                         digest.getAlgorithm(), expectedDigestValue, actualDigest));
             }
         }
-
     }
 
     /**
@@ -147,5 +147,4 @@ public class FixityCheckChannel implements ByteChannel {
             throw new OcflJavaException(e);
         }
     }
-
 }

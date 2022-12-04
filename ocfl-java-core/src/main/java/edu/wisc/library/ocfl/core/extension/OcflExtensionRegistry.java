@@ -28,15 +28,14 @@ import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatOmitPrefixLayoutExtension;
-import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Registry for mapping extensions to their implementations. The following out-of-the-box extensions are pre-registered
@@ -57,12 +56,9 @@ public final class OcflExtensionRegistry {
             HashedNTupleIdEncapsulationLayoutExtension.EXTENSION_NAME, HashedNTupleIdEncapsulationLayoutExtension.class,
             FlatLayoutExtension.EXTENSION_NAME, FlatLayoutExtension.class,
             FlatOmitPrefixLayoutExtension.EXTENSION_NAME, FlatOmitPrefixLayoutExtension.class,
-            NTupleOmitPrefixStorageLayoutExtension.EXTENSION_NAME, NTupleOmitPrefixStorageLayoutExtension.class
-            ));
+            NTupleOmitPrefixStorageLayoutExtension.EXTENSION_NAME, NTupleOmitPrefixStorageLayoutExtension.class));
 
-    private OcflExtensionRegistry() {
-
-    }
+    private OcflExtensionRegistry() {}
 
     /**
      * Registers a new extension implementation.
@@ -102,10 +98,11 @@ public final class OcflExtensionRegistry {
         }
 
         try {
-            return (Optional<T>) Optional.of(extensionClass.getDeclaredConstructor().newInstance());
+            return (Optional<T>)
+                    Optional.of(extensionClass.getDeclaredConstructor().newInstance());
         } catch (Exception e) {
-            throw new OcflExtensionException(String.format("Failed to load extension %s class %s.",
-                    extensionName, extensionClass), e);
+            throw new OcflExtensionException(
+                    String.format("Failed to load extension %s class %s.", extensionName, extensionClass), e);
         }
     }
 
@@ -118,5 +115,4 @@ public final class OcflExtensionRegistry {
     public static boolean isSupported(String extensionName) {
         return REGISTRY.containsKey(extensionName);
     }
-
 }

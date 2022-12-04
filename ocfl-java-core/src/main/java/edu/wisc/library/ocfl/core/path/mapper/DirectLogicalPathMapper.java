@@ -36,5 +36,4 @@ public class DirectLogicalPathMapper implements LogicalPathMapper {
     public String toContentPathPart(String logicalPath) {
         return logicalPath;
     }
-
 }

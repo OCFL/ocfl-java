@@ -67,10 +67,10 @@ public class HashedNTupleIdEncapsulationLayoutExtension implements OcflStorageLa
      */
     @Override
     public String getDescription() {
-        return "OCFL object identifiers are hashed and encoded as lowercase hex strings." +
-                " These digests are then divided into N n-tuple segments," +
-                " which are used to create nested paths under the OCFL storage root." +
-                " Finally, the OCFL object identifier is percent-encoded to create a directory name for the OCFL object root.";
+        return "OCFL object identifiers are hashed and encoded as lowercase hex strings."
+                + " These digests are then divided into N n-tuple segments,"
+                + " which are used to create nested paths under the OCFL storage root."
+                + " Finally, the OCFL object identifier is percent-encoded to create a directory name for the OCFL object root.";
     }
 
     /**
@@ -82,7 +82,8 @@ public class HashedNTupleIdEncapsulationLayoutExtension implements OcflStorageLa
             Enforce.notNull(config, "configFile cannot be null");
 
             if (!(config instanceof HashedNTupleIdEncapsulationLayoutConfig)) {
-                throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s",
+                throw new OcflExtensionException(String.format(
+                        "This extension only supports %s configuration. Received: %s",
                         getExtensionConfigClass(), config));
             }
 
@@ -136,7 +137,8 @@ public class HashedNTupleIdEncapsulationLayoutExtension implements OcflStorageLa
         if (config != null) {
             if ((config.getTupleSize() == 0 || config.getNumberOfTuples() == 0)
                     && (config.getTupleSize() != 0 || config.getNumberOfTuples() != 0)) {
-                throw new OcflExtensionException(String.format("If tupleSize (=%s) or numberOfTuples (=%s) is set to 0, then both must be 0.",
+                throw new OcflExtensionException(String.format(
+                        "If tupleSize (=%s) or numberOfTuples (=%s) is set to 0, then both must be 0.",
                         config.getTupleSize(), config.getNumberOfTuples()));
             }
 
@@ -144,12 +146,15 @@ public class HashedNTupleIdEncapsulationLayoutExtension implements OcflStorageLa
             var testDigest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), "test");
 
             if (totalTupleChars > testDigest.length()) {
-                throw new OcflExtensionException(String.format("The config tupleSize=%s and numberOfTuples=%s requires" +
-                        " a minimum of %s characters, but %s digests only have %s characters.",
-                        config.getTupleSize(), config.getNumberOfTuples(),
-                        totalTupleChars, config.getDigestAlgorithm().getOcflName(), testDigest.length()));
+                throw new OcflExtensionException(String.format(
+                        "The config tupleSize=%s and numberOfTuples=%s requires"
+                                + " a minimum of %s characters, but %s digests only have %s characters.",
+                        config.getTupleSize(),
+                        config.getNumberOfTuples(),
+                        totalTupleChars,
+                        config.getDigestAlgorithm().getOcflName(),
+                        testDigest.length()));
             }
         }
     }
-
 }

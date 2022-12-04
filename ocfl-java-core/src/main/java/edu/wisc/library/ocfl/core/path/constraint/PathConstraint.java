@@ -36,5 +36,4 @@ public interface PathConstraint {
      * @throws edu.wisc.library.ocfl.api.exception.PathConstraintException when the constraint is not met
      */
     void apply(String path);
-
 }

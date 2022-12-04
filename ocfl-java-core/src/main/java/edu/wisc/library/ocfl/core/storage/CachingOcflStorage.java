@@ -34,7 +34,6 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.cache.Cache;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.model.Inventory;
-
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -218,9 +217,9 @@ public class CachingOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public void exportVersion(ObjectVersionId objectVersionId, Path outputPath) {
-       ensureOpen();
+        ensureOpen();
 
-       delegate.exportVersion(objectVersionId, outputPath);
+        delegate.exportVersion(objectVersionId, outputPath);
     }
 
     /**

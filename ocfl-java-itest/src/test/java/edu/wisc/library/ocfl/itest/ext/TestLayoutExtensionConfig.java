@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.itest.ext;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
-
 import java.util.Objects;
 
 public class TestLayoutExtensionConfig implements OcflExtensionConfig {
@@ -56,9 +55,6 @@ public class TestLayoutExtensionConfig implements OcflExtensionConfig {
 
     @Override
     public String toString() {
-        return "TestLayoutExtensionConfig{" +
-                "extensionName=" + getExtensionName() +
-                '}';
+        return "TestLayoutExtensionConfig{" + "extensionName=" + getExtensionName() + '}';
     }
-
 }

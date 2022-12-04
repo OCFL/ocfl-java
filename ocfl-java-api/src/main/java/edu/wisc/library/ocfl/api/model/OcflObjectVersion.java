@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api.model;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Map;
@@ -128,10 +127,6 @@ public class OcflObjectVersion {
 
     @Override
     public String toString() {
-        return "OcflObjectVersion{" +
-                "versionDetails='" + versionDetails + '\'' +
-                ", fileMap=" + fileMap +
-                '}';
+        return "OcflObjectVersion{" + "versionDetails='" + versionDetails + '\'' + ", fileMap=" + fileMap + '}';
     }
-
 }

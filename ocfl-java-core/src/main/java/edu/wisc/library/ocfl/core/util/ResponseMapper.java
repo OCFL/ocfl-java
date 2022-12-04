@@ -35,7 +35,6 @@ import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -137,9 +136,7 @@ public class ResponseMapper {
     }
 
     private VersionInfo versionInfo(Version version) {
-        var versionInfo = new VersionInfo()
-                .setMessage(version.getMessage())
-                .setCreated(version.getCreated());
+        var versionInfo = new VersionInfo().setMessage(version.getMessage()).setCreated(version.getCreated());
 
         if (version.getUser() != null) {
             versionInfo.setUser(version.getUser().getName(), version.getUser().getAddress());
@@ -147,5 +144,4 @@ public class ResponseMapper {
 
         return versionInfo;
     }
-
 }

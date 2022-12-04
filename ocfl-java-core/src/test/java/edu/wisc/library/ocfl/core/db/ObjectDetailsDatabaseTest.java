@@ -1,5 +1,11 @@
 package edu.wisc.library.ocfl.core.db;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
@@ -10,12 +16,6 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.test.OcflAsserts;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,12 +27,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class ObjectDetailsDatabaseTest {
 
@@ -88,7 +87,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        inventory = inventory.buildFrom()
+        inventory = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -117,7 +117,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        inventory = inventory.buildFrom()
+        inventory = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -141,7 +142,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -190,7 +192,8 @@ public class ObjectDetailsDatabaseTest {
 
         assertObjectDetails(inventory, digest, invBytes, details);
 
-        var inv2 = Inventory.builderFromStub("o2", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o2")
+        var inv2 = Inventory.builderFromStub(
+                        "o2", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o2")
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
@@ -244,7 +247,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -268,7 +272,8 @@ public class ObjectDetailsDatabaseTest {
         var invBytes = inventoryBytes(inventory);
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -290,7 +295,8 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldRejectUpdateWhenRevisionAndUpdateDifferentVersion() {
-        var inventory = Inventory.builderFromStub("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
+        var inventory = Inventory.builderFromStub(
+                        "o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
                 .mutableHead(true)
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
@@ -303,7 +309,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .mutableHead(false)
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
@@ -326,7 +333,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .mutableHead(true)
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
@@ -347,7 +355,8 @@ public class ObjectDetailsDatabaseTest {
 
     @Test
     public void shouldRejectUpdateWhenRevisionAndUpdateNotNextRevision() {
-        var inventory = Inventory.builderFromStub("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
+        var inventory = Inventory.builderFromStub(
+                        "o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
                 .mutableHead(true)
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
@@ -360,7 +369,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -427,7 +437,8 @@ public class ObjectDetailsDatabaseTest {
 
         database.addObjectDetails(inventory, digest, invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -472,7 +483,8 @@ public class ObjectDetailsDatabaseTest {
         var digest = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes);
         var invPath = writeInventory(invBytes);
 
-        var inv2 = inventory.buildFrom()
+        var inv2 = inventory
+                .buildFrom()
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("f1", "file2.txt")
@@ -576,7 +588,8 @@ public class ObjectDetailsDatabaseTest {
         });
     }
 
-    private void assertObjectDetails(Inventory inventory, String inventoryDigest, byte[] inventoryBytes, OcflObjectDetails details) {
+    private void assertObjectDetails(
+            Inventory inventory, String inventoryDigest, byte[] inventoryBytes, OcflObjectDetails details) {
         assertEquals(inventory.getId(), details.getObjectId());
         assertEquals(inventory.getHead(), details.getVersionNum());
         assertEquals(inventoryDigest, details.getInventoryDigest());
@@ -588,7 +601,8 @@ public class ObjectDetailsDatabaseTest {
     }
 
     private Inventory basicInventory() {
-        return Inventory.builderFromStub("o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
+        return Inventory.builderFromStub(
+                        "o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
                 .addFileToManifest("f1", "v1/content/file1.txt")
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
@@ -614,7 +628,9 @@ public class ObjectDetailsDatabaseTest {
     }
 
     private ObjectDetailsDatabase createDatabase(String tableName) {
-        return new ObjectDetailsDatabaseBuilder().dataSource(dataSource).tableName(tableName).build();
+        return new ObjectDetailsDatabaseBuilder()
+                .dataSource(dataSource)
+                .tableName(tableName)
+                .build();
     }
-
 }

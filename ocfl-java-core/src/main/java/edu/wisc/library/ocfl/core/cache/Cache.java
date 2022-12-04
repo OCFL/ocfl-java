@@ -74,5 +74,4 @@ public interface Cache<K, V> {
      * @return true if the cache contains the key
      */
     boolean contains(K key);
-
 }

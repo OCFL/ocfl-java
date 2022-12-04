@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,5 +55,4 @@ public class NamasteTypeFile {
             throw OcflIOException.from(e);
         }
     }
-
 }

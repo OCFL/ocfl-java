@@ -35,7 +35,7 @@ public interface CloudClient {
 
     /**
      * The name of the bucket the OCFL repository is in.
-     * 
+     *
      * @return bucket name
      */
     String bucket();
@@ -47,7 +47,7 @@ public interface CloudClient {
      * @return the key prefix common to all objects in the repository
      */
     String prefix();
-    
+
     /**
      * Uploads a file to the destination, and returns the object key.
      *
@@ -183,5 +183,4 @@ public interface CloudClient {
      * @return if the bucket exists
      */
     boolean bucketExists();
-
 }

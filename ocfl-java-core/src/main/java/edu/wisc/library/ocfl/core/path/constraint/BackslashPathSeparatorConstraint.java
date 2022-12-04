@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
-
 import java.nio.file.FileSystems;
 
 /**
@@ -49,9 +48,9 @@ public class BackslashPathSeparatorConstraint implements PathCharConstraint {
     @Override
     public void apply(char c, String path) {
         if (isBackslash && c == '\\') {
-            throw new PathConstraintException(
-                    String.format("The path contains a \\ character in a filename, which is illegal on the local filesystem. Path: %s", path));
+            throw new PathConstraintException(String.format(
+                    "The path contains a \\ character in a filename, which is illegal on the local filesystem. Path: %s",
+                    path));
         }
     }
-
 }

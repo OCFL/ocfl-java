@@ -51,5 +51,4 @@ public interface ObjectLock {
      * @return object
      */
     <T> T doInWriteLock(String objectId, Callable<T> doInLock);
-
 }

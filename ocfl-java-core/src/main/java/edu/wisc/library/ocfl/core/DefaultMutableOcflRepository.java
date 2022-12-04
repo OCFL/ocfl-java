@@ -40,11 +40,10 @@ import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMapper;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extends the OCFL repository to support OCFL objects with mutable HEADs as defined by the
@@ -53,7 +52,8 @@ import java.util.function.Consumer;
  *
  * @see OcflRepositoryBuilder
  */
-// TODO This type of hierarchy is not sustainable if there are more types of OCFL extensions. Refactor when other extensions exist
+// TODO This type of hierarchy is not sustainable if there are more types of OCFL extensions. Refactor when other
+// extensions exist
 public class DefaultMutableOcflRepository extends DefaultOcflRepository implements MutableOcflRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultMutableOcflRepository.class);
@@ -70,24 +70,32 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
      * @param config ocfl defaults configuration
      * @param verifyStaging true if the contents of a stage version should be double-checked
      */
-    public DefaultMutableOcflRepository(OcflStorage storage, Path workDir,
-                                        ObjectLock objectLock,
-                                        InventoryMapper inventoryMapper,
-                                        LogicalPathMapper logicalPathMapper,
-                                        ContentPathConstraintProcessor contentPathConstraintProcessor,
-                                        OcflConfig config,
-                                        boolean verifyStaging) {
-        super(storage, workDir, objectLock, inventoryMapper,
-                logicalPathMapper, contentPathConstraintProcessor, config, verifyStaging);
+    public DefaultMutableOcflRepository(
+            OcflStorage storage,
+            Path workDir,
+            ObjectLock objectLock,
+            InventoryMapper inventoryMapper,
+            LogicalPathMapper logicalPathMapper,
+            ContentPathConstraintProcessor contentPathConstraintProcessor,
+            OcflConfig config,
+            boolean verifyStaging) {
+        super(
+                storage,
+                workDir,
+                objectLock,
+                inventoryMapper,
+                logicalPathMapper,
+                contentPathConstraintProcessor,
+                config,
+                verifyStaging);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ObjectVersionId stageChanges(ObjectVersionId objectVersionId,
-                                        VersionInfo versionInfo,
-                                        Consumer<OcflObjectUpdater> objectUpdater) {
+    public ObjectVersionId stageChanges(
+            ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater) {
         ensureOpen();
 
         Enforce.notNull(objectVersionId, "objectVersionId cannot be null");
@@ -106,10 +114,12 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         enforceObjectVersionForUpdate(objectVersionId, inventory);
 
         var stagingDir = createStagingDir(objectVersionId.getObjectId());
-        var contentDir = UncheckedFiles.createDirectories(resolveRevisionDir(inventory, stagingDir)).getParent();
+        var contentDir = UncheckedFiles.createDirectories(resolveRevisionDir(inventory, stagingDir))
+                .getParent();
 
         var inventoryUpdater = inventoryUpdaterBuilder.buildCopyStateMutable(inventory);
-        var addFileProcessor = addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
+        var addFileProcessor =
+                addFileProcessorBuilder.build(inventoryUpdater, contentDir, inventory.getDigestAlgorithm());
         var updater = new DefaultOcflObjectUpdater(inventory, inventoryUpdater, contentDir, addFileProcessor);
 
         try {
@@ -142,8 +152,8 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
             var finalInventory = writeInventory(newInventory, stagingDir);
 
             try {
-                objectLock.doInWriteLock(inventory.getId(), () ->
-                        storage.commitMutableHead(inventory, finalInventory, stagingDir));
+                objectLock.doInWriteLock(
+                        inventory.getId(), () -> storage.commitMutableHead(inventory, finalInventory, stagingDir));
             } finally {
                 FileUtil.safeDeleteDirectory(stagingDir);
             }
@@ -193,7 +203,8 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         UncheckedFiles.createDirectories(resolveContentDir(stubInventory, stagingDir));
 
         try {
-            var inventory = stubInventory.buildFrom()
+            var inventory = stubInventory
+                    .buildFrom()
                     .addHeadVersion(Version.builder()
                             .versionInfo(new VersionInfo()
                                     .setMessage("Auto-generated empty object version.")
@@ -214,5 +225,4 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         var newRevision = inventory.nextRevisionNum();
         return contentDir.resolve(newRevision.toString());
     }
-
 }

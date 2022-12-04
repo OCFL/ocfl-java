@@ -23,13 +23,13 @@
  */
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import edu.wisc.library.ocfl.api.exception.OcflInputException;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.FlatOmitPrefixLayoutConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author awoods
@@ -48,14 +48,13 @@ public class FlatOmitPrefixLayoutExtensionTest {
 
     @Test
     public void testNullDelimiter() {
-        assertThrows(OcflInputException.class, () -> config.setDelimiter(null),
-                "Expected OcflInputException");
+        assertThrows(OcflInputException.class, () -> config.setDelimiter(null), "Expected OcflInputException");
     }
 
     @Test
     public void testEmptyDelimiter() {
-        assertThrows(IllegalArgumentException.class, () -> config.setDelimiter(""),
-                "Expected IllegalArgumentException");
+        assertThrows(
+                IllegalArgumentException.class, () -> config.setDelimiter(""), "Expected IllegalArgumentException");
     }
 
     @Test
@@ -120,5 +119,4 @@ public class FlatOmitPrefixLayoutExtensionTest {
         String result = ext.mapObjectId("https://institution.gov/abc/f8.05v");
         assertEquals("https://institution.gov/abc/f8.05v", result);
     }
-
 }

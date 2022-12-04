@@ -1,5 +1,8 @@
 package edu.wisc.library.ocfl.itest;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
@@ -11,7 +14,6 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
 import edu.wisc.library.ocfl.test.TestHelper;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,16 +29,11 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 public final class ITestHelper {
 
     private static final String OCFL_SPEC_FILE = "ocfl_1.1.md";
 
-    private ITestHelper() {
-
-    }
+    private ITestHelper() {}
 
     public static void verifyDirectoryContentsSame(Path expected, Path actual) {
         verifyDirectoryContentsSame(expected, expected.getFileName().toString(), actual);
@@ -51,20 +48,23 @@ public final class ITestHelper {
         var expectedPaths = listAllPaths(expected);
         var actualPaths = listAllPaths(actual);
 
-        assertEquals(expectedPaths.size(), actualPaths.size(),
-                comparingMessage(expected, actual));
+        assertEquals(expectedPaths.size(), actualPaths.size(), comparingMessage(expected, actual));
 
         for (int i = 0; i < expectedPaths.size(); i++) {
             var expectedPath = expectedPaths.get(i);
             var actualPath = actualPaths.get(i);
 
-            assertEquals(expected.relativize(expectedPath).toString(), actual.relativize(actualPath).toString());
+            assertEquals(
+                    expected.relativize(expectedPath).toString(),
+                    actual.relativize(actualPath).toString());
 
             if (Files.isDirectory(expectedPath)) {
                 assertTrue(Files.isDirectory(actualPath), actualPath + " should be a directory");
             } else {
                 assertTrue(Files.isRegularFile(actualPath), actualPath + " should be a file");
-                assertEquals(computeDigest(expectedPath), computeDigest(actualPath),
+                assertEquals(
+                        computeDigest(expectedPath),
+                        computeDigest(actualPath),
                         comparingMessage(expectedPath, actualPath, actualPath));
             }
         }
@@ -75,11 +75,13 @@ public final class ITestHelper {
 
         try (var walk = Files.walk(root)) {
             walk.filter(p -> {
-                var filename = p.getFileName().toString();
-                return !filename.equals(".gitkeep")
-                        && !filename.equals(OCFL_SPEC_FILE)
-                        && !filename.equals("ocfl_1.0.txt");
-            }).filter(Files::isRegularFile).forEach(allPaths::add);
+                        var filename = p.getFileName().toString();
+                        return !filename.equals(".gitkeep")
+                                && !filename.equals(OCFL_SPEC_FILE)
+                                && !filename.equals("ocfl_1.0.txt");
+                    })
+                    .filter(Files::isRegularFile)
+                    .forEach(allPaths::add);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -134,5 +136,4 @@ public final class ITestHelper {
     public static InputStream streamString(String value) {
         return new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
     }
-
 }

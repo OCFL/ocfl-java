@@ -37,8 +37,7 @@ public class ValidationIssue {
     private final String message;
 
     @JsonCreator
-    public ValidationIssue(@JsonProperty("code") ValidationCode code,
-                           @JsonProperty("message") String message) {
+    public ValidationIssue(@JsonProperty("code") ValidationCode code, @JsonProperty("message") String message) {
         this.code = Enforce.notNull(code, "code cannot be null");
         this.message = Enforce.notBlank(message, "message cannot be blank");
     }

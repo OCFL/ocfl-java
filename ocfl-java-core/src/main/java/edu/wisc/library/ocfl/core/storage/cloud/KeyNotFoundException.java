@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.core.storage.cloud;
  */
 public class KeyNotFoundException extends RuntimeException {
 
-    public KeyNotFoundException() {
-    }
+    public KeyNotFoundException() {}
 
     public KeyNotFoundException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class KeyNotFoundException extends RuntimeException {
     public KeyNotFoundException(Throwable cause) {
         super(cause);
     }
-
 }

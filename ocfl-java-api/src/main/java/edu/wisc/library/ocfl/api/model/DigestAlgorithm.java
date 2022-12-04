@@ -29,7 +29,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import edu.wisc.library.ocfl.api.DigestAlgorithmRegistry;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
@@ -142,10 +141,9 @@ public class DigestAlgorithm {
 
     @Override
     public String toString() {
-        return "DigestAlgorithm{" +
-                "ocflName='" + ocflName + '\'' +
-                ", javaStandardName='" + javaStandardName + '\'' +
-                '}';
+        return "DigestAlgorithm{" + "ocflName='"
+                + ocflName + '\'' + ", javaStandardName='"
+                + javaStandardName + '\'' + '}';
     }
 
     @Override
@@ -164,5 +162,4 @@ public class DigestAlgorithm {
     public int hashCode() {
         return Objects.hash(ocflName);
     }
-
 }

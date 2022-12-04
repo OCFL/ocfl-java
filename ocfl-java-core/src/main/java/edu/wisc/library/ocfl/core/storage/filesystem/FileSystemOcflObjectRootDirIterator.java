@@ -24,18 +24,17 @@
 
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
+
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Iterator;
-
-import static edu.wisc.library.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
 
 /**
  * Implementation of {@link OcflObjectRootDirIterator} that iterates over the filesystem
@@ -50,8 +49,8 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
 
     @Override
     protected boolean isObjectRoot(String path) {
-        try (var objectMarkers = Files.newDirectoryStream(root.resolve(path),
-                p -> p.getFileName().toString().startsWith(OBJECT_NAMASTE_PREFIX))) {
+        try (var objectMarkers = Files.newDirectoryStream(
+                root.resolve(path), p -> p.getFileName().toString().startsWith(OBJECT_NAMASTE_PREFIX))) {
             return objectMarkers.iterator().hasNext();
         } catch (IOException e) {
             throw new OcflIOException(e);
@@ -99,7 +98,5 @@ public class FileSystemOcflObjectRootDirIterator extends OcflObjectRootDirIterat
                 // ignore
             }
         }
-
     }
-
 }

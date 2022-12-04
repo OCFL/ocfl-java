@@ -29,7 +29,6 @@ import edu.wisc.library.ocfl.api.exception.FixityCheckException;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -51,7 +50,8 @@ public class FixityCheckInputStream extends DigestInputStream {
      * @param digestAlgorithm the algorithm to use to calculate the digest (eg. sha512)
      * @param expectedDigestValue the expected digest value
      */
-    public FixityCheckInputStream(InputStream inputStream, DigestAlgorithm digestAlgorithm, String expectedDigestValue) {
+    public FixityCheckInputStream(
+            InputStream inputStream, DigestAlgorithm digestAlgorithm, String expectedDigestValue) {
         super(inputStream, digestAlgorithm.getMessageDigest());
         this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
     }
@@ -78,11 +78,11 @@ public class FixityCheckInputStream extends DigestInputStream {
         if (enabled) {
             var actualDigest = getActualDigestValue().get();
             if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
-                throw new FixityCheckException(String.format("Expected %s digest: %s; Actual: %s",
+                throw new FixityCheckException(String.format(
+                        "Expected %s digest: %s; Actual: %s",
                         digest.getAlgorithm(), expectedDigestValue, actualDigest));
             }
         }
-
     }
 
     /**
@@ -135,5 +135,4 @@ public class FixityCheckInputStream extends DigestInputStream {
             throw new OcflJavaException(e);
         }
     }
-
 }

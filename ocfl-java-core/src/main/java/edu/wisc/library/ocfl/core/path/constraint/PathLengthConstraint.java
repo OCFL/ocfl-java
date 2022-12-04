@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.path.constraint;
 
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -115,5 +114,4 @@ public class PathLengthConstraint implements PathConstraint, FileNameConstraint 
     private String message(String fileName, String path) {
         return String.format("The filename '%s' is longer than %s %s. Path: %s", fileName, maxLength, type, path);
     }
-
 }

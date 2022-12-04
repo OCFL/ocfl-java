@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.nio.file.FileSystems;
 import java.util.regex.Pattern;
 
@@ -45,8 +44,8 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
 
     private static final PathConstraint LEADING_SLASH_CONSTRAINT = BeginEndPathConstraint.mustNotBeginWith("/");
     private static final PathConstraint TRAILING_SLASH_CONSTRAINT = BeginEndPathConstraint.mustNotEndWith("/");
-    private static final FileNameConstraint DOT_CONSTRAINT = RegexPathConstraint
-            .mustNotContain(Pattern.compile("^\\.{1,2}$"));
+    private static final FileNameConstraint DOT_CONSTRAINT =
+            RegexPathConstraint.mustNotContain(Pattern.compile("^\\.{1,2}$"));
     private static final FileNameConstraint NON_EMPTY_CONSTRAINT = new NonEmptyFileNameConstraint();
     private static final PathCharConstraint BACKSLASH_CONSTRAINT = new BackslashPathSeparatorConstraint();
 
@@ -82,7 +81,8 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
          * @return builder
          */
         public Builder storagePathConstraintProcessor(PathConstraintProcessor storagePathConstraintProcessor) {
-            this.storagePathConstraintProcessor = Enforce.notNull(storagePathConstraintProcessor, "storagePathConstraintProcessor cannot be null");
+            this.storagePathConstraintProcessor =
+                    Enforce.notNull(storagePathConstraintProcessor, "storagePathConstraintProcessor cannot be null");
             return this;
         }
 
@@ -93,7 +93,8 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
          * @return builder
          */
         public Builder contentPathConstraintProcessor(PathConstraintProcessor contentPathConstraintProcessor) {
-            this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
+            this.contentPathConstraintProcessor =
+                    Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
             return this;
         }
 
@@ -101,9 +102,9 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
          * @return new ContentPathConstraintProcessor
          */
         public DefaultContentPathConstraintProcessor build() {
-            return new DefaultContentPathConstraintProcessor(storagePathConstraintProcessor, contentPathConstraintProcessor);
+            return new DefaultContentPathConstraintProcessor(
+                    storagePathConstraintProcessor, contentPathConstraintProcessor);
         }
-
     }
 
     /**
@@ -112,15 +113,20 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
      * @param storagePathConstraintProcessor the constraints to apply to storage paths
      * @param contentPathConstraintProcessor the constraints to apply to content paths
      */
-    public DefaultContentPathConstraintProcessor(PathConstraintProcessor storagePathConstraintProcessor, PathConstraintProcessor contentPathConstraintProcessor) {
-        this.storagePathConstraintProcessor = Enforce.notNull(storagePathConstraintProcessor, "storagePathConstraintProcessor cannot be null");
-        this.contentPathConstraintProcessor = Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
+    public DefaultContentPathConstraintProcessor(
+            PathConstraintProcessor storagePathConstraintProcessor,
+            PathConstraintProcessor contentPathConstraintProcessor) {
+        this.storagePathConstraintProcessor =
+                Enforce.notNull(storagePathConstraintProcessor, "storagePathConstraintProcessor cannot be null");
+        this.contentPathConstraintProcessor =
+                Enforce.notNull(contentPathConstraintProcessor, "contentPathConstraintProcessor cannot be null");
 
         if (filesystemUsesBackslashSeparator()) {
             this.contentPathConstraintProcessor.prependCharConstraint(BACKSLASH_CONSTRAINT);
         }
 
-        // Add the required content path constraints to the beginning of the content path constraint processor constraint list
+        // Add the required content path constraints to the beginning of the content path constraint processor
+        // constraint list
         this.contentPathConstraintProcessor
                 .prependFileNameConstraint(DOT_CONSTRAINT)
                 .prependFileNameConstraint(NON_EMPTY_CONSTRAINT)
@@ -151,5 +157,4 @@ public class DefaultContentPathConstraintProcessor implements ContentPathConstra
         var pathSeparator = FileSystems.getDefault().getSeparator().charAt(0);
         return pathSeparator == '\\';
     }
-
 }

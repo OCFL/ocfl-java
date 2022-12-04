@@ -1,15 +1,18 @@
 package edu.wisc.library.ocfl.itest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import edu.wisc.library.ocfl.api.exception.OcflFileAlreadyExistsException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.storage.common.Listing;
 import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -21,13 +24,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public abstract class StorageTest {
 
@@ -61,10 +60,7 @@ public abstract class StorageTest {
 
         var listing = storage.listDirectory("some/dir");
 
-        assertThat(listing, containsInAnyOrder(
-                Listing.file("f1.txt"),
-                Listing.file("f2.txt"),
-                Listing.directory("a")));
+        assertThat(listing, containsInAnyOrder(Listing.file("f1.txt"), Listing.file("f2.txt"), Listing.directory("a")));
     }
 
     @Test
@@ -86,12 +82,14 @@ public abstract class StorageTest {
 
         var listing = storage.listRecursive("some/dir");
 
-        assertThat(listing, containsInAnyOrder(
-                Listing.file("f1.txt"),
-                Listing.file("f2.txt"),
-                Listing.file("a/f1.txt"),
-                Listing.file("b/f2.txt"),
-                Listing.file("1/2/f3.txt")));
+        assertThat(
+                listing,
+                containsInAnyOrder(
+                        Listing.file("f1.txt"),
+                        Listing.file("f2.txt"),
+                        Listing.file("a/f1.txt"),
+                        Listing.file("b/f2.txt"),
+                        Listing.file("1/2/f3.txt")));
     }
 
     @Test
@@ -216,10 +214,7 @@ public abstract class StorageTest {
 
         storage.copyDirectoryOutOf("some", staging);
 
-        assertThat(listRecursive(staging), containsInAnyOrder(
-                Listing.file("dir/f1.txt"),
-                Listing.file("dir/f2.txt")
-        ));
+        assertThat(listRecursive(staging), containsInAnyOrder(Listing.file("dir/f1.txt"), Listing.file("dir/f2.txt")));
     }
 
     @Test
@@ -241,10 +236,9 @@ public abstract class StorageTest {
 
         storage.copyFileInto(file, "some/dir/f3.txt", null);
 
-        assertThat(storage.listDirectory("some/dir"), containsInAnyOrder(
-                Listing.file("f1.txt"),
-                Listing.file("f2.txt"),
-                Listing.file("f3.txt")));
+        assertThat(
+                storage.listDirectory("some/dir"),
+                containsInAnyOrder(Listing.file("f1.txt"), Listing.file("f2.txt"), Listing.file("f3.txt")));
     }
 
     @Test
@@ -256,9 +250,8 @@ public abstract class StorageTest {
 
         storage.copyFileInto(file, "some/dir/f1.txt", null);
 
-        assertThat(storage.listDirectory("some/dir"), containsInAnyOrder(
-                Listing.file("f1.txt"),
-                Listing.file("f2.txt")));
+        assertThat(
+                storage.listDirectory("some/dir"), containsInAnyOrder(Listing.file("f1.txt"), Listing.file("f2.txt")));
 
         assertEquals("f3", storage.readToString("some/dir/f1.txt"));
     }
@@ -270,10 +263,10 @@ public abstract class StorageTest {
 
         storage.copyFileInternal("some/dir/f2.txt", "f2.txt");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("f2.txt"),
-                Listing.file("some/dir/f1.txt"),
-                Listing.file("some/dir/f2.txt")));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(
+                        Listing.file("f2.txt"), Listing.file("some/dir/f1.txt"), Listing.file("some/dir/f2.txt")));
 
         assertEquals("f2", storage.readToString("f2.txt"));
     }
@@ -286,10 +279,10 @@ public abstract class StorageTest {
 
         storage.copyFileInternal("some/dir/f2.txt", "f2.txt");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("f2.txt"),
-                Listing.file("some/dir/f1.txt"),
-                Listing.file("some/dir/f2.txt")));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(
+                        Listing.file("f2.txt"), Listing.file("some/dir/f1.txt"), Listing.file("some/dir/f2.txt")));
 
         assertEquals("f2", storage.readToString("f2.txt"));
     }
@@ -302,9 +295,7 @@ public abstract class StorageTest {
 
         storage.moveDirectoryInto(staging.resolve("a"), "d");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("d/f1.txt"),
-                Listing.file("d/b/f2.txt")));
+        assertThat(storage.listRecursive(""), containsInAnyOrder(Listing.file("d/f1.txt"), Listing.file("d/b/f2.txt")));
 
         assertEquals("f1", storage.readToString("d/f1.txt"));
         assertEquals("f2", storage.readToString("d/b/f2.txt"));
@@ -330,9 +321,8 @@ public abstract class StorageTest {
 
         storage.moveDirectoryInternal("some/dir", "another");
 
-        assertThat(storage.listRecursive("another"), containsInAnyOrder(
-                Listing.file("f1.txt"),
-                Listing.file("f2.txt")));
+        assertThat(
+                storage.listRecursive("another"), containsInAnyOrder(Listing.file("f1.txt"), Listing.file("f2.txt")));
 
         assertEquals("f1", storage.readToString("another/f1.txt"));
         assertEquals("f2", storage.readToString("another/f2.txt"));
@@ -366,8 +356,7 @@ public abstract class StorageTest {
 
         storage.deleteDirectory("some");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("another/f3.txt")));
+        assertThat(storage.listRecursive(""), containsInAnyOrder(Listing.file("another/f3.txt")));
     }
 
     @Test
@@ -378,11 +367,12 @@ public abstract class StorageTest {
 
         storage.deleteDirectory("bogus");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("some/dir/f1.txt"),
-                Listing.file("some/dir/f2.txt"),
-                Listing.file("another/f3.txt")
-        ));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(
+                        Listing.file("some/dir/f1.txt"),
+                        Listing.file("some/dir/f2.txt"),
+                        Listing.file("another/f3.txt")));
     }
 
     @Test
@@ -393,10 +383,9 @@ public abstract class StorageTest {
 
         storage.deleteFile("some/dir/f2.txt");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("some/dir/f1.txt"),
-                Listing.file("another/f3.txt")
-        ));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(Listing.file("some/dir/f1.txt"), Listing.file("another/f3.txt")));
     }
 
     @Test
@@ -407,11 +396,12 @@ public abstract class StorageTest {
 
         storage.deleteFile("some/dir/f3.txt");
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("some/dir/f1.txt"),
-                Listing.file("some/dir/f2.txt"),
-                Listing.file("another/f3.txt")
-        ));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(
+                        Listing.file("some/dir/f1.txt"),
+                        Listing.file("some/dir/f2.txt"),
+                        Listing.file("another/f3.txt")));
     }
 
     @Test
@@ -422,9 +412,7 @@ public abstract class StorageTest {
 
         storage.deleteFiles(List.of("some/dir/f2.txt", "some/dir/f3.txt"));
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("some/dir/f1.txt")
-        ));
+        assertThat(storage.listRecursive(""), containsInAnyOrder(Listing.file("some/dir/f1.txt")));
     }
 
     @Test
@@ -435,11 +423,12 @@ public abstract class StorageTest {
 
         storage.deleteFiles(List.of("another/dir/f2.txt", "another/dir/f3.txt"));
 
-        assertThat(storage.listRecursive(""), containsInAnyOrder(
-                Listing.file("some/dir/f1.txt"),
-                Listing.file("some/dir/f2.txt"),
-                Listing.file("some/dir/f3.txt")
-        ));
+        assertThat(
+                storage.listRecursive(""),
+                containsInAnyOrder(
+                        Listing.file("some/dir/f1.txt"),
+                        Listing.file("some/dir/f2.txt"),
+                        Listing.file("some/dir/f3.txt")));
     }
 
     protected String toString(InputStream stream) {
@@ -484,5 +473,4 @@ public abstract class StorageTest {
 
         return listings;
     }
-
 }

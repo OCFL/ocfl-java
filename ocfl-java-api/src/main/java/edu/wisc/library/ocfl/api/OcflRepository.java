@@ -36,7 +36,6 @@ import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
 import edu.wisc.library.ocfl.api.model.VersionDetails;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
-
 import java.nio.file.Path;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -71,7 +70,8 @@ public interface OcflRepository {
      * @return The objectId and version of the new object version
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectVersionId putObject(ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... options);
+    ObjectVersionId putObject(
+            ObjectVersionId objectVersionId, Path path, VersionInfo versionInfo, OcflOption... options);
 
     /**
      * Updates an existing object OR create a new object by selectively adding, removing, moving files within the object,
@@ -89,7 +89,8 @@ public interface OcflRepository {
      * @throws NotFoundException when no object can be found for the specified objectVersionId
      * @throws ObjectOutOfSyncException when the object was modified by another process before these changes could be committed
      */
-    ObjectVersionId updateObject(ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater);
+    ObjectVersionId updateObject(
+            ObjectVersionId objectVersionId, VersionInfo versionInfo, Consumer<OcflObjectUpdater> objectUpdater);
 
     /**
      * Returns the entire contents of the object at the specified version. The outputPath MUST NOT exist, but its parent
@@ -298,5 +299,4 @@ public interface OcflRepository {
      * Otherwise, nothing happens.
      */
     void invalidateCache();
-
 }

@@ -28,7 +28,6 @@ import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.io.BufferedInputStream;
 
 /**
@@ -57,10 +56,10 @@ public class CloudOcflFileRetriever implements OcflFileRetriever {
         public CloudOcflFileRetriever build(String key, DigestAlgorithm digestAlgorithm, String digestValue) {
             return new CloudOcflFileRetriever(cloudClient, key, digestAlgorithm, digestValue);
         }
-
     }
 
-    public CloudOcflFileRetriever(CloudClient cloudClient, String key, DigestAlgorithm digestAlgorithm, String digestValue) {
+    public CloudOcflFileRetriever(
+            CloudClient cloudClient, String key, DigestAlgorithm digestAlgorithm, String digestValue) {
         this.cloudClient = Enforce.notNull(cloudClient, "cloudClient cannot be null");
         this.key = Enforce.notBlank(key, "key cannot be blank");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
@@ -73,7 +72,7 @@ public class CloudOcflFileRetriever implements OcflFileRetriever {
     @Override
     public FixityCheckInputStream retrieveFile() {
         // TODO caching?
-        return new FixityCheckInputStream(new BufferedInputStream(cloudClient.downloadStream(key)), digestAlgorithm, digestValue);
+        return new FixityCheckInputStream(
+                new BufferedInputStream(cloudClient.downloadStream(key)), digestAlgorithm, digestValue);
     }
-
 }

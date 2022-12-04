@@ -28,11 +28,10 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChange;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeMatcher;
-
 import java.util.Map;
 import java.util.Objects;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 
 public class FileChangeMatcher extends TypeSafeMatcher<FileChange> {
 
@@ -44,8 +43,13 @@ public class FileChangeMatcher extends TypeSafeMatcher<FileChange> {
 
     private VersionInfoMatcher versionInfoMatcher;
 
-    FileChangeMatcher(FileChangeType changeType, ObjectVersionId objectVersionId, String filePath,
-                      String storagePath, VersionInfoMatcher versionInfoMatcher, Map<DigestAlgorithm, String> fixity) {
+    FileChangeMatcher(
+            FileChangeType changeType,
+            ObjectVersionId objectVersionId,
+            String filePath,
+            String storagePath,
+            VersionInfoMatcher versionInfoMatcher,
+            Map<DigestAlgorithm, String> fixity) {
         this.changeType = changeType;
         this.objectVersionId = objectVersionId;
         this.filePath = filePath;
@@ -66,7 +70,8 @@ public class FileChangeMatcher extends TypeSafeMatcher<FileChange> {
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("FileChange{filePath=")
+        description
+                .appendText("FileChange{filePath=")
                 .appendValue(filePath)
                 .appendText(", storagePath=")
                 .appendValue(storagePath)
@@ -77,7 +82,5 @@ public class FileChangeMatcher extends TypeSafeMatcher<FileChange> {
                 .appendText(", fixity=")
                 .appendValue(fixity)
                 .appendText("}");
-
     }
-
 }

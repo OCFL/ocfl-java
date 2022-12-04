@@ -30,7 +30,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 
 public enum InventoryType {
-
     OCFL_1_0("https://ocfl.io/1.0/spec/#inventory"),
     OCFL_1_1("https://ocfl.io/1.1/spec/#inventory");
 
@@ -67,5 +66,4 @@ public enum InventoryType {
 
         throw new OcflJavaException("Unknown InventoryType: " + value);
     }
-
 }

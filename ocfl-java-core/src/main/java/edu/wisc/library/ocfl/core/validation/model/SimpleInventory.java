@@ -54,17 +54,17 @@ public class SimpleInventory {
 
     private Map<String, String> invertedManifest;
 
-    public SimpleInventory() {
-    }
+    public SimpleInventory() {}
 
-    public SimpleInventory(String id,
-                           String type,
-                           String digestAlgorithm,
-                           String head,
-                           String contentDirectory,
-                           Map<String, Map<String, List<String>>> fixity,
-                           Map<String, List<String>> manifest,
-                           Map<String, SimpleVersion> versions) {
+    public SimpleInventory(
+            String id,
+            String type,
+            String digestAlgorithm,
+            String head,
+            String contentDirectory,
+            Map<String, Map<String, List<String>>> fixity,
+            Map<String, List<String>> manifest,
+            Map<String, SimpleVersion> versions) {
         this.id = id;
         this.type = type;
         this.digestAlgorithm = digestAlgorithm;
@@ -203,16 +203,14 @@ public class SimpleInventory {
 
     @Override
     public String toString() {
-        return "SimpleInventory{" +
-                "id='" + id + '\'' +
-                ", type='" + type + '\'' +
-                ", digestAlgorithm='" + digestAlgorithm + '\'' +
-                ", head='" + head + '\'' +
-                ", contentDirectory='" + contentDirectory + '\'' +
-                ", fixity=" + fixity +
-                ", manifest=" + manifest +
-                ", versions=" + versions +
-                '}';
+        return "SimpleInventory{" + "id='"
+                + id + '\'' + ", type='"
+                + type + '\'' + ", digestAlgorithm='"
+                + digestAlgorithm + '\'' + ", head='"
+                + head + '\'' + ", contentDirectory='"
+                + contentDirectory + '\'' + ", fixity="
+                + fixity + ", manifest="
+                + manifest + ", versions="
+                + versions + '}';
     }
-
 }

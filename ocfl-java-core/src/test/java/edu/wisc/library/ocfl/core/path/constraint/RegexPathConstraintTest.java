@@ -1,11 +1,10 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
-import edu.wisc.library.ocfl.api.exception.PathConstraintException;
-import org.junit.jupiter.api.Test;
-
-import java.util.regex.Pattern;
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import edu.wisc.library.ocfl.api.exception.PathConstraintException;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.Test;
 
 public class RegexPathConstraintTest {
 
@@ -40,5 +39,4 @@ public class RegexPathConstraintTest {
         RegexPathConstraint.mustContain(Pattern.compile("^\\.$")).apply(".");
         RegexPathConstraint.mustContain(Pattern.compile("^\\.$")).apply(".", "path");
     }
-
 }

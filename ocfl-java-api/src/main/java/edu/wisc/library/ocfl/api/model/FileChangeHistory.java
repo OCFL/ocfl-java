@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.util.Iterator;
 import java.util.List;
 
@@ -119,10 +118,6 @@ public class FileChangeHistory {
 
     @Override
     public String toString() {
-        return "FileChangeHistory{" +
-                "path='" + path + '\'' +
-                ", fileChanges=" + fileChanges +
-                '}';
+        return "FileChangeHistory{" + "path='" + path + '\'' + ", fileChanges=" + fileChanges + '}';
     }
-
 }

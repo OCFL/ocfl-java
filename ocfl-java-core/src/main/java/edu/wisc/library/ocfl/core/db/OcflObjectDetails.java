@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.db;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.RevisionNum;
-
 import java.time.LocalDateTime;
 
 /**
@@ -158,15 +157,13 @@ public class OcflObjectDetails {
 
     @Override
     public String toString() {
-        return "OcflObjectDetails{" +
-                "objectId='" + objectId + '\'' +
-                ", versionNum=" + versionNum +
-                ", revisionNum=" + revisionNum +
-                ", objectRootPath='" + objectRootPath + '\'' +
-                ", inventoryDigest='" + inventoryDigest + '\'' +
-                ", digestAlgorithm=" + digestAlgorithm +
-                ", updateTimestamp=" + updateTimestamp +
-                '}';
+        return "OcflObjectDetails{" + "objectId='"
+                + objectId + '\'' + ", versionNum="
+                + versionNum + ", revisionNum="
+                + revisionNum + ", objectRootPath='"
+                + objectRootPath + '\'' + ", inventoryDigest='"
+                + inventoryDigest + '\'' + ", digestAlgorithm="
+                + digestAlgorithm + ", updateTimestamp="
+                + updateTimestamp + '}';
     }
-
 }

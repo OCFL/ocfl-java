@@ -27,16 +27,15 @@ package edu.wisc.library.ocfl.core.db;
 import edu.wisc.library.ocfl.api.exception.OcflDbException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Creates database tables if they don't exist.
@@ -56,8 +55,7 @@ public class TableCreator {
     private final Map<DbType, String> dbScriptDir = Map.of(
             DbType.POSTGRES, "db/postgresql",
             DbType.MARIADB, "db/mariadb",
-            DbType.H2, "db/h2"
-    );
+            DbType.H2, "db/h2");
 
     private final DbType dbType;
     private final DataSource dataSource;
@@ -105,8 +103,7 @@ public class TableCreator {
     }
 
     private void testTableExistence(Connection connection, String tableName) {
-        try (var statement = connection
-                .prepareStatement(String.format(TABLE_TEST_QUERY, tableName))) {
+        try (var statement = connection.prepareStatement(String.format(TABLE_TEST_QUERY, tableName))) {
             statement.execute();
         } catch (SQLException e) {
             if (e.getErrorCode() == MYSQL_NO_TABLE_ERROR) {
@@ -131,5 +128,4 @@ public class TableCreator {
     private String streamToString(InputStream stream) throws IOException {
         return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
     }
-
 }

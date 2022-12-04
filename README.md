@@ -491,7 +491,7 @@ Execute all of the unit tests:
 mvn test
 ```
 
-Execute all of the unit tests, integration tests, and checkstyle:
+Execute all of the unit tests, integration tests, and spotless:
 
 ``` shell
 mvn verify

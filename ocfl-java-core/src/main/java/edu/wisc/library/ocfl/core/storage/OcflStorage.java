@@ -36,7 +36,6 @@ import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
-
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -64,10 +63,11 @@ public interface OcflStorage {
      * @param supportEvaluator the evaluator that determines what to do when unsupported extensions are encountered
      * @return the resolved repository configuration
      */
-    RepositoryConfig initializeStorage(OcflVersion ocflVersion,
-                                       OcflExtensionConfig layoutConfig,
-                                       InventoryMapper inventoryMapper,
-                                       ExtensionSupportEvaluator supportEvaluator);
+    RepositoryConfig initializeStorage(
+            OcflVersion ocflVersion,
+            OcflExtensionConfig layoutConfig,
+            InventoryMapper inventoryMapper,
+            ExtensionSupportEvaluator supportEvaluator);
 
     /**
      * Returns a verified copy of the most recent object inventory. Null is returned if the object is not found.
@@ -260,5 +260,4 @@ public interface OcflStorage {
      * Otherwise, nothing happens.
      */
     void invalidateCache();
-
 }

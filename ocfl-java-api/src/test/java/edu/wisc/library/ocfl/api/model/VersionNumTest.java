@@ -1,10 +1,10 @@
 package edu.wisc.library.ocfl.api.model;
 
-import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
+import org.junit.jupiter.api.Test;
 
 public class VersionNumTest {
 
@@ -73,5 +73,4 @@ public class VersionNumTest {
         var versionNum = VersionNum.fromString("v09999");
         assertThrows(InvalidVersionException.class, versionNum::nextVersionNum);
     }
-
 }

@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.path.constraint;
 
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.BitSet;
 
 /**
@@ -116,7 +115,7 @@ public class BitSetPathCharConstraint implements PathCharConstraint {
     }
 
     private void throwException(char c, String path) {
-        throw new PathConstraintException(String.format("The path contains the illegal character '%s'. Path: %s", c, path));
+        throw new PathConstraintException(
+                String.format("The path contains the illegal character '%s'. Path: %s", c, path));
     }
-
 }

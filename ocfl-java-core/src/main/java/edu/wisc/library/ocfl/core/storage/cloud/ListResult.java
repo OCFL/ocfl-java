@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.storage.cloud;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -72,10 +71,7 @@ public class ListResult {
 
     @Override
     public String toString() {
-        return "ListResult{" +
-                "objects=" + objects +
-                ", directories=" + directories +
-                '}';
+        return "ListResult{" + "objects=" + objects + ", directories=" + directories + '}';
     }
 
     /**
@@ -117,10 +113,7 @@ public class ListResult {
 
         @Override
         public String toString() {
-            return "ObjectListing{" +
-                    "key='" + key + '\'' +
-                    ", keySuffix='" + keySuffix + '\'' +
-                    '}';
+            return "ObjectListing{" + "key='" + key + '\'' + ", keySuffix='" + keySuffix + '\'' + '}';
         }
     }
 
@@ -161,10 +154,7 @@ public class ListResult {
 
         @Override
         public String toString() {
-            return "DirectoryListing{" +
-                    "path='" + path + '\'' +
-                    '}';
+            return "DirectoryListing{" + "path='" + path + '\'' + '}';
         }
     }
-
 }

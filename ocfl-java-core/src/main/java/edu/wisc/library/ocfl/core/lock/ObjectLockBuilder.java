@@ -27,10 +27,9 @@ package edu.wisc.library.ocfl.core.lock;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.db.DbType;
 import edu.wisc.library.ocfl.core.db.TableCreator;
-
-import javax.sql.DataSource;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 
 /**
  * Constructs new {@link ObjectLock} instances
@@ -139,5 +138,4 @@ public class ObjectLockBuilder {
     private ObjectLock buildMemLock() {
         return new InMemoryObjectLock(waitTime, timeUnit);
     }
-
 }

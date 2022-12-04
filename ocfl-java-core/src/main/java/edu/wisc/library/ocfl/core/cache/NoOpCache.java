@@ -55,5 +55,4 @@ public class NoOpCache<K, V> implements Cache<K, V> {
     public boolean contains(K key) {
         return false;
     }
-
 }

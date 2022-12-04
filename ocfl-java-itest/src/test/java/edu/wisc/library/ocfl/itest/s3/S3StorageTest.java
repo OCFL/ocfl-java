@@ -7,23 +7,22 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudStorage;
 import edu.wisc.library.ocfl.core.storage.common.Storage;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.StorageTest;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
 
 public class S3StorageTest extends StorageTest {
 
-    private static final String REPO_PREFIX = "S3StorageTest" + ThreadLocalRandom.current().nextLong();
+    private static final String REPO_PREFIX =
+            "S3StorageTest" + ThreadLocalRandom.current().nextLong();
 
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
@@ -65,9 +64,11 @@ public class S3StorageTest extends StorageTest {
     }
 
     protected void file(String path, String content) {
-        s3Client.putObject(request -> {
-            request.bucket(bucket).key(FileUtil.pathJoinFailEmpty(prefix(name), path));
-        }, RequestBody.fromString(content));
+        s3Client.putObject(
+                request -> {
+                    request.bucket(bucket).key(FileUtil.pathJoinFailEmpty(prefix(name), path));
+                },
+                RequestBody.fromString(content));
     }
 
     protected String readFile(String path) {
@@ -93,5 +94,4 @@ public class S3StorageTest extends StorageTest {
     private String prefix(String name) {
         return REPO_PREFIX + "-" + name;
     }
-
 }

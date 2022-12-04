@@ -24,18 +24,19 @@
 
 package edu.wisc.library.ocfl.core.db;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 
 public class H2ObjectDetailsDatabase extends BaseObjectDetailsDatabase {
 
     private static final String LOCK_FAIL_STATE = "HYT00";
     private static final String DUPLICATE_KEY_STATE = "23505";
 
-    public H2ObjectDetailsDatabase(String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
+    public H2ObjectDetailsDatabase(
+            String tableName, DataSource dataSource, boolean storeInventory, long waitTime, TimeUnit timeUnit) {
         super(tableName, dataSource, storeInventory, waitTime, timeUnit, LOCK_FAIL_STATE);
     }
 
@@ -56,5 +57,4 @@ public class H2ObjectDetailsDatabase extends BaseObjectDetailsDatabase {
     protected boolean isConcurrentWriteException(SQLException exception) {
         return Objects.equals(exception.getSQLState(), DUPLICATE_KEY_STATE);
     }
-
 }

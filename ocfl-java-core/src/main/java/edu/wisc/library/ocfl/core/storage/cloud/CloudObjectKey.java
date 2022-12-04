@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.storage.cloud;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-
 import java.util.Objects;
 
 /**
@@ -157,7 +156,5 @@ public class CloudObjectKey {
 
             return new CloudObjectKey(prefix, key.substring(prefix.length() + 1), key);
         }
-
     }
-
 }

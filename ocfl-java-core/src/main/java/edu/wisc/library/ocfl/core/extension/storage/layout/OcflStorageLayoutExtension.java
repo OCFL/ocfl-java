@@ -32,7 +32,7 @@ import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
  * They are dynamically loaded when needed, and MUST have a no-arg constructor. The extension is configured by a call
  * to its {@link #init} method.
  */
-public interface OcflStorageLayoutExtension extends OcflExtension  {
+public interface OcflStorageLayoutExtension extends OcflExtension {
 
     /**
      * Configures the extension. This method must be called before the extension can be used.
@@ -60,5 +60,4 @@ public interface OcflStorageLayoutExtension extends OcflExtension  {
      * @return the description text that should be used in ocfl_layout.json
      */
     String getDescription();
-
 }

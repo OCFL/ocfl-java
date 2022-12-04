@@ -17,15 +17,6 @@ import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.exporter.HTTPServer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,6 +31,14 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 
 @Disabled
 public class LoadITest {
@@ -64,6 +63,7 @@ public class LoadITest {
             public Duration step() {
                 return Duration.ofSeconds(30);
             }
+
             @Override
             public String get(final String key) {
                 return null;
@@ -72,13 +72,13 @@ public class LoadITest {
         // Enables distribution stats for all timer metrics
         registry.config().meterFilter(new MeterFilter() {
             @Override
-            public DistributionStatisticConfig configure(final Meter.Id id,
-                                                         final DistributionStatisticConfig config) {
+            public DistributionStatisticConfig configure(final Meter.Id id, final DistributionStatisticConfig config) {
                 if (id.getType() == Meter.Type.TIMER) {
                     return DistributionStatisticConfig.builder()
                             .percentilesHistogram(true)
                             .percentiles(0.5, 0.90, 0.99)
-                            .build().merge(config);
+                            .build()
+                            .merge(config);
                 }
                 return config;
             }
@@ -220,15 +220,19 @@ public class LoadITest {
         var objectPath = createTestObject(fileCount, fileSize);
         System.out.println("Created test object: " + objectPath);
 
-        var versionInfo = new VersionInfo()
-                .setUser("Peter", "pwinckles@example.com")
-                .setMessage("Testing");
+        var versionInfo =
+                new VersionInfo().setUser("Peter", "pwinckles@example.com").setMessage("Testing");
 
-        var timer = Metrics.timer("putObject",
-                "files", String.valueOf(fileCount),
-                "sizeBytes", String.valueOf(fileSize),
-                "threads", String.valueOf(threadCount),
-                "storage", "s3");
+        var timer = Metrics.timer(
+                "putObject",
+                "files",
+                String.valueOf(fileCount),
+                "sizeBytes",
+                String.valueOf(fileSize),
+                "threads",
+                String.valueOf(threadCount),
+                "storage",
+                "s3");
 
         var threads = new ArrayList<Thread>(threadCount);
 
@@ -270,9 +274,7 @@ public class LoadITest {
                 .repoPrefix(prefix)
                 .build();
 
-        var timer = Metrics.timer("putObjectDirect",
-                "threads", String.valueOf(threadCount),
-                "storage", "s3");
+        var timer = Metrics.timer("putObjectDirect", "threads", String.valueOf(threadCount), "storage", "s3");
 
         var threads = new ArrayList<Thread>(threadCount);
 
@@ -293,28 +295,34 @@ public class LoadITest {
         System.out.println("Done");
     }
 
-    private void runPutTest(OcflRepository repo,
-                            int fileCount,
-                            long fileSize,
-                            int threadCount,
-                            Duration duration,
-                            String storageType,
-                            boolean shouldPurge) throws InterruptedException {
+    private void runPutTest(
+            OcflRepository repo,
+            int fileCount,
+            long fileSize,
+            int threadCount,
+            Duration duration,
+            String storageType,
+            boolean shouldPurge)
+            throws InterruptedException {
         System.out.println("Starting putTest");
 
         System.out.println("Creating test object");
         var objectPath = createTestObject(fileCount, fileSize);
         System.out.println("Created test object: " + objectPath);
 
-        var versionInfo = new VersionInfo()
-                .setUser("Peter", "pwinckles@example.com")
-                .setMessage("Testing");
+        var versionInfo =
+                new VersionInfo().setUser("Peter", "pwinckles@example.com").setMessage("Testing");
 
-        var timer = Metrics.timer("putObject",
-                "files", String.valueOf(fileCount),
-                "sizeBytes", String.valueOf(fileSize),
-                "threads", String.valueOf(threadCount),
-                "storage", storageType);
+        var timer = Metrics.timer(
+                "putObject",
+                "files",
+                String.valueOf(fileCount),
+                "sizeBytes",
+                String.valueOf(fileSize),
+                "threads",
+                String.valueOf(threadCount),
+                "storage",
+                storageType);
 
         var threads = new ArrayList<Thread>(threadCount);
 
@@ -338,31 +346,32 @@ public class LoadITest {
         System.out.println("Done");
     }
 
-    private void runGetTest(OcflRepository repo,
-                            int fileCount,
-                            long fileSize,
-                            int threadCount,
-                            Duration duration,
-                            String storageType) throws InterruptedException {
+    private void runGetTest(
+            OcflRepository repo, int fileCount, long fileSize, int threadCount, Duration duration, String storageType)
+            throws InterruptedException {
         System.out.println("Starting getTest");
 
         System.out.println("Creating test object");
         var objectPath = createTestObject(fileCount, fileSize);
         System.out.println("Created test object: " + objectPath);
 
-        var versionInfo = new VersionInfo()
-                .setUser("Peter", "pwinckles@example.com")
-                .setMessage("Testing");
+        var versionInfo =
+                new VersionInfo().setUser("Peter", "pwinckles@example.com").setMessage("Testing");
 
         var objectId = UUID.randomUUID().toString();
 
         repo.putObject(ObjectVersionId.head(objectId), objectPath, versionInfo);
 
-        var timer = Metrics.timer("getObject",
-                "files", String.valueOf(fileCount),
-                "sizeBytes", String.valueOf(fileSize),
-                "threads", String.valueOf(threadCount),
-                "storage", storageType);
+        var timer = Metrics.timer(
+                "getObject",
+                "files",
+                String.valueOf(fileCount),
+                "sizeBytes",
+                String.valueOf(fileSize),
+                "threads",
+                String.valueOf(threadCount),
+                "storage",
+                storageType);
 
         var threads = new ArrayList<Thread>(threadCount);
 
@@ -480,5 +489,4 @@ public class LoadITest {
             throw new UncheckedIOException(e);
         }
     }
-
 }

@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.util;
 
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -37,9 +36,7 @@ import java.nio.file.StandardCopyOption;
  */
 public final class UncheckedFiles {
 
-    private UncheckedFiles() {
-
-    }
+    private UncheckedFiles() {}
 
     public static Path createDirectories(Path path) {
         try {
@@ -96,5 +93,4 @@ public final class UncheckedFiles {
             throw OcflIOException.from(e);
         }
     }
-
 }

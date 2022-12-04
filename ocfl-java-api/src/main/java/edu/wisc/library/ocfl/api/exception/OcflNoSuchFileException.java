@@ -57,5 +57,4 @@ public class OcflNoSuchFileException extends OcflIOException {
         }
         return cause.getClass().getSimpleName() + ": " + cause.getMessage();
     }
-
 }

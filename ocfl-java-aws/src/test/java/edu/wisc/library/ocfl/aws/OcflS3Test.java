@@ -1,17 +1,30 @@
 package edu.wisc.library.ocfl.aws;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
-import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflOption;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.util.FileUtil;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,29 +41,15 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-
 public class OcflS3Test {
 
     private static final Logger LOG = LoggerFactory.getLogger(OcflS3Test.class);
 
-    private static final String O1_PATH = "235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc/";
+    private static final String O1_PATH =
+            "235/2da/728/2352da7280f1decc3acf1ba84eb945c9fc2b7b541094e1d0992dbffd1b6664cc/";
 
-    private static final String REPO_PREFIX = "OcflS3Test" + ThreadLocalRandom.current().nextLong();
+    private static final String REPO_PREFIX =
+            "OcflS3Test" + ThreadLocalRandom.current().nextLong();
 
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
@@ -58,7 +57,7 @@ public class OcflS3Test {
     private static S3Client s3Client;
     private static CloudClient cloudClient;
     private static String bucket;
-    
+
     @TempDir
     public Path tempDir;
 
@@ -72,8 +71,8 @@ public class OcflS3Test {
             LOG.info("Running tests against AWS");
             s3Client = S3Client.builder()
                     .region(Region.US_EAST_2)
-                    .credentialsProvider(StaticCredentialsProvider.create(
-                            AwsBasicCredentials.create(accessKey, secretKey)))
+                    .credentialsProvider(
+                            StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                     .httpClientBuilder(ApacheHttpClient.builder())
                     .build();
             OcflS3Test.bucket = bucket;
@@ -103,43 +102,58 @@ public class OcflS3Test {
         var repo = createRepo();
         var objectId = "o1";
 
-        repo.stageChanges(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
-            updater.writeFile(stream("file1"), "dir/file1.txt");
-            updater.writeFile(stream("file2"), "dir/sub/file2.txt");
-            updater.writeFile(stream("file1"), "dir/sub/file3.txt");
-        });
+        repo.stageChanges(
+                ObjectVersionId.head(objectId),
+                versionInfo("initial commit", "Peter", "winckles@wisc.edu"),
+                updater -> {
+                    updater.writeFile(stream("file1"), "dir/file1.txt");
+                    updater.writeFile(stream("file2"), "dir/sub/file2.txt");
+                    updater.writeFile(stream("file1"), "dir/sub/file3.txt");
+                });
 
-        assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.1",
-                "inventory.json",
-                "inventory.json.sha512",
-                "v1/inventory.json",
-                "v1/inventory.json.sha512",
-                "extensions/0005-mutable-head/root-inventory.json.sha512",
-                "extensions/0005-mutable-head/revisions/r1",
-                "extensions/0005-mutable-head/head/inventory.json",
-                "extensions/0005-mutable-head/head/inventory.json.sha512",
-                "extensions/0005-mutable-head/head/content/r1/dir/file1.txt",
-                "extensions/0005-mutable-head/head/content/r1/dir/sub/file2.txt"
-        ));
+        assertObjectsExist(
+                bucket,
+                O1_PATH,
+                List.of(
+                        "0=ocfl_object_1.1",
+                        "inventory.json",
+                        "inventory.json.sha512",
+                        "v1/inventory.json",
+                        "v1/inventory.json.sha512",
+                        "extensions/0005-mutable-head/root-inventory.json.sha512",
+                        "extensions/0005-mutable-head/revisions/r1",
+                        "extensions/0005-mutable-head/head/inventory.json",
+                        "extensions/0005-mutable-head/head/inventory.json.sha512",
+                        "extensions/0005-mutable-head/head/content/r1/dir/file1.txt",
+                        "extensions/0005-mutable-head/head/content/r1/dir/sub/file2.txt"));
 
-        assertEquals("file1", streamToString(repo.getObject(ObjectVersionId.head(objectId)).getFile("dir/file1.txt").getStream()));
+        assertEquals(
+                "file1",
+                streamToString(repo.getObject(ObjectVersionId.head(objectId))
+                        .getFile("dir/file1.txt")
+                        .getStream()));
 
         repo.commitStagedChanges(objectId, versionInfo("commit", "Peter", "winckles@wisc.edu"));
 
-        assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.1",
-                "inventory.json",
-                "inventory.json.sha512",
-                "v1/inventory.json",
-                "v1/inventory.json.sha512",
-                "v2/inventory.json",
-                "v2/inventory.json.sha512",
-                "v2/content/r1/dir/file1.txt",
-                "v2/content/r1/dir/sub/file2.txt"
-        ));
+        assertObjectsExist(
+                bucket,
+                O1_PATH,
+                List.of(
+                        "0=ocfl_object_1.1",
+                        "inventory.json",
+                        "inventory.json.sha512",
+                        "v1/inventory.json",
+                        "v1/inventory.json.sha512",
+                        "v2/inventory.json",
+                        "v2/inventory.json.sha512",
+                        "v2/content/r1/dir/file1.txt",
+                        "v2/content/r1/dir/sub/file2.txt"));
 
-        assertEquals("file2", streamToString(repo.getObject(ObjectVersionId.head(objectId)).getFile("dir/sub/file2.txt").getStream()));
+        assertEquals(
+                "file2",
+                streamToString(repo.getObject(ObjectVersionId.head(objectId))
+                        .getFile("dir/sub/file2.txt")
+                        .getStream()));
     }
 
     @Test
@@ -147,38 +161,48 @@ public class OcflS3Test {
         var repo = createRepo();
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
-            updater.writeFile(stream("file1"), "dir/file1.txt");
-            updater.writeFile(stream("file2"), "dir/sub/file2.txt");
-            updater.writeFile(stream("file1"), "dir/sub/file3.txt");
-        });
+        repo.updateObject(
+                ObjectVersionId.head(objectId),
+                versionInfo("initial commit", "Peter", "winckles@wisc.edu"),
+                updater -> {
+                    updater.writeFile(stream("file1"), "dir/file1.txt");
+                    updater.writeFile(stream("file2"), "dir/sub/file2.txt");
+                    updater.writeFile(stream("file1"), "dir/sub/file3.txt");
+                });
 
-        assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.1",
-                "inventory.json",
-                "inventory.json.sha512",
-                "v1/inventory.json",
-                "v1/inventory.json.sha512",
-                "v1/content/dir/file1.txt",
-                "v1/content/dir/sub/file2.txt"
-        ));
+        assertObjectsExist(
+                bucket,
+                O1_PATH,
+                List.of(
+                        "0=ocfl_object_1.1",
+                        "inventory.json",
+                        "inventory.json.sha512",
+                        "v1/inventory.json",
+                        "v1/inventory.json.sha512",
+                        "v1/content/dir/file1.txt",
+                        "v1/content/dir/sub/file2.txt"));
 
-        repo.updateObject(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
-            updater.writeFile(stream("file3"), "dir/sub/file3.txt", OcflOption.OVERWRITE);
-        });
+        repo.updateObject(
+                ObjectVersionId.head(objectId),
+                versionInfo("initial commit", "Peter", "winckles@wisc.edu"),
+                updater -> {
+                    updater.writeFile(stream("file3"), "dir/sub/file3.txt", OcflOption.OVERWRITE);
+                });
 
-        assertObjectsExist(bucket, O1_PATH, List.of(
-                "0=ocfl_object_1.1",
-                "inventory.json",
-                "inventory.json.sha512",
-                "v1/inventory.json",
-                "v1/inventory.json.sha512",
-                "v1/content/dir/file1.txt",
-                "v1/content/dir/sub/file2.txt",
-                "v2/inventory.json",
-                "v2/inventory.json.sha512",
-                "v2/content/dir/sub/file3.txt"
-        ));
+        assertObjectsExist(
+                bucket,
+                O1_PATH,
+                List.of(
+                        "0=ocfl_object_1.1",
+                        "inventory.json",
+                        "inventory.json.sha512",
+                        "v1/inventory.json",
+                        "v1/inventory.json.sha512",
+                        "v1/content/dir/file1.txt",
+                        "v1/content/dir/sub/file2.txt",
+                        "v2/inventory.json",
+                        "v2/inventory.json.sha512",
+                        "v2/content/dir/sub/file3.txt"));
     }
 
     @Test
@@ -186,11 +210,14 @@ public class OcflS3Test {
         var repo = createRepo();
         var objectId = "o1";
 
-        repo.updateObject(ObjectVersionId.head(objectId), versionInfo("initial commit", "Peter", "winckles@wisc.edu"), updater -> {
-            updater.writeFile(stream("file1"), "dir/file1.txt");
-            updater.writeFile(stream("file2"), "dir/sub/file2.txt");
-            updater.writeFile(stream("file1"), "dir/sub/file3.txt");
-        });
+        repo.updateObject(
+                ObjectVersionId.head(objectId),
+                versionInfo("initial commit", "Peter", "winckles@wisc.edu"),
+                updater -> {
+                    updater.writeFile(stream("file1"), "dir/file1.txt");
+                    updater.writeFile(stream("file2"), "dir/sub/file2.txt");
+                    updater.writeFile(stream("file1"), "dir/sub/file3.txt");
+                });
 
         repo.purgeObject(objectId);
 
@@ -205,7 +232,8 @@ public class OcflS3Test {
                 .build());
 
         var actualKeys = result.contents().stream().map(S3Object::key).collect(Collectors.toList());
-        var prefixedExpected = expectedKeys.stream().map(k -> FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, prefix, k))
+        var prefixedExpected = expectedKeys.stream()
+                .map(k -> FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, prefix, k))
                 .collect(Collectors.toList());
 
         assertThat(actualKeys, containsInAnyOrder(prefixedExpected.toArray(String[]::new)));
@@ -238,5 +266,4 @@ public class OcflS3Test {
     private VersionInfo versionInfo(String message, String name, String address) {
         return new VersionInfo().setMessage(message).setUser(name, address);
     }
-
 }

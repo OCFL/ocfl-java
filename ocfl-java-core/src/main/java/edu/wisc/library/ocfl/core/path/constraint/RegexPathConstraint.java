@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.path.constraint;
 
 import edu.wisc.library.ocfl.api.exception.PathConstraintException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.regex.Pattern;
 
 /**
@@ -66,10 +65,12 @@ public class RegexPathConstraint implements PathConstraint, FileNameConstraint {
     public void apply(String path) {
         if (pattern.matcher(path).matches()) {
             if (!mustMatch) {
-                throw new PathConstraintException(String.format("The path contains an invalid sequence %s. Path: %s", pattern, path));
+                throw new PathConstraintException(
+                        String.format("The path contains an invalid sequence %s. Path: %s", pattern, path));
             }
         } else if (mustMatch) {
-            throw new PathConstraintException(String.format("The path must contain a sequence %s but does not. Path: %s", pattern, path));
+            throw new PathConstraintException(
+                    String.format("The path must contain a sequence %s but does not. Path: %s", pattern, path));
         }
     }
 
@@ -80,11 +81,12 @@ public class RegexPathConstraint implements PathConstraint, FileNameConstraint {
     public void apply(String fileName, String path) {
         if (pattern.matcher(fileName).matches()) {
             if (!mustMatch) {
-                throw new PathConstraintException(String.format("The filename '%s' contains an invalid sequence %s. Path: %s", fileName, pattern, path));
+                throw new PathConstraintException(String.format(
+                        "The filename '%s' contains an invalid sequence %s. Path: %s", fileName, pattern, path));
             }
         } else if (mustMatch) {
-            throw new PathConstraintException(String.format("The filename '%s' must contain a sequence %s but does not. Path: %s", fileName, pattern, path));
+            throw new PathConstraintException(String.format(
+                    "The filename '%s' must contain a sequence %s but does not. Path: %s", fileName, pattern, path));
         }
     }
-
 }

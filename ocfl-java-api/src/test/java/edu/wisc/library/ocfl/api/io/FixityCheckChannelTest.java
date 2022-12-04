@@ -1,11 +1,10 @@
 package edu.wisc.library.ocfl.api.io;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import at.favre.lib.bytes.Bytes;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -13,8 +12,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class FixityCheckChannelTest {
 
@@ -69,5 +68,4 @@ public class FixityCheckChannelTest {
         Files.writeString(path, content);
         return path;
     }
-
 }

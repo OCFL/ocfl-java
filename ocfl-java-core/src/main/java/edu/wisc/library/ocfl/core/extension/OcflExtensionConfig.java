@@ -43,5 +43,4 @@ public interface OcflExtensionConfig {
      * @return true if the extension defines parameters; false otherwise
      */
     boolean hasParameters();
-
 }

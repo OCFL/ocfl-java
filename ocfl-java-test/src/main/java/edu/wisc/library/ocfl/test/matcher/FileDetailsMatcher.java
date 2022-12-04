@@ -26,11 +26,10 @@ package edu.wisc.library.ocfl.test.matcher;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileDetails;
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeMatcher;
-
 import java.util.Map;
 import java.util.Objects;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 
 public class FileDetailsMatcher extends TypeSafeMatcher<FileDetails> {
 
@@ -53,14 +52,13 @@ public class FileDetailsMatcher extends TypeSafeMatcher<FileDetails> {
 
     @Override
     public void describeTo(Description description) {
-        description.appendText("FileDetails{filePath=")
+        description
+                .appendText("FileDetails{filePath=")
                 .appendValue(filePath)
                 .appendText(", storagePath=")
                 .appendValue(storagePath)
                 .appendText(", fixity=")
                 .appendValue(fixity)
                 .appendText("}");
-
     }
-
 }

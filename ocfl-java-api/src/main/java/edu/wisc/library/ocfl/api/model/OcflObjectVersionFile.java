@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.api.model;
 import edu.wisc.library.ocfl.api.OcflFileRetriever;
 import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.Map;
 
 /**
@@ -84,9 +83,6 @@ public class OcflObjectVersionFile {
 
     @Override
     public String toString() {
-        return "OcflObjectVersionFile{" +
-                "fileDetails='" + fileDetails + '\'' +
-                '}';
+        return "OcflObjectVersionFile{" + "fileDetails='" + fileDetails + '\'' + '}';
     }
-
 }

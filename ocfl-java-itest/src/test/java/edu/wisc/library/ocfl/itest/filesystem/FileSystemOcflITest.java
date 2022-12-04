@@ -1,5 +1,14 @@
 package edu.wisc.library.ocfl.itest.filesystem;
 
+import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.fixTime;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
+import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.OcflRepository;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -14,10 +23,6 @@ import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
 import edu.wisc.library.ocfl.test.TestHelper;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,15 +32,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
-import static edu.wisc.library.ocfl.itest.ITestHelper.fixTime;
-import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
-import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
-import static edu.wisc.library.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 public class FileSystemOcflITest extends OcflITest {
 
@@ -45,7 +44,8 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void hashedIdLayout() {
         var repoName = "hashed-id-layout";
-        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
+        var repo = defaultRepo(
+                repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
 
         var objectIds = List.of(
                 "o1",
@@ -66,7 +66,8 @@ public class FileSystemOcflITest extends OcflITest {
     @Test
     public void hashedIdLayoutLongEncoded() {
         var repoName = "hashed-id-layout-2";
-        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
+        var repo = defaultRepo(
+                repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
 
         var objectId = "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ";
 
@@ -91,9 +92,14 @@ public class FileSystemOcflITest extends OcflITest {
 
         repo.purgeObject(objectId);
 
-        assertThat(new ArrayList<>(Arrays.asList(repoDir(repoName).toFile().list())),
-                containsInAnyOrder("0=ocfl_1.1", "ocfl_1.1.md", "ocfl_extensions_1.0.md",
-                        OcflConstants.EXTENSIONS_DIR, OcflConstants.OCFL_LAYOUT,
+        assertThat(
+                new ArrayList<>(Arrays.asList(repoDir(repoName).toFile().list())),
+                containsInAnyOrder(
+                        "0=ocfl_1.1",
+                        "ocfl_1.1.md",
+                        "ocfl_extensions_1.0.md",
+                        OcflConstants.EXTENSIONS_DIR,
+                        OcflConstants.OCFL_LAYOUT,
                         HashedNTupleLayoutExtension.EXTENSION_NAME + ".md"));
     }
 
@@ -164,9 +170,8 @@ public class FileSystemOcflITest extends OcflITest {
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .inventoryCache(new NoOpCache<>())
                 .inventoryMapper(ITestHelper.testInventoryMapper())
-                .storage(storage -> storage
-                        .objectMapper(ITestHelper.prettyPrintMapper())
-                        .fileSystem(repoDir))
+                .storage(storage ->
+                        storage.objectMapper(ITestHelper.prettyPrintMapper()).fileSystem(repoDir))
                 .workDir(workDir);
 
         consumer.accept(builder);
@@ -184,11 +189,11 @@ public class FileSystemOcflITest extends OcflITest {
     @Override
     protected List<String> listFilesInRepo(String name) {
         return ITestHelper.listAllPaths(repoDir(name)).stream()
-                .map(FileUtil::pathToStringStandardSeparator).collect(Collectors.toList());
+                .map(FileUtil::pathToStringStandardSeparator)
+                .collect(Collectors.toList());
     }
 
     private Path repoDir(String name) {
         return reposDir.resolve(name);
     }
-
 }

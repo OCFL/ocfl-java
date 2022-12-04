@@ -1,5 +1,12 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.io.FileMatchers.aFileNamed;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.RepositoryConfigurationException;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
@@ -11,11 +18,6 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLa
 import edu.wisc.library.ocfl.core.storage.DefaultOcflStorageInitializer;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
 import edu.wisc.library.ocfl.test.OcflAsserts;
-import org.hamcrest.io.FileMatchers;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -24,13 +26,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.io.FileMatchers.aFileNamed;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.hamcrest.io.FileMatchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class FileSystemOcflStorageInitializerTest {
 
@@ -41,15 +40,16 @@ public class FileSystemOcflStorageInitializerTest {
 
     @BeforeEach
     public void setup() {
-        this.initializer = new DefaultOcflStorageInitializer(new FileSystemStorage(tempRoot), ITestHelper.prettyPrintMapper());
+        this.initializer =
+                new DefaultOcflStorageInitializer(new FileSystemStorage(tempRoot), ITestHelper.prettyPrintMapper());
     }
 
     @Test
     public void shouldInitStorageWhenNewWithConfig() {
-        var mapper = initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
+        var mapper = initializer
+                .initializeStorage(
+                        OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator())
+                .getStorageLayoutExtension();
 
         assertRootHasFiles(tempRoot);
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
@@ -58,13 +58,11 @@ public class FileSystemOcflStorageInitializerTest {
     @Test
     public void shouldDoNothingWhenAlreadyInitialized() {
         initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
-        var mapper = initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
+                OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator());
+        var mapper = initializer
+                .initializeStorage(
+                        OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator())
+                .getStorageLayoutExtension();
 
         assertRootHasFiles(tempRoot);
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
@@ -73,14 +71,11 @@ public class FileSystemOcflStorageInitializerTest {
     @Test
     public void shouldAutodetectConfigWhenAlreadyInitializedAndConfigNotSet() {
         initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
+                OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator());
 
-        var mapper = initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                null,
-                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
+        var mapper = initializer
+                .initializeStorage(OcflVersion.OCFL_1_0, null, new ExtensionSupportEvaluator())
+                .getStorageLayoutExtension();
 
         assertRootHasFiles(tempRoot);
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
@@ -88,14 +83,16 @@ public class FileSystemOcflStorageInitializerTest {
 
     @Test
     public void shouldIgnoreDefaultLayoutWhenRepoHasLayoutConfig() {
-        var layoutExt1 = initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
-        var layoutExt2 = initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig().setTupleSize(1),
-                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
+        var layoutExt1 = initializer
+                .initializeStorage(
+                        OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator())
+                .getStorageLayoutExtension();
+        var layoutExt2 = initializer
+                .initializeStorage(
+                        OcflVersion.OCFL_1_0,
+                        new HashedNTupleLayoutConfig().setTupleSize(1),
+                        new ExtensionSupportEvaluator())
+                .getStorageLayoutExtension();
 
         assertEquals(layoutExt1.mapObjectId("test"), layoutExt2.mapObjectId("test"));
     }
@@ -103,16 +100,14 @@ public class FileSystemOcflStorageInitializerTest {
     @Test
     public void shouldInitWhenAlreadyInitedButHasNoSpecOrObjects() throws IOException {
         initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator());
+                OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator());
         Files.delete(tempRoot.resolve(OcflConstants.OCFL_LAYOUT));
         deleteExtensionConfig(tempRoot, HashedNTupleLayoutExtension.EXTENSION_NAME);
 
-        var mapper = initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
+        var mapper = initializer
+                .initializeStorage(
+                        OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator())
+                .getStorageLayoutExtension();
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
     }
 
@@ -124,8 +119,7 @@ public class FileSystemOcflStorageInitializerTest {
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .storage(storage -> {
-                    storage.objectMapper(ITestHelper.prettyPrintMapper())
-                            .fileSystem(repoDir);
+                    storage.objectMapper(ITestHelper.prettyPrintMapper()).fileSystem(repoDir);
                 })
                 .workDir(workDir)
                 .build();
@@ -137,11 +131,12 @@ public class FileSystemOcflStorageInitializerTest {
             updater.writeFile(new ByteArrayInputStream("blah".getBytes()), "file1");
         });
 
-        this.initializer = new DefaultOcflStorageInitializer(new FileSystemStorage(repoDir), ITestHelper.prettyPrintMapper());
-        var mapper = initializer.initializeStorage(
-                OcflVersion.OCFL_1_0,
-                new HashedNTupleLayoutConfig(),
-                new ExtensionSupportEvaluator()).getStorageLayoutExtension();
+        this.initializer =
+                new DefaultOcflStorageInitializer(new FileSystemStorage(repoDir), ITestHelper.prettyPrintMapper());
+        var mapper = initializer
+                .initializeStorage(
+                        OcflVersion.OCFL_1_0, new HashedNTupleLayoutConfig(), new ExtensionSupportEvaluator())
+                .getStorageLayoutExtension();
         assertThat(mapper, instanceOf(HashedNTupleLayoutExtension.class));
     }
 
@@ -153,8 +148,7 @@ public class FileSystemOcflStorageInitializerTest {
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig().setTupleSize(2))
                 .storage(storage -> {
-                    storage.objectMapper(ITestHelper.prettyPrintMapper())
-                            .fileSystem(repoDir);
+                    storage.objectMapper(ITestHelper.prettyPrintMapper()).fileSystem(repoDir);
                 })
                 .workDir(workDir)
                 .build();
@@ -166,27 +160,36 @@ public class FileSystemOcflStorageInitializerTest {
             updater.writeFile(new ByteArrayInputStream("blah".getBytes()), "file1");
         });
 
-        this.initializer = new DefaultOcflStorageInitializer(new FileSystemStorage(repoDir), ITestHelper.prettyPrintMapper());
-        OcflAsserts.assertThrowsWithMessage(RepositoryConfigurationException.class, "This layout does not match the layout of existing objects in the repository", () -> {
-            initializer.initializeStorage(
-                    OcflVersion.OCFL_1_0,
-                    new HashedNTupleLayoutConfig().setTupleSize(5),
-                    new ExtensionSupportEvaluator());
-        });
+        this.initializer =
+                new DefaultOcflStorageInitializer(new FileSystemStorage(repoDir), ITestHelper.prettyPrintMapper());
+        OcflAsserts.assertThrowsWithMessage(
+                RepositoryConfigurationException.class,
+                "This layout does not match the layout of existing objects in the repository",
+                () -> {
+                    initializer.initializeStorage(
+                            OcflVersion.OCFL_1_0,
+                            new HashedNTupleLayoutConfig().setTupleSize(5),
+                            new ExtensionSupportEvaluator());
+                });
     }
 
     private void assertRootHasFiles(Path root) {
         var children = children(root);
-        assertThat(children, containsInAnyOrder(
-                aFileNamed(equalTo("0=ocfl_1.0")),
-                aFileNamed(equalTo("ocfl_1.0.txt")),
-                aFileNamed(equalTo("ocfl_extensions_1.0.md")),
-                aFileNamed(equalTo(OcflConstants.OCFL_LAYOUT)),
-                aFileNamed(equalTo(HashedNTupleLayoutExtension.EXTENSION_NAME + ".md")),
-                aFileNamed(equalTo(OcflConstants.EXTENSIONS_DIR))));
-        assertThat(root.resolve(OcflConstants.EXTENSIONS_DIR)
-                .resolve(HashedNTupleLayoutExtension.EXTENSION_NAME)
-                .resolve(OcflConstants.EXT_CONFIG_JSON).toFile(), FileMatchers.anExistingFile());
+        assertThat(
+                children,
+                containsInAnyOrder(
+                        aFileNamed(equalTo("0=ocfl_1.0")),
+                        aFileNamed(equalTo("ocfl_1.0.txt")),
+                        aFileNamed(equalTo("ocfl_extensions_1.0.md")),
+                        aFileNamed(equalTo(OcflConstants.OCFL_LAYOUT)),
+                        aFileNamed(equalTo(HashedNTupleLayoutExtension.EXTENSION_NAME + ".md")),
+                        aFileNamed(equalTo(OcflConstants.EXTENSIONS_DIR))));
+        assertThat(
+                root.resolve(OcflConstants.EXTENSIONS_DIR)
+                        .resolve(HashedNTupleLayoutExtension.EXTENSION_NAME)
+                        .resolve(OcflConstants.EXT_CONFIG_JSON)
+                        .toFile(),
+                FileMatchers.anExistingFile());
     }
 
     private List<File> children(Path tempRoot) {
@@ -202,5 +205,4 @@ public class FileSystemOcflStorageInitializerTest {
             throw new UncheckedIOException(e);
         }
     }
-
 }

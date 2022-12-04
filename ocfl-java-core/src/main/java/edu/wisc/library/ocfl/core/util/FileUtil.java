@@ -29,9 +29,6 @@ import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -53,12 +50,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class FileUtil {
 
-    private FileUtil() {
-
-    }
+    private FileUtil() {}
 
     private static final Logger LOG = LoggerFactory.getLogger(FileUtil.class);
 
@@ -97,14 +94,16 @@ public final class FileUtil {
             throw new FileAlreadyExistsException("Destination must not exist: " + dstRoot);
         }
         if (Files.notExists(dstRoot.getParent()) || Files.isRegularFile(dstRoot.getParent())) {
-            throw new IllegalArgumentException("Parent directory of destination must exist and be a directory: " + dstRoot.getParent());
+            throw new IllegalArgumentException(
+                    "Parent directory of destination must exist and be a directory: " + dstRoot.getParent());
         }
 
         try {
             Files.move(srcRoot, dstRoot, StandardCopyOption.ATOMIC_MOVE);
             return;
         } catch (AtomicMoveNotSupportedException e) {
-            // This fails if the destination exists, the source and destination are on different volumes, or the provider
+            // This fails if the destination exists, the source and destination are on different volumes, or the
+            // provider
             // does not support atomic moves.
             LOG.debug("Atomic move of {} to {} failed.", srcRoot, dstRoot, e);
         } catch (FileAlreadyExistsException e) {
@@ -122,31 +121,33 @@ public final class FileUtil {
         }
 
         try {
-            Files.walkFileTree(srcRoot, Set.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<>() {
-                private Path dstPath(Path current) {
-                    return dstRoot.resolve(srcRoot.relativize(current));
-                }
+            Files.walkFileTree(
+                    srcRoot, Set.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<>() {
+                        private Path dstPath(Path current) {
+                            return dstRoot.resolve(srcRoot.relativize(current));
+                        }
 
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    if (!dir.equals(srcRoot)) {
-                        Files.createDirectories(dstPath(dir));
-                    }
-                    return super.preVisitDirectory(dir, attrs);
-                }
+                        @Override
+                        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+                                throws IOException {
+                            if (!dir.equals(srcRoot)) {
+                                Files.createDirectories(dstPath(dir));
+                            }
+                            return super.preVisitDirectory(dir, attrs);
+                        }
 
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.move(file, dstPath(file), StandardCopyOption.REPLACE_EXISTING);
-                    return super.visitFile(file, attrs);
-                }
+                        @Override
+                        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                            Files.move(file, dstPath(file), StandardCopyOption.REPLACE_EXISTING);
+                            return super.visitFile(file, attrs);
+                        }
 
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return super.postVisitDirectory(dir, exc);
-                }
-            });
+                        @Override
+                        public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                            Files.delete(dir);
+                            return super.postVisitDirectory(dir, exc);
+                        }
+                    });
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }
@@ -208,9 +209,7 @@ public final class FileUtil {
      */
     public static void deleteChildren(Path root) {
         try (var files = Files.walk(root)) {
-            files.sorted(Comparator.reverseOrder())
-                    .filter(f -> !f.equals(root))
-                    .forEach(UncheckedFiles::delete);
+            files.sorted(Comparator.reverseOrder()).filter(f -> !f.equals(root)).forEach(UncheckedFiles::delete);
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }
@@ -288,16 +287,15 @@ public final class FileUtil {
      */
     public static void safeDeleteDirectory(Path path) {
         try (var paths = Files.walk(path)) {
-            paths.sorted(Comparator.reverseOrder())
-                    .forEach(f -> {
-                        try {
-                            Files.delete(f);
-                        } catch (NoSuchFileException e) {
-                            // Ignore
-                        } catch (IOException e) {
-                            LOG.warn("Failed to delete file: {}", f, e);
-                        }
-                    });
+            paths.sorted(Comparator.reverseOrder()).forEach(f -> {
+                try {
+                    Files.delete(f);
+                } catch (NoSuchFileException e) {
+                    // Ignore
+                } catch (IOException e) {
+                    LOG.warn("Failed to delete file: {}", f, e);
+                }
+            });
         } catch (NoSuchFileException e) {
             // ignore
         } catch (IOException e) {
@@ -328,17 +326,16 @@ public final class FileUtil {
         var hasErrors = new AtomicBoolean(false);
 
         try (var paths = Files.walk(directory)) {
-            paths.sorted(Comparator.reverseOrder())
-                    .forEach(f -> {
-                        try {
-                            Files.delete(f);
-                        } catch (NoSuchFileException e) {
-                            // ignore
-                        } catch (IOException e) {
-                            LOG.warn("Failed to delete file: {}", f, e);
-                            hasErrors.set(true);
-                        }
-                    });
+            paths.sorted(Comparator.reverseOrder()).forEach(f -> {
+                try {
+                    Files.delete(f);
+                } catch (NoSuchFileException e) {
+                    // ignore
+                } catch (IOException e) {
+                    LOG.warn("Failed to delete file: {}", f, e);
+                    hasErrors.set(true);
+                }
+            });
         } catch (NoSuchFileException e) {
             // ignore
         } catch (IOException e) {
@@ -346,7 +343,8 @@ public final class FileUtil {
         }
 
         if (hasErrors.get()) {
-            throw new OcflIOException(String.format("Failed to recursively delete directory %s. See logs for details.", directory));
+            throw new OcflIOException(
+                    String.format("Failed to recursively delete directory %s. See logs for details.", directory));
         }
     }
 
@@ -363,8 +361,7 @@ public final class FileUtil {
 
         if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
             try (var paths = Files.walk(path)) {
-                paths.filter(Files::isRegularFile)
-                        .forEach(files::add);
+                paths.filter(Files::isRegularFile).forEach(files::add);
             } catch (IOException e) {
                 throw OcflIOException.from(e);
             }
@@ -441,7 +438,8 @@ public final class FileUtil {
             var part = parts[i];
 
             if (failOnEmpty && (part == null || part.isEmpty())) {
-                throw new IllegalArgumentException(String.format("Path cannot be joined because it contains empty parts: %s", Arrays.asList(parts)));
+                throw new IllegalArgumentException(String.format(
+                        "Path cannot be joined because it contains empty parts: %s", Arrays.asList(parts)));
             }
 
             if (part != null && !part.isEmpty()) {
@@ -460,7 +458,8 @@ public final class FileUtil {
                     pathBuilder.append(strippedPart);
                     addSeparator = true;
                 } else if (failOnEmpty) {
-                    throw new IllegalArgumentException(String.format("Path cannot be joined because it contains empty parts: %s", Arrays.asList(parts)));
+                    throw new IllegalArgumentException(String.format(
+                            "Path cannot be joined because it contains empty parts: %s", Arrays.asList(parts)));
                 }
             }
         }
@@ -522,5 +521,4 @@ public final class FileUtil {
         }
         return stripped;
     }
-
 }

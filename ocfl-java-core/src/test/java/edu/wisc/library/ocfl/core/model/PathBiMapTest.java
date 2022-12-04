@@ -1,10 +1,5 @@
 package edu.wisc.library.ocfl.core.model;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
@@ -12,6 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Collections;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class PathBiMapTest {
 
@@ -98,5 +97,4 @@ public class PathBiMapTest {
         assertFalse(map.containsFileId(fileId), "contains " + fileId);
         assertEquals(Collections.emptySet(), map.getPaths(fileId));
     }
-
 }

@@ -24,15 +24,14 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
+import static edu.wisc.library.ocfl.test.OcflAsserts.assertThrowsWithMessage;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static edu.wisc.library.ocfl.test.OcflAsserts.assertThrowsWithMessage;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HashedNTupleIdEncapsulationLayoutExtensionTest {
 
@@ -88,14 +87,17 @@ public class HashedNTupleIdEncapsulationLayoutExtensionTest {
     @Test
     public void shouldThrowExceptionWhenTupleSizeTimesNumTuplesGreaterThanTotalChars() {
         assertThrowsWithMessage(OcflExtensionException.class, "sha256 digests only have 64 characters", () -> {
-            ext.init(new HashedNTupleIdEncapsulationLayoutConfig().setTupleSize(5).setNumberOfTuples(13));
+            ext.init(new HashedNTupleIdEncapsulationLayoutConfig()
+                    .setTupleSize(5)
+                    .setNumberOfTuples(13));
         });
     }
 
     @Test
     public void shouldMapIdWhenEqualTotalChars() {
         ext.init(new HashedNTupleIdEncapsulationLayoutConfig().setTupleSize(4).setNumberOfTuples(16));
-        assertMapping("ed75/585a/6e8d/eef3/b3f6/20e5/f6d0/9999/08c0/9e92/cad5/e112/aa5e/ac55/0700/0d8b/http%3a%2f%2flibrary%2ewisc%2eedu%2f123");
+        assertMapping(
+                "ed75/585a/6e8d/eef3/b3f6/20e5/f6d0/9999/08c0/9e92/cad5/e112/aa5e/ac55/0700/0d8b/http%3a%2f%2flibrary%2ewisc%2eedu%2f123");
     }
 
     @Test
@@ -113,7 +115,8 @@ public class HashedNTupleIdEncapsulationLayoutExtensionTest {
     @Test
     public void shouldTruncateWhenEncodedIdLongerThan100Chars() {
         ext.init(new HashedNTupleIdEncapsulationLayoutConfig());
-        assertMapping("۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ",
+        assertMapping(
+                "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ",
                 "72d/744/ab2/%db%b5%dd%a8%dd%af%da%98%da%9a%da%99%da%9c%da%9b%da%9d%da%a0%da%b1%dd%b0%dd%a3%dd%ab%db%af%db%9e%db%-72d744ab28e696afd14423026efe0ca8954e8f1b3fd21e86f06e89375b4de005");
     }
 
@@ -125,5 +128,4 @@ public class HashedNTupleIdEncapsulationLayoutExtensionTest {
         var result = ext.mapObjectId(objectId);
         assertEquals(expectedMapping, result);
     }
-
 }

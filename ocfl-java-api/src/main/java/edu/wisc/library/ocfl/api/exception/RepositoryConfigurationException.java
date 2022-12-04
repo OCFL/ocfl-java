@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class RepositoryConfigurationException extends OcflJavaException {
 
-    public RepositoryConfigurationException() {
-    }
+    public RepositoryConfigurationException() {}
 
     public RepositoryConfigurationException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class RepositoryConfigurationException extends OcflJavaException {
     public RepositoryConfigurationException(Throwable cause) {
         super(cause);
     }
-
 }

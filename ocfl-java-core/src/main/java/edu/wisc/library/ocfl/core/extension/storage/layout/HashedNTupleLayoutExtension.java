@@ -53,9 +53,9 @@ public class HashedNTupleLayoutExtension implements OcflStorageLayoutExtension {
      */
     @Override
     public String getDescription() {
-        return "OCFL object identifiers are hashed and encoded as lowercase hex strings." +
-                " These digests are then divided into N n-tuple segments," +
-                " which are used to create nested paths under the OCFL storage root.";
+        return "OCFL object identifiers are hashed and encoded as lowercase hex strings."
+                + " These digests are then divided into N n-tuple segments,"
+                + " which are used to create nested paths under the OCFL storage root.";
     }
 
     /**
@@ -67,7 +67,8 @@ public class HashedNTupleLayoutExtension implements OcflStorageLayoutExtension {
             Enforce.notNull(config, "configFile cannot be null");
 
             if (!(config instanceof HashedNTupleLayoutConfig)) {
-                throw new OcflExtensionException(String.format("This extension only supports %s configuration. Received: %s",
+                throw new OcflExtensionException(String.format(
+                        "This extension only supports %s configuration. Received: %s",
                         getExtensionConfigClass(), config));
             }
 
@@ -124,7 +125,8 @@ public class HashedNTupleLayoutExtension implements OcflStorageLayoutExtension {
         if (config != null) {
             if ((config.getTupleSize() == 0 || config.getNumberOfTuples() == 0)
                     && (config.getTupleSize() != 0 || config.getNumberOfTuples() != 0)) {
-                throw new OcflExtensionException(String.format("If tupleSize (=%s) or numberOfTuples (=%s) is set to 0, then both must be 0.",
+                throw new OcflExtensionException(String.format(
+                        "If tupleSize (=%s) or numberOfTuples (=%s) is set to 0, then both must be 0.",
                         config.getTupleSize(), config.getNumberOfTuples()));
             }
 
@@ -132,20 +134,26 @@ public class HashedNTupleLayoutExtension implements OcflStorageLayoutExtension {
             var testDigest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), "test");
 
             if (totalTupleChars > testDigest.length()) {
-                throw new OcflExtensionException(String.format("The config tupleSize=%s and numberOfTuples=%s requires" +
-                        " a minimum of %s characters, but %s digests only have %s characters.",
-                        config.getTupleSize(), config.getNumberOfTuples(),
-                        totalTupleChars, config.getDigestAlgorithm().getOcflName(), testDigest.length()));
+                throw new OcflExtensionException(String.format(
+                        "The config tupleSize=%s and numberOfTuples=%s requires"
+                                + " a minimum of %s characters, but %s digests only have %s characters.",
+                        config.getTupleSize(),
+                        config.getNumberOfTuples(),
+                        totalTupleChars,
+                        config.getDigestAlgorithm().getOcflName(),
+                        testDigest.length()));
             }
 
             if (totalTupleChars == testDigest.length() && config.isShortObjectRoot()) {
-                throw new OcflExtensionException(String.format("The config tupleSize=%s and numberOfTuples=%s requires" +
-                                " a minimum of %s characters, which is equal to the number of characters in a %s digest." +
-                                " Therefore, shortObjectRoot cannot be set to true.",
-                        config.getTupleSize(), config.getNumberOfTuples(),
-                        totalTupleChars, config.getDigestAlgorithm().getOcflName()));
+                throw new OcflExtensionException(String.format(
+                        "The config tupleSize=%s and numberOfTuples=%s requires"
+                                + " a minimum of %s characters, which is equal to the number of characters in a %s digest."
+                                + " Therefore, shortObjectRoot cannot be set to true.",
+                        config.getTupleSize(),
+                        config.getNumberOfTuples(),
+                        totalTupleChars,
+                        config.getDigestAlgorithm().getOcflName()));
             }
         }
     }
-
 }

@@ -26,9 +26,8 @@ package edu.wisc.library.ocfl.core.db;
 
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
-
-import javax.sql.DataSource;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 
 /**
  * Constructs {@link ObjectDetailsDatabase} instances
@@ -111,21 +110,24 @@ public class ObjectDetailsDatabaseBuilder {
 
         switch (dbType) {
             case POSTGRES:
-                database = new PostgresObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
+                database = new PostgresObjectDetailsDatabase(
+                        resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
             case MARIADB:
-                database = new MariaDbObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
+                database = new MariaDbObjectDetailsDatabase(
+                        resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
             case H2:
-                database = new H2ObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
+                database =
+                        new H2ObjectDetailsDatabase(resolvedTableName, dataSource, storeInventory, waitTime, timeUnit);
                 break;
             default:
-                throw new OcflJavaException(String.format("Database type %s is not mapped to an ObjectDetailsDatabase implementation.", dbType));
+                throw new OcflJavaException(String.format(
+                        "Database type %s is not mapped to an ObjectDetailsDatabase implementation.", dbType));
         }
 
         new TableCreator(dbType, dataSource).createObjectDetailsTable(resolvedTableName);
 
         return database;
     }
-
 }

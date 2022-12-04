@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.api.exception;
 
 import edu.wisc.library.ocfl.api.model.ValidationIssue;
 import edu.wisc.library.ocfl.api.model.ValidationResults;
-
 import java.util.List;
 
 /**

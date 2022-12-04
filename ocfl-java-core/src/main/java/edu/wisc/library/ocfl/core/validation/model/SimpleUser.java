@@ -37,12 +37,9 @@ public class SimpleUser {
     private String name;
     private String address;
 
-    public SimpleUser() {
-    }
+    public SimpleUser() {}
 
-    public SimpleUser(
-            String name,
-            String address) {
+    public SimpleUser(String name, String address) {
         this.name = name;
         this.address = address;
     }
@@ -74,8 +71,7 @@ public class SimpleUser {
             return false;
         }
         SimpleUser that = (SimpleUser) o;
-        return Objects.equals(name, that.name)
-                && Objects.equals(address, that.address);
+        return Objects.equals(name, that.name) && Objects.equals(address, that.address);
     }
 
     @Override
@@ -85,10 +81,6 @@ public class SimpleUser {
 
     @Override
     public String toString() {
-        return "SimpleUser{" +
-                "name='" + name + '\'' +
-                ", address='" + address + '\'' +
-                '}';
+        return "SimpleUser{" + "name='" + name + '\'' + ", address='" + address + '\'' + '}';
     }
-
 }

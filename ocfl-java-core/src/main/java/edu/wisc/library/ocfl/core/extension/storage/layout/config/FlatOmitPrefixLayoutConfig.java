@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.FlatOmitPrefixLayoutExtension;
-
 import java.util.Objects;
 
 /**
@@ -98,6 +97,4 @@ public class FlatOmitPrefixLayoutConfig implements OcflExtensionConfig {
     public String toString() {
         return "FlatOmitPrefixLayoutConfig{ delimiter='" + delimiter + "' }";
     }
-
-
 }

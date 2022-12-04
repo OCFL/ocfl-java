@@ -26,7 +26,6 @@ package edu.wisc.library.ocfl.core.validation;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.validation.model.SimpleInventory;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -97,5 +96,4 @@ class Manifests {
     public boolean hasMultipleAlgorithms() {
         return manifests.size() > 1;
     }
-
 }

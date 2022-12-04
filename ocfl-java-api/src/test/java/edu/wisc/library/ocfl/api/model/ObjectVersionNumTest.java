@@ -1,9 +1,9 @@
 package edu.wisc.library.ocfl.api.model;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import edu.wisc.library.ocfl.api.exception.InvalidVersionException;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ObjectVersionNumTest {
 
@@ -13,5 +13,4 @@ public class ObjectVersionNumTest {
             ObjectVersionId.version("123", "10");
         });
     }
-
 }

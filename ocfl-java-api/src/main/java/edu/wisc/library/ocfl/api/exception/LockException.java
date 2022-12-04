@@ -29,8 +29,7 @@ package edu.wisc.library.ocfl.api.exception;
  */
 public class LockException extends OcflJavaException {
 
-    public LockException() {
-    }
+    public LockException() {}
 
     public LockException(String message) {
         super(message);
@@ -43,5 +42,4 @@ public class LockException extends OcflJavaException {
     public LockException(Throwable cause) {
         super(cause);
     }
-
 }

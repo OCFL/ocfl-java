@@ -30,7 +30,6 @@ import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
-
 import java.util.Objects;
 
 /**
@@ -44,7 +43,8 @@ import java.util.Objects;
 public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig {
 
     public enum ZeroPadding {
-        LEFT, RIGHT;
+        LEFT,
+        RIGHT;
 
         @JsonValue
         public String toJson() {
@@ -77,7 +77,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
 
     public void setExtensionName(String extensionName) {
         if (!Objects.equals(getExtensionName(), extensionName)) {
-            throw new OcflExtensionException(String.format("The extension name for %s must be %s; found %s.",
+            throw new OcflExtensionException(String.format(
+                    "The extension name for %s must be %s; found %s.",
                     getClass().getSimpleName(), getExtensionName(), extensionName));
         }
     }
@@ -137,8 +138,8 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *            marking the end of prefix
      */
     public NTupleOmitPrefixStorageLayoutConfig setDelimiter(String delimiter) {
-        this.delimiter = Enforce.expressionTrue(delimiter != null && !delimiter.isEmpty(),
-                delimiter, "delimiter must not be empty");
+        this.delimiter = Enforce.expressionTrue(
+                delimiter != null && !delimiter.isEmpty(), delimiter, "delimiter must not be empty");
 
         return this;
     }
@@ -148,14 +149,14 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *
      * @param tupleSize
      *            - the segment size (in characters) to split the digest into
-     * 
+     *
      */
     public NTupleOmitPrefixStorageLayoutConfig setTupleSize(Integer tupleSize) {
         if (tupleSize == null) {
             this.tupleSize = DEFAULT_TUPLE_SIZE;
         } else {
-            this.tupleSize = Enforce.expressionTrue(tupleSize >= 1 && tupleSize <= 32, tupleSize,
-                    "tupleSize must be between 1 and 32 inclusive");
+            this.tupleSize = Enforce.expressionTrue(
+                    tupleSize >= 1 && tupleSize <= 32, tupleSize, "tupleSize must be between 1 and 32 inclusive");
         }
         return this;
     }
@@ -165,13 +166,15 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *
      * @param numberOfTuples
      *            - The number of segments to use for path generation
-     * 
+     *
      */
     public NTupleOmitPrefixStorageLayoutConfig setNumberOfTuples(Integer numberOfTuples) {
         if (numberOfTuples == null) {
             this.numberOfTuples = DEFAULT_NUM_TUPLES;
         } else {
-            this.numberOfTuples = Enforce.expressionTrue(numberOfTuples >= 1 && numberOfTuples <= 32, numberOfTuples,
+            this.numberOfTuples = Enforce.expressionTrue(
+                    numberOfTuples >= 1 && numberOfTuples <= 32,
+                    numberOfTuples,
                     "numberOfTuples must be between 1 and 32 inclusive");
         }
         return this;
@@ -240,5 +243,4 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
                 + "', zeroPadding='" + zeroPadding
                 + "', reverseObjectRoot='" + reverseObjectRoot + "' }";
     }
-
 }

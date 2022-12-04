@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.path.constraint;
 
 import edu.wisc.library.ocfl.api.util.Enforce;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -129,7 +128,6 @@ public class PathConstraintProcessor {
         public PathConstraintProcessor build() {
             return new PathConstraintProcessor(pathConstraints, fileNameConstraints, charConstraints);
         }
-
     }
 
     /**
@@ -139,7 +137,10 @@ public class PathConstraintProcessor {
      * @param fileNameConstraints list of filename constraints
      * @param charConstraints list of character constraints
      */
-    public PathConstraintProcessor(List<PathConstraint> pathConstraints, List<FileNameConstraint> fileNameConstraints, List<PathCharConstraint> charConstraints) {
+    public PathConstraintProcessor(
+            List<PathConstraint> pathConstraints,
+            List<FileNameConstraint> fileNameConstraints,
+            List<PathCharConstraint> charConstraints) {
         this.pathConstraints = Enforce.notNull(pathConstraints, "pathConstraints cannot be null");
         this.fileNameConstraints = Enforce.notNull(fileNameConstraints, "fileNameConstraints cannot be null");
         this.charConstraints = Enforce.notNull(charConstraints, "charConstraints cannot be null");
@@ -237,5 +238,4 @@ public class PathConstraintProcessor {
         this.charConstraints.add(Enforce.notNull(charConstraint, "charConstraint cannot be null"));
         return this;
     }
-
 }

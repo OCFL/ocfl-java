@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.core.storage.common;
 
 import edu.wisc.library.ocfl.api.OcflConstants;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -161,5 +160,4 @@ public abstract class OcflObjectRootDirIterator implements Iterator<String>, Clo
          */
         String nextChildDirectory();
     }
-
 }

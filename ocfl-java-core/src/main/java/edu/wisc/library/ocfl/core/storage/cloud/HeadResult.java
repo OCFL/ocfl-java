@@ -82,10 +82,10 @@ public class HeadResult {
             return false;
         }
         HeadResult that = (HeadResult) o;
-        return Objects.equals(contentLength, that.contentLength) &&
-                Objects.equals(contentEncoding, that.contentEncoding) &&
-                Objects.equals(eTag, that.eTag) &&
-                Objects.equals(lastModified, that.lastModified);
+        return Objects.equals(contentLength, that.contentLength)
+                && Objects.equals(contentEncoding, that.contentEncoding)
+                && Objects.equals(eTag, that.eTag)
+                && Objects.equals(lastModified, that.lastModified);
     }
 
     @Override
@@ -95,12 +95,10 @@ public class HeadResult {
 
     @Override
     public String toString() {
-        return "HeadResult{" +
-                "contentLength=" + contentLength +
-                ", contentEncoding='" + contentEncoding + '\'' +
-                ", eTag='" + eTag + '\'' +
-                ", lastModified=" + lastModified +
-                '}';
+        return "HeadResult{" + "contentLength="
+                + contentLength + ", contentEncoding='"
+                + contentEncoding + '\'' + ", eTag='"
+                + eTag + '\'' + ", lastModified="
+                + lastModified + '}';
     }
-
 }

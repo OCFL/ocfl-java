@@ -24,16 +24,15 @@
 
 package edu.wisc.library.ocfl.core.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.escape.UnicodeEscaper;
 import com.google.common.net.UrlEscapers;
-
 import java.util.HashSet;
 import java.util.Set;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * NOTICE: This class is copied from Guava 28.2-jre and modified to support lowercase hex encoding and either encoding
@@ -115,7 +114,8 @@ public final class PercentEscaper extends UnicodeEscaper {
 
     // Builder added 02/03/2020
     public static class Builder {
-        private static final String ALPHA_NUMERIC_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        private static final String ALPHA_NUMERIC_CHARS =
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
         private boolean plusForSpace = false;
         private boolean useUppercase = false;
@@ -150,7 +150,8 @@ public final class PercentEscaper extends UnicodeEscaper {
          */
         public Builder addSafeCharRange(char start, char end) {
             if (behavior == Behavior.ENCODE_SET) {
-                throw new IllegalArgumentException("Cannot add safe characters because the escaper is already configured with unsafe characters.");
+                throw new IllegalArgumentException(
+                        "Cannot add safe characters because the escaper is already configured with unsafe characters.");
             }
             behavior = Behavior.ENCODE_NOT_IN_SET;
             addRangeToSet(start, end, charSet);
@@ -165,7 +166,8 @@ public final class PercentEscaper extends UnicodeEscaper {
          */
         public Builder addSafeChars(String safeChars) {
             if (behavior == Behavior.ENCODE_SET) {
-                throw new IllegalArgumentException("Cannot add safe characters because the escaper is already configured with unsafe characters.");
+                throw new IllegalArgumentException(
+                        "Cannot add safe characters because the escaper is already configured with unsafe characters.");
             }
             behavior = Behavior.ENCODE_NOT_IN_SET;
             addToSet(safeChars, charSet);
@@ -181,7 +183,8 @@ public final class PercentEscaper extends UnicodeEscaper {
          */
         public Builder addUnsafeCharRange(char start, char end) {
             if (behavior == Behavior.ENCODE_NOT_IN_SET) {
-                throw new IllegalArgumentException("Cannot add unsafe characters because the escaper is already configured with safe characters.");
+                throw new IllegalArgumentException(
+                        "Cannot add unsafe characters because the escaper is already configured with safe characters.");
             }
             behavior = Behavior.ENCODE_SET;
             addRangeToSet(start, end, charSet);
@@ -196,7 +199,8 @@ public final class PercentEscaper extends UnicodeEscaper {
          */
         public Builder addUnsafeChars(String unsafeChars) {
             if (behavior == Behavior.ENCODE_NOT_IN_SET) {
-                throw new IllegalArgumentException("Cannot add unsafe characters because the escaper is already configured with safe characters.");
+                throw new IllegalArgumentException(
+                        "Cannot add unsafe characters because the escaper is already configured with safe characters.");
             }
             behavior = Behavior.ENCODE_SET;
             addToSet(unsafeChars, charSet);
@@ -227,7 +231,8 @@ public final class PercentEscaper extends UnicodeEscaper {
     }
 
     private enum Behavior {
-        ENCODE_SET, ENCODE_NOT_IN_SET
+        ENCODE_SET,
+        ENCODE_NOT_IN_SET
     }
 
     /**
@@ -245,8 +250,7 @@ public final class PercentEscaper extends UnicodeEscaper {
      * @param useUppercase true if hex characters should be upper case
      * @throws IllegalArgumentException if any of the parameters were invalid
      */
-    private PercentEscaper(Behavior behavior, Set<Character> charSet,
-                           boolean plusForSpace, boolean useUppercase) {
+    private PercentEscaper(Behavior behavior, Set<Character> charSet, boolean plusForSpace, boolean useUppercase) {
         checkNotNull(charSet); // eager for GWT.
 
         this.behavior = checkNotNull(behavior);
@@ -409,4 +413,3 @@ public final class PercentEscaper extends UnicodeEscaper {
         }
     }
 }
-

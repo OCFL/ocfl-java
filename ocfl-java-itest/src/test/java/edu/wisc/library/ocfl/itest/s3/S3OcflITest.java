@@ -1,5 +1,13 @@
 package edu.wisc.library.ocfl.itest.s3;
 
+import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
+import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 import edu.wisc.library.ocfl.api.OcflRepository;
@@ -16,15 +24,6 @@ import edu.wisc.library.ocfl.core.storage.cloud.CloudClient;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.s3.S3Client;
-
 import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -34,14 +33,14 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
-import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
-import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
-import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.s3.S3Client;
 
 public class S3OcflITest extends OcflITest {
 
@@ -51,7 +50,8 @@ public class S3OcflITest extends OcflITest {
     private static final String ENV_SECRET_KEY = "OCFL_TEST_AWS_SECRET_KEY";
     private static final String ENV_BUCKET = "OCFL_TEST_S3_BUCKET";
 
-    private static final String REPO_PREFIX = "S3OcflITest" + ThreadLocalRandom.current().nextLong();
+    private static final String REPO_PREFIX =
+            "S3OcflITest" + ThreadLocalRandom.current().nextLong();
 
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
@@ -154,9 +154,8 @@ public class S3OcflITest extends OcflITest {
         var repo = defaultRepo(repoName);
 
         var objectId = "uri:valid-object";
-        var versionInfo = new VersionInfo()
-                .setUser("Peter", "mailto:peter@example.com")
-                .setMessage("message");
+        var versionInfo =
+                new VersionInfo().setUser("Peter", "mailto:peter@example.com").setMessage("message");
 
         repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
             updater.writeFile(streamString("file1"), "file1");
@@ -164,14 +163,14 @@ public class S3OcflITest extends OcflITest {
         });
 
         repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
-            updater.writeFile(streamString("file3"), "file3")
-                    .removeFile("file2");
+            updater.writeFile(streamString("file3"), "file3").removeFile("file2");
         });
 
         var results = repo.validateObject(objectId, true);
 
         assertEquals(0, results.getErrors().size(), () -> results.getErrors().toString());
-        assertEquals(0, results.getWarnings().size(), () -> results.getWarnings().toString());
+        assertEquals(
+                0, results.getWarnings().size(), () -> results.getWarnings().toString());
     }
 
     // This test doesn't work with S3Mock because it double encodes
@@ -181,7 +180,8 @@ public class S3OcflITest extends OcflITest {
     @EnabledIfEnvironmentVariable(named = ENV_BUCKET, matches = ".+")
     public void hashedIdLayoutLongEncoded() {
         var repoName = "hashed-id-layout-2";
-        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
+        var repo = defaultRepo(
+                repoName, builder -> builder.defaultLayoutConfig(new HashedNTupleIdEncapsulationLayoutConfig()));
 
         var objectId = "۵ݨݯژښڙڜڛڝڠڱݰݣݫۯ۞ۆݰ";
 
@@ -202,9 +202,8 @@ public class S3OcflITest extends OcflITest {
                 .objectDetailsDb(db -> db.dataSource(dataSource).tableName(detailsTable()))
                 .inventoryMapper(ITestHelper.testInventoryMapper())
                 .contentPathConstraints(ContentPathConstraints.cloud())
-                .storage(storage -> storage
-                        .objectMapper(ITestHelper.prettyPrintMapper())
-                        .cloud(createCloudClient(name)))
+                .storage(storage ->
+                        storage.objectMapper(ITestHelper.prettyPrintMapper()).cloud(createCloudClient(name)))
                 .workDir(workDir);
 
         consumer.accept(builder);
@@ -217,9 +216,11 @@ public class S3OcflITest extends OcflITest {
     @Override
     protected OcflRepository existingRepo(String name, Path path, Consumer<OcflRepositoryBuilder> consumer) {
         var client = createCloudClient(name);
-        FileUtil.findFiles(path).stream().filter(f -> !f.getFileName().toString().equals(".gitkeep")).forEach(file -> {
-            client.uploadFile(file, FileUtil.pathToStringStandardSeparator(path.relativize(file)));
-        });
+        FileUtil.findFiles(path).stream()
+                .filter(f -> !f.getFileName().toString().equals(".gitkeep"))
+                .forEach(file -> {
+                    client.uploadFile(file, FileUtil.pathToStringStandardSeparator(path.relativize(file)));
+                });
         return defaultRepo(name, consumer);
     }
 
@@ -254,5 +255,4 @@ public class S3OcflITest extends OcflITest {
     private String prefix(String name) {
         return REPO_PREFIX + "-" + name;
     }
-
 }

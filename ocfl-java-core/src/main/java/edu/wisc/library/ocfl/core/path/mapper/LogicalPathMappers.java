@@ -17,9 +17,7 @@ public final class LogicalPathMappers {
     private static final String ENCODE_CLOUD = "\\#[]*? ";
     private static final String ENCODE_ALL = "<>:\"\\|?* #[]";
 
-    private LogicalPathMappers() {
-
-    }
+    private LogicalPathMappers() {}
 
     /**
      * Creates a {@link LogicalPathMapper} that directly maps logical paths to content paths, making no changes.
@@ -140,5 +138,4 @@ public final class LogicalPathMappers {
                 .addSafeChars("-_")
                 .build());
     }
-
 }

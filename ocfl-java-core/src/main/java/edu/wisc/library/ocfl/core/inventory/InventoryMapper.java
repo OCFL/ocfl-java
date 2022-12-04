@@ -36,7 +36,6 @@ import edu.wisc.library.ocfl.core.model.RevisionNum;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import edu.wisc.library.ocfl.core.path.constraint.ContentPathConstraints;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,7 +74,7 @@ public class InventoryMapper {
     public static InventoryMapper defaultMapper() {
         return new InventoryMapper(ObjectMappers.defaultMapper());
     }
-    
+
     /**
      * Should use InventoryMapper.defaultMapper() or InventoryMapper.prettyPrintMapper() unless you know what you're doing.
      *
@@ -110,11 +109,13 @@ public class InventoryMapper {
         return readInternal(false, null, objectRootPath, digestAlgorithm, inputStream);
     }
 
-    public Inventory readMutableHead(String objectRootPath, RevisionNum revisionNum, DigestAlgorithm digestAlgorithm, Path path) {
+    public Inventory readMutableHead(
+            String objectRootPath, RevisionNum revisionNum, DigestAlgorithm digestAlgorithm, Path path) {
         return readInternal(true, revisionNum, objectRootPath, digestAlgorithm, path);
     }
 
-    public Inventory readMutableHead(String objectRootPath, RevisionNum revisionNum, DigestAlgorithm digestAlgorithm, InputStream inputStream) {
+    public Inventory readMutableHead(
+            String objectRootPath, RevisionNum revisionNum, DigestAlgorithm digestAlgorithm, InputStream inputStream) {
         return readInternal(true, revisionNum, objectRootPath, digestAlgorithm, inputStream);
     }
 
@@ -134,29 +135,29 @@ public class InventoryMapper {
         return readInternal(true, revisionNum, objectRootPath, null, inputStream);
     }
 
-    private Inventory readInternal(boolean mutableHead,
-                                   RevisionNum revisionNum,
-                                   String objectRootPath,
-                                   DigestAlgorithm digestAlgorithm,
-                                   Path path) {
+    private Inventory readInternal(
+            boolean mutableHead,
+            RevisionNum revisionNum,
+            String objectRootPath,
+            DigestAlgorithm digestAlgorithm,
+            Path path) {
         return readInternal(mutableHead, revisionNum, objectRootPath, readBytes(path, digestAlgorithm));
     }
 
-    private Inventory readInternal(boolean mutableHead,
-                                   RevisionNum revisionNum,
-                                   String objectRootPath,
-                                   DigestAlgorithm digestAlgorithm,
-                                   InputStream inputStream) {
+    private Inventory readInternal(
+            boolean mutableHead,
+            RevisionNum revisionNum,
+            String objectRootPath,
+            DigestAlgorithm digestAlgorithm,
+            InputStream inputStream) {
         return readInternal(mutableHead, revisionNum, objectRootPath, readBytes(inputStream, digestAlgorithm));
     }
 
-    private Inventory readInternal(boolean mutableHead,
-                                   RevisionNum revisionNum,
-                                   String objectRootPath,
-                                   ReadResult readResult) {
+    private Inventory readInternal(
+            boolean mutableHead, RevisionNum revisionNum, String objectRootPath, ReadResult readResult) {
         try {
-            Inventory inventory = objectMapper.reader(
-                    new InjectableValues.Std()
+            Inventory inventory = objectMapper
+                    .reader(new InjectableValues.Std()
                             .addValue("revisionNum", revisionNum)
                             .addValue("mutableHead", mutableHead)
                             .addValue("objectRootPath", objectRootPath)
@@ -215,5 +216,4 @@ public class InventoryMapper {
             this.digest = digest;
         }
     }
-
 }

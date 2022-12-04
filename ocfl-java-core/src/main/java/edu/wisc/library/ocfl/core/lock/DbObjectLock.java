@@ -29,10 +29,6 @@ import edu.wisc.library.ocfl.api.exception.OcflDbException;
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.db.DbType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -41,6 +37,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Lock implementation that writes to a DB table to lock a resource. The row is deleted when the lock is released.
@@ -53,8 +52,7 @@ public class DbObjectLock implements ObjectLock {
     private static final Map<DbType, String> DUPLICATE_STATE_CODES = Map.of(
             DbType.H2, "23505",
             DbType.MARIADB, "23000",
-            DbType.POSTGRES, "23505"
-    );
+            DbType.POSTGRES, "23505");
 
     private final String tableName;
     private final DataSource dataSource;
@@ -72,11 +70,15 @@ public class DbObjectLock implements ObjectLock {
         this.dataSource = Enforce.notNull(dataSource, "dataSource cannot be null");
         this.lockDuration = Enforce.notNull(maxLockDuration, "maxLockDuration cannot be null");
 
-        this.duplicateStateCode = Enforce.notBlank(DUPLICATE_STATE_CODES.get(dbType), "duplicate state code cannot be blank");
+        this.duplicateStateCode =
+                Enforce.notBlank(DUPLICATE_STATE_CODES.get(dbType), "duplicate state code cannot be blank");
 
-        this.createRowLockQuery = String.format("INSERT INTO %s (object_id, acquired_timestamp) VALUES (?, ?)", tableName);
-        this.updateRowLockQuery = String.format("UPDATE %s SET acquired_timestamp = ? WHERE object_id = ? AND acquired_timestamp <= ?", tableName);
-        this.deleteRowLockQuery = String.format("DELETE FROM %s WHERE object_id = ? AND acquired_timestamp = ?", tableName);
+        this.createRowLockQuery =
+                String.format("INSERT INTO %s (object_id, acquired_timestamp) VALUES (?, ?)", tableName);
+        this.updateRowLockQuery = String.format(
+                "UPDATE %s SET acquired_timestamp = ? WHERE object_id = ? AND acquired_timestamp <= ?", tableName);
+        this.deleteRowLockQuery =
+                String.format("DELETE FROM %s WHERE object_id = ? AND acquired_timestamp = ?", tableName);
     }
 
     /**
@@ -102,7 +104,7 @@ public class DbObjectLock implements ObjectLock {
                 // Try acquire twice to cover the case where the lock is released when the first UPDATE
                 // was attempted. More retries are possible, but you have to draw the line somewhere.
                 if (!createLockRow(objectId, now, connection)) {
-                    throw  failedToAcquireLock(objectId);
+                    throw failedToAcquireLock(objectId);
                 }
             }
         } catch (SQLException e) {
@@ -154,7 +156,7 @@ public class DbObjectLock implements ObjectLock {
 
     private void releaseLock(String objectId, Instant timestamp) {
         try (var connection = dataSource.getConnection();
-             var statement = connection.prepareStatement(deleteRowLockQuery)) {
+                var statement = connection.prepareStatement(deleteRowLockQuery)) {
             statement.setString(1, objectId);
             statement.setTimestamp(2, Timestamp.from(timestamp));
             statement.executeUpdate();
@@ -162,5 +164,4 @@ public class DbObjectLock implements ObjectLock {
             LOG.error("Failed to release lock on object {}", objectId, e);
         }
     }
-
 }

@@ -1,23 +1,22 @@
 package edu.wisc.library.ocfl.itest;
 
-import edu.wisc.library.ocfl.api.MutableOcflRepository;
-import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
-import edu.wisc.library.ocfl.api.exception.PathConstraintException;
-import edu.wisc.library.ocfl.api.model.ObjectVersionId;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.either;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import edu.wisc.library.ocfl.api.MutableOcflRepository;
+import edu.wisc.library.ocfl.api.exception.CorruptObjectException;
+import edu.wisc.library.ocfl.api.exception.PathConstraintException;
+import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public abstract class BadReposITest {
 
@@ -40,13 +39,9 @@ public abstract class BadReposITest {
         onAfter();
     }
 
-    protected void onBefore() {
+    protected void onBefore() {}
 
-    }
-
-    protected void onAfter() {
-
-    }
+    protected void onAfter() {}
 
     protected abstract MutableOcflRepository defaultRepo(String name);
 
@@ -88,7 +83,9 @@ public abstract class BadReposITest {
         var repoName = "invalid-sidecar-digest";
         var repo = defaultRepo(repoName);
 
-        assertThat(assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2")).getMessage(),
+        assertThat(
+                assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2"))
+                        .getMessage(),
                 containsString("sidecar"));
     }
 
@@ -96,7 +93,9 @@ public abstract class BadReposITest {
     public void failWhenMissingSidecar() {
         var repoName = "missing-sidecar";
         var repo = defaultRepo(repoName);
-        assertThat(assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2")).getMessage(),
+        assertThat(
+                assertThrows(CorruptObjectException.class, () -> repo.describeObject("o2"))
+                        .getMessage(),
                 containsString("sidecar"));
     }
 
@@ -104,7 +103,9 @@ public abstract class BadReposITest {
     public void failWhenMissingInventory() {
         var repoName = "missing-inventory";
 
-        assertThat(assertThrows(CorruptObjectException.class, () -> defaultRepo(repoName)).getMessage(),
+        assertThat(
+                assertThrows(CorruptObjectException.class, () -> defaultRepo(repoName))
+                        .getMessage(),
                 containsString("Missing inventory"));
     }
 
@@ -113,12 +114,15 @@ public abstract class BadReposITest {
         var repoName = "missing-version";
         var repo = defaultRepo(repoName);
 
-        assertThat(assertThrows(RuntimeException.class, () -> repo.getObject(ObjectVersionId.head("o2"), outputDir.resolve("out"))).getMessage(),
+        assertThat(
+                assertThrows(
+                                RuntimeException.class,
+                                () -> repo.getObject(ObjectVersionId.head("o2"), outputDir.resolve("out")))
+                        .getMessage(),
                 either(containsString("NoSuchFile")).or(containsString("not found")));
     }
 
     protected Path repoDir(String name) {
         return Paths.get("src/test/resources/invalid-repos", name);
     }
-
 }

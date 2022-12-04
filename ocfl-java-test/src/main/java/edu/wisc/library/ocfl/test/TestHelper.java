@@ -36,9 +36,7 @@ import java.util.Scanner;
 
 public final class TestHelper {
 
-    private TestHelper() {
-
-    }
+    private TestHelper() {}
 
     public static String fileToString(Path file) {
         try (var input = new BufferedInputStream(Files.newInputStream(file))) {
@@ -84,5 +82,4 @@ public final class TestHelper {
         }
         return target;
     }
-
 }

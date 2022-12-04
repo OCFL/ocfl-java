@@ -25,7 +25,6 @@
 package edu.wisc.library.ocfl.api.model;
 
 import edu.wisc.library.ocfl.api.exception.OcflJavaException;
-
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -104,7 +103,8 @@ public enum OcflVersion {
                 return version;
             }
         }
-        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL version. Known versions: %s",
+        throw new OcflJavaException(String.format(
+                "Unable to map string '%s' to a known OCFL version. Known versions: %s",
                 ocflVersionString, Arrays.asList(values())));
     }
 
@@ -121,10 +121,10 @@ public enum OcflVersion {
                 return version;
             }
         }
-        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL object version. Known versions: %s",
-                ocflObjectVersionString, Arrays.stream(values())
-                        .map(OcflVersion::getOcflObjectVersion)
-                        .collect(Collectors.toList())));
+        throw new OcflJavaException(String.format(
+                "Unable to map string '%s' to a known OCFL object version. Known versions: %s",
+                ocflObjectVersionString,
+                Arrays.stream(values()).map(OcflVersion::getOcflObjectVersion).collect(Collectors.toList())));
     }
 
     /**
@@ -140,7 +140,8 @@ public enum OcflVersion {
                 return version;
             }
         }
-        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL version. Known versions: %s",
+        throw new OcflJavaException(String.format(
+                "Unable to map string '%s' to a known OCFL version. Known versions: %s",
                 versionPart, Arrays.asList(values())));
     }
 
@@ -157,10 +158,9 @@ public enum OcflVersion {
                 return version;
             }
         }
-        throw new OcflJavaException(String.format("Unable to map string '%s' to a known OCFL object version. Known versions: %s",
-                versionPart, Arrays.stream(values())
-                        .map(OcflVersion::getOcflObjectVersion)
-                        .collect(Collectors.toList())));
+        throw new OcflJavaException(String.format(
+                "Unable to map string '%s' to a known OCFL object version. Known versions: %s",
+                versionPart,
+                Arrays.stream(values()).map(OcflVersion::getOcflObjectVersion).collect(Collectors.toList())));
     }
-
 }

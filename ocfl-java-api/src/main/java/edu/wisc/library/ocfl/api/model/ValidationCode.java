@@ -28,7 +28,6 @@ package edu.wisc.library.ocfl.api.model;
  * OCFL validation codes: https://ocfl.io/validation/validation-codes.html
  */
 public enum ValidationCode {
-
     E001(Type.ERROR),
     E002(Type.ERROR),
     E003(Type.ERROR),
@@ -94,11 +93,11 @@ public enum ValidationCode {
     E063(Type.ERROR),
     E064(Type.ERROR),
     // https://github.com/OCFL/spec/issues/529
-//    E065(Type.ERROR),
+    //    E065(Type.ERROR),
     E066(Type.ERROR),
     E067(Type.ERROR),
     // https://github.com/OCFL/spec/pull/584
-//    E068(Type.ERROR),
+    //    E068(Type.ERROR),
     E069(Type.ERROR),
     E070(Type.ERROR),
     E071(Type.ERROR),
@@ -143,7 +142,6 @@ public enum ValidationCode {
     E110(Type.ERROR),
     E111(Type.ERROR),
 
-
     W001(Type.WARN),
     W002(Type.WARN),
     W003(Type.WARN),
@@ -161,7 +159,9 @@ public enum ValidationCode {
     W015(Type.WARN);
 
     public enum Type {
-        INFO, WARN, ERROR
+        INFO,
+        WARN,
+        ERROR
     }
 
     private final Type type;
@@ -173,5 +173,4 @@ public enum ValidationCode {
     public Type getType() {
         return type;
     }
-
 }

@@ -40,7 +40,6 @@ import edu.wisc.library.ocfl.core.model.VersionBuilder;
 import edu.wisc.library.ocfl.core.path.ContentPathMapper;
 import edu.wisc.library.ocfl.core.path.constraint.LogicalPathConstraints;
 import edu.wisc.library.ocfl.core.path.constraint.PathConstraintProcessor;
-
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -74,7 +73,8 @@ public class InventoryUpdater {
         }
 
         public Builder contentPathMapperBuilder(ContentPathMapper.Builder contentPathMapperBuilder) {
-            this.contentPathMapperBuilder = Enforce.notNull(contentPathMapperBuilder, "contentPathMapperBuilder cannot be null");
+            this.contentPathMapperBuilder =
+                    Enforce.notNull(contentPathMapperBuilder, "contentPathMapperBuilder cannot be null");
             return this;
         }
 
@@ -90,7 +90,10 @@ public class InventoryUpdater {
             var inventoryBuilder = inventory.buildNextVersionFrom();
             var versionBuilder = Version.builder();
 
-            return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
+            return new InventoryUpdater(
+                    inventory,
+                    inventoryBuilder,
+                    versionBuilder,
                     contentPathMapperBuilder.buildStandardVersion(inventory));
         }
 
@@ -112,7 +115,10 @@ public class InventoryUpdater {
                 versionBuilder = Version.builder();
             }
 
-            return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
+            return new InventoryUpdater(
+                    inventory,
+                    inventoryBuilder,
+                    versionBuilder,
                     contentPathMapperBuilder.buildStandardVersion(inventory));
         }
 
@@ -130,7 +136,10 @@ public class InventoryUpdater {
             var inventoryBuilder = inventory.buildNextVersionFrom();
             var versionBuilder = Version.builder(inventory.getVersion(versionNum));
 
-            return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
+            return new InventoryUpdater(
+                    inventory,
+                    inventoryBuilder,
+                    versionBuilder,
                     contentPathMapperBuilder.buildStandardVersion(inventory));
         }
 
@@ -147,16 +156,19 @@ public class InventoryUpdater {
             var inventoryBuilder = inventory.buildNextVersionFrom().mutableHead(true);
             var versionBuilder = Version.builder(inventory.getHeadVersion());
 
-            return new InventoryUpdater(inventory, inventoryBuilder, versionBuilder,
+            return new InventoryUpdater(
+                    inventory,
+                    inventoryBuilder,
+                    versionBuilder,
                     contentPathMapperBuilder.buildMutableVersion(inventory));
         }
-
     }
 
-    private InventoryUpdater(Inventory inventory,
-                             InventoryBuilder inventoryBuilder,
-                             VersionBuilder versionBuilder,
-                             ContentPathMapper contentPathMapper) {
+    private InventoryUpdater(
+            Inventory inventory,
+            InventoryBuilder inventoryBuilder,
+            VersionBuilder versionBuilder,
+            ContentPathMapper contentPathMapper) {
         this.inventory = Enforce.notNull(inventory, "inventory cannot be null");
         this.inventoryBuilder = Enforce.notNull(inventoryBuilder, "inventoryBuilder cannot be null");
         this.versionBuilder = Enforce.notNull(versionBuilder, "versionBuilder cannot be null");
@@ -174,8 +186,7 @@ public class InventoryUpdater {
      * @param versionInfo information about the version
      * @return new inventory
      */
-    public Inventory buildNewInventory(OffsetDateTime createdTimestamp,
-                                       VersionInfo versionInfo) {
+    public Inventory buildNewInventory(OffsetDateTime createdTimestamp, VersionInfo versionInfo) {
         return inventoryBuilder
                 .addHeadVersion(versionBuilder
                         .versionInfo(versionInfo)
@@ -320,8 +331,8 @@ public class InventoryUpdater {
         var srcDigest = versionBuilder.getFileId(srcLogicalPath);
 
         if (srcDigest == null) {
-            throw new OcflInputException(String.format("The following path was not found in object %s: %s",
-                    objectId, srcLogicalPath));
+            throw new OcflInputException(
+                    String.format("The following path was not found in object %s: %s", objectId, srcLogicalPath));
         }
 
         overwriteProtection(dstLogicalPath, options);
@@ -347,17 +358,15 @@ public class InventoryUpdater {
      * @param options options
      * @return files that were removed from the manifest
      */
-    public Set<RemoveFileResult> reinstateFile(VersionNum sourceVersion,
-                                               String srcLogicalPath,
-                                               String dstLogicalPath,
-                                               OcflOption... options) {
+    public Set<RemoveFileResult> reinstateFile(
+            VersionNum sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
         logicalPathConstraints.apply(dstLogicalPath);
 
         var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);
 
         if (srcDigest == null) {
-            throw new OcflInputException(String.format("Object %s version %s does not contain a file at %s",
-                    objectId, sourceVersion, srcLogicalPath));
+            throw new OcflInputException(String.format(
+                    "Object %s version %s does not contain a file at %s", objectId, sourceVersion, srcLogicalPath));
         }
 
         overwriteProtection(dstLogicalPath, options);
@@ -430,7 +439,8 @@ public class InventoryUpdater {
 
     private void overwriteProtection(String logicalPath, OcflOption... options) {
         if (versionBuilder.containsLogicalPath(logicalPath) && !OcflOption.contains(OcflOption.OVERWRITE, options)) {
-            throw new OverwriteException(String.format("There is already a file at %s in object %s. Use OcflOption.OVERWRITE to overwrite it.",
+            throw new OverwriteException(String.format(
+                    "There is already a file at %s in object %s. Use OcflOption.OVERWRITE to overwrite it.",
                     logicalPath, objectId));
         }
     }
@@ -483,7 +493,6 @@ public class InventoryUpdater {
         public String getPathUnderContentDir() {
             return pathUnderContentDir;
         }
-
     }
 
     /**
@@ -512,7 +521,5 @@ public class InventoryUpdater {
         public String getPathUnderContentDir() {
             return pathUnderContentDir;
         }
-
     }
-
 }

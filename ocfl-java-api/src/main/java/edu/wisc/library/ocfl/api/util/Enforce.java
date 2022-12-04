@@ -28,9 +28,7 @@ import edu.wisc.library.ocfl.api.exception.OcflInputException;
 
 public final class Enforce {
 
-    private Enforce() {
-
-    }
+    private Enforce() {}
 
     public static <T> T notNull(T object, String message) {
         if (object == null) {
@@ -52,5 +50,4 @@ public final class Enforce {
         }
         return object;
     }
-
 }

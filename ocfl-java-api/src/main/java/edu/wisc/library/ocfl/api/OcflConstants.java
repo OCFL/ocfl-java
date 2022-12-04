@@ -26,14 +26,11 @@ package edu.wisc.library.ocfl.api;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.OcflVersion;
-
 import java.util.Set;
 
 public final class OcflConstants {
 
-    private OcflConstants() {
-
-    }
+    private OcflConstants() {}
 
     public static final OcflVersion DEFAULT_OCFL_VERSION = OcflVersion.OCFL_1_1;
 
@@ -51,7 +48,8 @@ public final class OcflConstants {
     public static final int DEFAULT_ZERO_PADDING_WIDTH = 0;
 
     public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha512;
-    public static final Set<DigestAlgorithm> ALLOWED_DIGEST_ALGORITHMS = Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
+    public static final Set<DigestAlgorithm> ALLOWED_DIGEST_ALGORITHMS =
+            Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
 
     public static final String MUTABLE_HEAD_EXT_NAME = "0005-mutable-head";
     public static final String MUTABLE_HEAD_EXT_PATH = EXTENSIONS_DIR + "/" + MUTABLE_HEAD_EXT_NAME;
@@ -60,8 +58,6 @@ public final class OcflConstants {
 
     public static final String DIGEST_ALGORITHMS_EXT_NAME = "0001-digest-algorithms";
 
-    public static final DigestAlgorithm[] VALID_INVENTORY_ALGORITHMS = new DigestAlgorithm[]{
-            DigestAlgorithm.sha256, DigestAlgorithm.sha512
-    };
-
+    public static final DigestAlgorithm[] VALID_INVENTORY_ALGORITHMS =
+            new DigestAlgorithm[] {DigestAlgorithm.sha256, DigestAlgorithm.sha512};
 }

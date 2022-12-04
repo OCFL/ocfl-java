@@ -32,7 +32,6 @@ import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.model.Inventory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -44,9 +43,7 @@ public final class SidecarMapper {
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
-    private SidecarMapper() {
-
-    }
+    private SidecarMapper() {}
 
     public static void writeSidecar(Inventory inventory, String digest, Path dstDirectory) {
         try {
@@ -84,16 +81,18 @@ public final class SidecarMapper {
     }
 
     public static DigestAlgorithm getDigestAlgorithmFromSidecar(Path inventorySidecarPath) {
-        var value = inventorySidecarPath.getFileName().toString()
+        var value = inventorySidecarPath
+                .getFileName()
+                .toString()
                 .substring(OcflConstants.INVENTORY_SIDECAR_PREFIX.length());
         var algorithm = DigestAlgorithmRegistry.getAlgorithm(value);
 
         if (!OcflConstants.ALLOWED_DIGEST_ALGORITHMS.contains(algorithm)) {
-            throw new CorruptObjectException(String.format("Inventory sidecar at <%s> specifies digest algorithm %s. Allowed algorithms are: %s",
+            throw new CorruptObjectException(String.format(
+                    "Inventory sidecar at <%s> specifies digest algorithm %s. Allowed algorithms are: %s",
                     inventorySidecarPath, value, OcflConstants.ALLOWED_DIGEST_ALGORITHMS));
         }
 
         return algorithm;
     }
-
 }
