@@ -29,7 +29,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>edu.wisc.library.ocfl</groupId>
+        <groupId>io.ocfl</groupId>
         <artifactId>ocfl-java-parent</artifactId>
         <version>1.5.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
@@ -55,19 +55,19 @@
 
     <dependencies>
         <dependency>
-            <groupId>edu.wisc.library.ocfl</groupId>
+            <groupId>io.ocfl</groupId>
             <artifactId>ocfl-java-core</artifactId>
             <version>1.5.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>edu.wisc.library.ocfl</groupId>
+            <groupId>io.ocfl</groupId>
             <artifactId>ocfl-java-aws</artifactId>
             <version>1.5.1-SNAPSHOT</version>
         </dependency>
 
         <!-- Test -->
         <dependency>
-            <groupId>edu.wisc.library.ocfl</groupId>
+            <groupId>io.ocfl</groupId>
             <artifactId>ocfl-java-test</artifactId>
             <version>1.5.1-SNAPSHOT</version>
             <scope>test</scope>

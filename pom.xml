@@ -29,14 +29,14 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>edu.wisc.library.ocfl</groupId>
+    <groupId>io.ocfl</groupId>
     <artifactId>ocfl-java-parent</artifactId>
     <version>1.5.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>OCFL Java Parent POM</name>
     <description>Parent POM for ocfl-java</description>
-    <url>https://github.com/UW-Madison-Library/ocfl-java</url>
+    <url>https://github.com/OCFL/ocfl-java</url>
 
     <licenses>
         <license>
@@ -53,9 +53,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/UW-Madison-Library/ocfl-java.git</connection>
-        <developerConnection>scm:git:ssh://github.com:UW-Madison-Library/ocfl-java.git</developerConnection>
-        <url>https://github.com/UW-Madison-Library/ocfl-java</url>
+        <connection>scm:git:git://github.com/OCFL/ocfl-java.git</connection>
+        <developerConnection>scm:git:ssh://github.com:OCFL/ocfl-java.git</developerConnection>
+        <url>https://github.com/OCFL/ocfl-java</url>
     </scm>
 
     <modules>

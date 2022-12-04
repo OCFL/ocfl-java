@@ -197,7 +197,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
                     .addHeadVersion(Version.builder()
                             .versionInfo(new VersionInfo()
                                     .setMessage("Auto-generated empty object version.")
-                                    .setUser("ocfl-java", "https://github.com/UW-Madison-Library/ocfl-java"))
+                                    .setUser("ocfl-java", "https://github.com/OCFL/ocfl-java"))
                             .created(now(null))
                             .build())
                     .build();
