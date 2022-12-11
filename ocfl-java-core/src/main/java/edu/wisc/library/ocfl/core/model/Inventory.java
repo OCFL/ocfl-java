@@ -90,7 +90,7 @@ public class Inventory {
 
     // This property is injected
     @JsonIgnore
-    private String inventoryDigest;
+    private final String inventoryDigest;
 
     /**
      * Creates a stub inventory that is useful when creating new objects. It should NOT be persisted.

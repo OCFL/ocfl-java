@@ -161,11 +161,7 @@ public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
      * @return this
      */
     public HashedNTupleLayoutConfig setShortObjectRoot(Boolean shortObjectRoot) {
-        if (shortObjectRoot == null) {
-            this.shortObjectRoot = DEFAULT_SHORT_OBJ_ROOT;
-        } else {
-            this.shortObjectRoot = shortObjectRoot;
-        }
+        this.shortObjectRoot = Objects.requireNonNullElse(shortObjectRoot, DEFAULT_SHORT_OBJ_ROOT);
         return this;
     }
 

@@ -73,7 +73,7 @@ public class RevisionNum implements Comparable<RevisionNum> {
         var nextVersionNum = revisionNumber + 1;
         if (nextVersionNum > maxRevision) {
             throw new InvalidVersionException(
-                    "Cannot increment revision number. Current revision " + toString() + " is the highest possible.");
+                    "Cannot increment revision number. Current revision " + this + " is the highest possible.");
         }
         return new RevisionNum(nextVersionNum);
     }
@@ -84,7 +84,7 @@ public class RevisionNum implements Comparable<RevisionNum> {
     public RevisionNum previousRevisionNum() {
         if (revisionNumber == 1) {
             throw new InvalidVersionException(
-                    "Cannot decrement revision number. Current revision " + toString() + " is the lowest possible.");
+                    "Cannot decrement revision number. Current revision " + this + " is the lowest possible.");
         }
         return new RevisionNum(revisionNumber - 1);
     }

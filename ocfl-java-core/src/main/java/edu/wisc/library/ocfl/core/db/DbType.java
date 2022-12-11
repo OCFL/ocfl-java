@@ -39,7 +39,7 @@ public enum DbType {
     MARIADB("MariaDB"),
     H2("H2");
 
-    private String productName;
+    private final String productName;
 
     DbType(String productName) {
         this.productName = productName;

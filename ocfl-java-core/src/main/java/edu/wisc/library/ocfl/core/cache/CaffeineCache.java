@@ -34,7 +34,7 @@ import java.util.function.Function;
  */
 public class CaffeineCache<K, V> implements Cache<K, V> {
 
-    private com.github.benmanes.caffeine.cache.Cache<K, V> cache;
+    private final com.github.benmanes.caffeine.cache.Cache<K, V> cache;
 
     public CaffeineCache(com.github.benmanes.caffeine.cache.Cache cache) {
         this.cache = Enforce.notNull(cache, "cache cannot be null");

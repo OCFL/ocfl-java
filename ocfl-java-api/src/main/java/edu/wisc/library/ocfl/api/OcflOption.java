@@ -61,7 +61,7 @@ public enum OcflOption {
      * @return true if the specified option is in the set
      */
     public static boolean contains(OcflOption test, OcflOption... options) {
-        if (options == null || options.length == 0) {
+        if (options == null) {
             return false;
         }
 

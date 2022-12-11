@@ -188,11 +188,7 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *
      */
     public NTupleOmitPrefixStorageLayoutConfig setZeroPadding(ZeroPadding zeroPadding) {
-        if (zeroPadding == null) {
-            this.zeroPadding = DEFAULT_PADDING;
-        } else {
-            this.zeroPadding = zeroPadding;
-        }
+        this.zeroPadding = Objects.requireNonNullElse(zeroPadding, DEFAULT_PADDING);
         return this;
     }
 
@@ -206,11 +202,7 @@ public class NTupleOmitPrefixStorageLayoutConfig implements OcflExtensionConfig 
      *
      */
     public NTupleOmitPrefixStorageLayoutConfig setReverseObjectRoot(Boolean reverseObjectRoot) {
-        if (reverseObjectRoot == null) {
-            this.reverseObjectRoot = DEFAULT_REVERSE_ROOT;
-        } else {
-            this.reverseObjectRoot = reverseObjectRoot;
-        }
+        this.reverseObjectRoot = Objects.requireNonNullElse(reverseObjectRoot, DEFAULT_REVERSE_ROOT);
         return this;
     }
 

@@ -123,7 +123,7 @@ public class VersionNum implements Comparable<VersionNum> {
         var nextVersionNum = versionNumber + 1;
         if (nextVersionNum > maxVersion) {
             throw new InvalidVersionException(
-                    "Cannot increment version number. Current version " + toString() + " is the highest possible.");
+                    "Cannot increment version number. Current version " + this + " is the highest possible.");
         }
         return new VersionNum(nextVersionNum, zeroPaddingWidth);
     }
@@ -137,7 +137,7 @@ public class VersionNum implements Comparable<VersionNum> {
     public VersionNum previousVersionNum() {
         if (versionNumber == 1) {
             throw new InvalidVersionException(
-                    "Cannot decrement version number. Current version " + toString() + " is the lowest possible.");
+                    "Cannot decrement version number. Current version " + this + " is the lowest possible.");
         }
         return new VersionNum(versionNumber - 1, zeroPaddingWidth);
     }

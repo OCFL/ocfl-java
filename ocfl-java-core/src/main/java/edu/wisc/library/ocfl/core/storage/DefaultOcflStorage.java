@@ -616,7 +616,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
      */
     @Override
     public void close() {
-        LOG.debug("Closing " + this.getClass().getName());
+        LOG.debug("Closing {}", this.getClass().getName());
         super.close();
     }
 
