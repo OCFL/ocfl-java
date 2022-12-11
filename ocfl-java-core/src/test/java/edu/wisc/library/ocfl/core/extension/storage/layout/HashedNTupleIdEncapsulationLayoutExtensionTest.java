@@ -24,7 +24,7 @@
 
 package edu.wisc.library.ocfl.core.extension.storage.layout;
 
-import static edu.wisc.library.ocfl.test.OcflAsserts.assertThrowsWithMessage;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import edu.wisc.library.ocfl.api.exception.OcflExtensionException;
@@ -76,21 +76,27 @@ public class HashedNTupleIdEncapsulationLayoutExtensionTest {
 
     @Test
     public void shouldThrowExceptionWhenTupleSizeAndNumTuplesNotBoth0() {
-        assertThrowsWithMessage(OcflExtensionException.class, "both must be 0", () -> {
-            ext.init(new HashedNTupleIdEncapsulationLayoutConfig().setTupleSize(0));
-        });
-        assertThrowsWithMessage(OcflExtensionException.class, "both must be 0", () -> {
-            ext.init(new HashedNTupleIdEncapsulationLayoutConfig().setNumberOfTuples(0));
-        });
+        assertThatThrownBy(() -> {
+                    ext.init(new HashedNTupleIdEncapsulationLayoutConfig().setTupleSize(0));
+                })
+                .isInstanceOf(OcflExtensionException.class)
+                .hasMessageContaining("both must be 0");
+        assertThatThrownBy(() -> {
+                    ext.init(new HashedNTupleIdEncapsulationLayoutConfig().setNumberOfTuples(0));
+                })
+                .isInstanceOf(OcflExtensionException.class)
+                .hasMessageContaining("both must be 0");
     }
 
     @Test
     public void shouldThrowExceptionWhenTupleSizeTimesNumTuplesGreaterThanTotalChars() {
-        assertThrowsWithMessage(OcflExtensionException.class, "sha256 digests only have 64 characters", () -> {
-            ext.init(new HashedNTupleIdEncapsulationLayoutConfig()
-                    .setTupleSize(5)
-                    .setNumberOfTuples(13));
-        });
+        assertThatThrownBy(() -> {
+                    ext.init(new HashedNTupleIdEncapsulationLayoutConfig()
+                            .setTupleSize(5)
+                            .setNumberOfTuples(13));
+                })
+                .isInstanceOf(OcflExtensionException.class)
+                .hasMessageContaining("sha256 digests only have 64 characters");
     }
 
     @Test

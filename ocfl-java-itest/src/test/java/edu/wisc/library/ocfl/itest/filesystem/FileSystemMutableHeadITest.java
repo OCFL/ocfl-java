@@ -11,7 +11,7 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLa
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.MutableHeadITest;
-import edu.wisc.library.ocfl.test.TestHelper;
+import edu.wisc.library.ocfl.itest.TestHelper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;

@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.db;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,7 +16,6 @@ import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
-import edu.wisc.library.ocfl.test.OcflAsserts;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -153,11 +153,13 @@ public class ObjectDetailsDatabaseTest {
         var invPath = writeInventory(invBytes2);
         var digest2 = DigestUtil.computeDigestHex(inventory.getDigestAlgorithm(), invBytes2);
 
-        OcflAsserts.assertThrowsWithMessage(RuntimeException.class, "Failure!", () -> {
-            database.updateObjectDetails(inv2, digest2, invPath, () -> {
-                throw new RuntimeException("Failure!");
-            });
-        });
+        assertThatThrownBy(() -> {
+                    database.updateObjectDetails(inv2, digest2, invPath, () -> {
+                        throw new RuntimeException("Failure!");
+                    });
+                })
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failure!");
 
         var details = database.retrieveObjectDetails(inventory.getId());
 

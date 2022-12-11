@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.inventory;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -16,7 +17,6 @@ import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
-import edu.wisc.library.ocfl.test.OcflAsserts;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
@@ -94,9 +94,11 @@ public class InventoryUpdaterTest {
     public void addFileShouldFailWhenTheresAlreadyAFileAtTheLogicalPathAndNoOverwrite() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(OverwriteException.class, "There is already a file at", () -> {
-            updater.addFile("file3", "file1p");
-        });
+        assertThatThrownBy(() -> {
+                    updater.addFile("file3", "file1p");
+                })
+                .isInstanceOf(OverwriteException.class)
+                .hasMessageContaining("There is already a file at");
     }
 
     @Test
@@ -141,9 +143,11 @@ public class InventoryUpdaterTest {
     public void shouldFailRenameWhenSrcDoesNotExist() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "path was not found in object", () -> {
-            updater.renameFile("file2p", "file3p");
-        });
+        assertThatThrownBy(() -> {
+                    updater.renameFile("file2p", "file3p");
+                })
+                .isInstanceOf(OcflInputException.class)
+                .hasMessageContaining("path was not found in object");
     }
 
     @Test
@@ -152,9 +156,11 @@ public class InventoryUpdaterTest {
 
         updater.addFile("file3", "file3p");
 
-        OcflAsserts.assertThrowsWithMessage(OverwriteException.class, "There is already a file at", () -> {
-            updater.renameFile("file1p", "file3p");
-        });
+        assertThatThrownBy(() -> {
+                    updater.renameFile("file1p", "file3p");
+                })
+                .isInstanceOf(OverwriteException.class)
+                .hasMessageContaining("There is already a file at");
     }
 
     @Test
@@ -181,27 +187,33 @@ public class InventoryUpdaterTest {
     public void shouldFailReinstateFileWhenSrcVersionNotExists() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "does not contain a file at", () -> {
-            updater.reinstateFile(VersionNum.fromString("v4"), "file2p", "file3p");
-        });
+        assertThatThrownBy(() -> {
+                    updater.reinstateFile(VersionNum.fromString("v4"), "file2p", "file3p");
+                })
+                .isInstanceOf(OcflInputException.class)
+                .hasMessageContaining("does not contain a file at");
     }
 
     @Test
     public void shouldFailReinstateFileWhenSrcFileNotExists() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(OcflInputException.class, "does not contain a file at", () -> {
-            updater.reinstateFile(VersionNum.fromString("v1"), "file4p", "file3p");
-        });
+        assertThatThrownBy(() -> {
+                    updater.reinstateFile(VersionNum.fromString("v1"), "file4p", "file3p");
+                })
+                .isInstanceOf(OcflInputException.class)
+                .hasMessageContaining("does not contain a file at");
     }
 
     @Test
     public void shouldFailReinstateFileWhenDstExistsNoOverwrite() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(OverwriteException.class, "There is already a file at", () -> {
-            updater.reinstateFile(VersionNum.fromString("v1"), "file2p", "file1p");
-        });
+        assertThatThrownBy(() -> {
+                    updater.reinstateFile(VersionNum.fromString("v1"), "file2p", "file1p");
+                })
+                .isInstanceOf(OverwriteException.class)
+                .hasMessageContaining("There is already a file at");
     }
 
     @Test
@@ -219,22 +231,35 @@ public class InventoryUpdaterTest {
     public void shouldRejectInvalidLogicalPaths() {
         var updater = builder.buildCopyState(inventory);
 
-        OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "illegal empty filename", () -> {
-            updater.addFile("id", "path//file");
-        });
-        OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "invalid sequence", () -> {
-            updater.addFile("id", "path/../blah");
-        });
-        OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "invalid sequence", () -> {
-            updater.addFile("id", "./blah");
-        });
+        assertThatThrownBy(() -> {
+                    updater.addFile("id", "path//file");
+                })
+                .isInstanceOf(PathConstraintException.class)
+                .hasMessageContaining("illegal empty filename");
 
-        OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "invalid sequence", () -> {
-            updater.renameFile("path", "./blah");
-        });
-        OcflAsserts.assertThrowsWithMessage(PathConstraintException.class, "invalid sequence", () -> {
-            updater.reinstateFile(VersionNum.fromString("v1"), "path", "./blah");
-        });
+        assertThatThrownBy(() -> {
+                    updater.addFile("id", "path/../blah");
+                })
+                .isInstanceOf(PathConstraintException.class)
+                .hasMessageContaining("invalid sequence");
+
+        assertThatThrownBy(() -> {
+                    updater.addFile("id", "./blah");
+                })
+                .isInstanceOf(PathConstraintException.class)
+                .hasMessageContaining("invalid sequence");
+
+        assertThatThrownBy(() -> {
+                    updater.renameFile("path", "./blah");
+                })
+                .isInstanceOf(PathConstraintException.class)
+                .hasMessageContaining("invalid sequence");
+
+        assertThatThrownBy(() -> {
+                    updater.reinstateFile(VersionNum.fromString("v1"), "path", "./blah");
+                })
+                .isInstanceOf(PathConstraintException.class)
+                .hasMessageContaining("invalid sequence");
 
         assertDoesNotThrow(() -> {
             updater.removeFile("./blah");

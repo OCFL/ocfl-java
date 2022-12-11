@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.test;
+package edu.wisc.library.ocfl.itest;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;

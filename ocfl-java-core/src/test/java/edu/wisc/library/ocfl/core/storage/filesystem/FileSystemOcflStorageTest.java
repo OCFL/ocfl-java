@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +23,6 @@ import edu.wisc.library.ocfl.core.storage.OcflStorageBuilder;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
-import edu.wisc.library.ocfl.test.OcflAsserts;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,9 +60,11 @@ public class FileSystemOcflStorageTest {
     public void shouldRejectCallsWhenNotInitialized() {
         var storage = OcflStorageBuilder.builder().fileSystem(repoDir).build();
 
-        OcflAsserts.assertThrowsWithMessage(OcflStateException.class, "must be initialized", () -> {
-            storage.loadInventory("o1");
-        });
+        assertThatThrownBy(() -> {
+                    storage.loadInventory("o1");
+                })
+                .isInstanceOf(OcflStateException.class)
+                .hasMessageContaining("must be initialized");
     }
 
     @Test

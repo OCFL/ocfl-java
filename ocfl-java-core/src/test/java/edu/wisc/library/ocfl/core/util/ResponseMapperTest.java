@@ -1,18 +1,18 @@
 package edu.wisc.library.ocfl.core.util;
 
-import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.fileChange;
-import static edu.wisc.library.ocfl.test.matcher.OcflMatchers.versionInfo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.FileChange;
 import edu.wisc.library.ocfl.api.model.FileChangeType;
 import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.Version;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,15 +52,15 @@ public class ResponseMapperTest {
 
         var history = responseMapper.fileChangeHistory(inventory, "f1");
 
-        assertThat(
+        assertFileChanges(
                 history.getFileChanges(),
-                contains(fileChange(
-                        FileChangeType.UPDATE,
-                        ObjectVersionId.version("o1", "v1"),
-                        "f1",
-                        "o1/v1/content/f1",
-                        versionInfo(null, null, null),
-                        Map.of(DigestAlgorithm.sha512, "i1"))));
+                new FileChange()
+                        .setChangeType(FileChangeType.UPDATE)
+                        .setObjectVersionId(ObjectVersionId.version("o1", "v1"))
+                        .setPath("f1")
+                        .setStorageRelativePath("o1/v1/content/f1")
+                        .setVersionInfo(new VersionInfo())
+                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")));
     }
 
     @Test
@@ -93,30 +93,28 @@ public class ResponseMapperTest {
 
         var history = responseMapper.fileChangeHistory(inventory, "f1");
 
-        assertThat(
+        assertFileChanges(
                 history.getFileChanges(),
-                contains(
-                        fileChange(
-                                FileChangeType.UPDATE,
-                                ObjectVersionId.version("o1", "v1"),
-                                "f1",
-                                "o1/v1/content/f1",
-                                versionInfo(null, null, null),
-                                Map.of(DigestAlgorithm.sha512, "i1")),
-                        fileChange(
-                                FileChangeType.REMOVE,
-                                ObjectVersionId.version("o1", "v3"),
-                                "f1",
-                                null,
-                                versionInfo(null, null, null),
-                                Map.of()),
-                        fileChange(
-                                FileChangeType.UPDATE,
-                                ObjectVersionId.version("o1", "v4"),
-                                "f1",
-                                "o1/v1/content/f1",
-                                versionInfo(null, null, null),
-                                Map.of(DigestAlgorithm.sha512, "i1"))));
+                new FileChange()
+                        .setChangeType(FileChangeType.UPDATE)
+                        .setObjectVersionId(ObjectVersionId.version("o1", "v1"))
+                        .setPath("f1")
+                        .setStorageRelativePath("o1/v1/content/f1")
+                        .setVersionInfo(new VersionInfo())
+                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")),
+                new FileChange()
+                        .setChangeType(FileChangeType.REMOVE)
+                        .setObjectVersionId(ObjectVersionId.version("o1", "v3"))
+                        .setPath("f1")
+                        .setVersionInfo(new VersionInfo())
+                        .setFixity(Map.of()),
+                new FileChange()
+                        .setChangeType(FileChangeType.UPDATE)
+                        .setObjectVersionId(ObjectVersionId.version("o1", "v4"))
+                        .setPath("f1")
+                        .setStorageRelativePath("o1/v1/content/f1")
+                        .setVersionInfo(new VersionInfo())
+                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")));
     }
 
     @Test
@@ -143,29 +141,34 @@ public class ResponseMapperTest {
 
         var history = responseMapper.fileChangeHistory(inventory, "f1");
 
-        assertThat(
+        assertFileChanges(
                 history.getFileChanges(),
-                contains(
-                        fileChange(
-                                FileChangeType.UPDATE,
-                                ObjectVersionId.version("o1", "v1"),
-                                "f1",
-                                "o1/v1/content/f1",
-                                versionInfo(null, null, null),
-                                Map.of(DigestAlgorithm.sha512, "i1")),
-                        fileChange(
-                                FileChangeType.UPDATE,
-                                ObjectVersionId.version("o1", "v2"),
-                                "f1",
-                                "o1/v2/content/f1",
-                                versionInfo(null, null, null),
-                                Map.of(DigestAlgorithm.sha512, "i2")),
-                        fileChange(
-                                FileChangeType.UPDATE,
-                                ObjectVersionId.version("o1", "v3"),
-                                "f1",
-                                "o1/v3/content/f1",
-                                versionInfo(null, null, null),
-                                Map.of(DigestAlgorithm.sha512, "i3"))));
+                new FileChange()
+                        .setChangeType(FileChangeType.UPDATE)
+                        .setObjectVersionId(ObjectVersionId.version("o1", "v1"))
+                        .setPath("f1")
+                        .setStorageRelativePath("o1/v1/content/f1")
+                        .setVersionInfo(new VersionInfo())
+                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")),
+                new FileChange()
+                        .setChangeType(FileChangeType.UPDATE)
+                        .setObjectVersionId(ObjectVersionId.version("o1", "v2"))
+                        .setPath("f1")
+                        .setStorageRelativePath("o1/v2/content/f1")
+                        .setVersionInfo(new VersionInfo())
+                        .setFixity(Map.of(DigestAlgorithm.sha512, "i2")),
+                new FileChange()
+                        .setChangeType(FileChangeType.UPDATE)
+                        .setObjectVersionId(ObjectVersionId.version("o1", "v3"))
+                        .setPath("f1")
+                        .setStorageRelativePath("o1/v3/content/f1")
+                        .setVersionInfo(new VersionInfo())
+                        .setFixity(Map.of(DigestAlgorithm.sha512, "i3")));
+    }
+
+    private void assertFileChanges(List<FileChange> actual, FileChange... expected) {
+        assertThat(actual)
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields("timestamp", "versionInfo.created")
+                .containsExactly(expected);
     }
 }

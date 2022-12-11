@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.test.matcher;
+package edu.wisc.library.ocfl.itest.matcher;
 
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.model.FileChangeType;

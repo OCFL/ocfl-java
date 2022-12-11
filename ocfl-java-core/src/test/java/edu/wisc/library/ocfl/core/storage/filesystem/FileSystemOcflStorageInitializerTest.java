@@ -1,5 +1,6 @@
 package edu.wisc.library.ocfl.core.storage.filesystem;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -17,7 +18,6 @@ import edu.wisc.library.ocfl.core.extension.storage.layout.HashedNTupleLayoutExt
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.storage.DefaultOcflStorageInitializer;
 import edu.wisc.library.ocfl.core.test.ITestHelper;
-import edu.wisc.library.ocfl.test.OcflAsserts;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -162,15 +162,15 @@ public class FileSystemOcflStorageInitializerTest {
 
         this.initializer =
                 new DefaultOcflStorageInitializer(new FileSystemStorage(repoDir), ITestHelper.prettyPrintMapper());
-        OcflAsserts.assertThrowsWithMessage(
-                RepositoryConfigurationException.class,
-                "This layout does not match the layout of existing objects in the repository",
-                () -> {
+
+        assertThatThrownBy(() -> {
                     initializer.initializeStorage(
                             OcflVersion.OCFL_1_0,
                             new HashedNTupleLayoutConfig().setTupleSize(5),
                             new ExtensionSupportEvaluator());
-                });
+                })
+                .isInstanceOf(RepositoryConfigurationException.class)
+                .hasMessageContaining("This layout does not match the layout of existing objects in the repository");
     }
 
     private void assertRootHasFiles(Path root) {
