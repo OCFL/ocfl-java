@@ -73,7 +73,6 @@ import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartCopyRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
-import software.amazon.awssdk.utils.http.SdkHttpUtils;
 
 /**
  * CloudClient implementation that uses Amazon's S3 synchronous v2 client
@@ -303,7 +302,8 @@ public class OcflS3Client implements CloudClient {
             s3Client.copyObject(CopyObjectRequest.builder()
                     .destinationBucket(bucket)
                     .destinationKey(dstKey.getKey())
-                    .copySource(keyWithBucketName(srcKey.getKey()))
+                    .sourceBucket(bucket)
+                    .sourceKey(srcKey.getKey())
                     .build());
         } catch (NoSuchKeyException e) {
             throw new KeyNotFoundException(e);
@@ -342,9 +342,10 @@ public class OcflS3Client implements CloudClient {
             while (position < fileSize) {
                 var end = Math.min(fileSize - 1, part * partSize - 1);
                 var partResponse = s3Client.uploadPartCopy(UploadPartCopyRequest.builder()
-                        .bucket(bucket)
-                        .key(dstKey.getKey())
-                        .copySource(keyWithBucketName(srcKey.getKey()))
+                        .destinationBucket(bucket)
+                        .destinationKey(dstKey.getKey())
+                        .sourceBucket(bucket)
+                        .sourceKey(srcKey.getKey())
                         .partNumber(part)
                         .uploadId(uploadId)
                         .copySourceRange(String.format("bytes=%s-%s", position, end))
@@ -602,10 +603,6 @@ public class OcflS3Client implements CloudClient {
         }
     }
 
-    private String keyWithBucketName(String key) {
-        return SdkHttpUtils.urlEncode(String.format("%s/%s", bucket, key));
-    }
-
     private int determinePartSize(long fileSize) {
         var partSize = partSizeBytes;
         var maxParts = MAX_PARTS;
@@ -631,7 +628,7 @@ public class OcflS3Client implements CloudClient {
         var objects = toObjectListings(result, prefixLength);
         var dirs = toDirectoryListings(result, repoPrefixLength);
 
-        while (result.isTruncated()) {
+        while (Boolean.TRUE.equals(result.isTruncated())) {
             result = s3Client.listObjectsV2(requestBuilder
                     .continuationToken(result.nextContinuationToken())
                     .build());

@@ -37,7 +37,7 @@ public class PathLengthConstraint implements PathConstraint, FileNameConstraint 
         CHARACTERS("characters"),
         BYTES("bytes");
 
-        private String value;
+        private final String value;
 
         Type(String value) {
             this.value = value;

@@ -106,7 +106,7 @@ public class PathBiMap {
      * @return set of paths
      */
     public Set<String> getPaths(String fileId) {
-        return fileIdToPaths.getOrDefault(fileId, Collections.EMPTY_SET);
+        return fileIdToPaths.getOrDefault(fileId, Collections.emptySet());
     }
 
     /**

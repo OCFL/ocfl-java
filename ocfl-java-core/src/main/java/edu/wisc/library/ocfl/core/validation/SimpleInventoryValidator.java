@@ -115,7 +115,7 @@ public class SimpleInventoryValidator {
 
     public enum VersionEquality {
         EQUAL,
-        LESS_THAN_OR_EQUAL;
+        LESS_THAN_OR_EQUAL
     }
 
     /**
