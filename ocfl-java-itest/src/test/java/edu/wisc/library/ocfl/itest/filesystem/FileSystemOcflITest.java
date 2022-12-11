@@ -22,7 +22,7 @@ import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.itest.ITestHelper;
 import edu.wisc.library.ocfl.itest.OcflITest;
-import edu.wisc.library.ocfl.test.TestHelper;
+import edu.wisc.library.ocfl.itest.TestHelper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;

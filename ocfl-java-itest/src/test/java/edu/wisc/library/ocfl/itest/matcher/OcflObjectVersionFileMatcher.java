@@ -22,63 +22,58 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.test.matcher;
+package edu.wisc.library.ocfl.itest.matcher;
 
+import edu.wisc.library.ocfl.api.io.FixityCheckInputStream;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.FileChange;
-import edu.wisc.library.ocfl.api.model.FileChangeType;
-import edu.wisc.library.ocfl.api.model.ObjectVersionId;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersionFile;
+import edu.wisc.library.ocfl.itest.TestHelper;
 import java.util.Map;
 import java.util.Objects;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
-public class FileChangeMatcher extends TypeSafeMatcher<FileChange> {
+public class OcflObjectVersionFileMatcher extends TypeSafeMatcher<OcflObjectVersionFile> {
 
-    private FileChangeType changeType;
-    private ObjectVersionId objectVersionId;
     private String filePath;
     private String storagePath;
+    private String content;
     private Map<DigestAlgorithm, String> fixity;
 
-    private VersionInfoMatcher versionInfoMatcher;
-
-    FileChangeMatcher(
-            FileChangeType changeType,
-            ObjectVersionId objectVersionId,
-            String filePath,
-            String storagePath,
-            VersionInfoMatcher versionInfoMatcher,
-            Map<DigestAlgorithm, String> fixity) {
-        this.changeType = changeType;
-        this.objectVersionId = objectVersionId;
+    OcflObjectVersionFileMatcher(
+            String filePath, String storagePath, String content, Map<DigestAlgorithm, String> fixity) {
         this.filePath = filePath;
         this.storagePath = storagePath;
-        this.versionInfoMatcher = versionInfoMatcher;
+        this.content = content;
         this.fixity = fixity;
     }
 
     @Override
-    protected boolean matchesSafely(FileChange item) {
+    protected boolean matchesSafely(OcflObjectVersionFile item) {
         return Objects.equals(filePath, item.getPath())
-                && Objects.equals(changeType, item.getChangeType())
-                && Objects.equals(objectVersionId, item.getObjectVersionId())
                 && Objects.equals(storagePath, item.getStorageRelativePath())
-                && versionInfoMatcher.matches(item.getVersionInfo())
-                && Objects.equals(fixity, item.getFixity());
+                && Objects.equals(fixity, item.getFixity())
+                && sameContent(item.getStream());
+    }
+
+    private boolean sameContent(FixityCheckInputStream stream) {
+        if (content != null) {
+            var actual = TestHelper.inputToString(stream);
+            stream.checkFixity();
+            return Objects.equals(content, actual);
+        }
+        return true;
     }
 
     @Override
     public void describeTo(Description description) {
         description
-                .appendText("FileChange{filePath=")
+                .appendText("FileDetails{filePath=")
                 .appendValue(filePath)
                 .appendText(", storagePath=")
                 .appendValue(storagePath)
-                .appendText(", changeType=")
-                .appendValue(changeType)
-                .appendText(", objectVersionId=")
-                .appendValue(objectVersionId)
+                .appendValue(", content=")
+                .appendValue(content)
                 .appendText(", fixity=")
                 .appendValue(fixity)
                 .appendText("}");

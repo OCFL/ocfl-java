@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.test;
+package edu.wisc.library.ocfl.itest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -30,7 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.function.Executable;
 
-public class OcflAsserts {
+public final class OcflAsserts {
+
+    private OcflAsserts() {}
 
     public static <T extends Throwable> void assertThrowsWithMessage(
             Class<T> exception, String message, Executable executable) {

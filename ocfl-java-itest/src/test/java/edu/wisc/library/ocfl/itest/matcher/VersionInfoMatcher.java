@@ -22,43 +22,48 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.test.matcher;
+package edu.wisc.library.ocfl.itest.matcher;
 
-import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
-import edu.wisc.library.ocfl.api.model.FileDetails;
-import java.util.Map;
+import edu.wisc.library.ocfl.api.model.VersionInfo;
 import java.util.Objects;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 
-public class FileDetailsMatcher extends TypeSafeMatcher<FileDetails> {
+public class VersionInfoMatcher extends TypeSafeMatcher<VersionInfo> {
 
-    private String filePath;
-    private String storagePath;
-    private Map<DigestAlgorithm, String> fixity;
+    private String name;
+    private String address;
+    private String message;
 
-    FileDetailsMatcher(String filePath, String storagePath, Map<DigestAlgorithm, String> fixity) {
-        this.filePath = filePath;
-        this.storagePath = storagePath;
-        this.fixity = fixity;
+    VersionInfoMatcher(String name, String address, String message) {
+        this.name = name;
+        this.address = address;
+        this.message = message;
     }
 
     @Override
-    protected boolean matchesSafely(FileDetails item) {
-        return Objects.equals(filePath, item.getPath())
-                && Objects.equals(storagePath, item.getStorageRelativePath())
-                && Objects.equals(fixity, item.getFixity());
+    protected boolean matchesSafely(VersionInfo item) {
+        var matches = Objects.equals(item.getMessage(), message);
+
+        if (item.getUser() != null) {
+            matches &= Objects.equals(item.getUser().getName(), name)
+                    && Objects.equals(item.getUser().getAddress(), address);
+        } else {
+            matches &= name == null && address == null;
+        }
+
+        return matches;
     }
 
     @Override
     public void describeTo(Description description) {
         description
-                .appendText("FileDetails{filePath=")
-                .appendValue(filePath)
-                .appendText(", storagePath=")
-                .appendValue(storagePath)
-                .appendText(", fixity=")
-                .appendValue(fixity)
-                .appendText("}");
+                .appendText("VersionInfo{message=")
+                .appendValue(message)
+                .appendText(", user={name=")
+                .appendValue(name)
+                .appendText(", address=")
+                .appendValue(address)
+                .appendText("}}");
     }
 }

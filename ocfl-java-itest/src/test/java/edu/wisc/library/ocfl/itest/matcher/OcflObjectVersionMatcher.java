@@ -22,44 +22,42 @@
  * THE SOFTWARE.
  */
 
-package edu.wisc.library.ocfl.test.matcher;
+package edu.wisc.library.ocfl.itest.matcher;
 
-import edu.wisc.library.ocfl.api.model.FileDetails;
-import edu.wisc.library.ocfl.api.model.VersionDetails;
+import edu.wisc.library.ocfl.api.model.OcflObjectVersion;
 import edu.wisc.library.ocfl.api.model.VersionNum;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 
-public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
+public class OcflObjectVersionMatcher extends TypeSafeMatcher<OcflObjectVersion> {
 
     private final String objectId;
     private final VersionNum versionNum;
     private final VersionInfoMatcher versionInfoMatcher;
-    private final Collection<Matcher<FileDetails>> fileDetailsMatchers;
+    private final Collection<OcflObjectVersionFileMatcher> fileMatchers;
 
-    VersionDetailsMatcher(
+    OcflObjectVersionMatcher(
             String objectId,
             String versionNum,
             VersionInfoMatcher versionInfoMatcher,
-            FileDetailsMatcher... fileDetailsMatchers) {
+            OcflObjectVersionFileMatcher... fileMatchers) {
         this.objectId = objectId;
         this.versionNum = VersionNum.fromString(versionNum);
         this.versionInfoMatcher = versionInfoMatcher;
-        this.fileDetailsMatchers = Arrays.asList(fileDetailsMatchers);
+        this.fileMatchers = Arrays.asList(fileMatchers);
     }
 
     @Override
-    protected boolean matchesSafely(VersionDetails item) {
+    protected boolean matchesSafely(OcflObjectVersion item) {
         return Objects.equals(objectId, item.getObjectId())
                 && Objects.equals(versionNum, item.getVersionNum())
                 && versionInfoMatcher.matches(item.getVersionInfo())
                 // Hamcrest has some infuriating overloaded methods...
-                && Matchers.containsInAnyOrder((Collection) fileDetailsMatchers).matches(item.getFiles());
+                && Matchers.containsInAnyOrder((Collection) fileMatchers).matches(item.getFiles());
     }
 
     @Override
@@ -71,8 +69,8 @@ public class VersionDetailsMatcher extends TypeSafeMatcher<VersionDetails> {
                 .appendValue(versionNum)
                 .appendText(", versionInfo=")
                 .appendDescriptionOf(versionInfoMatcher)
-                .appendText(", fileDetails=")
-                .appendList("[", ",", "]", fileDetailsMatchers)
+                .appendText(", file=")
+                .appendList("[", ",", "]", fileMatchers)
                 .appendText("}");
     }
 }

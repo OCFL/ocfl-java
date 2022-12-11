@@ -63,7 +63,6 @@
         <module>ocfl-java-core</module>
         <module>ocfl-java-aws</module>
         <module>ocfl-java-itest</module>
-        <module>ocfl-java-test</module>
     </modules>
 
     <properties>
@@ -350,6 +349,11 @@
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest-library</artifactId>
                 <version>2.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>3.23.1</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>

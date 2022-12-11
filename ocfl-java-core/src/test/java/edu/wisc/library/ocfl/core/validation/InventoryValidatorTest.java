@@ -1,5 +1,7 @@
 package edu.wisc.library.ocfl.core.validation;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.OcflConstants;
 import edu.wisc.library.ocfl.api.exception.InvalidInventoryException;
@@ -9,7 +11,6 @@ import edu.wisc.library.ocfl.core.model.Inventory;
 import edu.wisc.library.ocfl.core.model.InventoryBuilder;
 import edu.wisc.library.ocfl.core.model.User;
 import edu.wisc.library.ocfl.core.model.Version;
-import edu.wisc.library.ocfl.test.OcflAsserts;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 
@@ -17,76 +18,86 @@ public class InventoryValidatorTest {
 
     @Test
     public void failWhenHeadV0() {
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class, "HEAD version must be greater than v0", () -> {
+        expectInvalidInventory(
+                () -> {
                     InventoryValidator.validateShallow(defaultBuilder().build());
-                });
+                },
+                "HEAD version must be greater than v0");
     }
 
     @Test
     public void failWhenContentDirHasSlashes() {
-        OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot contain", () -> {
-            InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionNum(1))
-                    .contentDirectory("path/dir")
-                    .build());
-        });
-        OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Content directory cannot contain", () -> {
-            InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionNum(1))
-                    .contentDirectory("path\\dir")
-                    .build());
-        });
+        expectInvalidInventory(
+                () -> {
+                    InventoryValidator.validateShallow(defaultBuilder()
+                            .head(new VersionNum(1))
+                            .contentDirectory("path/dir")
+                            .build());
+                },
+                "Content directory cannot contain");
+        expectInvalidInventory(
+                () -> {
+                    InventoryValidator.validateShallow(defaultBuilder()
+                            .head(new VersionNum(1))
+                            .contentDirectory("path\\dir")
+                            .build());
+                },
+                "Content directory cannot contain");
     }
 
     @Test
     public void failWhenContentDirBlank() {
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class, "Content directory cannot be blank", () -> {
+        expectInvalidInventory(
+                () -> {
                     InventoryValidator.validateShallow(defaultBuilder()
                             .head(new VersionNum(1))
                             .contentDirectory("")
                             .build());
-                });
+                },
+                "Content directory cannot be blank");
     }
 
     @Test
     public void failWhenVersionsEmpty() {
-        OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Versions cannot be empty", () -> {
-            InventoryValidator.validateShallow(
-                    defaultBuilder().head(new VersionNum(1)).build());
-        });
+        expectInvalidInventory(
+                () -> {
+                    InventoryValidator.validateShallow(
+                            defaultBuilder().head(new VersionNum(1)).build());
+                },
+                "Versions cannot be empty");
     }
 
     @Test
     public void failWhenUserNameBlank() {
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class, "User name in version v1 cannot be blank", () -> {
+        expectInvalidInventory(
+                () -> {
                     InventoryValidator.validateShallow(defaultBuilder()
                             .addHeadVersion(Version.builder()
                                     .created(OffsetDateTime.now())
                                     .user(new User(null, null))
                                     .build())
                             .build());
-                });
+                },
+                "User name in version v1 cannot be blank");
     }
 
     @Test
     public void failWhenMissingVersion() {
-        OcflAsserts.assertThrowsWithMessage(InvalidInventoryException.class, "Version v1 is missing", () -> {
-            InventoryValidator.validateShallow(defaultBuilder()
-                    .head(new VersionNum(1))
-                    .addHeadVersion(
-                            Version.builder().created(OffsetDateTime.now()).build())
-                    .build());
-        });
+        expectInvalidInventory(
+                () -> {
+                    InventoryValidator.validateShallow(defaultBuilder()
+                            .head(new VersionNum(1))
+                            .addHeadVersion(Version.builder()
+                                    .created(OffsetDateTime.now())
+                                    .build())
+                            .build());
+                },
+                "Version v1 is missing");
     }
 
     @Test
     public void failWhenFileNotReferencedInManifest() {
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class,
-                "Version state entry 1 => [file1] in version v1 does not have a corresponding entry in the manifest block.",
+        expectInvalidInventory(
                 () -> {
                     InventoryValidator.validateShallow(defaultBuilder()
                             .addHeadVersion(Version.builder()
@@ -94,13 +105,14 @@ public class InventoryValidatorTest {
                                     .addFile("1", "file1")
                                     .build())
                             .build());
-                });
+                },
+                "Version state entry 1 => [file1] in version v1 does not have a corresponding entry in the manifest block.");
     }
 
     @Test
     public void failWhenHeadVersionNotLatestVersion() {
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class, "HEAD must be the latest version. Expected: v2; Was: v1", () -> {
+        expectInvalidInventory(
+                () -> {
                     InventoryValidator.validateShallow(defaultBuilder()
                             .addHeadVersion(Version.builder()
                                     .created(OffsetDateTime.now())
@@ -110,7 +122,8 @@ public class InventoryValidatorTest {
                                     .build())
                             .head(new VersionNum(1))
                             .build());
-                });
+                },
+                "HEAD must be the latest version. Expected: v2; Was: v1");
     }
 
     @Test
@@ -125,12 +138,11 @@ public class InventoryValidatorTest {
                 .addHeadVersion(Version.builder().created(OffsetDateTime.now()).build())
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class,
-                "Inventory o1 v2: Version number formatting differs: v001 vs v1",
+        expectInvalidInventory(
                 () -> {
                     InventoryValidator.validateVersionStates(currentInventory, previousInventory);
-                });
+                },
+                "Inventory o1 v2: Version number formatting differs: v001 vs v1");
     }
 
     @Test
@@ -152,12 +164,11 @@ public class InventoryValidatorTest {
                         .build())
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class,
-                "In object o1 the inventories in version v2 and v1 define a different state for version v1.",
+        expectInvalidInventory(
                 () -> {
                     InventoryValidator.validateVersionStates(currentInventory, previousInventory);
-                });
+                },
+                "In object o1 the inventories in version v2 and v1 define a different state for version v1.");
     }
 
     @Test
@@ -191,12 +202,11 @@ public class InventoryValidatorTest {
                         .build())
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class,
-                "In object o1 the inventories in version v3 and v2 define a different state for version v1.",
+        expectInvalidInventory(
                 () -> {
                     InventoryValidator.validateVersionStates(currentInventory, previousInventory);
-                });
+                },
+                "In object o1 the inventories in version v3 and v2 define a different state for version v1.");
     }
 
     @Test
@@ -242,10 +252,11 @@ public class InventoryValidatorTest {
                         .build())
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class, "Object IDs are not the same. Existing: o2; New: o1", () -> {
+        expectInvalidInventory(
+                () -> {
                     InventoryValidator.validateCompatibleInventories(currentInventory, previousInventory);
-                });
+                },
+                "Object IDs are not the same. Existing: o2; New: o1");
     }
 
     @Test
@@ -268,12 +279,11 @@ public class InventoryValidatorTest {
                         .build())
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class,
-                "Inventory digest algorithms are not the same. Existing: sha256; New: sha512",
+        expectInvalidInventory(
                 () -> {
                     InventoryValidator.validateCompatibleInventories(currentInventory, previousInventory);
-                });
+                },
+                "Inventory digest algorithms are not the same. Existing: sha256; New: sha512");
     }
 
     @Test
@@ -296,12 +306,11 @@ public class InventoryValidatorTest {
                         .build())
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class,
-                "Inventory content directories are not the same. Existing: new-content; New: content",
+        expectInvalidInventory(
                 () -> {
                     InventoryValidator.validateCompatibleInventories(currentInventory, previousInventory);
-                });
+                },
+                "Inventory content directories are not the same. Existing: new-content; New: content");
     }
 
     @Test
@@ -324,12 +333,11 @@ public class InventoryValidatorTest {
                         .build())
                 .build();
 
-        OcflAsserts.assertThrowsWithMessage(
-                InvalidInventoryException.class,
-                "The new HEAD inventory version must be the next sequential version number. Existing: v1; New: v3",
+        expectInvalidInventory(
                 () -> {
                     InventoryValidator.validateCompatibleInventories(currentInventory, previousInventory);
-                });
+                },
+                "The new HEAD inventory version must be the next sequential version number. Existing: v1; New: v3");
     }
 
     private InventoryBuilder defaultBuilder() {
@@ -339,5 +347,9 @@ public class InventoryValidatorTest {
     private InventoryBuilder builder(String id) {
         return Inventory.stubInventory(id, new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "root")
                 .buildFrom();
+    }
+
+    private void expectInvalidInventory(Runnable r, String message) {
+        assertThatThrownBy(r::run).isInstanceOf(InvalidInventoryException.class).hasMessageContaining(message);
     }
 }

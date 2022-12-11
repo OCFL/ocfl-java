@@ -13,7 +13,6 @@ import edu.wisc.library.ocfl.core.DefaultOcflRepository;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.ObjectMappers;
-import edu.wisc.library.ocfl.test.TestHelper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;

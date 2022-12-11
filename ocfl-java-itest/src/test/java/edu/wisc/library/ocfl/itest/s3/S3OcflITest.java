@@ -3,7 +3,7 @@ package edu.wisc.library.ocfl.itest.s3;
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
-import static edu.wisc.library.ocfl.test.TestHelper.inputStream;
+import static edu.wisc.library.ocfl.itest.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
