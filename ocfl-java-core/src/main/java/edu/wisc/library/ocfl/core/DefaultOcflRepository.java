@@ -76,6 +76,7 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -105,7 +106,7 @@ public class DefaultOcflRepository implements OcflRepository {
 
     private Clock clock;
 
-    private boolean closed = false;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     /**
      * @see OcflRepositoryBuilder
@@ -550,8 +551,9 @@ public class DefaultOcflRepository implements OcflRepository {
     public void close() {
         LOG.debug("Close OCFL repository");
 
-        closed = true;
-        storage.close();
+        if (closed.compareAndSet(false, true)) {
+            storage.close();
+        }
     }
 
     /**
@@ -875,7 +877,7 @@ public class DefaultOcflRepository implements OcflRepository {
     }
 
     protected void ensureOpen() {
-        if (closed) {
+        if (closed.get()) {
             throw new OcflStateException(DefaultOcflRepository.class.getName() + " is closed.");
         }
     }
