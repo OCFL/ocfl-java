@@ -30,17 +30,18 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.extension.ExtensionSupportEvaluator;
 import edu.wisc.library.ocfl.core.extension.OcflExtensionConfig;
 import edu.wisc.library.ocfl.core.inventory.InventoryMapper;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * OcflStorage abstract implementation that handles managing the repository's state, initialized, open, close.
  */
 public abstract class AbstractOcflStorage implements OcflStorage {
 
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+
     protected InventoryMapper inventoryMapper;
     protected ExtensionSupportEvaluator supportEvaluator;
-
-    private boolean closed = false;
-    private boolean initialized = false;
     private RepositoryConfig repositoryConfig;
 
     /**
@@ -52,7 +53,7 @@ public abstract class AbstractOcflStorage implements OcflStorage {
             OcflExtensionConfig layoutConfig,
             InventoryMapper inventoryMapper,
             ExtensionSupportEvaluator supportEvaluator) {
-        if (this.initialized) {
+        if (this.initialized.get()) {
             return this.repositoryConfig;
         }
 
@@ -60,7 +61,7 @@ public abstract class AbstractOcflStorage implements OcflStorage {
         this.supportEvaluator = Enforce.notNull(supportEvaluator, "supportEvaluator cannot be null");
 
         this.repositoryConfig = doInitialize(ocflVersion, layoutConfig);
-        this.initialized = true;
+        this.initialized.set(true);
         return repositoryConfig;
     }
 
@@ -69,7 +70,7 @@ public abstract class AbstractOcflStorage implements OcflStorage {
      */
     @Override
     public void close() {
-        closed = true;
+        closed.set(true);
     }
 
     /**
@@ -100,11 +101,11 @@ public abstract class AbstractOcflStorage implements OcflStorage {
      * Throws an exception if the repository has not been initialized or is closed
      */
     protected void ensureOpen() {
-        if (closed) {
+        if (closed.get()) {
             throw new OcflStateException(this.getClass().getName() + " is closed.");
         }
 
-        if (!initialized) {
+        if (!initialized.get()) {
             throw new OcflStateException(this.getClass().getName() + " must be initialized before it can be used.");
         }
     }
