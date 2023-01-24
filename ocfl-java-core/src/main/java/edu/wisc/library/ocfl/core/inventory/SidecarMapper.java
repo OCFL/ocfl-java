@@ -32,6 +32,7 @@ import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.core.ObjectPaths;
 import edu.wisc.library.ocfl.core.model.Inventory;
+import edu.wisc.library.ocfl.core.util.FileUtil;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -48,7 +49,7 @@ public final class SidecarMapper {
     public static void writeSidecar(Inventory inventory, String digest, Path dstDirectory) {
         try {
             var sidecarPath = ObjectPaths.inventorySidecarPath(dstDirectory, inventory);
-            Files.writeString(sidecarPath, String.format("%s  %s\n", digest, OcflConstants.INVENTORY_FILE));
+            FileUtil.writeString(sidecarPath, String.format("%s  %s\n", digest, OcflConstants.INVENTORY_FILE));
         } catch (IOException e) {
             throw new OcflIOException(e);
         }

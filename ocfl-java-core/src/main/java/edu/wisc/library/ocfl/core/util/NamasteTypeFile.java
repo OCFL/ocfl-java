@@ -27,7 +27,6 @@ package edu.wisc.library.ocfl.core.util;
 import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.util.Enforce;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class NamasteTypeFile {
@@ -50,7 +49,7 @@ public class NamasteTypeFile {
 
     public void writeFile(Path directory) {
         try {
-            Files.writeString(directory.resolve(fileName()), fileContent());
+            FileUtil.writeString(directory.resolve(fileName()), fileContent());
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }

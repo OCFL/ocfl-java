@@ -64,7 +64,6 @@ import edu.wisc.library.ocfl.core.util.ResponseMapper;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
 import edu.wisc.library.ocfl.core.validation.InventoryValidator;
 import edu.wisc.library.ocfl.core.validation.Validator;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -689,7 +688,7 @@ public class DefaultOcflRepository implements OcflRepository {
     protected Inventory writeInventory(Inventory inventory, Path stagingDir) {
         var inventoryPath = ObjectPaths.inventoryPath(stagingDir);
 
-        try (var outStream = new BufferedOutputStream(Files.newOutputStream(inventoryPath))) {
+        try (var outStream = FileUtil.newBufferedOutputStream(inventoryPath)) {
             var digestStream = new DigestOutputStream(
                     outStream, inventory.getDigestAlgorithm().getMessageDigest());
             inventoryMapper.write(digestStream, inventory);
