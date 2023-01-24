@@ -741,6 +741,12 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         } catch (RuntimeException e) {
             LOG.error("Failed to cleanup empty mutable HEAD content directories in object {}", inventory.getId(), e);
         }
+
+        try {
+            cleanupOldRevisionMarkers(inventory, objectRoot);
+        } catch (RuntimeException e) {
+            LOG.error("Failed to cleanup old revision markers in object {}", inventory.getId(), e);
+        }
     }
 
     private void moveToRevisionDirectory(
@@ -965,6 +971,25 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
                     "Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.",
                     inventory.getId()));
         }
+    }
+
+    /**
+     * Deletes all of the revision markers except for the marker for the current revision
+     *
+     * @param inventory
+     * @param objectRoot
+     */
+    private void cleanupOldRevisionMarkers(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
+        var currentRevision = inventory.getRevisionNum().toString();
+        var revisionsDir = objectRoot.mutableHeadRevisionsPath();
+        var revisions = storage.listDirectory(revisionsDir);
+
+        var toDelete = revisions.stream()
+                .filter(revision -> !currentRevision.equals(revision.getRelativePath()))
+                .map(revision -> FileUtil.pathJoinFailEmpty(revisionsDir, revision.getRelativePath()))
+                .collect(Collectors.toList());
+
+        storage.deleteFiles(toDelete);
     }
 
     private RevisionNum identifyLatestRevision(String objectRootPath) {

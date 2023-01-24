@@ -2,6 +2,7 @@ package edu.wisc.library.ocfl.itest;
 
 import static edu.wisc.library.ocfl.itest.ITestHelper.expectedRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.sourceObjectPath;
+import static edu.wisc.library.ocfl.itest.ITestHelper.sourceRepoPath;
 import static edu.wisc.library.ocfl.itest.ITestHelper.streamString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -596,6 +597,22 @@ public abstract class MutableHeadITest {
         repo.commitStagedChanges(objectId, defaultVersionInfo.setMessage("commit"));
 
         assertEquals(OcflVersion.OCFL_1_0, repo.describeObject(objectId).getObjectOcflVersion());
+
+        verifyRepo(repoName);
+    }
+
+    @Test
+    public void cleanupOldRevisionMarkers() {
+        var objectId = "o1";
+        var repoName = "mutable9";
+        var repoRoot = sourceRepoPath(repoName);
+        var repo = existingRepo(repoName, repoRoot);
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("update"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("file4".getBytes()), "file4");
+        });
+
+        assertTrue(repo.hasStagedChanges(objectId));
 
         verifyRepo(repoName);
     }
