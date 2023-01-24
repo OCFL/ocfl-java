@@ -980,12 +980,14 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
      * @param objectRoot
      */
     private void cleanupOldRevisionMarkers(Inventory inventory, ObjectPaths.ObjectRoot objectRoot) {
-        var currentRevision = inventory.getRevisionNum().toString();
+        var currentRevision = inventory.getRevisionNum();
         var revisionsDir = objectRoot.mutableHeadRevisionsPath();
         var revisions = storage.listDirectory(revisionsDir);
 
         var toDelete = revisions.stream()
-                .filter(revision -> !currentRevision.equals(revision.getRelativePath()))
+                .filter(Listing::isFile)
+                .filter(revision ->
+                        RevisionNum.fromString(revision.getRelativePath()).compareTo(currentRevision) < 0)
                 .map(revision -> FileUtil.pathJoinFailEmpty(revisionsDir, revision.getRelativePath()))
                 .collect(Collectors.toList());
 
