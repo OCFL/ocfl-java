@@ -658,8 +658,8 @@ public class DefaultOcflRepository implements OcflRepository {
         var expected = new HashSet<String>(fileIds.size());
         expected.addAll(fileIds);
 
-        try (var paths = Files.walk(contentPath)) {
-            paths.filter(Files::isRegularFile).forEach(file -> {
+        try (var paths = Files.find(contentPath, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
+            paths.forEach(file -> {
                 var fileContentPath = prefix + FileUtil.pathToStringStandardSeparator(rootPath.relativize(file));
                 var expectedDigest = inventory.getFileId(fileContentPath);
 
