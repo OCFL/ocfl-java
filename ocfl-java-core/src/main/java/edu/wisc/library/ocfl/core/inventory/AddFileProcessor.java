@@ -110,8 +110,9 @@ public class AddFileProcessor {
         var optionsSet = OcflOption.toSet(options);
         var destination = destinationPath(destinationPath, sourcePath);
 
-        try (var paths = Files.walk(sourcePath, FileVisitOption.FOLLOW_LINKS)) {
-            paths.filter(Files::isRegularFile).forEach(file -> {
+        try (var paths = Files.find(
+                sourcePath, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile(), FileVisitOption.FOLLOW_LINKS)) {
+            paths.forEach(file -> {
                 messageDigest.reset();
                 var logicalPath = logicalPath(sourcePath, file, destination);
 

@@ -235,10 +235,8 @@ public final class FileUtil {
      * @param root the path to prune empty child directories from
      */
     public static void deleteEmptyDirs(Path root) {
-        try (var files = Files.walk(root)) {
-            files.filter(f -> Files.isDirectory(f, LinkOption.NOFOLLOW_LINKS))
-                    .filter(f -> !f.equals(root))
-                    .forEach(FileUtil::deleteDirIfEmpty);
+        try (var files = Files.find(root, Integer.MAX_VALUE, (file, attrs) -> attrs.isDirectory())) {
+            files.filter(f -> !f.equals(root)).forEach(FileUtil::deleteDirIfEmpty);
         } catch (NoSuchFileException e) {
             // ignore
         } catch (IOException e) {
@@ -374,8 +372,8 @@ public final class FileUtil {
         var files = new ArrayList<Path>();
 
         if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-            try (var paths = Files.walk(path)) {
-                paths.filter(Files::isRegularFile).forEach(files::add);
+            try (var paths = Files.find(path, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
+                paths.forEach(files::add);
             } catch (IOException e) {
                 throw OcflIOException.from(e);
             }

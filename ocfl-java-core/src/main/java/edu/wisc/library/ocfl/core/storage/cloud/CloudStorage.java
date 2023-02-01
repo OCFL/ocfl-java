@@ -241,8 +241,8 @@ public class CloudStorage implements Storage {
 
         var objectKeys = Collections.synchronizedList(new ArrayList<String>());
 
-        try (var paths = Files.walk(source)) {
-            paths.filter(Files::isRegularFile).forEach(file -> {
+        try (var paths = Files.find(source, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
+            paths.forEach(file -> {
                 var relative = FileUtil.pathToStringStandardSeparator(source.relativize(file));
                 var key = FileUtil.pathJoinFailEmpty(destination, relative);
                 client.uploadFile(file, key);
