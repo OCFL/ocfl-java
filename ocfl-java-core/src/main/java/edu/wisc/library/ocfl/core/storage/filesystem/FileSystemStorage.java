@@ -201,12 +201,7 @@ public class FileSystemStorage implements Storage {
         var fullPath = storageRoot.resolve(filePath);
 
         try {
-            Files.write(
-                    fullPath,
-                    content,
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.CREATE_NEW,
-                    StandardOpenOption.SYNC);
+            Files.write(fullPath, content, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }

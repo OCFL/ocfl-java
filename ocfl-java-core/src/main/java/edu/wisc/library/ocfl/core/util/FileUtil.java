@@ -29,10 +29,8 @@ import edu.wisc.library.ocfl.api.exception.OcflIOException;
 import edu.wisc.library.ocfl.api.exception.OcflNoSuchFileException;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
 import edu.wisc.library.ocfl.api.util.Enforce;
-import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
@@ -41,11 +39,9 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,16 +58,6 @@ public final class FileUtil {
     private FileUtil() {}
 
     private static final Logger LOG = LoggerFactory.getLogger(FileUtil.class);
-
-    /**
-     * These are the default JDK open options when none are specified PLUS sync.
-     */
-    private static final OpenOption[] STANDARD_OPEN_OPTIONS = {
-        StandardOpenOption.CREATE,
-        StandardOpenOption.TRUNCATE_EXISTING,
-        StandardOpenOption.WRITE,
-        StandardOpenOption.SYNC
-    };
 
     /**
      * Creates a new directory as a child of the parent path named: md5(objectId)-[random-long]
@@ -382,36 +368,6 @@ public final class FileUtil {
         }
 
         return files;
-    }
-
-    /**
-     * Creates a new buffered output stream. Use this instead of {@link Files#newOutputStream(Path, OpenOption...)}
-     * because it wil a) buffer the stream, and b) make it sync.
-     * <p>
-     * This uses the options create, truncate_existing, write, and sync. If you don't want these options. Use
-     * {@link Files} directly.
-     *
-     * @param path the path to the file to open
-     * @return the buffered output stream
-     * @throws IOException
-     */
-    public static OutputStream newBufferedOutputStream(Path path) throws IOException {
-        return new BufferedOutputStream(Files.newOutputStream(path, STANDARD_OPEN_OPTIONS));
-    }
-
-    /**
-     * Writes a string to a file.
-     * <p>
-     * This uses the options create, truncate_existing, write, and sync. If you don't want these options. Use
-     * {@link Files} directly.
-     *
-     * @param path the path to the file to write
-     * @param value the value to write to the file
-     * @return the path to the file
-     * @throws IOException
-     */
-    public static Path writeString(Path path, String value) throws IOException {
-        return Files.writeString(path, value, STANDARD_OPEN_OPTIONS);
     }
 
     public static StandardCopyOption[] toCopyOptions(OcflOption... options) {
