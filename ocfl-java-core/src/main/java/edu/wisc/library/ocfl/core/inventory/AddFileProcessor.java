@@ -32,12 +32,14 @@ import edu.wisc.library.ocfl.api.util.Enforce;
 import edu.wisc.library.ocfl.core.util.DigestUtil;
 import edu.wisc.library.ocfl.core.util.FileUtil;
 import edu.wisc.library.ocfl.core.util.UncheckedFiles;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.HashMap;
@@ -138,8 +140,13 @@ public class AddFileProcessor {
                     String digest;
                     InventoryUpdater.AddFileResult result;
 
-                    try (var stream =
-                            new DigestOutputStream(FileUtil.newBufferedOutputStream(stagingFullPath), messageDigest)) {
+                    try (var stream = new DigestOutputStream(
+                            new BufferedOutputStream(Files.newOutputStream(
+                                    stagingFullPath,
+                                    StandardOpenOption.CREATE,
+                                    StandardOpenOption.WRITE,
+                                    StandardOpenOption.TRUNCATE_EXISTING)),
+                            messageDigest)) {
                         LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
                         Files.copy(file, stream);
 
