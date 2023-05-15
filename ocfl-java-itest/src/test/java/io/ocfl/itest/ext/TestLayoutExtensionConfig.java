@@ -26,7 +26,6 @@ package io.ocfl.itest.ext;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.ocfl.core.extension.OcflExtensionConfig;
-
 import java.util.Objects;
 
 public class TestLayoutExtensionConfig implements OcflExtensionConfig {

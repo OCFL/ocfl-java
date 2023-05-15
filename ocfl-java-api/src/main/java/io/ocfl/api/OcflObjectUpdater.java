@@ -26,10 +26,9 @@ package io.ocfl.api;
 
 import io.ocfl.api.exception.FixityCheckException;
 import io.ocfl.api.exception.OverwriteException;
+import io.ocfl.api.io.FixityCheckInputStream;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.VersionNum;
-import io.ocfl.api.io.FixityCheckInputStream;
-
 import java.io.InputStream;
 import java.nio.file.Path;
 

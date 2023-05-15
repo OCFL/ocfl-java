@@ -19,7 +19,6 @@ import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.Version;
 import java.time.OffsetDateTime;
 import java.util.Collections;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

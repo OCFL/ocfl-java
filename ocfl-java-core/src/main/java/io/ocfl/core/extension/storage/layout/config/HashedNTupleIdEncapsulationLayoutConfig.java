@@ -30,7 +30,6 @@ import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import io.ocfl.core.extension.OcflExtensionConfig;
 import io.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
-
 import java.util.Objects;
 
 /**

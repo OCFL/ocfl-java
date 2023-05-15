@@ -1,6 +1,5 @@
 package io.ocfl.itest;
 
-import static io.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
 import static io.ocfl.itest.TestHelper.copyDir;
 import static io.ocfl.itest.TestHelper.inputStream;
 import static io.ocfl.itest.matcher.OcflMatchers.fileChange;
@@ -150,19 +149,21 @@ public abstract class OcflITest {
         var file1Contents = "... contents of first file ...";
         var file1Sha512 =
                 "6407d5ecc067dad1a2a3c75d088ecdab97d4df5a580a3bbc1b190ad988cea529b92eab11131fd2f5c0b40fa5891eec979e7e5e96b6bed38e6dddde7a20722345";
-        var inputStream1 = new FixityCheckInputStream(ITestHelper.streamString(file1Contents), DigestAlgorithm.sha512, file1Sha512);
+        var inputStream1 = new FixityCheckInputStream(
+                ITestHelper.streamString(file1Contents), DigestAlgorithm.sha512, file1Sha512);
 
         var file2Contents = "... contents of second file ...";
         var file2Sha512 =
                 "d173736e7984e4439cab8d0bd6665e8f9a3aefc4d518a5ed5a3a46e05da40fa5803ac5dc52c9b17d302e12525619a9b6076f33a0c80b558bff051812800e0875";
-        var inputStream2 = new FixityCheckInputStream(ITestHelper.streamString(file2Contents), DigestAlgorithm.sha512, file2Sha512);
+        var inputStream2 = new FixityCheckInputStream(
+                ITestHelper.streamString(file2Contents), DigestAlgorithm.sha512, file2Sha512);
         inputStream2.enableFixityCheck(false);
 
         var file3Contents = "... contents of third file ...";
         var file3Sha512 =
                 "f280e67f4142469ac514dd7ad366c6ed629e10b30f6f637e6de36b861c44ba5753d8fe8d589b9b23310df9e9d564a20a06d5f4637bd9f8e66ab628c7cce33e72";
-        var inputStream3 =
-                new DigestInputStream(ITestHelper.streamString(file3Contents), DigestAlgorithm.sha512.getMessageDigest());
+        var inputStream3 = new DigestInputStream(
+                ITestHelper.streamString(file3Contents), DigestAlgorithm.sha512.getMessageDigest());
 
         repo.updateObject(ObjectVersionId.head(objectId), new VersionInfo(), updater -> {
             updater.writeFile(inputStream1, "file1");
@@ -209,13 +210,16 @@ public abstract class OcflITest {
         verifyRepo(repoName);
 
         repo.getObject(ObjectVersionId.head(objectId), outputPath1);
-        ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v3"), objectId, outputPath1);
+        ITestHelper.verifyDirectoryContentsSame(
+                ITestHelper.expectedOutputPath(repoName, "o1v3"), objectId, outputPath1);
 
         repo.getObject(ObjectVersionId.version(objectId, "v2"), outputPath2);
-        ITestHelper.verifyDirectoryContentsSame(sourcePathV2, outputPath2.getFileName().toString(), outputPath2);
+        ITestHelper.verifyDirectoryContentsSame(
+                sourcePathV2, outputPath2.getFileName().toString(), outputPath2);
 
         repo.getObject(ObjectVersionId.version(objectId, "v1"), outputPath3);
-        ITestHelper.verifyDirectoryContentsSame(sourcePathV1, outputPath3.getFileName().toString(), outputPath3);
+        ITestHelper.verifyDirectoryContentsSame(
+                sourcePathV1, outputPath3.getFileName().toString(), outputPath3);
     }
 
     @Test
@@ -298,15 +302,20 @@ public abstract class OcflITest {
         verifyRepo(repoName);
 
         repo.getObject(ObjectVersionId.head(objectId), outputPath1);
-        ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o2v3"), objectId, outputPath1);
+        ITestHelper.verifyDirectoryContentsSame(
+                ITestHelper.expectedOutputPath(repoName, "o2v3"), objectId, outputPath1);
 
         repo.getObject(ObjectVersionId.version(objectId, "v2"), outputPath2);
         ITestHelper.verifyDirectoryContentsSame(
-                ITestHelper.expectedOutputPath(repoName, "o2v2"), outputPath2.getFileName().toString(), outputPath2);
+                ITestHelper.expectedOutputPath(repoName, "o2v2"),
+                outputPath2.getFileName().toString(),
+                outputPath2);
 
         repo.getObject(ObjectVersionId.version(objectId, "v1"), outputPath3);
         ITestHelper.verifyDirectoryContentsSame(
-                ITestHelper.expectedOutputPath(repoName, "o2v1"), outputPath3.getFileName().toString(), outputPath3);
+                ITestHelper.expectedOutputPath(repoName, "o2v1"),
+                outputPath3.getFileName().toString(),
+                outputPath3);
     }
 
     @Test
@@ -608,7 +617,8 @@ public abstract class OcflITest {
 
         OcflAsserts.assertThrowsWithMessage(FixityCheckException.class, "Expected md5 digest of", () -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
-                updater.addPath(ITestHelper.sourceObjectPath(objectId, "v1")).addFileFixity("file1", DigestAlgorithm.md5, "bogus");
+                updater.addPath(ITestHelper.sourceObjectPath(objectId, "v1"))
+                        .addFileFixity("file1", DigestAlgorithm.md5, "bogus");
             });
         });
     }
@@ -896,7 +906,8 @@ public abstract class OcflITest {
 
         var objectId = "o2";
 
-        repo.putObject(ObjectVersionId.head(objectId), ITestHelper.sourceObjectPath(objectId, "v1"), defaultVersionInfo);
+        repo.putObject(
+                ObjectVersionId.head(objectId), ITestHelper.sourceObjectPath(objectId, "v1"), defaultVersionInfo);
 
         var ocflObject = repo.getObject(ObjectVersionId.head(objectId));
 
@@ -996,7 +1007,9 @@ public abstract class OcflITest {
         var objectId = "o1";
 
         repo.putObject(
-                ObjectVersionId.head(objectId), ITestHelper.sourceObjectPath(objectId, "v1"), defaultVersionInfo.setMessage("1"));
+                ObjectVersionId.head(objectId),
+                ITestHelper.sourceObjectPath(objectId, "v1"),
+                defaultVersionInfo.setMessage("1"));
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
             // no op
         });

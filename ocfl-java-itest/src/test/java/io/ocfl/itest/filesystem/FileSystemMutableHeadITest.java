@@ -1,7 +1,5 @@
 package io.ocfl.itest.filesystem;
 
-import static io.ocfl.itest.ITestHelper.verifyDirectoryContentsSame;
-
 import io.ocfl.api.MutableOcflRepository;
 import io.ocfl.core.OcflRepositoryBuilder;
 import io.ocfl.core.cache.NoOpCache;
@@ -10,7 +8,6 @@ import io.ocfl.core.util.UncheckedFiles;
 import io.ocfl.itest.ITestHelper;
 import io.ocfl.itest.MutableHeadITest;
 import io.ocfl.itest.TestHelper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;

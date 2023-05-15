@@ -29,7 +29,6 @@ import static io.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
 import io.ocfl.api.exception.OcflIOException;
 import io.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import io.ocfl.core.util.FileUtil;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;

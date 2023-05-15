@@ -36,7 +36,6 @@ import io.ocfl.core.model.RevisionNum;
 import io.ocfl.core.path.constraint.ContentPathConstraintProcessor;
 import io.ocfl.core.path.constraint.ContentPathConstraints;
 import io.ocfl.core.util.ObjectMappers;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;

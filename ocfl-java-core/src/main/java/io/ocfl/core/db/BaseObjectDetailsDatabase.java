@@ -47,7 +47,6 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.sql.DataSource;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

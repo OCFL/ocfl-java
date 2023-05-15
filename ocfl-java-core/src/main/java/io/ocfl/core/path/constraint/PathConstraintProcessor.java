@@ -24,9 +24,8 @@
 
 package io.ocfl.core.path.constraint;
 
-import io.ocfl.api.util.Enforce;
 import io.ocfl.api.exception.PathConstraintException;
-
+import io.ocfl.api.util.Enforce;
 import java.util.ArrayList;
 import java.util.List;
 

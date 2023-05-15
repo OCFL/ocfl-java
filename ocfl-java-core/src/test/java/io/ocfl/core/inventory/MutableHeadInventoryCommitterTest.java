@@ -15,7 +15,6 @@ import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.RevisionNum;
 import io.ocfl.core.model.Version;
 import java.time.OffsetDateTime;
-
 import org.junit.jupiter.api.Test;
 
 public class MutableHeadInventoryCommitterTest {

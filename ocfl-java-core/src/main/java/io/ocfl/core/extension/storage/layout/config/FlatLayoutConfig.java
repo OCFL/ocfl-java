@@ -27,7 +27,6 @@ package io.ocfl.core.extension.storage.layout.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.ocfl.core.extension.OcflExtensionConfig;
 import io.ocfl.core.extension.storage.layout.FlatLayoutExtension;
-
 import java.util.Objects;
 
 /**

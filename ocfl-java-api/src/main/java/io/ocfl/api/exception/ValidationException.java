@@ -26,7 +26,6 @@ package io.ocfl.api.exception;
 
 import io.ocfl.api.model.ValidationIssue;
 import io.ocfl.api.model.ValidationResults;
-
 import java.util.List;
 
 /**

@@ -29,7 +29,6 @@ import static io.ocfl.api.OcflConstants.OBJECT_NAMASTE_PREFIX;
 import io.ocfl.api.util.Enforce;
 import io.ocfl.core.storage.common.OcflObjectRootDirIterator;
 import io.ocfl.core.util.FileUtil;
-
 import java.util.Iterator;
 
 /**

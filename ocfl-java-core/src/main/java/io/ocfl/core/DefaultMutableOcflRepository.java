@@ -42,7 +42,6 @@ import io.ocfl.core.util.FileUtil;
 import io.ocfl.core.util.UncheckedFiles;
 import java.nio.file.Path;
 import java.util.function.Consumer;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

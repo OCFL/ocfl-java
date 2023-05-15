@@ -28,7 +28,6 @@ import io.ocfl.api.exception.NotFoundException;
 import io.ocfl.api.exception.ObjectOutOfSyncException;
 import io.ocfl.api.model.ObjectVersionId;
 import io.ocfl.api.model.VersionInfo;
-
 import java.util.function.Consumer;
 
 /**

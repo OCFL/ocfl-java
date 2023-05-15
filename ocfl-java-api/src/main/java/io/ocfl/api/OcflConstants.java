@@ -26,7 +26,6 @@ package io.ocfl.api;
 
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.OcflVersion;
-
 import java.util.Set;
 
 public final class OcflConstants {

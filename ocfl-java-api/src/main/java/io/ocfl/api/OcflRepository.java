@@ -36,7 +36,6 @@ import io.ocfl.api.model.OcflObjectVersion;
 import io.ocfl.api.model.ValidationResults;
 import io.ocfl.api.model.VersionDetails;
 import io.ocfl.api.model.VersionInfo;
-
 import java.nio.file.Path;
 import java.util.function.Consumer;
 import java.util.stream.Stream;

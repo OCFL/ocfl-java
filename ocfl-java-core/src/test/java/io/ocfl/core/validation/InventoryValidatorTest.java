@@ -12,7 +12,6 @@ import io.ocfl.core.model.InventoryBuilder;
 import io.ocfl.core.model.User;
 import io.ocfl.core.model.Version;
 import java.time.OffsetDateTime;
-
 import org.junit.jupiter.api.Test;
 
 public class InventoryValidatorTest {
