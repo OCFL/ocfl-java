@@ -9,7 +9,7 @@
     </appender>
 
     <logger name="software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient" level="error"/>
-    <logger name="edu.wisc.library" level="warn"/>
+    <logger name="io.ocfl" level="warn"/>
 
     <root level="warn">
         <appender-ref ref="STDOUT" />
