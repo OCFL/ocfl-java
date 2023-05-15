@@ -18,7 +18,7 @@ Add the following to your project's POM to pull in the library:
 
 ```xml
 <dependency>
-    <groupId>edu.wisc.library.ocfl</groupId>
+    <groupId>io.ocfl</groupId>
     <artifactId>ocfl-java-core</artifactId>
     <version>1.5.0</version>
 </dependency>
@@ -28,7 +28,7 @@ If you want S3 support, you must additionally add the following dependency:
 
 ```xml
 <dependency>
-    <groupId>edu.wisc.library.ocfl</groupId>
+    <groupId>io.ocfl</groupId>
     <artifactId>ocfl-java-aws</artifactId>
     <version>1.5.0</version>
 </dependency>
@@ -63,7 +63,7 @@ var objectVersion = repo.getObject(ObjectVersionId.version("o1", "v1"));
 
 - See the [usage guide](docs/USAGE.md) for more details on how to setup `ocfl-java`
 - Javadoc
-  - [ocfl-java-api](https://www.javadoc.io/doc/edu.wisc.library.ocfl/ocfl-java-api/latest/index.html)
-  - [ocfl-java-core](https://www.javadoc.io/doc/edu.wisc.library.ocfl/ocfl-java-core/latest/index.html)
-  - [ocfl-java-aws](https://www.javadoc.io/doc/edu.wisc.library.ocfl/ocfl-java-aws/latest/index.html)
+  - [ocfl-java-api](https://www.javadoc.io/doc/io.ocfl/ocfl-java-api/latest/index.html)
+  - [ocfl-java-core](https://www.javadoc.io/doc/io.ocfl/ocfl-java-core/latest/index.html)
+  - [ocfl-java-aws](https://www.javadoc.io/doc/io.ocfl/ocfl-java-aws/latest/index.html)
 - [Developer guide](docs/DEVELOPMENT.md)
