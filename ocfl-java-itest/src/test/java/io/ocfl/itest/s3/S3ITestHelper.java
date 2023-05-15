@@ -2,19 +2,17 @@ package io.ocfl.itest.s3;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.core.util.DigestUtil;
 import io.ocfl.core.util.FileUtil;
+import io.ocfl.itest.ITestHelper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import io.ocfl.itest.ITestHelper;
 import org.junit.jupiter.api.Assertions;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;

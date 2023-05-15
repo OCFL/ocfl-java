@@ -31,7 +31,6 @@ import io.ocfl.api.util.Enforce;
 import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.User;
 import io.ocfl.core.model.Version;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;

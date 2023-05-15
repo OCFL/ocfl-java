@@ -31,7 +31,6 @@ import io.ocfl.core.storage.cloud.CloudStorage;
 import io.ocfl.core.storage.common.Storage;
 import io.ocfl.core.storage.filesystem.FileSystemStorage;
 import io.ocfl.core.util.ObjectMappers;
-
 import java.nio.file.Path;
 
 /**

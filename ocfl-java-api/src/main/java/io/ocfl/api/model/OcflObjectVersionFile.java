@@ -27,7 +27,6 @@ package io.ocfl.api.model;
 import io.ocfl.api.OcflFileRetriever;
 import io.ocfl.api.io.FixityCheckInputStream;
 import io.ocfl.api.util.Enforce;
-
 import java.util.Map;
 
 /**

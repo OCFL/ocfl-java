@@ -1,5 +1,11 @@
 package io.ocfl.itest;
 
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.config.MeterFilter;
+import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.ocfl.api.MutableOcflRepository;
 import io.ocfl.api.OcflRepository;
 import io.ocfl.api.model.ObjectVersionId;
@@ -10,12 +16,6 @@ import io.ocfl.core.cache.NoOpCache;
 import io.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.core.util.UncheckedFiles;
-import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.Metrics;
-import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
-import io.micrometer.prometheus.PrometheusConfig;
-import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.exporter.HTTPServer;
 import java.io.BufferedOutputStream;
 import java.io.IOException;

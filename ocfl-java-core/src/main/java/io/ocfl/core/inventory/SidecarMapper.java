@@ -32,7 +32,6 @@ import io.ocfl.api.exception.OcflNoSuchFileException;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.core.ObjectPaths;
 import io.ocfl.core.model.Inventory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;

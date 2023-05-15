@@ -29,7 +29,6 @@ import io.ocfl.api.exception.FixityCheckException;
 import io.ocfl.api.exception.OcflJavaException;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;

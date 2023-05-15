@@ -34,7 +34,6 @@ import io.ocfl.api.util.Enforce;
 import io.ocfl.core.cache.Cache;
 import io.ocfl.core.extension.OcflExtensionConfig;
 import io.ocfl.core.model.Inventory;
-
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;

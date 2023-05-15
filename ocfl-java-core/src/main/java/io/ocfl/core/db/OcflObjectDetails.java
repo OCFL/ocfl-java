@@ -27,7 +27,6 @@ package io.ocfl.core.db;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.VersionNum;
 import io.ocfl.core.model.RevisionNum;
-
 import java.time.LocalDateTime;
 
 /**

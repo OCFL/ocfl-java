@@ -27,7 +27,6 @@ package io.ocfl.api;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.OcflVersion;
 import io.ocfl.api.util.Enforce;
-
 import java.util.regex.Pattern;
 
 /**

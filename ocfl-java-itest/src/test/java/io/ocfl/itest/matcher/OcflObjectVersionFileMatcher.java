@@ -30,7 +30,6 @@ import io.ocfl.api.model.OcflObjectVersionFile;
 import io.ocfl.itest.TestHelper;
 import java.util.Map;
 import java.util.Objects;
-
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 

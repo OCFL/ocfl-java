@@ -25,7 +25,6 @@
 package io.ocfl.core.db;
 
 import io.ocfl.core.model.Inventory;
-
 import java.nio.file.Path;
 
 /**

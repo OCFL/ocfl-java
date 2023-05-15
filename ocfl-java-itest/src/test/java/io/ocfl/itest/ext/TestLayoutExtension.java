@@ -28,7 +28,6 @@ import io.ocfl.api.exception.OcflExtensionException;
 import io.ocfl.core.extension.OcflExtensionConfig;
 import io.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
 import io.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
-
 import java.nio.file.FileSystems;
 
 /**

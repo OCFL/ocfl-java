@@ -30,7 +30,6 @@ import io.ocfl.api.exception.OcflExtensionException;
 import io.ocfl.api.util.Enforce;
 import io.ocfl.core.extension.OcflExtensionConfig;
 import io.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
-
 import java.util.Objects;
 
 /**

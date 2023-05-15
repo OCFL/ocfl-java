@@ -36,7 +36,6 @@ import io.ocfl.core.extension.ExtensionSupportEvaluator;
 import io.ocfl.core.extension.OcflExtensionConfig;
 import io.ocfl.core.inventory.InventoryMapper;
 import io.ocfl.core.model.Inventory;
-
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;

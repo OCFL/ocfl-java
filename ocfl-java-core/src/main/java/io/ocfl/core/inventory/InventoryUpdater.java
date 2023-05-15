@@ -40,7 +40,6 @@ import io.ocfl.core.model.VersionBuilder;
 import io.ocfl.core.path.ContentPathMapper;
 import io.ocfl.core.path.constraint.LogicalPathConstraints;
 import io.ocfl.core.path.constraint.PathConstraintProcessor;
-
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;

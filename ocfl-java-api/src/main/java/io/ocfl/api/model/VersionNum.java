@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.ocfl.api.exception.InvalidVersionException;
 import io.ocfl.api.util.Enforce;
-
 import java.util.regex.Pattern;
 
 /**

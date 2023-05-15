@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.ocfl.api.util.Enforce;
 import io.ocfl.core.extension.OcflExtensionConfig;
 import io.ocfl.core.extension.storage.layout.FlatOmitPrefixLayoutExtension;
-
 import java.util.Objects;
 
 /**

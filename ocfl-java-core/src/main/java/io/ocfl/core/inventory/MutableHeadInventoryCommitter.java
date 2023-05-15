@@ -32,7 +32,6 @@ import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.InventoryBuilder;
 import io.ocfl.core.model.VersionBuilder;
 import io.ocfl.core.validation.InventoryValidator;
-
 import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 

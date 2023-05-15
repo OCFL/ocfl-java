@@ -35,7 +35,6 @@ import io.ocfl.api.model.VersionInfo;
 import io.ocfl.api.model.VersionNum;
 import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.Version;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
