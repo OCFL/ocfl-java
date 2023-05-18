@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [2.0.0] - 2023-05-17
+
 ### Fixed
 
 - Delete old revision markers after creating a new mutable HEAD revision: https://github.com/OCFL/ocfl-java/pull/91
@@ -231,7 +233,8 @@ DROP TABLE ocfl_object_lock;
 
 This is a preliminary release of ocfl-java. All major functionality is in place. However, there will be a few breaking configuration changes prior to the v1.0.0 release, specifically in regards to configuring storage layouts.
 
-[Unreleased]: https://github.com/ocfl/ocfl-java/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/ocfl/ocfl-java/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/ocfl/ocfl-java/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/ocfl/ocfl-java/compare/v1.4.6...v1.5.0
 [1.4.6]: https://github.com/ocfl/ocfl-java/compare/v1.4.5...v1.4.6
 [1.4.5]: https://github.com/ocfl/ocfl-java/compare/v1.4.4...v1.4.5
