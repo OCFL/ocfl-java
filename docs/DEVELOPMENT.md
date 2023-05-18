@@ -63,3 +63,29 @@ Linux and Windows, and tests against a live Amazon S3 bucket.
 `ocfl-java's` validator is tested against the [official
 fixtures](https://github.com/ocfl/fixtures) in addition to custom
 fixtures, as part of the unit tests in the `ocfl-java-core` module.
+
+# Release
+
+``` shell
+RELEASE_VERSION=2.0.0
+SNAP_VERSION=2.0.1-SNAPSHOT
+git checkout -b "release-$RELEASE_VERSION"
+mvn versions:set -DgenerateBackupPoms=false -DnewVersion=$RELEASE_VERSION
+# Update version in README.md
+# Update version in CHANGELOG.md
+mvn add .
+git commit -m "v$RELEASE_VERSION"
+mvn versions:set -DgenerateBackupPoms=false -DnewVersion=$SNAP_VERSION
+git add .
+git commit -m "back to snapshot"
+git push origin release-$RELEASE_VERSION
+# Create PR and merge into main
+git checkout main
+git pull
+# Find the ref of the commit to tag
+git tag "v$RELEASE_VERSION" REF
+git push upstream "v$RELEASE_VERSION"
+git checkout "v$RELEASE_VERSION"
+mvn clean deploy -P ossrh,release
+# Log into Sonatype and release
+```
