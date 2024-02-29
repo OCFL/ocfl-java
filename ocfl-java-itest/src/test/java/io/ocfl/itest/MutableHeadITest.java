@@ -634,6 +634,26 @@ public abstract class MutableHeadITest {
         verifyRepo(repoName);
     }
 
+    @Test
+    public void stageFileWithContentAlreadyPresentInObject() throws IOException {
+        var repoName = "mutable11";
+        var repo = defaultRepo(repoName);
+
+        String objectId = "object_1";
+        ObjectVersionId head = ObjectVersionId.head(objectId);
+        repo.stageChanges(head, new VersionInfo(), (updater) -> {
+            updater.writeFile(new ByteArrayInputStream(new byte[] {1}), "info_1.txt");
+        });
+        repo.commitStagedChanges(objectId, new VersionInfo());
+
+        repo.stageChanges(head, new VersionInfo(), (updater) -> {
+            updater.writeFile(new ByteArrayInputStream(new byte[] {1}), "info_2.txt");
+        });
+        repo.commitStagedChanges(objectId, new VersionInfo());
+
+        verifyRepo(repoName);
+    }
+
     private Path outputPath(String repoName, String path) {
         try {
             var output = outputDir.resolve(Paths.get(repoName, path));

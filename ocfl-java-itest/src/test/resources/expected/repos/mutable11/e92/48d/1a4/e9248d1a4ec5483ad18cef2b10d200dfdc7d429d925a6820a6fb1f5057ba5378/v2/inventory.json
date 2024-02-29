@@ -1,0 +1,28 @@
+{
+  "id" : "object_1",
+  "type" : "https://ocfl.io/1.1/spec/#inventory",
+  "digestAlgorithm" : "sha512",
+  "head" : "v2",
+  "contentDirectory" : "content",
+  "fixity" : { },
+  "manifest" : {
+    "7b54b66836c1fbdd13d2441d9e1434dc62ca677fb68f5fe66a464baadecdbd00576f8d6b5ac3bcc80844b7d50b1cc6603444bbe7cfcf8fc0aa1ee3c636d9e339" : [ "v2/content/r1/info_1.txt" ]
+  },
+  "versions" : {
+    "v1" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "message" : "Auto-generated empty object version.",
+      "user" : {
+        "name" : "ocfl-java",
+        "address" : "https://github.com/OCFL/ocfl-java"
+      },
+      "state" : { }
+    },
+    "v2" : {
+      "created" : "2019-08-05T15:57:53Z",
+      "state" : {
+        "7b54b66836c1fbdd13d2441d9e1434dc62ca677fb68f5fe66a464baadecdbd00576f8d6b5ac3bcc80844b7d50b1cc6603444bbe7cfcf8fc0aa1ee3c636d9e339" : [ "info_1.txt" ]
+      }
+    }
+  }
+}
