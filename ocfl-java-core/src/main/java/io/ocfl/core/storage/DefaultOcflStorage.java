@@ -751,13 +751,16 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
 
     private void moveToRevisionDirectory(
             Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir, String destination) {
+        var revisionStagingDir = stagingDir
+                .resolve(inventory.resolveContentDirectory())
+                .resolve(inventory.getRevisionNum().toString());
+        if (Files.notExists(revisionStagingDir)) {
+            // If the directory doesn't exist, then it means there were no new files added and nothing to do
+            return;
+        }
         storage.createDirectories(objectRoot.headVersion().contentPath());
         try {
-            storage.moveDirectoryInto(
-                    stagingDir
-                            .resolve(inventory.resolveContentDirectory())
-                            .resolve(inventory.getRevisionNum().toString()),
-                    destination);
+            storage.moveDirectoryInto(revisionStagingDir, destination);
         } catch (OcflFileAlreadyExistsException e) {
             throw new ObjectOutOfSyncException(String.format(
                     "Failed to update mutable HEAD of object %s. Changes are out of sync with the current object state.",

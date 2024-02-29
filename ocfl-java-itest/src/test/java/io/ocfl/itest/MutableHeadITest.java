@@ -617,6 +617,23 @@ public abstract class MutableHeadITest {
         verifyRepo(repoName);
     }
 
+    @Test
+    public void stageIdenticalFileToFileAlreadyStaged() {
+        var repoName = "mutable10";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("file3".getBytes()), "dir1/file3");
+        });
+        repo.stageChanges(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("stage 1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("file3".getBytes()), "file4");
+        });
+
+        verifyRepo(repoName);
+    }
+
     private Path outputPath(String repoName, String path) {
         try {
             var output = outputDir.resolve(Paths.get(repoName, path));
