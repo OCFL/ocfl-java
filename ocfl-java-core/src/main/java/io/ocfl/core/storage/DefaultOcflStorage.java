@@ -751,6 +751,10 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
 
     private void moveToRevisionDirectory(
             Inventory inventory, ObjectPaths.ObjectRoot objectRoot, Path stagingDir, String destination) {
+        // We must ensure this directory exist, even if we're not writing any content files because the inventory copy
+        // relies on it existing.
+        storage.createDirectories(objectRoot.headVersion().contentPath());
+
         var revisionStagingDir = stagingDir
                 .resolve(inventory.resolveContentDirectory())
                 .resolve(inventory.getRevisionNum().toString());
@@ -758,7 +762,7 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
             // If the directory doesn't exist, then it means there were no new files added and nothing to do
             return;
         }
-        storage.createDirectories(objectRoot.headVersion().contentPath());
+
         try {
             storage.moveDirectoryInto(revisionStagingDir, destination);
         } catch (OcflFileAlreadyExistsException e) {
