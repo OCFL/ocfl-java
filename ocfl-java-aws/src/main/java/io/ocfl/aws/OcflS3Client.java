@@ -600,11 +600,26 @@ public class OcflS3Client implements CloudClient {
         /**
          * The AWS SDK S3 client. Required.
          * <p>
-         * This <b>SHOULD</b> be a <a href="https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html">CRT client</a>.
-         * The reason for this is that the {@link S3TransferManager} requires the CRT client for doing multipart uploads.
+         * <b>Important:</b> You <b>MUST</b> either use the <a href="https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html">CRT client</a>
+         * or wrap the regular S3AsyncClient in {@link software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient}
+         * in order for multipart uploads to work. Otherwise, files will be uploaded in single PUT requests.
+         * <p>
+         * Additionally, only the CRT client supports multipart downloads. However, from what I've seen, the CRT client
+         * <i>only</i> works with AWS, and it does <b>not</b> work with third party S3 implementations. In which case,
+         * you should use the regular S3AsyncClient with the MultipartS3AsyncClient wrapper.
          * <p>
          * This client is NOT closed when the repository is closed, and the user is responsible for closing it when appropriate.
+         * <p>
+         * <pre>{@code
+         * // When using the CRT client, create it something like this:
+         * S3AsyncClient.crtBuilder().build();
          *
+         * // When using the regular async client, create it something like this:
+         * MultipartS3AsyncClient.create(
+         *         S3AsyncClient.builder().build(),
+         *         MultipartConfiguration.builder().build());
+         * // The important part here is that you use the MultipartS3AsyncClient wrapper!
+         * }</pre>
          * @param s3Client s3 client
          * @return builder
          */
@@ -617,6 +632,9 @@ public class OcflS3Client implements CloudClient {
          * The AWS SDK S3 transfer manager. This only needs to be specified when you need to set specific settings, and,
          * if it is specified, it can use the same S3 client as was supplied in {@link #s3Client(S3AsyncClient)}.
          * Otherwise, when not specified, the default transfer manager is created using the provided S3 Client.
+         * <p>
+         * Please refer to the docs on {@link #s3Client(S3AsyncClient)} for additional details on how the S3 client
+         * used by the transfer manager should be configured.
          * <p>
          * When a transfer manager is provided, it will NOT be closed when the repository is closed, and the user is
          * responsible for closing it when appropriate.

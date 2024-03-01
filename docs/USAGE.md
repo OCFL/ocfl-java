@@ -179,22 +179,44 @@ application. Consult the official documentation for details.
 
 However, note that it is **crucial** that you configure the transfer
 manager to use the new [CRT S3
-client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html).
-The CRT client is **required** by the transfer manager in order to
-make multipart uploads.
+client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html)
+or wrap the old Netty async client in a `MultipartS3AsyncClient`.
+The reason for this is because the transfer manager only supports
+multipart uploads and downloads with the CRT client. However, you can
+make multipart uploads work with the old client if it's wrapped in a
+`MultipartS3AsyncClient`, but multipart downloads will still not work.
+
+Unfortunately, from our testing, it appears that the CRT client only
+works with the official AWS S3, and it does not work with third party
+implementations. So, if you are using a third party implementation,
+please make sure you wrap your client in a `MultipartS3AsyncClient`.
+Otherwise, you will experience performance degredation.
 
 If you do not specify a transfer manager when constructing the
 `OcflS3Client`, then it will create the default transfer manager using
-the S3 client it was provided, which, again, should be a CRT client.
-When you use the default transfer manager, you need to be sure to
-close the `OcflRepository` when you are done with it, otherwise the
-transfer manager will not be closed.
+the S3 client it was provided. When you use the default transfer
+manager, you need to be sure to close the `OcflRepository` when you
+are done with it, otherwise the transfer manager will not be closed.
 
-For example, you might construct the S3 client like:
+If you are using the CRT client, then you need to add
+`software.amazon.awssdk.crt:aws-crt` to your project, and create the
+client similar to this, for the default settings:
 
 ``` java
-S3AsyncClient.crtBuilder().build()
+S3AsyncClient.crtBuilder().build();
 ```
+
+If you are using the Netty async client, then you don't need to add
+any additional dependencies, and you'd create the client similar to
+this, for the default settings:
+
+``` java
+MultipartS3AsyncClient.create(
+        S3AsyncClient.builder().build(),
+        MultipartConfiguration.builder().build());
+```
+
+Note the use of `MultipartS3AsyncClient`. Very important!
 
 ### Configuration
 

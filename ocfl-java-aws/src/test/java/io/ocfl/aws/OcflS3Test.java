@@ -42,8 +42,10 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
 import software.amazon.awssdk.utils.AttributeMap;
 
 public class OcflS3Test {
@@ -82,18 +84,21 @@ public class OcflS3Test {
             OcflS3Test.bucket = bucket;
         } else {
             LOG.info("Running tests against S3 Mock");
-            s3Client = S3AsyncClient.builder()
-                    .endpointOverride(URI.create(S3_MOCK.getServiceEndpoint()))
-                    .region(Region.US_EAST_2)
-                    .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("foo", "bar")))
-                    .serviceConfiguration(S3Configuration.builder()
-                            .pathStyleAccessEnabled(true)
-                            .build())
-                    .httpClient(NettyNioAsyncHttpClient.builder()
-                            .buildWithDefaults(AttributeMap.builder()
-                                    .put(TRUST_ALL_CERTIFICATES, Boolean.TRUE)
-                                    .build()))
-                    .build();
+            s3Client = MultipartS3AsyncClient.create(
+                    S3AsyncClient.builder()
+                            .endpointOverride(URI.create(S3_MOCK.getServiceEndpoint()))
+                            .region(Region.US_EAST_2)
+                            .credentialsProvider(
+                                    StaticCredentialsProvider.create(AwsBasicCredentials.create("foo", "bar")))
+                            .serviceConfiguration(S3Configuration.builder()
+                                    .pathStyleAccessEnabled(true)
+                                    .build())
+                            .httpClient(NettyNioAsyncHttpClient.builder()
+                                    .buildWithDefaults(AttributeMap.builder()
+                                            .put(TRUST_ALL_CERTIFICATES, Boolean.TRUE)
+                                            .build()))
+                            .build(),
+                    MultipartConfiguration.builder().build());
             OcflS3Test.bucket = UUID.randomUUID().toString();
             s3Client.createBucket(request -> {
                         request.bucket(OcflS3Test.bucket);

@@ -23,9 +23,11 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
 import software.amazon.awssdk.utils.AttributeMap;
 
 public class S3ITestHelper {
@@ -46,17 +48,20 @@ public class S3ITestHelper {
     }
 
     public static S3AsyncClient createMockS3Client(String endpoint) {
-        return S3AsyncClient.builder()
-                .endpointOverride(URI.create(endpoint))
-                .region(Region.US_EAST_2)
-                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("foo", "bar")))
-                .serviceConfiguration(
-                        S3Configuration.builder().pathStyleAccessEnabled(true).build())
-                .httpClient(NettyNioAsyncHttpClient.builder()
-                        .buildWithDefaults(AttributeMap.builder()
-                                .put(TRUST_ALL_CERTIFICATES, Boolean.TRUE)
-                                .build()))
-                .build();
+        return MultipartS3AsyncClient.create(
+                S3AsyncClient.builder()
+                        .endpointOverride(URI.create(endpoint))
+                        .region(Region.US_EAST_2)
+                        .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("foo", "bar")))
+                        .serviceConfiguration(S3Configuration.builder()
+                                .pathStyleAccessEnabled(true)
+                                .build())
+                        .httpClient(NettyNioAsyncHttpClient.builder()
+                                .buildWithDefaults(AttributeMap.builder()
+                                        .put(TRUST_ALL_CERTIFICATES, Boolean.TRUE)
+                                        .build()))
+                        .build(),
+                MultipartConfiguration.builder().build());
     }
 
     public void verifyRepo(Path expected, String bucket, String prefix) {
