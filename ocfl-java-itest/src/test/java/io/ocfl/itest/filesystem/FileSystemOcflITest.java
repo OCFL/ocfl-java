@@ -2,7 +2,9 @@ package io.ocfl.itest.filesystem;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.OcflRepository;
@@ -13,6 +15,8 @@ import io.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
 import io.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import io.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import io.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
+import io.ocfl.core.path.constraint.ContentPathConstraints;
+import io.ocfl.core.path.mapper.LogicalPathMappers;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.core.util.UncheckedFiles;
 import io.ocfl.itest.ITestHelper;
@@ -34,6 +38,31 @@ import org.junit.jupiter.api.condition.OS;
 public class FileSystemOcflITest extends OcflITest {
 
     private Path reposDir;
+
+    // Doesn't work with s3 mock
+    @Test
+    public void makeContentPathsWindowsSafe() throws IOException {
+        var repoName = "windows-safe";
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new FlatLayoutConfig())
+                .logicalPathMapper(LogicalPathMappers.percentEncodingWindowsMapper())
+                .contentPathConstraints(ContentPathConstraints.windows()));
+
+        var logicalPath = "tést/<bad>:Path 1/\\|obj/?8*%id/#{something}/[0]/۞.txt";
+
+        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), logicalPath);
+        });
+
+        verifyRepo(repoName);
+
+        var object = repo.getObject(ObjectVersionId.head("o1"));
+
+        assertTrue(object.containsFile(logicalPath), "expected object to contain logical path " + logicalPath);
+
+        try (var stream = object.getFile(logicalPath).getStream()) {
+            assertEquals("1", new String(stream.readAllBytes()));
+        }
+    }
 
     // Does not work with S3Mock because the generated filenames are too long
     @Test

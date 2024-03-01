@@ -26,6 +26,8 @@ package io.ocfl.core.storage;
 
 import static io.ocfl.api.OcflConstants.INVENTORY_SIDECAR_PREFIX;
 
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.OcflFileRetriever;
 import io.ocfl.api.exception.CorruptObjectException;
@@ -79,8 +81,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import net.jodah.failsafe.Failsafe;
-import net.jodah.failsafe.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,10 +134,11 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         this.initializer = Enforce.notNull(initializer, "initializer cannot be null");
         this.logicalPathConstraints = LogicalPathConstraints.constraintsWithBackslashCheck();
         this.validator = new Validator(storage);
-        this.invRetry = new RetryPolicy<Void>()
+        this.invRetry = RetryPolicy.<Void>builder()
                 .handle(RuntimeException.class)
                 .withBackoff(10, 200, ChronoUnit.MILLIS, 1.5)
-                .withMaxRetries(10);
+                .withMaxRetries(10)
+                .build();
     }
 
     /**
