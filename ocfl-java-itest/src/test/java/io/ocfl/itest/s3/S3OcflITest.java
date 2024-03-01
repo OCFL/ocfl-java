@@ -4,6 +4,7 @@ import static io.ocfl.itest.TestHelper.inputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
@@ -14,14 +15,17 @@ import io.ocfl.aws.OcflS3Client;
 import io.ocfl.core.OcflRepositoryBuilder;
 import io.ocfl.core.cache.NoOpCache;
 import io.ocfl.core.extension.UnsupportedExtensionBehavior;
+import io.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
 import io.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
 import io.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import io.ocfl.core.path.constraint.ContentPathConstraints;
+import io.ocfl.core.path.mapper.LogicalPathMappers;
 import io.ocfl.core.storage.cloud.CloudClient;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.itest.ITestHelper;
 import io.ocfl.itest.OcflITest;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -96,6 +100,34 @@ public class S3OcflITest extends OcflITest {
         repoPrefixes.forEach(prefix -> {
             createCloudClient(prefix).deletePath("");
         });
+    }
+
+    // Doesn't work with s3 mock
+    @EnabledIfEnvironmentVariable(named = ENV_ACCESS_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_SECRET_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_BUCKET, matches = ".+")
+    @Test
+    public void makeContentPathsWindowsSafe() throws IOException {
+        var repoName = "windows-safe";
+        var repo = defaultRepo(repoName, builder -> builder.defaultLayoutConfig(new FlatLayoutConfig())
+                .logicalPathMapper(LogicalPathMappers.percentEncodingWindowsMapper())
+                .contentPathConstraints(ContentPathConstraints.windows()));
+
+        var logicalPath = "tést/<bad>:Path 1/\\|obj/?8*%id/#{something}/[0]/۞.txt";
+
+        repo.updateObject(ObjectVersionId.head("o1"), defaultVersionInfo.setMessage("1"), updater -> {
+            updater.writeFile(new ByteArrayInputStream("1".getBytes()), logicalPath);
+        });
+
+        verifyRepo(repoName);
+
+        var object = repo.getObject(ObjectVersionId.head("o1"));
+
+        assertTrue(object.containsFile(logicalPath), "expected object to contain logical path " + logicalPath);
+
+        try (var stream = object.getFile(logicalPath).getStream()) {
+            assertEquals("1", new String(stream.readAllBytes()));
+        }
     }
 
     // Doesn't work with mock https://github.com/adobe/S3Mock/issues/215

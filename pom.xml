@@ -71,8 +71,8 @@
 
         <java.version>11</java.version>
 
-        <jackson.version>2.15.0</jackson.version>
-        <slf4j.version>2.0.7</slf4j.version>
+        <jackson.version>2.16.1</jackson.version>
+        <slf4j.version>2.0.12</slf4j.version>
     </properties>
 
     <profiles>
@@ -103,7 +103,7 @@
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
                             <autoReleaseAfterClose>false</autoReleaseAfterClose>
-			    <stagingProgressTimeoutMinutes>60</stagingProgressTimeoutMinutes>
+                            <stagingProgressTimeoutMinutes>60</stagingProgressTimeoutMinutes>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -302,14 +302,14 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.4.7</version>
+                <version>1.5.1</version>
             </dependency>
 
             <!-- Caching -->
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
-                <version>3.1.6</version>
+                <version>3.1.8</version>
             </dependency>
 
             <!-- Byte manipulation -->
@@ -323,24 +323,24 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.0.0-jre</version>
+                <version>33.0.0-jre</version>
             </dependency>
             <dependency>
-                <groupId>net.jodah</groupId>
+                <groupId>dev.failsafe</groupId>
                 <artifactId>failsafe</artifactId>
-                <version>2.4.4</version>
+                <version>3.3.2</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.70</version>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>1.77</version>
             </dependency>
 
             <!-- AWS -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.20.65</version>
+                <version>2.24.13</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -348,38 +348,38 @@
             <!-- Test -->
             <dependency>
                 <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest-library</artifactId>
+                <artifactId>hamcrest</artifactId>
                 <version>2.2</version>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
-                <version>3.24.2</version>
+                <version>3.25.3</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
-                <version>5.9.3</version>
+                <version>5.10.2</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>5.3.1</version>
+                <version>5.10.0</version>
             </dependency>
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>42.6.0</version>
+                <version>42.7.2</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>2.2.220</version>
+                <version>2.2.224</version>
             </dependency>
             <dependency>
                 <groupId>org.mariadb.jdbc</groupId>
                 <artifactId>mariadb-java-client</artifactId>
-                <version>3.1.4</version>
+                <version>3.3.3</version>
             </dependency>
             <dependency>
                 <groupId>com.mchange</groupId>
@@ -389,7 +389,7 @@
             <dependency>
                 <groupId>com.adobe.testing</groupId>
                 <artifactId>s3mock-junit5</artifactId>
-                <version>2.11.0</version>
+                <version>3.5.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

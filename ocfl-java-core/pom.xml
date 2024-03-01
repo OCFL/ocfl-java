@@ -96,7 +96,7 @@
             <artifactId>guava</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.jodah</groupId>
+            <groupId>dev.failsafe</groupId>
             <artifactId>failsafe</artifactId>
         </dependency>
 
@@ -113,7 +113,7 @@
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-library</artifactId>
+            <artifactId>hamcrest</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -169,7 +169,7 @@
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
+            <artifactId>bcprov-jdk18on</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
