@@ -152,7 +152,7 @@ public class OcflS3ClientTest {
 
         assertObjectsExist(bucket, List.of(key1, key2));
 
-        try (var response = awsS3Client
+        try (var response = resolveClient()
                 .getObject(
                         builder -> builder.bucket(bucket)
                                 .key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key1))
@@ -161,7 +161,7 @@ public class OcflS3ClientTest {
                 .join()) {
             assertEquals("text/plain", response.response().contentType());
         }
-        try (var response = awsS3Client
+        try (var response = resolveClient()
                 .getObject(
                         builder -> builder.bucket(bucket)
                                 .key(FileUtil.pathJoinIgnoreEmpty(REPO_PREFIX, key2))
@@ -410,5 +410,13 @@ public class OcflS3ClientTest {
                 .collect(Collectors.toList());
 
         assertThat(actualKeys, containsInAnyOrder(prefixedExpected.toArray(String[]::new)));
+    }
+
+    private S3AsyncClient resolveClient() {
+        if (awsS3Client instanceof MultipartS3AsyncClient) {
+            return (S3AsyncClient) ((MultipartS3AsyncClient) awsS3Client).delegate();
+        } else {
+            return awsS3Client;
+        }
     }
 }

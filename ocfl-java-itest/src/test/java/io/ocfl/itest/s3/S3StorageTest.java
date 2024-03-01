@@ -85,7 +85,8 @@ public class S3StorageTest extends StorageTest {
     }
 
     protected String readFile(String path) {
-        try (var content = s3Client.getObject(
+        try (var content = S3ITestHelper.resolveClient(s3Client)
+                .getObject(
                         request -> {
                             request.bucket(bucket).key(FileUtil.pathJoinFailEmpty(prefix(name), path));
                         },

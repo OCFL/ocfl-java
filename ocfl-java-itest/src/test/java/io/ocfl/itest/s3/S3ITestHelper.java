@@ -64,6 +64,20 @@ public class S3ITestHelper {
                 MultipartConfiguration.builder().build());
     }
 
+    /**
+     * This nonsense is needed if you're using the MultipartS3AsyncClient client and want to download a file
+     *
+     * @param client
+     * @return
+     */
+    public static S3AsyncClient resolveClient(S3AsyncClient client) {
+        if (client instanceof MultipartS3AsyncClient) {
+            return (S3AsyncClient) ((MultipartS3AsyncClient) client).delegate();
+        } else {
+            return client;
+        }
+    }
+
     public void verifyRepo(Path expected, String bucket, String prefix) {
         var expectedPaths = listAllFiles(expected);
         var actualObjects = listAllObjects(bucket, prefix);
@@ -103,7 +117,8 @@ public class S3ITestHelper {
     }
 
     private byte[] getObjectContent(String bucket, String prefix, String key) {
-        return s3Client.getObject(
+        return resolveClient(s3Client)
+                .getObject(
                         GetObjectRequest.builder()
                                 .bucket(bucket)
                                 .key(prefix + "/" + key)

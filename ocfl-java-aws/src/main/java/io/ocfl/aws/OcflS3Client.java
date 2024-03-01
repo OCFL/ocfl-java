@@ -24,6 +24,7 @@
 
 package io.ocfl.aws;
 
+import io.ocfl.api.OcflRepository;
 import io.ocfl.api.exception.OcflIOException;
 import io.ocfl.api.util.Enforce;
 import io.ocfl.core.storage.cloud.CloudClient;
@@ -51,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
@@ -80,6 +82,7 @@ public class OcflS3Client implements CloudClient {
     private final BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
 
     private final boolean shouldCloseManager;
+    private final boolean useMultipartDownload;
 
     /**
      * Used to create a new OcflS3Client instance.
@@ -115,7 +118,7 @@ public class OcflS3Client implements CloudClient {
             String prefix,
             S3TransferManager transferManager,
             BiConsumer<String, PutObjectRequest.Builder> putObjectModifier) {
-        this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+        Enforce.notNull(s3Client, "s3Client cannot be null");
         this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
         this.repoPrefix = sanitizeRepoPrefix(prefix == null ? "" : prefix);
         this.shouldCloseManager = transferManager == null;
@@ -124,6 +127,13 @@ public class OcflS3Client implements CloudClient {
                 : transferManager;
         this.keyBuilder = CloudObjectKey.builder().prefix(repoPrefix);
         this.putObjectModifier = putObjectModifier != null ? putObjectModifier : (k, b) -> {};
+        // This hacky nonsense is needed until MultipartS3AsyncClient supports downloads
+        this.useMultipartDownload = !(s3Client instanceof MultipartS3AsyncClient);
+        if (s3Client instanceof MultipartS3AsyncClient) {
+            this.s3Client = (S3AsyncClient) ((MultipartS3AsyncClient) s3Client).delegate();
+        } else {
+            this.s3Client = s3Client;
+        }
     }
 
     private static String sanitizeRepoPrefix(String repoPrefix) {
@@ -282,12 +292,24 @@ public class OcflS3Client implements CloudClient {
         LOG.debug("Downloading from bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
-            var download = transferManager.downloadFile(req -> req.getObjectRequest(
-                            getReq -> getReq.bucket(bucket).key(srcKey.getKey()).build())
-                    .destination(dstPath)
-                    .build());
-
-            download.completionFuture().join();
+            if (useMultipartDownload) {
+                transferManager
+                        .downloadFile(req -> req.getObjectRequest(getReq -> getReq.bucket(bucket)
+                                        .key(srcKey.getKey())
+                                        .build())
+                                .destination(dstPath)
+                                .build())
+                        .completionFuture()
+                        .join();
+            } else {
+                s3Client.getObject(
+                                GetObjectRequest.builder()
+                                        .bucket(bucket)
+                                        .key(srcKey.getKey())
+                                        .build(),
+                                dstPath)
+                        .join();
+            }
         } catch (RuntimeException e) {
             var cause = OcflS3Util.unwrapCompletionEx(e);
             if (wasNotFound(cause)) {
