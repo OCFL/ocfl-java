@@ -244,8 +244,20 @@ public class InventoryUpdater {
             overwriteProtection(logicalPath, options);
             versionBuilder.validateNonConflictingPath(logicalPath);
 
-            if (versionBuilder.containsLogicalPath(logicalPath)) {
-                var oldFileId = versionBuilder.removeLogicalPath(logicalPath);
+            var oldFileId = versionBuilder.getFileId(logicalPath);
+
+            if (fileId.equalsIgnoreCase(oldFileId)) {
+                var contentPath = contentPathMapper.fromLogicalPath(logicalPath);
+                if (inventoryBuilder.containsContentPath(contentPath)) {
+                    // This means that the exact same file was added multiple times and it is being used as the source
+                    // of the file content
+                    return new AddFileResult(contentPath, pathUnderContentDir(contentPath));
+                }
+            }
+
+            // This is the case when the same logical path was added multiple times, but the content changed
+            if (oldFileId != null) {
+                versionBuilder.removeLogicalPath(logicalPath);
                 removeFileFromManifest(oldFileId);
             }
 

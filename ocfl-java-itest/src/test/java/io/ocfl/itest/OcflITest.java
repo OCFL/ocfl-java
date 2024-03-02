@@ -2790,7 +2790,7 @@ public abstract class OcflITest {
         }
     }
 
-    private Path outputPath(String repoName, String path) {
+    protected Path outputPath(String repoName, String path) {
         try {
             var output = outputDir.resolve(Paths.get(repoName, path));
             Files.createDirectories(output.getParent());
