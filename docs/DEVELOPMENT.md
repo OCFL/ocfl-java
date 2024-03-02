@@ -73,7 +73,7 @@ git checkout -b "release-$RELEASE_VERSION"
 mvn versions:set -DgenerateBackupPoms=false -DnewVersion=$RELEASE_VERSION
 # Update version in README.md
 # Update version in CHANGELOG.md
-mvn add .
+git add .
 git commit -m "v$RELEASE_VERSION"
 mvn versions:set -DgenerateBackupPoms=false -DnewVersion=$SNAP_VERSION
 git add .
