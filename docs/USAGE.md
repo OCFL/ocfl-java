@@ -268,31 +268,28 @@ implementation.
 
 If your objects have a lot of files, then you _might_ get better
 performance by parallelizing file reads and writes. Parallel writes
-are only supported as of `ocfl-java` 2.0.0 or later. `ocfl-java` does
+are only supported as of `ocfl-java` 2.1.0 or later. `ocfl-java` does
 not do this for you automatically, but the following is some example
 code of one possible way that you could implement parallel writes
 to an object:
 
 ```java
-repo.updateObject(ObjectVersionId.head(objectId), versionInfo, updater -> {
-    List<? extends Future<?>> futures;
-    try (var files = Files.find(
-            objectPath, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
-        futures = files.map(file -> executor.submit(() -> {
-                    var logical = objectPath
-                            .relativize(file)
-                            .toString();
-                    updater.addPath(file, logical);
-                }))
-                .toList();
+repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+    List<Future<?>> futures;
+
+    try (var files = Files.find(sourceDir, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
+        futures = files.map(file -> executor.submit(() -> updater.addPath(
+                        file, sourceDir.relativize(file).toString())))
+                .collect(Collectors.toList());
     } catch (IOException e) {
         throw new UncheckedIOException(e);
     }
+
     futures.forEach(future -> {
         try {
             future.get();
         } catch (Exception e) {
-            throw new RuntimeException("Error adding file to object " + objectId, e);
+            throw new RuntimeException(e);
         }
     });
 });
