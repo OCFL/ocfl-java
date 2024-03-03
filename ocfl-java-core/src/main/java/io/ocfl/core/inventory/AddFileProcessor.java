@@ -45,6 +45,7 @@ import java.security.DigestOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,7 @@ public class AddFileProcessor {
     private final FileLocker fileLocker;
     private final Path stagingDir;
     private final DigestAlgorithm digestAlgorithm;
+    private final AtomicBoolean checkForEmptyDirs;
 
     public static Builder builder() {
         return new Builder();
@@ -92,6 +94,7 @@ public class AddFileProcessor {
         this.fileLocker = Enforce.notNull(fileLocker, "fileLocker cannot be null");
         this.stagingDir = Enforce.notNull(stagingDir, "stagingDir cannot be null");
         this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        this.checkForEmptyDirs = new AtomicBoolean(false);
     }
 
     /**
@@ -178,7 +181,7 @@ public class AddFileProcessor {
                                 stagingFullPath,
                                 digest);
                         UncheckedFiles.delete(stagingFullPath);
-                        FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
+                        checkForEmptyDirs.set(true);
                     }
                 }
             }
@@ -241,6 +244,16 @@ public class AddFileProcessor {
 
             return results;
         });
+    }
+
+    /**
+     * Returns true if the processor deleted a file and thus we need to look for empty directories to delete prior to
+     * writing the version.
+     *
+     * @return true if we need to look for empty directories
+     */
+    public boolean checkForEmptyDirs() {
+        return checkForEmptyDirs.get();
     }
 
     private String destinationPath(String path, Path sourcePath) {

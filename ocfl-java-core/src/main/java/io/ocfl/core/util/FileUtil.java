@@ -222,7 +222,9 @@ public final class FileUtil {
      */
     public static void deleteEmptyDirs(Path root) {
         try (var files = Files.find(root, Integer.MAX_VALUE, (file, attrs) -> attrs.isDirectory())) {
-            files.filter(f -> !f.equals(root)).forEach(FileUtil::deleteDirIfEmpty);
+            files.filter(f -> !f.equals(root))
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(FileUtil::deleteDirIfEmpty);
         } catch (NoSuchFileException e) {
             // ignore
         } catch (IOException e) {

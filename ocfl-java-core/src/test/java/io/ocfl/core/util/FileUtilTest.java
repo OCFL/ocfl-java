@@ -97,9 +97,8 @@ public class FileUtilTest {
 
         FileUtil.deleteEmptyDirs(tempRoot);
 
-        assertThat(tempRoot.resolve("a/b/c").toFile(), anExistingDirectory());
+        assertThat(tempRoot.resolve("a/b/c").toFile(), not(anExistingDirectory()));
         assertThat(tempRoot.resolve("a/c/file3").toFile(), anExistingFile());
-        assertThat(tempRoot.resolve("a/b/c/d").toFile(), not(anExistingDirectory()));
         assertThat(tempRoot.resolve("a/d").toFile(), not(anExistingDirectory()));
     }
 

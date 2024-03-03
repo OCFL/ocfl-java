@@ -184,7 +184,7 @@ public class DefaultOcflRepository implements OcflRepository {
         var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
 
         try {
-            writeNewVersion(newInventory, stagingDir, upgrade);
+            writeNewVersion(newInventory, stagingDir, upgrade, fileProcessor.checkForEmptyDirs());
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -223,7 +223,7 @@ public class DefaultOcflRepository implements OcflRepository {
             objectUpdater.accept(updater);
             var upgrade = inventoryUpdater.upgradeInventory(config);
             var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
-            writeNewVersion(newInventory, stagingDir, upgrade);
+            writeNewVersion(newInventory, stagingDir, upgrade, updater.checkForEmptyDirs());
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -400,7 +400,7 @@ public class DefaultOcflRepository implements OcflRepository {
         createStagingContentDir(inventory, stagingDir);
 
         try {
-            writeNewVersion(newInventory, stagingDir, upgrade);
+            writeNewVersion(newInventory, stagingDir, upgrade, false);
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -633,10 +633,16 @@ public class DefaultOcflRepository implements OcflRepository {
         }
     }
 
-    protected void writeNewVersion(Inventory inventory, Path stagingDir, boolean upgradedOcflVersion) {
+    protected void writeNewVersion(
+            Inventory inventory, Path stagingDir, boolean upgradedOcflVersion, boolean checkForEmptyDirs) {
         var finalInventory = writeInventory(inventory, stagingDir);
 
         var contentDir = stagingDir.resolve(inventory.resolveContentDirectory());
+
+        if (checkForEmptyDirs) {
+            FileUtil.deleteEmptyDirs(contentDir);
+        }
+
         if (!FileUtil.hasChildren(contentDir)) {
             UncheckedFiles.delete(contentDir);
         }

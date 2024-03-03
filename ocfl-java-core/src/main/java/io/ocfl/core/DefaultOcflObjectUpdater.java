@@ -48,6 +48,7 @@ import java.security.DigestInputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
     private final AddFileProcessor addFileProcessor;
     private final FileLocker fileLocker;
     private final Map<String, Path> stagedFileMap;
+    private final AtomicBoolean checkForEmptyDirs;
 
     public DefaultOcflObjectUpdater(
             Inventory inventory,
@@ -77,6 +79,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         this.addFileProcessor = Enforce.notNull(addFileProcessor, "addFileProcessor cannot be null");
         this.fileLocker = Enforce.notNull(fileLocker, "fileLocker cannot be null");
         this.stagedFileMap = new ConcurrentHashMap<>();
+        this.checkForEmptyDirs = new AtomicBoolean(false);
     }
 
     @Override
@@ -145,7 +148,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
                     ((FixityCheckInputStream) input).checkFixity();
                 } catch (FixityCheckException e) {
                     FileUtil.safeDelete(stagingFullPath);
-                    FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
+                    checkForEmptyDirs.set(true);
                     throw e;
                 }
             }
@@ -168,7 +171,7 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
                         stagingFullPath,
                         digest);
                 UncheckedFiles.delete(stagingFullPath);
-                FileUtil.deleteDirAndParentsIfEmpty(stagingFullPath.getParent(), stagingDir);
+                checkForEmptyDirs.set(true);
             } else {
                 stagedFileMap.put(destinationPath, stagingFullPath);
             }
@@ -313,6 +316,16 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
         LOG.info("Clear fixity block in object <{}>", inventory.getId());
         inventoryUpdater.clearFixity();
         return this;
+    }
+
+    /**
+     * Returns true if the processor deleted a file and thus we need to look for empty directories to delete prior to
+     * writing the version.
+     *
+     * @return true if we need to look for empty directories
+     */
+    public boolean checkForEmptyDirs() {
+        return checkForEmptyDirs.get() || addFileProcessor.checkForEmptyDirs();
     }
 
     private void removeUnneededStagedFiles(Set<InventoryUpdater.RemoveFileResult> removeFiles) {

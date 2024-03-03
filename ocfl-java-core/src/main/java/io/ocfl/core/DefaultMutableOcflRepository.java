@@ -143,7 +143,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
         try {
             objectUpdater.accept(updater);
             var newInventory = buildNewInventory(inventoryUpdater, versionInfo);
-            writeNewVersion(newInventory, stagingDir, false);
+            writeNewVersion(newInventory, stagingDir, false, updater.checkForEmptyDirs());
             return ObjectVersionId.version(objectVersionId.getObjectId(), newInventory.getHead());
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
@@ -231,7 +231,7 @@ public class DefaultMutableOcflRepository extends DefaultOcflRepository implemen
                             .build())
                     .build();
 
-            writeNewVersion(inventory, stagingDir, false);
+            writeNewVersion(inventory, stagingDir, false, false);
             return inventory;
         } finally {
             FileUtil.safeDeleteDirectory(stagingDir);
