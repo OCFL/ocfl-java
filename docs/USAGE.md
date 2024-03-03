@@ -190,7 +190,7 @@ Unfortunately, from our testing, it appears that the CRT client only
 works with the official AWS S3, and it does not work with third party
 implementations. So, if you are using a third party implementation,
 please make sure you wrap your client in a `MultipartS3AsyncClient`.
-Otherwise, you will experience performance degredation.
+Otherwise, you will experience performance degradation.
 
 If you do not specify a transfer manager when constructing the
 `OcflS3Client`, then it will create the default transfer manager using
