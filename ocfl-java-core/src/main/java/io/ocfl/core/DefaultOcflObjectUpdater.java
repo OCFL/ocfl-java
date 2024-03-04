@@ -54,6 +54,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of OcflObjectUpdater that is used by DefaultOcflRepository to provide write access to an object.
+ * <p>
+ * This class is thread safe, and you can concurrently use the same updater to add multiple files to the same
+ * object version.
  */
 public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
 
