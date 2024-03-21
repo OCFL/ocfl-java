@@ -186,17 +186,24 @@ multipart uploads and downloads with the CRT client. However, you can
 make multipart uploads work with the old client if it's wrapped in a
 `MultipartS3AsyncClient`, but multipart downloads will still not work.
 
-Unfortunately, from our testing, it appears that the CRT client only
-works with the official AWS S3, and it does not work with third party
-implementations. So, if you are using a third party implementation,
-please make sure you wrap your client in a `MultipartS3AsyncClient`.
-Otherwise, you will experience performance degradation.
+Additionally, if you are using a 3rd party S3 implementation, you will
+likely need to disable [object integrity
+checks](https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html)
+on the client that is used by the transfer manager. This is because
+most/all 3rd party implementations do not support it, and it causes
+the requests to fail.
 
 If you do not specify a transfer manager when constructing the
 `OcflS3Client`, then it will create the default transfer manager using
 the S3 client it was provided. When you use the default transfer
 manager, you need to be sure to close the `OcflRepository` when you
 are done with it, otherwise the transfer manager will not be closed.
+Note that if you construct your own transfer manager, which is
+advisable so that you can configure it to your specifications, it does
+not need to use the same S3 client as the one already specified on
+`OcflS3Client` but it can. For example, maybe you only want to use the
+CRT client in the transfer manager, and you want to run everything
+else through the regular client.
 
 If you are using the CRT client, then you need to add
 `software.amazon.awssdk.crt:aws-crt` to your project, and create the
@@ -217,6 +224,32 @@ MultipartS3AsyncClient.create(
 ```
 
 Note the use of `MultipartS3AsyncClient`. Very important!
+
+If you are using a 3rd party S3 implementation and need to disable the
+object integrity check, then you can do so as follows:
+
+``` java
+S3AsyncClient.crtBuilder().checksumValidationEnabled(false).build();
+```
+
+Unfortunately, this is harder to do if you use the Netty client
+wrapped in `MultipartS3AsyncClient`. As of this writing, it must be
+disabled per-request as follows:
+
+``` java
+OcflS3Client.builder()
+        .bucket(bucket)
+        .s3Client(MultipartS3AsyncClient.create(
+                S3AsyncClient.builder().build(),
+                MultipartConfiguration.builder().build()))
+        .putObjectModifier(
+                (key, builder) -> builder.overrideConfiguration(override -> override.putExecutionAttribute(
+                        AwsSignerExecutionAttribute.SERVICE_CONFIG,
+                        S3Configuration.builder()
+                                .checksumValidationEnabled(false)
+                                .build())))
+        .build();
+```
 
 ### Configuration
 

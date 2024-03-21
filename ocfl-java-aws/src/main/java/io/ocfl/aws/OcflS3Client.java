@@ -198,10 +198,7 @@ public class OcflS3Client implements CloudClient {
         putObjectModifier.accept(dstKey.getKey(), builder);
 
         var upload = transferManager.uploadFile(req -> req.source(srcPath)
-                .putObjectRequest(builder.bucket(bucket)
-                        .key(dstKey.getKey())
-                        .contentLength(fileSize)
-                        .build())
+                .putObjectRequest(builder.bucket(bucket).key(dstKey.getKey()).build())
                 .build());
 
         return new UploadFuture(upload, srcPath, dstKey);
@@ -622,17 +619,25 @@ public class OcflS3Client implements CloudClient {
         /**
          * The AWS SDK S3 client. Required.
          * <p>
-         * <b>Important:</b> You <b>MUST</b> either use the <a href="https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html">CRT client</a>
-         * or wrap the regular S3AsyncClient in {@link software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient}
-         * in order for multipart uploads to work. Otherwise, files will be uploaded in single PUT requests.
+         * If a {@link #transferManager(S3TransferManager)} is not specified, then the client specified here will be
+         * used to create a default transfer manager. If you specify a transfer manager, it does not need to use the
+         * same client as the one specified here. However, when creating a client to be used by the transfer manager,
+         * it is important to understand the following gotchas.
          * <p>
-         * Additionally, only the CRT client supports multipart downloads. However, from what I've seen, the CRT client
-         * <i>only</i> works with AWS, and it does <b>not</b> work with third party S3 implementations. In which case,
-         * you should use the regular S3AsyncClient with the MultipartS3AsyncClient wrapper.
+         * The client used by the transfer manager <b>MUST</b> either be the <a href="https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html">CRT client</a>
+         * or the regular S3AsyncClient wrapped in {@link software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient}
+         * in order for multipart uploads to work. Otherwise, files will be uploaded in single PUT requests. Additionally,
+         * only the CRT client supports multipart downloads.
+         * <p>
+         * If you are using a 3rd party S3 implementation, then you will likely additionally need to disable the
+         * <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">object integrity check</a>
+         * as most 3rd party implementations do not support it. This easy to do on the CRT client builder by setting
+         * {@code checksumValidationEnabled()} to {@code false}.
          * <p>
          * This client is NOT closed when the repository is closed, and the user is responsible for closing it when appropriate.
          * <p>
          * <pre>{@code
+         * // Please refer to the official documentation to properly configure your client.
          * // When using the CRT client, create it something like this:
          * S3AsyncClient.crtBuilder().build();
          *
