@@ -75,7 +75,7 @@ public class OcflS3Test {
         var bucket = System.getenv().get("OCFL_TEST_S3_BUCKET");
 
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
-            LOG.info("Running tests against AWS");
+            LOG.warn("Running tests against AWS");
             s3Client = S3AsyncClient.crtBuilder()
                     .region(Region.US_EAST_2)
                     .credentialsProvider(
@@ -83,7 +83,7 @@ public class OcflS3Test {
                     .build();
             OcflS3Test.bucket = bucket;
         } else {
-            LOG.info("Running tests against S3 Mock");
+            LOG.warn("Running tests against S3 Mock");
             s3Client = MultipartS3AsyncClient.create(
                     S3AsyncClient.builder()
                             .endpointOverride(URI.create(S3_MOCK.getServiceEndpoint()))

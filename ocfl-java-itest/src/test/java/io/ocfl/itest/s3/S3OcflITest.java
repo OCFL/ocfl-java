@@ -84,11 +84,11 @@ public class S3OcflITest extends OcflITest {
         var bucket = System.getenv().get(ENV_BUCKET);
 
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
-            LOG.info("Running tests against AWS");
+            LOG.warn("Running tests against AWS");
             s3Client = S3ITestHelper.createS3Client(accessKey, secretKey);
             S3OcflITest.bucket = bucket;
         } else {
-            LOG.info("Running tests against S3 Mock");
+            LOG.warn("Running tests against S3 Mock");
             s3Client = S3ITestHelper.createMockS3Client(S3_MOCK.getServiceEndpoint());
             S3OcflITest.bucket = UUID.randomUUID().toString();
             s3Client.createBucket(request -> {

@@ -60,9 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ci
     env:
-      OCFL_TEST_AWS_ACCESS_KEY: ${{secrets.OCFL_TEST_AWS_ACCESS_KEY}}
-      OCFL_TEST_AWS_SECRET_KEY: ${{secrets.OCFL_TEST_AWS_SECRET_KEY}}
-      OCFL_TEST_S3_BUCKET: ${{secrets.OCFL_TEST_S3_BUCKET}}
+      OCFL_TEST_AWS_ACCESS_KEY: ${{ secrets.OCFL_TEST_AWS_ACCESS_KEY }}
+      OCFL_TEST_AWS_SECRET_KEY: ${{ secrets.OCFL_TEST_AWS_SECRET_KEY }}
+      OCFL_TEST_S3_BUCKET: ${{ secrets.OCFL_TEST_S3_BUCKET }}
     services:
       postgres:
         image: postgres:12
@@ -99,9 +99,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ci
     env:
-      OCFL_TEST_AWS_ACCESS_KEY: ${{secrets.OCFL_TEST_AWS_ACCESS_KEY}}
-      OCFL_TEST_AWS_SECRET_KEY: ${{secrets.OCFL_TEST_AWS_SECRET_KEY}}
-      OCFL_TEST_S3_BUCKET: ${{secrets.OCFL_TEST_S3_BUCKET}}
+      OCFL_TEST_AWS_ACCESS_KEY: ${{ secrets.OCFL_TEST_AWS_ACCESS_KEY }}
+      OCFL_TEST_AWS_SECRET_KEY: ${{ secrets.OCFL_TEST_AWS_SECRET_KEY }}
+      OCFL_TEST_S3_BUCKET: ${{ secrets.OCFL_TEST_S3_BUCKET }}
     services:
       mariadb:
         image: mariadb:10.6

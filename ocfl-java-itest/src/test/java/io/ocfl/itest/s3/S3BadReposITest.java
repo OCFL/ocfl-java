@@ -51,11 +51,11 @@ public class S3BadReposITest extends BadReposITest {
         var bucket = System.getenv().get("OCFL_TEST_S3_BUCKET");
 
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
-            LOG.info("Running tests against AWS");
+            LOG.warn("Running tests against AWS");
             s3Client = S3ITestHelper.createS3Client(accessKey, secretKey);
             S3BadReposITest.bucket = bucket;
         } else {
-            LOG.info("Running tests against S3 Mock");
+            LOG.warn("Running tests against S3 Mock");
             s3Client = S3ITestHelper.createMockS3Client(S3_MOCK.getServiceEndpoint());
             S3BadReposITest.bucket = UUID.randomUUID().toString();
             s3Client.createBucket(request -> {
