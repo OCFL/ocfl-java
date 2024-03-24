@@ -253,6 +253,39 @@ OcflS3Client.builder()
 
 ### Configuration
 
+#### AWS SDK
+
+If you are using the [CRT
+client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html),
+remember to set `targetThroughputInGbps()` on the builder, which
+controls the client's concurrency.
+
+If you are using the regular async Netty client, you will likely want
+to set `connectionAcquisitionTimeout`, `writeTimeout`, `readTimeout`,
+and `maxConcurrency`. This is critical because `ocfl-java` queues
+concurrent writes, and Netty needs to be configured to handle your
+application's load. An example configuration looks something like:
+
+``` java
+S3AsyncClient.builder()
+        .region(Region.US_EAST_2)
+        .httpClientBuilder(NettyNioAsyncHttpClient.builder()
+                .connectionAcquisitionTimeout(Duration.ofSeconds(60))
+                .writeTimeout(Duration.ofSeconds(120))
+                .readTimeout(Duration.ofSeconds(60))
+                .maxConcurrency(100))
+        .build();
+```
+
+If you see failures related to acquiring a connection from the pool,
+then you either need to increase the concurrency, increase the
+acquisition timeout, or both.
+
+That said, it is generally recommended to use the CRT client. It is
+easier to configure and seems to have better performance.
+
+#### ocfl-java
+
 Use `OcflStorageBuilder.builder()` to create and configure an
 `OcflStorage` instance.
 
