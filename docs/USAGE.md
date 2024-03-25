@@ -89,6 +89,10 @@ OCFL repository that supports the [mutable HEAD extension](https://ocfl.github.i
   most cloud storage, including S3, is now strongly consistent. Use
   `ObjectDetailsDatabaseBuilder` to construct an
   `ObjectDetailsDatabase`.
+* **fileLockTimeoutDuration**: Configures the max amount of time to wait
+  for a file lock when updating an object from multiple threads. This
+  only matters if you concurrently write files to the same object, and
+  can otherwise be ignored. The default timeout is 1 minute.
 
 ## Storage Implementations
 
@@ -165,7 +169,122 @@ on large files or objects with lots of files. Additionally, it does
 not cache any object files locally, requiring them to be retrieved
 from S3 on every access.
 
+### S3 Transfer Manager
+
+`ocfl-java` uses the new [S3 Transfer
+Manager](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/transfer-manager.html)
+to upload and download files from S3. You can configure the transfer
+manager to target a specific throughput, based on the needs of your
+application. Consult the official documentation for details.
+
+However, note that it is **crucial** that you configure the transfer
+manager to use the new [CRT S3
+client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html)
+or wrap the old Netty async client in a `MultipartS3AsyncClient`.
+The reason for this is because the transfer manager only supports
+multipart uploads and downloads with the CRT client. However, you can
+make multipart uploads work with the old client if it's wrapped in a
+`MultipartS3AsyncClient`, but multipart downloads will still not work.
+
+Additionally, if you are using a 3rd party S3 implementation, you will
+likely need to disable [object integrity
+checks](https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html)
+on the client that is used by the transfer manager. This is because
+most/all 3rd party implementations do not support it, and it causes
+the requests to fail.
+
+If you do not specify a transfer manager when constructing the
+`OcflS3Client`, then it will create the default transfer manager using
+the S3 client it was provided. When you use the default transfer
+manager, you need to be sure to close the `OcflRepository` when you
+are done with it, otherwise the transfer manager will not be closed.
+Note that if you construct your own transfer manager, which is
+advisable so that you can configure it to your specifications, it does
+not need to use the same S3 client as the one already specified on
+`OcflS3Client` but it can. For example, maybe you only want to use the
+CRT client in the transfer manager, and you want to run everything
+else through the regular client.
+
+If you are using the CRT client, then you need to add
+`software.amazon.awssdk.crt:aws-crt` to your project, and create the
+client similar to this, for the default settings:
+
+``` java
+S3AsyncClient.crtBuilder().build();
+```
+
+If you are using the Netty async client, then you don't need to add
+any additional dependencies, and you'd create the client similar to
+this, for the default settings:
+
+``` java
+MultipartS3AsyncClient.create(
+        S3AsyncClient.builder().build(),
+        MultipartConfiguration.builder().build());
+```
+
+Note the use of `MultipartS3AsyncClient`. Very important!
+
+If you are using a 3rd party S3 implementation and need to disable the
+object integrity check, then you can do so as follows:
+
+``` java
+S3AsyncClient.crtBuilder().checksumValidationEnabled(false).build();
+```
+
+Unfortunately, this is harder to do if you use the Netty client
+wrapped in `MultipartS3AsyncClient`. As of this writing, it must be
+disabled per-request as follows:
+
+``` java
+OcflS3Client.builder()
+        .bucket(bucket)
+        .s3Client(MultipartS3AsyncClient.create(
+                S3AsyncClient.builder().build(),
+                MultipartConfiguration.builder().build()))
+        .putObjectModifier(
+                (key, builder) -> builder.overrideConfiguration(override -> override.putExecutionAttribute(
+                        AwsSignerExecutionAttribute.SERVICE_CONFIG,
+                        S3Configuration.builder()
+                                .checksumValidationEnabled(false)
+                                .build())))
+        .build();
+```
+
 ### Configuration
+
+#### AWS SDK
+
+If you are using the [CRT
+client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html),
+remember to set `targetThroughputInGbps()` on the builder, which
+controls the client's concurrency.
+
+If you are using the regular async Netty client, you will likely want
+to set `connectionAcquisitionTimeout`, `writeTimeout`, `readTimeout`,
+and `maxConcurrency`. This is critical because `ocfl-java` queues
+concurrent writes, and Netty needs to be configured to handle your
+application's load. An example configuration looks something like:
+
+``` java
+S3AsyncClient.builder()
+        .region(Region.US_EAST_2)
+        .httpClientBuilder(NettyNioAsyncHttpClient.builder()
+                .connectionAcquisitionTimeout(Duration.ofSeconds(60))
+                .writeTimeout(Duration.ofSeconds(120))
+                .readTimeout(Duration.ofSeconds(60))
+                .maxConcurrency(100))
+        .build();
+```
+
+If you see failures related to acquiring a connection from the pool,
+then you either need to increase the concurrency, increase the
+acquisition timeout, or both.
+
+That said, it is generally recommended to use the CRT client. It is
+easier to configure and seems to have better performance.
+
+#### ocfl-java
 
 Use `OcflStorageBuilder.builder()` to create and configure an
 `OcflStorage` instance.
@@ -210,6 +329,42 @@ instances, you should use a database based object lock rather than the
 default in-memory lock. Additionally, you may want to either adjust or
 disable inventory caching, or hook up a distributed cache
 implementation.
+
+### Improving write performance
+
+If your objects have a lot of files, then you _might_ get better
+performance by parallelizing file reads and writes. Parallel writes
+are only supported as of `ocfl-java` 2.1.0 or later. `ocfl-java` does
+not do this for you automatically, but the following is some example
+code of one possible way that you could implement parallel writes
+to an object:
+
+```java
+repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+    List<Future<?>> futures;
+
+    try (var files = Files.find(sourceDir, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
+        futures = files.map(file -> executor.submit(() -> updater.addPath(
+                        file, sourceDir.relativize(file).toString())))
+                .collect(Collectors.toList());
+    } catch (IOException e) {
+        throw new UncheckedIOException(e);
+    }
+
+    futures.forEach(future -> {
+        try {
+            future.get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    });
+});
+```
+
+The key bit here is that you use an `ExecutorService` to add multiple
+files to the object at the same. You would likely want to use one thread
+pool per object. Additionally, note that this technique will likely
+make writes _slower_ if you are not writing a lot of files.
 
 ### Inventory size
 

@@ -24,9 +24,8 @@
 
 package io.ocfl.aws;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.ocfl.api.OcflRepository;
 import io.ocfl.api.exception.OcflIOException;
-import io.ocfl.api.exception.OcflInputException;
 import io.ocfl.api.util.Enforce;
 import io.ocfl.core.storage.cloud.CloudClient;
 import io.ocfl.core.storage.cloud.CloudObjectKey;
@@ -36,43 +35,36 @@ import io.ocfl.core.storage.cloud.ListResult;
 import io.ocfl.core.util.UncheckedFiles;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.core.exception.SdkException;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
-import software.amazon.awssdk.services.s3.model.CompletedPart;
-import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.UploadPartCopyRequest;
-import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
 /**
  * CloudClient implementation that uses Amazon's S3 synchronous v2 client
@@ -81,30 +73,16 @@ public class OcflS3Client implements CloudClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(OcflS3Client.class);
 
-    private static final int KB = 1024;
-    private static final int MB = 1024 * KB;
-    private static final long GB = 1024 * MB;
-    private static final long TB = 1024 * GB;
-
-    private static final long MAX_FILE_BYTES = 5 * TB;
-
-    private static final int MAX_PART_BYTES = 100 * MB;
-    private static final int PART_SIZE_BYTES = 10 * MB;
-
-    private static final int MAX_PARTS = 100;
-    private static final int PART_SIZE_INCREMENT = 10;
-    private static final int PARTS_INCREMENT = 100;
-
-    private final S3Client s3Client;
+    private final S3AsyncClient s3Client;
+    private final S3TransferManager transferManager;
     private final String bucket;
     private final String repoPrefix;
     private final CloudObjectKey.Builder keyBuilder;
 
     private final BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
-    private final BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier;
 
-    private int maxPartBytes = MAX_PART_BYTES;
-    private int partSizeBytes = PART_SIZE_BYTES;
+    private final boolean shouldCloseManager;
+    private final boolean useMultipartDownload;
 
     /**
      * Used to create a new OcflS3Client instance.
@@ -121,31 +99,41 @@ public class OcflS3Client implements CloudClient {
      * @param s3Client aws sdk s3 client
      * @param bucket s3 bucket
      */
-    public OcflS3Client(S3Client s3Client, String bucket) {
+    public OcflS3Client(S3AsyncClient s3Client, String bucket) {
         this(s3Client, bucket, null, null, null);
     }
 
     /**
      * @see OcflS3Client#builder()
      *
-     * @param s3Client aws sdk s3 client
-     * @param bucket s3 bucket
-     * @param prefix key prefix
-     * @param putObjectModifier hook for modifying putObject requests
-     * @param createMultipartModifier hook for modifying createMultipartUpload requests
+     * @param s3Client aws sdk s3 client, not null
+     * @param bucket s3 bucket, not null
+     * @param prefix key prefix, may be null
+     * @param transferManager aws sdk s3 transfer manager, may be null
+     * @param putObjectModifier hook for modifying putObject requests, may be null
      */
     public OcflS3Client(
-            S3Client s3Client,
+            S3AsyncClient s3Client,
             String bucket,
             String prefix,
-            BiConsumer<String, PutObjectRequest.Builder> putObjectModifier,
-            BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
-        this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+            S3TransferManager transferManager,
+            BiConsumer<String, PutObjectRequest.Builder> putObjectModifier) {
+        Enforce.notNull(s3Client, "s3Client cannot be null");
         this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
         this.repoPrefix = sanitizeRepoPrefix(prefix == null ? "" : prefix);
+        this.shouldCloseManager = transferManager == null;
+        this.transferManager = transferManager == null
+                ? S3TransferManager.builder().s3Client(s3Client).build()
+                : transferManager;
         this.keyBuilder = CloudObjectKey.builder().prefix(repoPrefix);
         this.putObjectModifier = putObjectModifier != null ? putObjectModifier : (k, b) -> {};
-        this.createMultipartModifier = createMultipartModifier != null ? createMultipartModifier : (k, b) -> {};
+        // This hacky nonsense is needed until MultipartS3AsyncClient supports downloads
+        this.useMultipartDownload = !(s3Client instanceof MultipartS3AsyncClient);
+        if (s3Client instanceof MultipartS3AsyncClient) {
+            this.s3Client = (S3AsyncClient) ((MultipartS3AsyncClient) s3Client).delegate();
+        } else {
+            this.s3Client = s3Client;
+        }
     }
 
     private static String sanitizeRepoPrefix(String repoPrefix) {
@@ -159,6 +147,16 @@ public class OcflS3Client implements CloudClient {
             }
         }
         return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close() {
+        if (shouldCloseManager) {
+            transferManager.close();
+        }
     }
 
     /**
@@ -181,6 +179,35 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
+    public Future<CloudObjectKey> uploadFileAsync(Path srcPath, String dstPath) {
+        return uploadFileAsync(srcPath, dstPath, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Future<CloudObjectKey> uploadFileAsync(Path srcPath, String dstPath, String contentType) {
+        var fileSize = UncheckedFiles.size(srcPath);
+        var dstKey = keyBuilder.buildFromPath(dstPath);
+
+        LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
+
+        var builder = PutObjectRequest.builder().contentType(contentType);
+
+        putObjectModifier.accept(dstKey.getKey(), builder);
+
+        var upload = transferManager.uploadFile(req -> req.source(srcPath)
+                .putObjectRequest(builder.bucket(bucket).key(dstKey.getKey()).build())
+                .build());
+
+        return new UploadFuture(upload, srcPath, dstKey);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public CloudObjectKey uploadFile(Path srcPath, String dstPath) {
         return uploadFile(srcPath, dstPath, null);
     }
@@ -190,84 +217,14 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public CloudObjectKey uploadFile(Path srcPath, String dstPath, String contentType) {
-        var fileSize = UncheckedFiles.size(srcPath);
-        var dstKey = keyBuilder.buildFromPath(dstPath);
-
-        if (fileSize >= MAX_FILE_BYTES) {
-            throw new OcflInputException(
-                    String.format("Cannot store file %s because it exceeds the maximum file size.", srcPath));
-        }
-
-        if (fileSize > maxPartBytes) {
-            multipartUpload(srcPath, dstKey, fileSize, contentType);
-        } else {
-            LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
-
-            var builder = PutObjectRequest.builder().contentType(contentType);
-
-            putObjectModifier.accept(dstKey.getKey(), builder);
-
-            s3Client.putObject(
-                    builder.bucket(bucket)
-                            .key(dstKey.getKey())
-                            .contentLength(fileSize)
-                            .build(),
-                    srcPath);
-        }
-
-        return dstKey;
-    }
-
-    // TODO reduce memory consumption?
-    private void multipartUpload(Path srcPath, CloudObjectKey dstKey, long fileSize, String contentType) {
-        var partSize = determinePartSize(fileSize);
-
-        LOG.debug(
-                "Multipart upload of {} to bucket {} key {}. File size: {}; part size: {}",
-                srcPath,
-                bucket,
-                dstKey,
-                fileSize,
-                partSize);
-
-        var uploadId = beginMultipartUpload(dstKey, contentType);
-
-        var completedParts = new ArrayList<CompletedPart>();
-
+        var future = uploadFileAsync(srcPath, dstPath, contentType);
         try {
-            try (var channel = FileChannel.open(srcPath, StandardOpenOption.READ)) {
-                var buffer = ByteBuffer.allocate(partSize);
-                var i = 1;
-
-                while (channel.read(buffer) > 0) {
-                    buffer.flip();
-
-                    var partResponse = s3Client.uploadPart(
-                            UploadPartRequest.builder()
-                                    .bucket(bucket)
-                                    .key(dstKey.getKey())
-                                    .uploadId(uploadId)
-                                    .partNumber(i)
-                                    // TODO entire part is in memory. stream part to file first?
-                                    .build(),
-                            RequestBody.fromByteBuffer(buffer));
-
-                    completedParts.add(CompletedPart.builder()
-                            .partNumber(i)
-                            .eTag(partResponse.eTag())
-                            .build());
-
-                    buffer.clear();
-                    i++;
-                }
-            } catch (IOException e) {
-                throw new OcflIOException(e);
-            }
-
-            completeMultipartUpload(uploadId, dstKey, completedParts);
-        } catch (RuntimeException e) {
-            abortMultipartUpload(uploadId, dstKey);
-            throw e;
+            return future.get();
+        } catch (ExecutionException e) {
+            throw (RuntimeException) e.getCause();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new OcflS3Exception("Failed ot upload " + srcPath, e);
         }
     }
 
@@ -277,13 +234,18 @@ public class OcflS3Client implements CloudClient {
     @Override
     public CloudObjectKey uploadBytes(String dstPath, byte[] bytes, String contentType) {
         var dstKey = keyBuilder.buildFromPath(dstPath);
-        LOG.debug("Writing string to bucket {} key {}", bucket, dstKey);
+        LOG.debug("Writing bytes to bucket {} key {}", bucket, dstKey);
 
         var builder = PutObjectRequest.builder().contentType(contentType);
 
         putObjectModifier.accept(dstKey.getKey(), builder);
 
-        s3Client.putObject(builder.bucket(bucket).key(dstKey.getKey()).build(), RequestBody.fromBytes(bytes));
+        try {
+            s3Client.putObject(builder.bucket(bucket).key(dstKey.getKey()).build(), AsyncRequestBody.fromBytes(bytes))
+                    .join();
+        } catch (RuntimeException e) {
+            throw new OcflS3Exception("Failed to upload bytes to " + dstKey, OcflS3Util.unwrapCompletionEx(e));
+        }
 
         return dstKey;
     }
@@ -299,77 +261,23 @@ public class OcflS3Client implements CloudClient {
         LOG.debug("Copying {} to {} in bucket {}", srcKey, dstKey, bucket);
 
         try {
-            s3Client.copyObject(CopyObjectRequest.builder()
-                    .destinationBucket(bucket)
-                    .destinationKey(dstKey.getKey())
-                    .sourceBucket(bucket)
-                    .sourceKey(srcKey.getKey())
+            var copy = transferManager.copy(req -> req.copyObjectRequest(copyReq -> copyReq.destinationBucket(bucket)
+                            .destinationKey(dstKey.getKey())
+                            .sourceBucket(bucket)
+                            .sourceKey(srcKey.getKey())
+                            .build())
                     .build());
-        } catch (NoSuchKeyException e) {
-            throw new KeyNotFoundException(e);
-        } catch (SdkException e) {
-            // TODO verify class and message
-            if (e.getMessage().contains("copy source is larger than the maximum allowable size")) {
-                multipartCopy(srcKey, dstKey);
-            } else {
-                throw e;
+
+            copy.completionFuture().join();
+        } catch (RuntimeException e) {
+            var cause = OcflS3Util.unwrapCompletionEx(e);
+            if (wasNotFound(cause)) {
+                throw new KeyNotFoundException("Key " + srcKey + " not found in bucket " + bucket, cause);
             }
+            throw new OcflS3Exception("Failed to copy object from " + srcKey + " to " + dstKey, cause);
         }
 
         return dstKey;
-    }
-
-    private void multipartCopy(CloudObjectKey srcKey, CloudObjectKey dstKey) {
-        var head = headObject(srcKey);
-        var fileSize = head.contentLength();
-        var partSize = determinePartSize(fileSize);
-
-        LOG.debug(
-                "Multipart copy of {} to {} in bucket {}: File size {}; part size: {}",
-                srcKey,
-                dstKey,
-                bucket,
-                fileSize,
-                partSize);
-
-        var uploadId = beginMultipartUpload(dstKey, null);
-
-        try {
-            var completedParts = new ArrayList<CompletedPart>();
-            var part = 1;
-            var position = 0L;
-
-            while (position < fileSize) {
-                var end = Math.min(fileSize - 1, part * partSize - 1);
-                var partResponse = s3Client.uploadPartCopy(UploadPartCopyRequest.builder()
-                        .destinationBucket(bucket)
-                        .destinationKey(dstKey.getKey())
-                        .sourceBucket(bucket)
-                        .sourceKey(srcKey.getKey())
-                        .partNumber(part)
-                        .uploadId(uploadId)
-                        .copySourceRange(String.format("bytes=%s-%s", position, end))
-                        .build());
-
-                completedParts.add(CompletedPart.builder()
-                        .partNumber(part)
-                        .eTag(partResponse.copyPartResult().eTag())
-                        .build());
-
-                part++;
-                position = end + 1;
-            }
-
-            completeMultipartUpload(uploadId, dstKey, completedParts);
-        } catch (RuntimeException e) {
-            abortMultipartUpload(uploadId, dstKey);
-            throw e;
-        }
-    }
-
-    private HeadObjectResponse headObject(CloudObjectKey key) {
-        return s3Client.headObject(
-                HeadObjectRequest.builder().bucket(bucket).key(key.getKey()).build());
     }
 
     /**
@@ -378,17 +286,33 @@ public class OcflS3Client implements CloudClient {
     @Override
     public Path downloadFile(String srcPath, Path dstPath) {
         var srcKey = keyBuilder.buildFromPath(srcPath);
-        LOG.debug("Downloading bucket {} key {} to {}", bucket, srcKey, dstPath);
+        LOG.debug("Downloading from bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
-            s3Client.getObject(
-                    GetObjectRequest.builder()
-                            .bucket(bucket)
-                            .key(srcKey.getKey())
-                            .build(),
-                    dstPath);
-        } catch (NoSuchKeyException e) {
-            throw new KeyNotFoundException(e);
+            if (useMultipartDownload) {
+                transferManager
+                        .downloadFile(req -> req.getObjectRequest(getReq -> getReq.bucket(bucket)
+                                        .key(srcKey.getKey())
+                                        .build())
+                                .destination(dstPath)
+                                .build())
+                        .completionFuture()
+                        .join();
+            } else {
+                s3Client.getObject(
+                                GetObjectRequest.builder()
+                                        .bucket(bucket)
+                                        .key(srcKey.getKey())
+                                        .build(),
+                                dstPath)
+                        .join();
+            }
+        } catch (RuntimeException e) {
+            var cause = OcflS3Util.unwrapCompletionEx(e);
+            if (wasNotFound(cause)) {
+                throw new KeyNotFoundException("Key " + srcKey + " not found in bucket " + bucket, cause);
+            }
+            throw new OcflS3Exception("Failed to download " + srcKey + " to " + dstPath, cause);
         }
 
         return dstPath;
@@ -400,15 +324,22 @@ public class OcflS3Client implements CloudClient {
     @Override
     public InputStream downloadStream(String srcPath) {
         var srcKey = keyBuilder.buildFromPath(srcPath);
-        LOG.debug("Streaming bucket {} key {}", bucket, srcKey);
+        LOG.debug("Streaming from bucket {} key {}", bucket, srcKey);
 
         try {
-            return s3Client.getObject(GetObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(srcKey.getKey())
-                    .build());
-        } catch (NoSuchKeyException e) {
-            throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", srcKey, bucket), e);
+            return s3Client.getObject(
+                            GetObjectRequest.builder()
+                                    .bucket(bucket)
+                                    .key(srcKey.getKey())
+                                    .build(),
+                            AsyncResponseTransformer.toBlockingInputStream())
+                    .join();
+        } catch (RuntimeException e) {
+            var cause = OcflS3Util.unwrapCompletionEx(e);
+            if (wasNotFound(cause)) {
+                throw new KeyNotFoundException("Key " + srcKey + " not found in bucket " + bucket, cause);
+            }
+            throw new OcflS3Exception("Failed to download " + srcKey, cause);
         }
     }
 
@@ -432,16 +363,23 @@ public class OcflS3Client implements CloudClient {
         var key = keyBuilder.buildFromPath(path);
 
         try {
-            var s3Result = s3Client.headObject(
-                    HeadObjectRequest.builder().bucket(bucket).key(key.getKey()).build());
+            var s3Result = s3Client.headObject(HeadObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key.getKey())
+                            .build())
+                    .join();
 
             return new HeadResult()
                     .setContentEncoding(s3Result.contentEncoding())
                     .setContentLength(s3Result.contentLength())
                     .setETag(s3Result.eTag())
                     .setLastModified(s3Result.lastModified());
-        } catch (NoSuchKeyException e) {
-            throw new KeyNotFoundException(String.format("Key %s not found in bucket %s.", key, bucket), e);
+        } catch (RuntimeException e) {
+            var cause = OcflS3Util.unwrapCompletionEx(e);
+            if (wasNotFound(cause)) {
+                throw new KeyNotFoundException("Key " + key + " not found in bucket " + bucket, cause);
+            }
+            throw new OcflS3Exception("Failed to HEAD " + key, cause);
         }
     }
 
@@ -484,15 +422,20 @@ public class OcflS3Client implements CloudClient {
 
         LOG.debug("Checking existence of {} in bucket {}", prefix, bucket);
 
-        var response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
-                .bucket(bucket)
-                .delimiter("/")
-                .prefix(prefix)
-                .maxKeys(1)
-                .build());
+        try {
+            var response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                            .bucket(bucket)
+                            .delimiter("/")
+                            .prefix(prefix)
+                            .maxKeys(1)
+                            .build())
+                    .join();
 
-        return response.contents().stream().findAny().isPresent()
-                || response.commonPrefixes().stream().findAny().isPresent();
+            return response.contents().stream().findAny().isPresent()
+                    || response.commonPrefixes().stream().findAny().isPresent();
+        } catch (RuntimeException e) {
+            throw new OcflS3Exception("Failed to list objects under " + prefix, OcflS3Util.unwrapCompletionEx(e));
+        }
     }
 
     /**
@@ -532,10 +475,23 @@ public class OcflS3Client implements CloudClient {
                     .map(key -> ObjectIdentifier.builder().key(key.getKey()).build())
                     .collect(Collectors.toList());
 
-            s3Client.deleteObjects(DeleteObjectsRequest.builder()
-                    .bucket(bucket)
-                    .delete(Delete.builder().objects(objectIds).build())
-                    .build());
+            try {
+                var futures = new ArrayList<CompletableFuture<?>>();
+
+                // Can only delete at most 1,000 objects per request
+                for (int i = 0; i < objectIds.size(); i += 999) {
+                    var toDelete = objectIds.subList(i, Math.min(objectIds.size(), i + 999));
+                    futures.add(s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                            .bucket(bucket)
+                            .delete(builder -> builder.objects(toDelete))
+                            .build()));
+                }
+
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[] {}))
+                        .join();
+            } catch (RuntimeException e) {
+                throw new OcflS3Exception("Failed to delete objects " + objectIds, OcflS3Util.unwrapCompletionEx(e));
+            }
         }
     }
 
@@ -565,79 +521,42 @@ public class OcflS3Client implements CloudClient {
     @Override
     public boolean bucketExists() {
         try {
-            s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build());
+            s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
+                    .join();
             return true;
-        } catch (NoSuchBucketException e) {
-            return false;
-        }
-    }
-
-    private String beginMultipartUpload(CloudObjectKey key, String contentType) {
-        var builder = CreateMultipartUploadRequest.builder().contentType(contentType);
-
-        createMultipartModifier.accept(key.getKey(), builder);
-
-        return s3Client.createMultipartUpload(
-                        builder.bucket(bucket).key(key.getKey()).build())
-                .uploadId();
-    }
-
-    private void completeMultipartUpload(String uploadId, CloudObjectKey key, List<CompletedPart> parts) {
-        s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
-                .bucket(bucket)
-                .key(key.getKey())
-                .uploadId(uploadId)
-                .multipartUpload(CompletedMultipartUpload.builder().parts(parts).build())
-                .build());
-    }
-
-    private void abortMultipartUpload(String uploadId, CloudObjectKey key) {
-        try {
-            s3Client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
-                    .bucket(bucket)
-                    .key(key.getKey())
-                    .uploadId(uploadId)
-                    .build());
         } catch (RuntimeException e) {
-            LOG.error("Failed to abort multipart upload. Bucket: {}; Key: {}; Upload Id: {}", bucket, key, uploadId, e);
-        }
-    }
-
-    private int determinePartSize(long fileSize) {
-        var partSize = partSizeBytes;
-        var maxParts = MAX_PARTS;
-
-        while (fileSize / partSize > maxParts) {
-            partSize += PART_SIZE_INCREMENT;
-
-            if (partSize > maxPartBytes) {
-                maxParts += PARTS_INCREMENT;
-                partSize /= 2;
+            var cause = OcflS3Util.unwrapCompletionEx(e);
+            if (wasNotFound(cause)) {
+                return false;
             }
+            throw new OcflS3Exception("Failed ot HEAD bucket " + bucket, cause);
         }
-
-        return partSize;
     }
 
     private ListResult toListResult(ListObjectsV2Request.Builder requestBuilder) {
-        var result = s3Client.listObjectsV2(requestBuilder.build());
+        try {
+            var result = s3Client.listObjectsV2(requestBuilder.build()).join();
 
-        var prefixLength = prefixLength(result.prefix());
-        var repoPrefixLength = repoPrefix.isBlank() ? 0 : repoPrefix.length() + 1;
+            var prefixLength = prefixLength(result.prefix());
+            var repoPrefixLength = repoPrefix.isBlank() ? 0 : repoPrefix.length() + 1;
 
-        var objects = toObjectListings(result, prefixLength);
-        var dirs = toDirectoryListings(result, repoPrefixLength);
+            var objects = toObjectListings(result, prefixLength);
+            var dirs = toDirectoryListings(result, repoPrefixLength);
 
-        while (Boolean.TRUE.equals(result.isTruncated())) {
-            result = s3Client.listObjectsV2(requestBuilder
-                    .continuationToken(result.nextContinuationToken())
-                    .build());
+            while (Boolean.TRUE.equals(result.isTruncated())) {
+                result = s3Client.listObjectsV2(requestBuilder
+                                .continuationToken(result.nextContinuationToken())
+                                .build())
+                        .join();
 
-            objects.addAll(toObjectListings(result, prefixLength));
-            dirs.addAll(toDirectoryListings(result, repoPrefixLength));
+                objects.addAll(toObjectListings(result, prefixLength));
+                dirs.addAll(toDirectoryListings(result, repoPrefixLength));
+            }
+
+            return new ListResult().setObjects(objects).setDirectories(dirs);
+        } catch (RuntimeException e) {
+            throw new OcflS3Exception("Failed to list objects", OcflS3Util.unwrapCompletionEx(e));
         }
-
-        return new ListResult().setObjects(objects).setDirectories(dirs);
     }
 
     private List<ListResult.ObjectListing> toObjectListings(ListObjectsV2Response result, int prefixLength) {
@@ -672,32 +591,86 @@ public class OcflS3Client implements CloudClient {
         return prefixLength;
     }
 
-    @VisibleForTesting
-    void setMaxPartBytes(int maxPartBytes) {
-        this.maxPartBytes = maxPartBytes;
-    }
-
-    @VisibleForTesting
-    void setPartSizeBytes(int partSizeBytes) {
-        this.partSizeBytes = partSizeBytes;
+    /**
+     * Returns true if the exception indicates the object/bucket was NOT found in S3.
+     *
+     * @param e the exception
+     * @return true if the object/bucket was NOT found in S3.
+     */
+    private boolean wasNotFound(Throwable e) {
+        if (e instanceof NoSuchKeyException || e instanceof NoSuchBucketException) {
+            return true;
+        } else if (e instanceof S3Exception) {
+            // It seems like the CRT client does not return NoSuchKeyExceptions...
+            var s3e = (S3Exception) e;
+            return 404 == s3e.statusCode();
+        }
+        return false;
     }
 
     public static class Builder {
-        private S3Client s3Client;
+        private S3AsyncClient s3Client;
+        private S3TransferManager transferManager;
         private String bucket;
         private String repoPrefix;
 
         private BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
-        private BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier;
 
         /**
-         * The AWS SDK s3 client. Required.
+         * The AWS SDK S3 client. Required.
+         * <p>
+         * If a {@link #transferManager(S3TransferManager)} is not specified, then the client specified here will be
+         * used to create a default transfer manager. If you specify a transfer manager, it does not need to use the
+         * same client as the one specified here. However, when creating a client to be used by the transfer manager,
+         * it is important to understand the following gotchas.
+         * <p>
+         * The client used by the transfer manager <b>MUST</b> either be the <a href="https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html">CRT client</a>
+         * or the regular S3AsyncClient wrapped in {@link software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient}
+         * in order for multipart uploads to work. Otherwise, files will be uploaded in single PUT requests. Additionally,
+         * only the CRT client supports multipart downloads.
+         * <p>
+         * If you are using a 3rd party S3 implementation, then you will likely additionally need to disable the
+         * <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">object integrity check</a>
+         * as most 3rd party implementations do not support it. This easy to do on the CRT client builder by setting
+         * {@code checksumValidationEnabled()} to {@code false}.
+         * <p>
+         * This client is NOT closed when the repository is closed, and the user is responsible for closing it when appropriate.
+         * <p>
+         * <pre>{@code
+         * // Please refer to the official documentation to properly configure your client.
+         * // When using the CRT client, create it something like this:
+         * S3AsyncClient.crtBuilder().build();
          *
+         * // When using the regular async client, create it something like this:
+         * MultipartS3AsyncClient.create(
+         *         S3AsyncClient.builder().build(),
+         *         MultipartConfiguration.builder().build());
+         * // The important part here is that you use the MultipartS3AsyncClient wrapper!
+         * }</pre>
          * @param s3Client s3 client
          * @return builder
          */
-        public Builder s3Client(S3Client s3Client) {
+        public Builder s3Client(S3AsyncClient s3Client) {
             this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
+            return this;
+        }
+
+        /**
+         * The AWS SDK S3 transfer manager. This only needs to be specified when you need to set specific settings, and,
+         * if it is specified, it can use the same S3 client as was supplied in {@link #s3Client(S3AsyncClient)}.
+         * Otherwise, when not specified, the default transfer manager is created using the provided S3 Client.
+         * <p>
+         * Please refer to the docs on {@link #s3Client(S3AsyncClient)} for additional details on how the S3 client
+         * used by the transfer manager should be configured.
+         * <p>
+         * When a transfer manager is provided, it will NOT be closed when the repository is closed, and the user is
+         * responsible for closing it when appropriate.
+         *
+         * @param transferManager S3 transfer manager
+         * @return builder
+         */
+        public Builder transferManager(S3TransferManager transferManager) {
+            this.transferManager = Enforce.notNull(transferManager, "transferManager cannot be null");
             return this;
         }
 
@@ -739,28 +712,15 @@ public class OcflS3Client implements CloudClient {
         }
 
         /**
-         * Provides a hook to modify createMultipartUpload requests before they are executed. It is intended to be used
-         * to set object attributes such as tags.
-         *
-         * <p>The first argument is the object key the request is for, and the second is the request builder to apply
-         * changes to.
-         *
-         * @param createMultipartModifier hook for modifying createMultipartUpload requests
-         * @return builder
-         */
-        public Builder createMultipartModifier(
-                BiConsumer<String, CreateMultipartUploadRequest.Builder> createMultipartModifier) {
-            this.createMultipartModifier = createMultipartModifier;
-            return this;
-        }
-
-        /**
-         * Constructs a new OcflS3Client. s3Client and bucket must be set.
+         * Constructs a new {@link OcflS3Client}. {@link #s3Client(S3AsyncClient)} and {@link #bucket(String)} must be set.
+         * <p>
+         * Remember to call {@link OcflRepository#close()} when you are done with the repository so that the default
+         * S3 transfer manager is closed.
          *
          * @return OcflS3Client
          */
         public OcflS3Client build() {
-            return new OcflS3Client(s3Client, bucket, repoPrefix, putObjectModifier, createMultipartModifier);
+            return new OcflS3Client(s3Client, bucket, repoPrefix, transferManager, putObjectModifier);
         }
     }
 }

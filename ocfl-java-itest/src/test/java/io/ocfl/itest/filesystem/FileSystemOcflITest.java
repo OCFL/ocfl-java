@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.ocfl.api.OcflConstants;
+import io.ocfl.api.OcflOption;
 import io.ocfl.api.OcflRepository;
+import io.ocfl.api.exception.OcflInputException;
 import io.ocfl.api.model.ObjectVersionId;
 import io.ocfl.core.OcflRepositoryBuilder;
 import io.ocfl.core.cache.NoOpCache;
@@ -29,8 +31,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -169,6 +176,147 @@ public class FileSystemOcflITest extends OcflITest {
         var v2ContentPath = root.resolve(objectId).resolve("v2/content");
 
         assertFalse(Files.exists(v2ContentPath), "empty content directories should not exist");
+    }
+
+    // There appears to be a bug with s3mock's copy object that makes this test fail for some reason
+    @Test
+    public void writeToObjectConcurrently() {
+        var repoName = "repo18";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        var executor = Executors.newFixedThreadPool(10);
+
+        try {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+                var latch = new CountDownLatch(10);
+                var futures = new ArrayList<Future<?>>();
+
+                for (int i = 0; i < 5; i++) {
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        updater.writeFile(
+                                ITestHelper.streamString("file1".repeat(100)), "a/b/c/file1.txt", OcflOption.OVERWRITE);
+                    }));
+                }
+
+                for (int i = 0; i < 5; i++) {
+                    var n = i;
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        updater.writeFile(
+                                ITestHelper.streamString(String.valueOf(n).repeat(100)),
+                                String.format("a/b/c/d/%s.txt", n));
+                    }));
+                }
+
+                joinFutures(futures);
+            });
+
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+                var latch = new CountDownLatch(10);
+                var futures = new ArrayList<Future<?>>();
+
+                var errors = new AtomicInteger();
+
+                for (int i = 0; i < 5; i++) {
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        try {
+                            updater.renameFile("a/b/c/file1.txt", "a/b/c/file2.txt");
+                        } catch (OcflInputException e) {
+                            errors.getAndIncrement();
+                        }
+                    }));
+                }
+
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.removeFile("a/b/c/d/0.txt");
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.removeFile("a/b/c/d/2.txt");
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.writeFile(ITestHelper.streamString("test".repeat(100)), "test.txt");
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.renameFile("a/b/c/d/4.txt", "a/b/c/d/1.txt", OcflOption.OVERWRITE);
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.writeFile(ITestHelper.streamString("new".repeat(100)), "a/new.txt");
+                }));
+
+                joinFutures(futures);
+
+                assertEquals(4, errors.get(), "4 out of 5 renames should have failed");
+            });
+
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
+                var latch = new CountDownLatch(5);
+                var futures = new ArrayList<Future<?>>();
+
+                for (int i = 0; i < 5; i++) {
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        updater.addPath(ITestHelper.expectedRepoPath("repo15"), "repo15", OcflOption.OVERWRITE);
+                    }));
+                }
+
+                joinFutures(futures);
+            });
+
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("4"), updater -> {
+                var root = ITestHelper.expectedRepoPath("repo17");
+                var futures = new ArrayList<Future<?>>();
+
+                try (var files = Files.find(root, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
+                    files.map(file -> executor.submit(() -> updater.addPath(
+                                    file, "repo17/" + FileUtil.pathToStringStandardSeparator(root.relativize(file)))))
+                            .forEach(futures::add);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+                joinFutures(futures);
+            });
+
+            Assertions.assertThat(repo.validateObject(objectId, true).getErrors())
+                    .isEmpty();
+
+            var outputPath1 = outputPath(repoName, objectId + "v1");
+            repo.getObject(ObjectVersionId.version(objectId, 1), outputPath1);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v1"), outputPath1);
+
+            var outputPath2 = outputPath(repoName, objectId + "v2");
+            repo.getObject(ObjectVersionId.version(objectId, 2), outputPath2);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v2"), outputPath2);
+
+            var outputPath3 = outputPath(repoName, objectId + "v3");
+            repo.getObject(ObjectVersionId.version(objectId, 3), outputPath3);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v3"), outputPath3);
+
+            var outputPath4 = outputPath(repoName, objectId + "v4");
+            repo.getObject(ObjectVersionId.version(objectId, 4), outputPath4);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v4"), outputPath4);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private void joinFutures(List<Future<?>> futures) {
+        for (var future : futures) {
+            try {
+                future.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Override

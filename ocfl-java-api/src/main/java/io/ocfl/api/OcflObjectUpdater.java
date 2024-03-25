@@ -34,6 +34,9 @@ import java.nio.file.Path;
 
 /**
  * Exposes methods for selectively updating a specific OCFL object.
+ * <p>
+ * Implementations are thread safe, and you can concurrently use the same updater to add multiple files to the same
+ * object version.
  */
 public interface OcflObjectUpdater {
 
@@ -42,7 +45,7 @@ public interface OcflObjectUpdater {
      * it's a directory, the contents of the directory are inserted into the object's root.
      *
      * <p>By default, files are copied into the OCFL repository. If {@link OcflOption#MOVE_SOURCE} is specified, then
-     * files will be moved instead. Warning: If an exception occurs and the new version is not created, the files that were
+     * files will be moved instead. Warning: If an exception occurs and the new version is not created, the files that
      * will be lost. This operation is more efficient but less safe than the default copy.
      *
      * <p>By default, the change will be rejected if there is an existing file in an object at a logical path.

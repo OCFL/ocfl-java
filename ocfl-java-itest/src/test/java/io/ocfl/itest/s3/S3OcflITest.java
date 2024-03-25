@@ -8,7 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.adobe.testing.s3mock.junit5.S3MockExtension;
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import io.ocfl.api.OcflOption;
 import io.ocfl.api.OcflRepository;
+import io.ocfl.api.exception.OcflInputException;
 import io.ocfl.api.model.ObjectVersionId;
 import io.ocfl.api.model.VersionInfo;
 import io.ocfl.aws.OcflS3Client;
@@ -26,22 +28,31 @@ import io.ocfl.itest.ITestHelper;
 import io.ocfl.itest.OcflITest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
 public class S3OcflITest extends OcflITest {
 
@@ -57,7 +68,8 @@ public class S3OcflITest extends OcflITest {
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
 
-    private static S3Client s3Client;
+    private static S3AsyncClient s3Client;
+    private static S3TransferManager transferManager;
     private static String bucket;
 
     private static ComboPooledDataSource dataSource;
@@ -72,22 +84,31 @@ public class S3OcflITest extends OcflITest {
         var bucket = System.getenv().get(ENV_BUCKET);
 
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
-            LOG.info("Running tests against AWS");
+            LOG.warn("Running tests against AWS");
             s3Client = S3ITestHelper.createS3Client(accessKey, secretKey);
             S3OcflITest.bucket = bucket;
         } else {
-            LOG.info("Running tests against S3 Mock");
-            s3Client = S3_MOCK.createS3ClientV2();
+            LOG.warn("Running tests against S3 Mock");
+            s3Client = S3ITestHelper.createMockS3Client(S3_MOCK.getServiceEndpoint());
             S3OcflITest.bucket = UUID.randomUUID().toString();
             s3Client.createBucket(request -> {
-                request.bucket(S3OcflITest.bucket);
-            });
+                        request.bucket(S3OcflITest.bucket);
+                    })
+                    .join();
         }
+
+        transferManager = S3TransferManager.builder().s3Client(s3Client).build();
 
         dataSource = new ComboPooledDataSource();
         dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
         dataSource.setUser(System.getProperty("db.user", ""));
         dataSource.setPassword(System.getProperty("db.password", ""));
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        s3Client.close();
+        transferManager.close();
     }
 
     @Override
@@ -222,6 +243,150 @@ public class S3OcflITest extends OcflITest {
         verifyRepo(repoName);
     }
 
+    // There appears to be a bug with s3mock's copy object that makes this test fail for some reason
+    @Test
+    @EnabledIfEnvironmentVariable(named = ENV_ACCESS_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_SECRET_KEY, matches = ".+")
+    @EnabledIfEnvironmentVariable(named = ENV_BUCKET, matches = ".+")
+    public void writeToObjectConcurrently() {
+        var repoName = "repo18";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "o1";
+
+        var executor = Executors.newFixedThreadPool(10);
+
+        try {
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
+                var latch = new CountDownLatch(10);
+                var futures = new ArrayList<Future<?>>();
+
+                for (int i = 0; i < 5; i++) {
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        updater.writeFile(
+                                ITestHelper.streamString("file1".repeat(100)), "a/b/c/file1.txt", OcflOption.OVERWRITE);
+                    }));
+                }
+
+                for (int i = 0; i < 5; i++) {
+                    var n = i;
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        updater.writeFile(
+                                ITestHelper.streamString(String.valueOf(n).repeat(100)),
+                                String.format("a/b/c/d/%s.txt", n));
+                    }));
+                }
+
+                joinFutures(futures);
+            });
+
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("2"), updater -> {
+                var latch = new CountDownLatch(10);
+                var futures = new ArrayList<Future<?>>();
+
+                var errors = new AtomicInteger();
+
+                for (int i = 0; i < 5; i++) {
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        try {
+                            updater.renameFile("a/b/c/file1.txt", "a/b/c/file2.txt");
+                        } catch (OcflInputException e) {
+                            errors.getAndIncrement();
+                        }
+                    }));
+                }
+
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.removeFile("a/b/c/d/0.txt");
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.removeFile("a/b/c/d/2.txt");
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.writeFile(ITestHelper.streamString("test".repeat(100)), "test.txt");
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.renameFile("a/b/c/d/4.txt", "a/b/c/d/1.txt", OcflOption.OVERWRITE);
+                }));
+                futures.add(executor.submit(() -> {
+                    latch.countDown();
+                    updater.writeFile(ITestHelper.streamString("new".repeat(100)), "a/new.txt");
+                }));
+
+                joinFutures(futures);
+
+                assertEquals(4, errors.get(), "4 out of 5 renames should have failed");
+            });
+
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("3"), updater -> {
+                var latch = new CountDownLatch(5);
+                var futures = new ArrayList<Future<?>>();
+
+                for (int i = 0; i < 5; i++) {
+                    futures.add(executor.submit(() -> {
+                        latch.countDown();
+                        updater.addPath(ITestHelper.expectedRepoPath("repo15"), "repo15", OcflOption.OVERWRITE);
+                    }));
+                }
+
+                joinFutures(futures);
+            });
+
+            repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("4"), updater -> {
+                var root = ITestHelper.expectedRepoPath("repo17");
+                var futures = new ArrayList<Future<?>>();
+
+                try (var files = Files.find(root, Integer.MAX_VALUE, (file, attrs) -> attrs.isRegularFile())) {
+                    files.map(file -> executor.submit(() -> updater.addPath(
+                                    file, "repo17/" + FileUtil.pathToStringStandardSeparator(root.relativize(file)))))
+                            .forEach(futures::add);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+                joinFutures(futures);
+            });
+
+            Assertions.assertThat(repo.validateObject(objectId, true).getErrors())
+                    .isEmpty();
+
+            var outputPath1 = outputPath(repoName, objectId + "v1");
+            repo.getObject(ObjectVersionId.version(objectId, 1), outputPath1);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v1"), outputPath1);
+
+            var outputPath2 = outputPath(repoName, objectId + "v2");
+            repo.getObject(ObjectVersionId.version(objectId, 2), outputPath2);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v2"), outputPath2);
+
+            var outputPath3 = outputPath(repoName, objectId + "v3");
+            repo.getObject(ObjectVersionId.version(objectId, 3), outputPath3);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v3"), outputPath3);
+
+            var outputPath4 = outputPath(repoName, objectId + "v4");
+            repo.getObject(ObjectVersionId.version(objectId, 4), outputPath4);
+            ITestHelper.verifyDirectoryContentsSame(ITestHelper.expectedOutputPath(repoName, "o1v4"), outputPath4);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private void joinFutures(List<Future<?>> futures) {
+        for (var future : futures) {
+            try {
+                future.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     @Override
     protected OcflRepository defaultRepo(String name, Consumer<OcflRepositoryBuilder> consumer) {
         var builder = new OcflRepositoryBuilder()
@@ -276,6 +441,7 @@ public class S3OcflITest extends OcflITest {
 
         return OcflS3Client.builder()
                 .s3Client(s3Client)
+                .transferManager(transferManager)
                 .bucket(bucket)
                 .repoPrefix(prefix(name))
                 .build();
