@@ -76,6 +76,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -2208,23 +2209,25 @@ public abstract class OcflITest {
             updater.writeFile(ITestHelper.streamString("file2"), "file2.txt");
         });
 
+        var phaser = new Phaser(2);
+
         var future = CompletableFuture.runAsync(() -> {
             repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
-                try {
-                    TimeUnit.SECONDS.sleep(3);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                phaser.arriveAndAwaitAdvance();
+                phaser.arriveAndAwaitAdvance();
                 updater.writeFile(ITestHelper.streamString("file3"), "file3.txt");
             });
         });
 
-        TimeUnit.MILLISECONDS.sleep(100);
+        phaser.arriveAndAwaitAdvance();
 
         repo.rollbackToVersion(ObjectVersionId.version(objectId, "v1"));
         repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo, updater -> {
             updater.writeFile(ITestHelper.streamString("file4"), "file4.txt");
         });
+
+        phaser.arriveAndAwaitAdvance();
+        TimeUnit.MILLISECONDS.sleep(100);
 
         OcflAsserts.assertThrowsWithMessage(
                 ObjectOutOfSyncException.class,
