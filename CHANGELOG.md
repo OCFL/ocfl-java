@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- `ObjectVersionId.equals()` no longer throws an error for HEAD versions: https://github.com/OCFL/ocfl-java/issues/110 
 - Deleting an object in S3 that contains more than 1,000 files now works.
 - Writing to files with identical content and writing the first file a second time to the same version no longer causes
   the staged file to be erroneously deleted.

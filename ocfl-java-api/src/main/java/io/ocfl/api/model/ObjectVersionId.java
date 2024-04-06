@@ -167,7 +167,7 @@ public class ObjectVersionId {
             return false;
         }
         ObjectVersionId that = (ObjectVersionId) o;
-        return objectId.equals(that.objectId) && versionNum.equals(that.versionNum);
+        return objectId.equals(that.objectId) && Objects.equals(versionNum, that.versionNum);
     }
 
     @Override
