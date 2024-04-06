@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- `ObjectVersionId.equals()` no longer throws an error for HEAD versions: https://github.com/OCFL/ocfl-java/issues/110 
+
 ## [2.0.1] - 2024-03-01
 
 ### Fixed
