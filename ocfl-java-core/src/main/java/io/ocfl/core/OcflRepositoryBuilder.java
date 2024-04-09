@@ -63,7 +63,7 @@ import java.util.function.Consumer;
 
 /**
  * Constructs a local file system based OCFL repository sensible defaults that can be overridden prior to calling
- * build().
+ * {@link #build()}.
  *
  * <p>Important: The same OcflRepositoryBuilder instance MUST NOT be used to initialize multiple repositories.
  */
@@ -74,6 +74,7 @@ public class OcflRepositoryBuilder {
     private OcflExtensionConfig defaultLayoutConfig;
     private Path workDir;
     private boolean verifyStaging;
+    private Duration fileLockTimeoutDuration;
 
     private ObjectLock objectLock;
     private Cache<String, Inventory> inventoryCache;
@@ -86,7 +87,7 @@ public class OcflRepositoryBuilder {
 
     /**
      * Constructs a local file system based OCFL repository sensible defaults that can be overridden prior to calling
-     * build().
+     * {@link #build()}.
      *
      * <p>Important: The same OcflRepositoryBuilder instance MUST NOT be used to initialize multiple repositories.
      */
@@ -103,6 +104,7 @@ public class OcflRepositoryBuilder {
         unsupportedBehavior = UnsupportedExtensionBehavior.FAIL;
         ignoreUnsupportedExtensions = Collections.emptySet();
         verifyStaging = true;
+        fileLockTimeoutDuration = Duration.ofMinutes(1);
     }
 
     /**
@@ -374,7 +376,23 @@ public class OcflRepositoryBuilder {
     }
 
     /**
+     * Configures the max amount of time to wait for a file lock when updating an object from multiple threads. This
+     * only matters if you concurrently write files to the same object, and can otherwise be ignored. The default
+     * timeout is 1 minute.
+     *
+     * @param fileLockTimeoutDuration the max amount of time to wait for a file lock
+     * @return builder
+     */
+    public OcflRepositoryBuilder fileLockTimeoutDuration(Duration fileLockTimeoutDuration) {
+        this.fileLockTimeoutDuration =
+                Enforce.notNull(fileLockTimeoutDuration, "fileLockTimeoutDuration cannot be null");
+        return this;
+    }
+
+    /**
      * Constructs an OCFL repository. Brand new repositories are initialized.
+     * <p>
+     * Remember to call {@link OcflRepository#close()} when you are done with the repository.
      *
      * @return OcflRepository
      */
@@ -384,6 +402,8 @@ public class OcflRepositoryBuilder {
 
     /**
      * Constructs an OCFL repository that allows the use of the Mutable HEAD Extension. Brand new repositories are initialized.
+     * <p>
+     * Remember to call {@link OcflRepository#close()} when you are done with the repository.
      *
      * @return MutableOcflRepository
      */
@@ -418,7 +438,8 @@ public class OcflRepositoryBuilder {
                     logicalPathMapper,
                     contentPathConstraintProcessor,
                     config,
-                    verifyStaging));
+                    verifyStaging,
+                    fileLockTimeoutDuration));
         }
 
         return clazz.cast(new DefaultOcflRepository(
@@ -429,7 +450,8 @@ public class OcflRepositoryBuilder {
                 logicalPathMapper,
                 contentPathConstraintProcessor,
                 config,
-                verifyStaging));
+                verifyStaging,
+                fileLockTimeoutDuration));
     }
 
     private OcflStorage cache(OcflStorage storage) {

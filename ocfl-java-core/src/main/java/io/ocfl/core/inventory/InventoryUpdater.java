@@ -43,6 +43,8 @@ import io.ocfl.core.path.constraint.PathConstraintProcessor;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class is used to record changes to OCFL objects and construct an updated inventory.
@@ -59,6 +61,8 @@ public class InventoryUpdater {
 
     private final ContentPathMapper contentPathMapper;
     private final PathConstraintProcessor logicalPathConstraints;
+
+    private final Lock lock = new ReentrantLock();
 
     public static Builder builder() {
         return new Builder();
@@ -187,12 +191,17 @@ public class InventoryUpdater {
      * @return new inventory
      */
     public Inventory buildNewInventory(OffsetDateTime createdTimestamp, VersionInfo versionInfo) {
-        return inventoryBuilder
-                .addHeadVersion(versionBuilder
-                        .versionInfo(versionInfo)
-                        .created(createdTimestamp)
-                        .build())
-                .build();
+        lock.lock();
+        try {
+            return inventoryBuilder
+                    .addHeadVersion(versionBuilder
+                            .versionInfo(versionInfo)
+                            .created(createdTimestamp)
+                            .build())
+                    .build();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -203,12 +212,20 @@ public class InventoryUpdater {
      * @return true if the inventory is upgraded; false otherwise
      */
     public boolean upgradeInventory(OcflConfig config) {
-        if (config.isUpgradeObjectsOnWrite()
-                && inventoryBuilder.getType().compareTo(config.getOcflVersion().getInventoryType()) < 0) {
-            inventoryBuilder.type(config.getOcflVersion().getInventoryType());
-            return true;
+        lock.lock();
+        try {
+            if (config.isUpgradeObjectsOnWrite()
+                    && inventoryBuilder
+                                    .getType()
+                                    .compareTo(config.getOcflVersion().getInventoryType())
+                            < 0) {
+                inventoryBuilder.type(config.getOcflVersion().getInventoryType());
+                return true;
+            }
+            return false;
+        } finally {
+            lock.unlock();
         }
-        return false;
     }
 
     /**
@@ -220,26 +237,43 @@ public class InventoryUpdater {
      * @return details about the file if it was added to the manifest
      */
     public AddFileResult addFile(String fileId, String logicalPath, OcflOption... options) {
-        logicalPathConstraints.apply(logicalPath);
+        lock.lock();
+        try {
+            logicalPathConstraints.apply(logicalPath);
 
-        overwriteProtection(logicalPath, options);
-        versionBuilder.validateNonConflictingPath(logicalPath);
+            overwriteProtection(logicalPath, options);
+            versionBuilder.validateNonConflictingPath(logicalPath);
 
-        if (versionBuilder.containsLogicalPath(logicalPath)) {
-            var oldFileId = versionBuilder.removeLogicalPath(logicalPath);
-            removeFileFromManifest(oldFileId);
+            var oldFileId = versionBuilder.getFileId(logicalPath);
+
+            if (fileId.equalsIgnoreCase(oldFileId)) {
+                var contentPath = contentPathMapper.fromLogicalPath(logicalPath);
+                if (inventoryBuilder.containsContentPath(contentPath)) {
+                    // This means that the exact same file was added multiple times and it is being used as the source
+                    // of the file content
+                    return new AddFileResult(contentPath, pathUnderContentDir(contentPath));
+                }
+            }
+
+            // This is the case when the same logical path was added multiple times, but the content changed
+            if (oldFileId != null) {
+                versionBuilder.removeLogicalPath(logicalPath);
+                removeFileFromManifest(oldFileId);
+            }
+
+            String contentPath = null;
+
+            if (!inventoryBuilder.containsFileId(fileId)) {
+                contentPath = contentPathMapper.fromLogicalPath(logicalPath);
+                inventoryBuilder.addFileToManifest(fileId, contentPath);
+            }
+
+            versionBuilder.addFile(fileId, logicalPath);
+
+            return new AddFileResult(contentPath, pathUnderContentDir(contentPath));
+        } finally {
+            lock.unlock();
         }
-
-        String contentPath = null;
-
-        if (!inventoryBuilder.containsFileId(fileId)) {
-            contentPath = contentPathMapper.fromLogicalPath(logicalPath);
-            inventoryBuilder.addFileToManifest(fileId, contentPath);
-        }
-
-        versionBuilder.addFile(fileId, logicalPath);
-
-        return new AddFileResult(contentPath, pathUnderContentDir(contentPath));
     }
 
     /**
@@ -261,16 +295,21 @@ public class InventoryUpdater {
      * @param digest the digest value
      */
     public void addFixity(String logicalPath, DigestAlgorithm algorithm, String digest) {
-        if (algorithm.equals(inventory.getDigestAlgorithm())) {
-            return;
-        }
+        lock.lock();
+        try {
+            if (algorithm.equals(inventory.getDigestAlgorithm())) {
+                return;
+            }
 
-        var fileId = versionBuilder.getFileId(logicalPath);
+            var fileId = versionBuilder.getFileId(logicalPath);
 
-        if (fileId != null) {
-            inventoryBuilder.getContentPaths(fileId).forEach(contentPath -> {
-                inventoryBuilder.addFixityForFile(contentPath, algorithm, digest);
-            });
+            if (fileId != null) {
+                inventoryBuilder.getContentPaths(fileId).forEach(contentPath -> {
+                    inventoryBuilder.addFixityForFile(contentPath, algorithm, digest);
+                });
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -282,25 +321,35 @@ public class InventoryUpdater {
      * @return the digest or null
      */
     public String getFixityDigest(String logicalPath, DigestAlgorithm algorithm) {
-        if (inventory.getDigestAlgorithm().equals(algorithm)) {
-            return versionBuilder.getFileId(logicalPath);
+        lock.lock();
+        try {
+            if (inventory.getDigestAlgorithm().equals(algorithm)) {
+                return versionBuilder.getFileId(logicalPath);
+            }
+
+            String digest = null;
+            var fileId = versionBuilder.getFileId(logicalPath);
+
+            if (fileId != null) {
+                digest = inventoryBuilder.getFileFixity(fileId, algorithm);
+            }
+
+            return digest;
+        } finally {
+            lock.unlock();
         }
-
-        String digest = null;
-        var fileId = versionBuilder.getFileId(logicalPath);
-
-        if (fileId != null) {
-            digest = inventoryBuilder.getFileFixity(fileId, algorithm);
-        }
-
-        return digest;
     }
 
     /**
      * Removes all entries from the fixity block.
      */
     public void clearFixity() {
-        inventoryBuilder.clearFixity();
+        lock.lock();
+        try {
+            inventoryBuilder.clearFixity();
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -311,8 +360,13 @@ public class InventoryUpdater {
      * @return files that were removed from the manifest
      */
     public Set<RemoveFileResult> removeFile(String logicalPath) {
-        var fileId = versionBuilder.removeLogicalPath(logicalPath);
-        return removeFileFromManifestWithResults(fileId);
+        lock.lock();
+        try {
+            var fileId = versionBuilder.removeLogicalPath(logicalPath);
+            return removeFileFromManifestWithResults(fileId);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -326,25 +380,30 @@ public class InventoryUpdater {
      * @return files that were removed from the manifest
      */
     public Set<RemoveFileResult> renameFile(String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
-        logicalPathConstraints.apply(dstLogicalPath);
+        lock.lock();
+        try {
+            logicalPathConstraints.apply(dstLogicalPath);
 
-        var srcDigest = versionBuilder.getFileId(srcLogicalPath);
+            var srcDigest = versionBuilder.getFileId(srcLogicalPath);
 
-        if (srcDigest == null) {
-            throw new OcflInputException(
-                    String.format("The following path was not found in object %s: %s", objectId, srcLogicalPath));
+            if (srcDigest == null) {
+                throw new OcflInputException(
+                        String.format("The following path was not found in object %s: %s", objectId, srcLogicalPath));
+            }
+
+            overwriteProtection(dstLogicalPath, options);
+            versionBuilder.validateNonConflictingPath(dstLogicalPath);
+
+            var dstFileId = versionBuilder.getFileId(dstLogicalPath);
+
+            versionBuilder.removeLogicalPath(srcLogicalPath);
+            versionBuilder.removeLogicalPath(dstLogicalPath);
+            versionBuilder.addFile(srcDigest, dstLogicalPath);
+
+            return removeFileFromManifestWithResults(dstFileId);
+        } finally {
+            lock.unlock();
         }
-
-        overwriteProtection(dstLogicalPath, options);
-        versionBuilder.validateNonConflictingPath(dstLogicalPath);
-
-        var dstFileId = versionBuilder.getFileId(dstLogicalPath);
-
-        versionBuilder.removeLogicalPath(srcLogicalPath);
-        versionBuilder.removeLogicalPath(dstLogicalPath);
-        versionBuilder.addFile(srcDigest, dstLogicalPath);
-
-        return removeFileFromManifestWithResults(dstFileId);
     }
 
     /**
@@ -360,32 +419,42 @@ public class InventoryUpdater {
      */
     public Set<RemoveFileResult> reinstateFile(
             VersionNum sourceVersion, String srcLogicalPath, String dstLogicalPath, OcflOption... options) {
-        logicalPathConstraints.apply(dstLogicalPath);
+        lock.lock();
+        try {
+            logicalPathConstraints.apply(dstLogicalPath);
 
-        var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);
+            var srcDigest = getDigestFromVersion(sourceVersion, srcLogicalPath);
 
-        if (srcDigest == null) {
-            throw new OcflInputException(String.format(
-                    "Object %s version %s does not contain a file at %s", objectId, sourceVersion, srcLogicalPath));
+            if (srcDigest == null) {
+                throw new OcflInputException(String.format(
+                        "Object %s version %s does not contain a file at %s", objectId, sourceVersion, srcLogicalPath));
+            }
+
+            overwriteProtection(dstLogicalPath, options);
+            versionBuilder.validateNonConflictingPath(dstLogicalPath);
+
+            var dstFileId = versionBuilder.getFileId(dstLogicalPath);
+
+            versionBuilder.removeLogicalPath(dstLogicalPath);
+            versionBuilder.addFile(srcDigest, dstLogicalPath);
+
+            return removeFileFromManifestWithResults(dstFileId);
+        } finally {
+            lock.unlock();
         }
-
-        overwriteProtection(dstLogicalPath, options);
-        versionBuilder.validateNonConflictingPath(dstLogicalPath);
-
-        var dstFileId = versionBuilder.getFileId(dstLogicalPath);
-
-        versionBuilder.removeLogicalPath(dstLogicalPath);
-        versionBuilder.addFile(srcDigest, dstLogicalPath);
-
-        return removeFileFromManifestWithResults(dstFileId);
     }
 
     /**
      * Removes all of the files from the version's state.
      */
     public void clearState() {
-        var state = new HashSet<>(versionBuilder.getInvertedState().keySet());
-        state.forEach(this::removeFile);
+        lock.lock();
+        try {
+            var state = new HashSet<>(versionBuilder.getInvertedState().keySet());
+            state.forEach(this::removeFile);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private String getDigestFromVersion(VersionNum versionNum, String logicalPath) {

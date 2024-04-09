@@ -5,6 +5,19 @@
 ### Fixed
 
 - `ObjectVersionId.equals()` no longer throws an error for HEAD versions: https://github.com/OCFL/ocfl-java/issues/110 
+- Deleting an object in S3 that contains more than 1,000 files now works.
+- Writing to files with identical content and writing the first file a second time to the same version no longer causes
+  the staged file to be erroneously deleted.
+
+### Changed
+
+- **Breaking:** A `S3AsyncClient` S3 client now must be used with ocfl-java-aws, and the sync version is no longer supported.
+- ocfl-java-aws now uses the [S3 Transfer Manager](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/transfer-manager.html)
+  to upload and download files from S3. See the [usage guide](docs/USAGE.md#s3-transfer-manager) for more details.
+- ocfl-java-aws now concurrently uploads files when writing an object to S3. This should improve object write performance.
+- The `OcflObjectUpdater` was updated to be thread safe, enabling concurrently writing files to it. This _may_ speed up
+  writing a large number of files to an object. See the [usage guide](docs/USAGE.md#improving-write-performance) for
+  more details.
 
 ## [2.0.1] - 2024-03-01
 

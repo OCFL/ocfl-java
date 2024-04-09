@@ -17,11 +17,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
 public class S3BadReposITest extends BadReposITest {
 
@@ -33,7 +35,8 @@ public class S3BadReposITest extends BadReposITest {
     @RegisterExtension
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
 
-    private static S3Client s3Client;
+    private static S3AsyncClient s3Client;
+    private static S3TransferManager transferManager;
     private static String bucket;
 
     private static ComboPooledDataSource dataSource;
@@ -48,22 +51,31 @@ public class S3BadReposITest extends BadReposITest {
         var bucket = System.getenv().get("OCFL_TEST_S3_BUCKET");
 
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
-            LOG.info("Running tests against AWS");
+            LOG.warn("Running tests against AWS");
             s3Client = S3ITestHelper.createS3Client(accessKey, secretKey);
             S3BadReposITest.bucket = bucket;
         } else {
-            LOG.info("Running tests against S3 Mock");
-            s3Client = S3_MOCK.createS3ClientV2();
+            LOG.warn("Running tests against S3 Mock");
+            s3Client = S3ITestHelper.createMockS3Client(S3_MOCK.getServiceEndpoint());
             S3BadReposITest.bucket = UUID.randomUUID().toString();
             s3Client.createBucket(request -> {
-                request.bucket(S3BadReposITest.bucket);
-            });
+                        request.bucket(S3BadReposITest.bucket);
+                    })
+                    .join();
         }
+
+        transferManager = S3TransferManager.builder().s3Client(s3Client).build();
 
         dataSource = new ComboPooledDataSource();
         dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
         dataSource.setUser(System.getProperty("db.user", ""));
         dataSource.setPassword(System.getProperty("db.password", ""));
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        s3Client.close();
+        transferManager.close();
     }
 
     @Override
@@ -119,6 +131,7 @@ public class S3BadReposITest extends BadReposITest {
 
         return OcflS3Client.builder()
                 .s3Client(s3Client)
+                .transferManager(transferManager)
                 .bucket(bucket)
                 .repoPrefix(prefix(name))
                 .build();
