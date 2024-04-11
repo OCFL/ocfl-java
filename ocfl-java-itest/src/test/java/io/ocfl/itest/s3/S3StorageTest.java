@@ -31,6 +31,7 @@ public class S3StorageTest extends StorageTest {
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
 
     private static S3AsyncClient s3Client;
+    private static S3AsyncClient tmClient;
     private static S3TransferManager transferManager;
     private static String bucket;
 
@@ -41,18 +42,21 @@ public class S3StorageTest extends StorageTest {
     @BeforeAll
     public static void beforeAll() {
         s3Client = S3ITestHelper.createMockS3Client(S3_MOCK.getServiceEndpoint());
+        var tm = S3ITestHelper.createMockTransferManager(S3_MOCK.getServiceEndpoint());
+        tmClient = tm.getLeft();
+        transferManager = tm.getRight();
         S3StorageTest.bucket = UUID.randomUUID().toString();
         s3Client.createBucket(request -> {
                     request.bucket(S3StorageTest.bucket);
                 })
                 .join();
-        transferManager = S3TransferManager.builder().s3Client(s3Client).build();
     }
 
     @AfterAll
     public static void afterAll() {
         s3Client.close();
         transferManager.close();
+        tmClient.close();
     }
 
     @AfterEach
@@ -85,8 +89,7 @@ public class S3StorageTest extends StorageTest {
     }
 
     protected String readFile(String path) {
-        try (var content = S3ITestHelper.resolveClient(s3Client)
-                .getObject(
+        try (var content = s3Client.getObject(
                         request -> {
                             request.bucket(bucket).key(FileUtil.pathJoinFailEmpty(prefix(name), path));
                         },

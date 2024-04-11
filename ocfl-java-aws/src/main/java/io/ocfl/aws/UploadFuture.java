@@ -26,22 +26,22 @@ package io.ocfl.aws;
 
 import io.ocfl.core.storage.cloud.CloudObjectKey;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import software.amazon.awssdk.transfer.s3.model.FileUpload;
 
 /**
  * Converts a FileUpload CompletionFuture into a regular Future.
  */
 public class UploadFuture implements Future<CloudObjectKey> {
 
-    private final FileUpload upload;
+    private final CompletableFuture<?> upload;
     private final Path srcPath;
     private final CloudObjectKey dstKey;
 
-    public UploadFuture(FileUpload upload, Path srcPath, CloudObjectKey dstKey) {
+    public UploadFuture(CompletableFuture<?> upload, Path srcPath, CloudObjectKey dstKey) {
         this.upload = upload;
         this.srcPath = srcPath;
         this.dstKey = dstKey;
@@ -49,23 +49,23 @@ public class UploadFuture implements Future<CloudObjectKey> {
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        return upload.completionFuture().cancel(mayInterruptIfRunning);
+        return upload.cancel(mayInterruptIfRunning);
     }
 
     @Override
     public boolean isCancelled() {
-        return upload.completionFuture().isCancelled();
+        return upload.isCancelled();
     }
 
     @Override
     public boolean isDone() {
-        return upload.completionFuture().isDone();
+        return upload.isDone();
     }
 
     @Override
     public CloudObjectKey get() throws InterruptedException, ExecutionException {
         try {
-            upload.completionFuture().get();
+            upload.get();
         } catch (RuntimeException e) {
             throw new ExecutionException(new OcflS3Exception(
                     "Failed to upload " + srcPath + " to " + dstKey, OcflS3Util.unwrapCompletionEx(e)));
@@ -77,7 +77,7 @@ public class UploadFuture implements Future<CloudObjectKey> {
     public CloudObjectKey get(long timeout, TimeUnit unit)
             throws InterruptedException, ExecutionException, TimeoutException {
         try {
-            upload.completionFuture().get(timeout, unit);
+            upload.get(timeout, unit);
         } catch (RuntimeException e) {
             throw new ExecutionException(new OcflS3Exception(
                     "Failed to upload " + srcPath + " to " + dstKey, OcflS3Util.unwrapCompletionEx(e)));

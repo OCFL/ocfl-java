@@ -36,6 +36,7 @@ public class S3BadReposITest extends BadReposITest {
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
 
     private static S3AsyncClient s3Client;
+    private static S3AsyncClient tmClient;
     private static S3TransferManager transferManager;
     private static String bucket;
 
@@ -53,18 +54,22 @@ public class S3BadReposITest extends BadReposITest {
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
             LOG.warn("Running tests against AWS");
             s3Client = S3ITestHelper.createS3Client(accessKey, secretKey);
+            var tm = S3ITestHelper.createTransferManager(accessKey, secretKey);
+            tmClient = tm.getLeft();
+            transferManager = tm.getRight();
             S3BadReposITest.bucket = bucket;
         } else {
             LOG.warn("Running tests against S3 Mock");
             s3Client = S3ITestHelper.createMockS3Client(S3_MOCK.getServiceEndpoint());
+            var tm = S3ITestHelper.createMockTransferManager(S3_MOCK.getServiceEndpoint());
+            tmClient = tm.getLeft();
+            transferManager = tm.getRight();
             S3BadReposITest.bucket = UUID.randomUUID().toString();
             s3Client.createBucket(request -> {
                         request.bucket(S3BadReposITest.bucket);
                     })
                     .join();
         }
-
-        transferManager = S3TransferManager.builder().s3Client(s3Client).build();
 
         dataSource = new ComboPooledDataSource();
         dataSource.setJdbcUrl(System.getProperty("db.url", "jdbc:h2:mem:test"));
@@ -76,6 +81,7 @@ public class S3BadReposITest extends BadReposITest {
     public static void afterAll() {
         s3Client.close();
         transferManager.close();
+        tmClient.close();
     }
 
     @Override
