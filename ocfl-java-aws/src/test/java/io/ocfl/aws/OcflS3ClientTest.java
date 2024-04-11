@@ -102,16 +102,14 @@ public class OcflS3ClientTest {
                             .buildWithDefaults(AttributeMap.builder()
                                     .put(TRUST_ALL_CERTIFICATES, Boolean.TRUE)
                                     .build()))
-                    .credentialsProvider(
-                            StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                    .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("foo", "bar")))
                     .build();
             tmClient = S3AsyncClient.crtBuilder()
                     .endpointOverride(URI.create(S3_MOCK.getServiceEndpoint()))
                     .region(Region.US_EAST_2)
                     .forcePathStyle(true)
                     .httpConfiguration(b -> b.trustAllCertificatesEnabled(true))
-                    .credentialsProvider(
-                            StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                    .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("foo", "bar")))
                     .build();
             transferManager = S3TransferManager.builder().s3Client(tmClient).build();
 
