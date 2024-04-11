@@ -52,7 +52,6 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
@@ -73,6 +72,8 @@ public class OcflS3Client implements CloudClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(OcflS3Client.class);
 
+    private static final long EIGHT_MB = 8 * 1024 * 1024;
+
     private final S3AsyncClient s3Client;
     private final S3TransferManager transferManager;
     private final String bucket;
@@ -80,9 +81,6 @@ public class OcflS3Client implements CloudClient {
     private final CloudObjectKey.Builder keyBuilder;
 
     private final BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
-
-    private final boolean shouldCloseManager;
-    private final boolean useMultipartDownload;
 
     /**
      * Used to create a new OcflS3Client instance.
@@ -109,7 +107,7 @@ public class OcflS3Client implements CloudClient {
      * @param s3Client aws sdk s3 client, not null
      * @param bucket s3 bucket, not null
      * @param prefix key prefix, may be null
-     * @param transferManager aws sdk s3 transfer manager, may be null
+     * @param transferManager aws sdk s3 transfer manager, not null
      * @param putObjectModifier hook for modifying putObject requests, may be null
      */
     public OcflS3Client(
@@ -118,22 +116,12 @@ public class OcflS3Client implements CloudClient {
             String prefix,
             S3TransferManager transferManager,
             BiConsumer<String, PutObjectRequest.Builder> putObjectModifier) {
-        Enforce.notNull(s3Client, "s3Client cannot be null");
+        this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
         this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
         this.repoPrefix = sanitizeRepoPrefix(prefix == null ? "" : prefix);
-        this.shouldCloseManager = transferManager == null;
-        this.transferManager = transferManager == null
-                ? S3TransferManager.builder().s3Client(s3Client).build()
-                : transferManager;
+        this.transferManager = Enforce.notNull(transferManager, "transferManager cannot be null");
         this.keyBuilder = CloudObjectKey.builder().prefix(repoPrefix);
         this.putObjectModifier = putObjectModifier != null ? putObjectModifier : (k, b) -> {};
-        // This hacky nonsense is needed until MultipartS3AsyncClient supports downloads
-        this.useMultipartDownload = !(s3Client instanceof MultipartS3AsyncClient);
-        if (s3Client instanceof MultipartS3AsyncClient) {
-            this.s3Client = (S3AsyncClient) ((MultipartS3AsyncClient) s3Client).delegate();
-        } else {
-            this.s3Client = s3Client;
-        }
     }
 
     private static String sanitizeRepoPrefix(String repoPrefix) {
@@ -150,13 +138,11 @@ public class OcflS3Client implements CloudClient {
     }
 
     /**
-     * {@inheritDoc}
+     * Nothing to do
      */
     @Override
     public void close() {
-        if (shouldCloseManager) {
-            transferManager.close();
-        }
+        // noop
     }
 
     /**
@@ -197,11 +183,17 @@ public class OcflS3Client implements CloudClient {
 
         putObjectModifier.accept(dstKey.getKey(), builder);
 
-        var upload = transferManager.uploadFile(req -> req.source(srcPath)
-                .putObjectRequest(builder.bucket(bucket).key(dstKey.getKey()).build())
-                .build());
-
-        return new UploadFuture(upload, srcPath, dstKey);
+        if (fileSize >= EIGHT_MB) {
+            var upload = transferManager.uploadFile(req -> req.source(srcPath)
+                    .putObjectRequest(
+                            builder.bucket(bucket).key(dstKey.getKey()).build())
+                    .build());
+            return new UploadFuture(upload.completionFuture(), srcPath, dstKey);
+        } else {
+            var upload = s3Client.putObject(
+                    builder.bucket(bucket).key(dstKey.getKey()).build(), srcPath);
+            return new UploadFuture(upload, srcPath, dstKey);
+        }
     }
 
     /**
@@ -261,14 +253,13 @@ public class OcflS3Client implements CloudClient {
         LOG.debug("Copying {} to {} in bucket {}", srcKey, dstKey, bucket);
 
         try {
-            var copy = transferManager.copy(req -> req.copyObjectRequest(copyReq -> copyReq.destinationBucket(bucket)
-                            .destinationKey(dstKey.getKey())
-                            .sourceBucket(bucket)
-                            .sourceKey(srcKey.getKey())
-                            .build())
+            var copy = s3Client.copyObject(req -> req.destinationBucket(bucket)
+                    .destinationKey(dstKey.getKey())
+                    .sourceBucket(bucket)
+                    .sourceKey(srcKey.getKey())
                     .build());
 
-            copy.completionFuture().join();
+            copy.join();
         } catch (RuntimeException e) {
             var cause = OcflS3Util.unwrapCompletionEx(e);
             if (wasNotFound(cause)) {
@@ -289,24 +280,13 @@ public class OcflS3Client implements CloudClient {
         LOG.debug("Downloading from bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
-            if (useMultipartDownload) {
-                transferManager
-                        .downloadFile(req -> req.getObjectRequest(getReq -> getReq.bucket(bucket)
-                                        .key(srcKey.getKey())
-                                        .build())
-                                .destination(dstPath)
-                                .build())
-                        .completionFuture()
-                        .join();
-            } else {
-                s3Client.getObject(
-                                GetObjectRequest.builder()
-                                        .bucket(bucket)
-                                        .key(srcKey.getKey())
-                                        .build(),
-                                dstPath)
-                        .join();
-            }
+            transferManager
+                    .downloadFile(req -> req.getObjectRequest(getReq ->
+                                    getReq.bucket(bucket).key(srcKey.getKey()).build())
+                            .destination(dstPath)
+                            .build())
+                    .completionFuture()
+                    .join();
         } catch (RuntimeException e) {
             var cause = OcflS3Util.unwrapCompletionEx(e);
             if (wasNotFound(cause)) {
@@ -619,34 +599,12 @@ public class OcflS3Client implements CloudClient {
         /**
          * The AWS SDK S3 client. Required.
          * <p>
-         * If a {@link #transferManager(S3TransferManager)} is not specified, then the client specified here will be
-         * used to create a default transfer manager. If you specify a transfer manager, it does not need to use the
-         * same client as the one specified here. However, when creating a client to be used by the transfer manager,
-         * it is important to understand the following gotchas.
-         * <p>
-         * The client used by the transfer manager <b>MUST</b> either be the <a href="https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html">CRT client</a>
-         * or the regular S3AsyncClient wrapped in {@link software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient}
-         * in order for multipart uploads to work. Otherwise, files will be uploaded in single PUT requests. Additionally,
-         * only the CRT client supports multipart downloads.
-         * <p>
-         * If you are using a 3rd party S3 implementation, then you will likely additionally need to disable the
-         * <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">object integrity check</a>
-         * as most 3rd party implementations do not support it. This easy to do on the CRT client builder by setting
-         * {@code checksumValidationEnabled()} to {@code false}.
+         * This client should NOT be the same client that's used with the transfer manager, and it should NOT be
+         * the CRT client. The reason being that the CRT client only performs well when operating on files greater
+         * than 8MB, and is <i>significantly</i> slower when operating on smaller files.
          * <p>
          * This client is NOT closed when the repository is closed, and the user is responsible for closing it when appropriate.
-         * <p>
-         * <pre>{@code
-         * // Please refer to the official documentation to properly configure your client.
-         * // When using the CRT client, create it something like this:
-         * S3AsyncClient.crtBuilder().build();
          *
-         * // When using the regular async client, create it something like this:
-         * MultipartS3AsyncClient.create(
-         *         S3AsyncClient.builder().build(),
-         *         MultipartConfiguration.builder().build());
-         * // The important part here is that you use the MultipartS3AsyncClient wrapper!
-         * }</pre>
          * @param s3Client s3 client
          * @return builder
          */
@@ -656,14 +614,16 @@ public class OcflS3Client implements CloudClient {
         }
 
         /**
-         * The AWS SDK S3 transfer manager. This only needs to be specified when you need to set specific settings, and,
-         * if it is specified, it can use the same S3 client as was supplied in {@link #s3Client(S3AsyncClient)}.
-         * Otherwise, when not specified, the default transfer manager is created using the provided S3 Client.
+         * The AWS SDK S3 transfer manager. Required.
          * <p>
-         * Please refer to the docs on {@link #s3Client(S3AsyncClient)} for additional details on how the S3 client
-         * used by the transfer manager should be configured.
+         * The transfer manager should be configured per the official AWS documentation, using the CRT client.
          * <p>
-         * When a transfer manager is provided, it will NOT be closed when the repository is closed, and the user is
+         * If you are using a 3rd party S3 implementation, then you will likely additionally need to disable the
+         * <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">object integrity check</a>
+         * as most 3rd party implementations do not support it. This easy to do on the CRT client builder by setting
+         * {@code checksumValidationEnabled()} to {@code false}.
+         * <p>
+         * The transfer manager will NOT be closed when the repository is closed, and the user is
          * responsible for closing it when appropriate.
          *
          * @param transferManager S3 transfer manager

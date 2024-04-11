@@ -7,7 +7,7 @@ build:
     ./mvnw -DskipTests clean package
 
 # Installs ocfl-java into local M2
-install: build
+install:
     ./mvnw -DskipTests clean install
 
 # Runs the tests

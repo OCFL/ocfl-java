@@ -18,6 +18,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +43,7 @@ import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.internal.multipart.MultipartS3AsyncClient;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.S3Object;
-import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
 import software.amazon.awssdk.utils.AttributeMap;
 
 public class OcflS3ClientTest {
@@ -56,7 +57,9 @@ public class OcflS3ClientTest {
     public static S3MockExtension S3_MOCK = S3MockExtension.builder().silent().build();
 
     private static S3AsyncClient awsS3Client;
+    private static S3AsyncClient tmClient;
     private static OcflS3Client client;
+    private static S3TransferManager transferManager;
     private static String bucket;
 
     @TempDir
@@ -70,30 +73,48 @@ public class OcflS3ClientTest {
 
         if (StringUtils.isNotBlank(accessKey) && StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(bucket)) {
             LOG.warn("Running tests against AWS");
-            awsS3Client = S3AsyncClient.crtBuilder()
+            awsS3Client = S3AsyncClient.builder()
+                    .region(Region.US_EAST_2)
+                    .credentialsProvider(
+                            StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                    .httpClientBuilder(NettyNioAsyncHttpClient.builder()
+                            .connectionAcquisitionTimeout(Duration.ofSeconds(60))
+                            .writeTimeout(Duration.ofSeconds(120))
+                            .readTimeout(Duration.ofSeconds(60))
+                            .maxConcurrency(100))
+                    .build();
+            tmClient = S3AsyncClient.crtBuilder()
                     .region(Region.US_EAST_2)
                     .credentialsProvider(
                             StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                     .build();
+            transferManager = S3TransferManager.builder().s3Client(tmClient).build();
             OcflS3ClientTest.bucket = bucket;
         } else {
             LOG.warn("Running tests against S3 Mock");
-            awsS3Client = MultipartS3AsyncClient.create(
-                    S3AsyncClient.builder()
-                            .endpointOverride(URI.create(S3_MOCK.getServiceEndpoint()))
-                            .region(Region.US_EAST_2)
-                            .credentialsProvider(
-                                    StaticCredentialsProvider.create(AwsBasicCredentials.create("foo", "bar")))
-                            .serviceConfiguration(S3Configuration.builder()
-                                    .pathStyleAccessEnabled(true)
-                                    .build())
-                            .httpClient(NettyNioAsyncHttpClient.builder()
-                                    .buildWithDefaults(AttributeMap.builder()
-                                            .put(TRUST_ALL_CERTIFICATES, Boolean.TRUE)
-                                            .build()))
-                            .build(),
-                    MultipartConfiguration.builder().build());
-            ;
+            awsS3Client = S3AsyncClient.builder()
+                    .endpointOverride(URI.create(S3_MOCK.getServiceEndpoint()))
+                    .region(Region.US_EAST_2)
+                    .serviceConfiguration(S3Configuration.builder()
+                            .pathStyleAccessEnabled(true)
+                            .build())
+                    .httpClient(NettyNioAsyncHttpClient.builder()
+                            .buildWithDefaults(AttributeMap.builder()
+                                    .put(TRUST_ALL_CERTIFICATES, Boolean.TRUE)
+                                    .build()))
+                    .credentialsProvider(
+                            StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                    .build();
+            tmClient = S3AsyncClient.crtBuilder()
+                    .endpointOverride(URI.create(S3_MOCK.getServiceEndpoint()))
+                    .region(Region.US_EAST_2)
+                    .forcePathStyle(true)
+                    .httpConfiguration(b -> b.trustAllCertificatesEnabled(true))
+                    .credentialsProvider(
+                            StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+                    .build();
+            transferManager = S3TransferManager.builder().s3Client(tmClient).build();
+
             OcflS3ClientTest.bucket = UUID.randomUUID().toString();
             awsS3Client
                     .createBucket(request -> {
@@ -104,6 +125,7 @@ public class OcflS3ClientTest {
 
         client = OcflS3Client.builder()
                 .s3Client(awsS3Client)
+                .transferManager(transferManager)
                 .bucket(OcflS3ClientTest.bucket)
                 .repoPrefix(REPO_PREFIX)
                 .build();
@@ -112,6 +134,8 @@ public class OcflS3ClientTest {
     @AfterAll
     public static void afterAll() {
         awsS3Client.close();
+        transferManager.close();
+        tmClient.close();
         client.close();
     }
 
@@ -135,6 +159,7 @@ public class OcflS3ClientTest {
     public void putObjectWithModification() throws IOException {
         var client = OcflS3Client.builder()
                 .s3Client(awsS3Client)
+                .transferManager(transferManager)
                 .bucket(bucket)
                 .repoPrefix(REPO_PREFIX)
                 .putObjectModifier((key, builder) -> {

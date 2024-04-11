@@ -173,98 +173,37 @@ from S3 on every access.
 
 `ocfl-java` uses the new [S3 Transfer
 Manager](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/transfer-manager.html)
-to upload and download files from S3. You can configure the transfer
+to upload files larger than 8MB to S3. You can configure the transfer
 manager to target a specific throughput, based on the needs of your
-application. Consult the official documentation for details.
-
-However, note that it is **crucial** that you configure the transfer
-manager to use the new [CRT S3
-client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html)
-or wrap the old Netty async client in a `MultipartS3AsyncClient`.
-The reason for this is because the transfer manager only supports
-multipart uploads and downloads with the CRT client. However, you can
-make multipart uploads work with the old client if it's wrapped in a
-`MultipartS3AsyncClient`, but multipart downloads will still not work.
+application. Consult the official documentation for details. Note that
+it is **crucial** that you configure the transfer manager to use the
+new [CRT S3
+client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html).
 
 Additionally, if you are using a 3rd party S3 implementation, you will
 likely need to disable [object integrity
 checks](https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html)
 on the client that is used by the transfer manager. This is because
 most/all 3rd party implementations do not support it, and it causes
-the requests to fail.
-
-If you do not specify a transfer manager when constructing the
-`OcflS3Client`, then it will create the default transfer manager using
-the S3 client it was provided. When you use the default transfer
-manager, you need to be sure to close the `OcflRepository` when you
-are done with it, otherwise the transfer manager will not be closed.
-Note that if you construct your own transfer manager, which is
-advisable so that you can configure it to your specifications, it does
-not need to use the same S3 client as the one already specified on
-`OcflS3Client` but it can. For example, maybe you only want to use the
-CRT client in the transfer manager, and you want to run everything
-else through the regular client.
-
-If you are using the CRT client, then you need to add
-`software.amazon.awssdk.crt:aws-crt` to your project, and create the
-client similar to this, for the default settings:
-
-``` java
-S3AsyncClient.crtBuilder().build();
-```
-
-If you are using the Netty async client, then you don't need to add
-any additional dependencies, and you'd create the client similar to
-this, for the default settings:
-
-``` java
-MultipartS3AsyncClient.create(
-        S3AsyncClient.builder().build(),
-        MultipartConfiguration.builder().build());
-```
-
-Note the use of `MultipartS3AsyncClient`. Very important!
-
-If you are using a 3rd party S3 implementation and need to disable the
-object integrity check, then you can do so as follows:
+the requests to fail. Object integrity checks are disabled when
+constructing the client as follows:
 
 ``` java
 S3AsyncClient.crtBuilder().checksumValidationEnabled(false).build();
 ```
 
-Unfortunately, this is harder to do if you use the Netty client
-wrapped in `MultipartS3AsyncClient`. As of this writing, it must be
-disabled per-request as follows:
+### S3 Client
 
-``` java
-OcflS3Client.builder()
-        .bucket(bucket)
-        .s3Client(MultipartS3AsyncClient.create(
-                S3AsyncClient.builder().build(),
-                MultipartConfiguration.builder().build()))
-        .putObjectModifier(
-                (key, builder) -> builder.overrideConfiguration(override -> override.putExecutionAttribute(
-                        AwsSignerExecutionAttribute.SERVICE_CONFIG,
-                        S3Configuration.builder()
-                                .checksumValidationEnabled(false)
-                                .build())))
-        .build();
-```
+In addition to the CRT client that's created for the transfer manager
+as described above, you also need to create a second non-CRT client.
+The reason for this is that the CRT client is optimized to work with
+large files and does not perform well with small files.
 
-### Configuration
-
-#### AWS SDK
-
-If you are using the [CRT
-client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html),
-remember to set `targetThroughputInGbps()` on the builder, which
-controls the client's concurrency.
-
-If you are using the regular async Netty client, you will likely want
-to set `connectionAcquisitionTimeout`, `writeTimeout`, `readTimeout`,
-and `maxConcurrency`. This is critical because `ocfl-java` queues
-concurrent writes, and Netty needs to be configured to handle your
-application's load. An example configuration looks something like:
+You will likely want to set `connectionAcquisitionTimeout`,
+`writeTimeout`, `readTimeout`, and `maxConcurrency` on this client.
+This is critical because `ocfl-java` queues concurrent writes, and the
+client needs to be configured to handle your application's load. An
+example configuration looks something like:
 
 ``` java
 S3AsyncClient.builder()
@@ -281,10 +220,7 @@ If you see failures related to acquiring a connection from the pool,
 then you either need to increase the concurrency, increase the
 acquisition timeout, or both.
 
-That said, it is generally recommended to use the CRT client. It is
-easier to configure and seems to have better performance.
-
-#### ocfl-java
+### Configuration
 
 Use `OcflStorageBuilder.builder()` to create and configure an
 `OcflStorage` instance.
@@ -305,6 +241,7 @@ var repo = new OcflRepositoryBuilder()
         .storage(storage -> storage
                 .cloud(OcflS3Client.builder()
                         .s3Client(s3Client)
+                        .transferManager(transferManager)
                         .bucket(name)
                         .repoPrefix(prefix)
                         .build()))
