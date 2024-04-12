@@ -12,6 +12,7 @@
 ### Changed
 
 - **Breaking:** A `S3AsyncClient` S3 client now must be used with ocfl-java-aws, and the sync version is no longer supported.
+- **Breaking:** A `S3TransferManager` must now be set when using S3 storage.
 - ocfl-java-aws now uses the [S3 Transfer Manager](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/transfer-manager.html)
   to upload files to S3. See the [usage guide](docs/USAGE.md#s3-transfer-manager) for more details.
 - ocfl-java-aws now concurrently uploads files when writing an object to S3. This should improve object write performance.
