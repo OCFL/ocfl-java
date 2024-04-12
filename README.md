@@ -20,7 +20,7 @@ Add the following to your project's POM to pull in the library:
 <dependency>
     <groupId>io.ocfl</groupId>
     <artifactId>ocfl-java-core</artifactId>
-    <version>2.0.1</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
@@ -30,7 +30,7 @@ If you want S3 support, you must additionally add the following dependency:
 <dependency>
     <groupId>io.ocfl</groupId>
     <artifactId>ocfl-java-aws</artifactId>
-    <version>2.0.1</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
