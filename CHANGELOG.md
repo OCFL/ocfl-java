@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [2.1.0] - 2024-04-11
+
 ### Fixed
 
 - `ObjectVersionId.equals()` no longer throws an error for HEAD versions: https://github.com/OCFL/ocfl-java/issues/110 
@@ -262,6 +264,7 @@ DROP TABLE ocfl_object_lock;
 This is a preliminary release of ocfl-java. All major functionality is in place. However, there will be a few breaking configuration changes prior to the v1.0.0 release, specifically in regards to configuring storage layouts.
 
 [Unreleased]: https://github.com/ocfl/ocfl-java/compare/v2.0.1...HEAD
+[2.1.0]: https://github.com/ocfl/ocfl-java/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/ocfl/ocfl-java/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/ocfl/ocfl-java/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/ocfl/ocfl-java/compare/v1.4.6...v1.5.0
