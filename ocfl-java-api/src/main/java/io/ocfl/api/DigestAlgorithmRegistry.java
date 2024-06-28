@@ -44,7 +44,8 @@ public final class DigestAlgorithmRegistry {
             DigestAlgorithm.blake2b160.getOcflName(), DigestAlgorithm.blake2b160,
             DigestAlgorithm.blake2b256.getOcflName(), DigestAlgorithm.blake2b256,
             DigestAlgorithm.blake2b384.getOcflName(), DigestAlgorithm.blake2b384,
-            DigestAlgorithm.sha512_256.getOcflName(), DigestAlgorithm.sha512_256));
+            DigestAlgorithm.sha512_256.getOcflName(), DigestAlgorithm.sha512_256,
+            DigestAlgorithm.size.getOcflName(), DigestAlgorithm.size));
 
     private DigestAlgorithmRegistry() {}
 
