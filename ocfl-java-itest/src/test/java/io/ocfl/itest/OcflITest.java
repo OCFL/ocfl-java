@@ -630,7 +630,7 @@ public abstract class OcflITest {
         var objectId = "o1";
 
         OcflAsserts.assertThrowsWithMessage(
-                OcflInputException.class, "specified digest algorithm is not mapped to a Java name", () -> {
+                OcflInputException.class, "specified digest algorithm is not supported", () -> {
                     repo.updateObject(ObjectVersionId.head(objectId), defaultVersionInfo.setMessage("1"), updater -> {
                         updater.addPath(ITestHelper.sourceObjectPath(objectId, "v1"))
                                 .addFileFixity("file1", DigestAlgorithm.fromOcflName("bogus"), "bogus");
