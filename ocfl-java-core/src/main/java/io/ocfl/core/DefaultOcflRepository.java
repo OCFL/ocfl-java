@@ -24,7 +24,6 @@
 
 package io.ocfl.core;
 
-import at.favre.lib.bytes.Bytes;
 import io.ocfl.api.OcflConfig;
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.OcflObjectUpdater;
@@ -709,7 +708,9 @@ public class DefaultOcflRepository implements OcflRepository {
                     outStream, inventory.getDigestAlgorithm().getMessageDigest());
             inventoryMapper.write(digestStream, inventory);
 
-            var digest = Bytes.wrap(digestStream.getMessageDigest().digest()).encodeHex();
+            var digest = inventory
+                    .getDigestAlgorithm()
+                    .encode(digestStream.getMessageDigest().digest());
             SidecarMapper.writeSidecar(inventory, digest, stagingDir);
 
             return inventory.buildFrom().inventoryDigest(digest).build();

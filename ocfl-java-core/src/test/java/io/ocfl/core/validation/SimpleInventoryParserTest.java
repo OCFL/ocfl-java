@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.ocfl.api.model.DigestAlgorithm;
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.model.InventoryType;
 import io.ocfl.api.model.ValidationCode;
 import java.io.ByteArrayInputStream;
@@ -172,7 +172,7 @@ public class SimpleInventoryParserTest {
 
         inv.put(ID_KEY, "id");
         inv.put(TYPE_KEY, InventoryType.OCFL_1_0.getId());
-        inv.put(ALGO_KEY, DigestAlgorithm.sha512.getOcflName());
+        inv.put(ALGO_KEY, DigestAlgorithmRegistry.sha512.getOcflName());
         inv.put(HEAD_KEY, "v1");
         inv.put(MANIFEST_KEY, new HashMap<String, Object>());
 

@@ -32,7 +32,7 @@ import static java.time.temporal.ChronoField.NANO_OF_SECOND;
 import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
 import static java.time.temporal.ChronoField.YEAR;
 
-import io.ocfl.api.model.DigestAlgorithm;
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.model.InventoryType;
 import io.ocfl.api.model.OcflVersion;
 import io.ocfl.api.model.ValidationCode;
@@ -69,18 +69,18 @@ public class SimpleInventoryValidator {
     private static final VersionNum VERSION_ZERO = VersionNum.fromInt(0);
 
     private static final List<String> ALLOWED_CONTENT_DIGESTS =
-            List.of(DigestAlgorithm.sha512.getOcflName(), DigestAlgorithm.sha256.getOcflName());
+            List.of(DigestAlgorithmRegistry.sha512.getOcflName(), DigestAlgorithmRegistry.sha256.getOcflName());
 
     private static final Map<String, Integer> DIGEST_LENGTHS = Map.of(
-            DigestAlgorithm.md5.getOcflName(), 32,
-            DigestAlgorithm.sha1.getOcflName(), 40,
-            DigestAlgorithm.sha256.getOcflName(), 64,
-            DigestAlgorithm.sha512.getOcflName(), 128,
-            DigestAlgorithm.blake2b512.getOcflName(), 128,
-            DigestAlgorithm.blake2b160.getOcflName(), 40,
-            DigestAlgorithm.blake2b256.getOcflName(), 64,
-            DigestAlgorithm.blake2b384.getOcflName(), 96,
-            DigestAlgorithm.sha512_256.getOcflName(), 64);
+            DigestAlgorithmRegistry.md5.getOcflName(), 32,
+            DigestAlgorithmRegistry.sha1.getOcflName(), 40,
+            DigestAlgorithmRegistry.sha256.getOcflName(), 64,
+            DigestAlgorithmRegistry.sha512.getOcflName(), 128,
+            DigestAlgorithmRegistry.blake2b512.getOcflName(), 128,
+            DigestAlgorithmRegistry.blake2b160.getOcflName(), 40,
+            DigestAlgorithmRegistry.blake2b256.getOcflName(), 64,
+            DigestAlgorithmRegistry.blake2b384.getOcflName(), 96,
+            DigestAlgorithmRegistry.sha512_256.getOcflName(), 64);
 
     private static final DateTimeFormatter RFC3339_FORMAT = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
@@ -166,10 +166,10 @@ public class SimpleInventoryValidator {
                         inventory.getDigestAlgorithm());
             } else {
                 results.addIssue(isTrue(
-                        DigestAlgorithm.sha512.getOcflName().equals(inventory.getDigestAlgorithm()),
+                        DigestAlgorithmRegistry.sha512.getOcflName().equals(inventory.getDigestAlgorithm()),
                         ValidationCode.W004,
                         "Inventory digest algorithm should be %s in %s. Found: %s",
-                        DigestAlgorithm.sha512.getOcflName(),
+                        DigestAlgorithmRegistry.sha512.getOcflName(),
                         inventoryPath,
                         inventory.getDigestAlgorithm()));
             }

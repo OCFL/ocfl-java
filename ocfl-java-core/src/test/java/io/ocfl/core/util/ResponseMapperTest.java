@@ -2,9 +2,9 @@ package io.ocfl.core.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflConfig;
 import io.ocfl.api.OcflConstants;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.FileChange;
 import io.ocfl.api.model.FileChangeType;
 import io.ocfl.api.model.ObjectVersionId;
@@ -60,7 +60,7 @@ public class ResponseMapperTest {
                         .setPath("f1")
                         .setStorageRelativePath("o1/v1/content/f1")
                         .setVersionInfo(new VersionInfo())
-                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")));
+                        .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "i1")));
     }
 
     @Test
@@ -101,7 +101,7 @@ public class ResponseMapperTest {
                         .setPath("f1")
                         .setStorageRelativePath("o1/v1/content/f1")
                         .setVersionInfo(new VersionInfo())
-                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")),
+                        .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "i1")),
                 new FileChange()
                         .setChangeType(FileChangeType.REMOVE)
                         .setObjectVersionId(ObjectVersionId.version("o1", "v3"))
@@ -114,7 +114,7 @@ public class ResponseMapperTest {
                         .setPath("f1")
                         .setStorageRelativePath("o1/v1/content/f1")
                         .setVersionInfo(new VersionInfo())
-                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")));
+                        .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "i1")));
     }
 
     @Test
@@ -149,21 +149,21 @@ public class ResponseMapperTest {
                         .setPath("f1")
                         .setStorageRelativePath("o1/v1/content/f1")
                         .setVersionInfo(new VersionInfo())
-                        .setFixity(Map.of(DigestAlgorithm.sha512, "i1")),
+                        .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "i1")),
                 new FileChange()
                         .setChangeType(FileChangeType.UPDATE)
                         .setObjectVersionId(ObjectVersionId.version("o1", "v2"))
                         .setPath("f1")
                         .setStorageRelativePath("o1/v2/content/f1")
                         .setVersionInfo(new VersionInfo())
-                        .setFixity(Map.of(DigestAlgorithm.sha512, "i2")),
+                        .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "i2")),
                 new FileChange()
                         .setChangeType(FileChangeType.UPDATE)
                         .setObjectVersionId(ObjectVersionId.version("o1", "v3"))
                         .setPath("f1")
                         .setStorageRelativePath("o1/v3/content/f1")
                         .setVersionInfo(new VersionInfo())
-                        .setFixity(Map.of(DigestAlgorithm.sha512, "i3")));
+                        .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "i3")));
     }
 
     private void assertFileChanges(List<FileChange> actual, FileChange... expected) {

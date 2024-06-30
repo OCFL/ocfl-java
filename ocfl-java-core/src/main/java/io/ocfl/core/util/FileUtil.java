@@ -24,10 +24,10 @@
 
 package io.ocfl.core.util;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflOption;
 import io.ocfl.api.exception.OcflIOException;
 import io.ocfl.api.exception.OcflNoSuchFileException;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -69,7 +69,7 @@ public final class FileUtil {
      * @return the path to the new directory
      */
     public static Path createObjectTempDir(Path parent, String objectId) {
-        var digest = DigestUtil.computeDigestHex(DigestAlgorithm.md5, objectId);
+        var digest = DigestUtil.computeDigestHex(DigestAlgorithmRegistry.md5, objectId);
         UncheckedFiles.createDirectories(parent);
         return UncheckedFiles.createDirectory(parent.resolve(digest + "-"
                 + Integer.toUnsignedString(ThreadLocalRandom.current().nextInt())));

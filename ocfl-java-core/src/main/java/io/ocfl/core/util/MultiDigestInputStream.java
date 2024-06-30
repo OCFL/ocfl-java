@@ -24,7 +24,6 @@
 
 package io.ocfl.core.util;
 
-import at.favre.lib.bytes.Bytes;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import java.io.FilterInputStream;
@@ -78,8 +77,7 @@ public class MultiDigestInputStream extends FilterInputStream {
         var results = new HashMap<DigestAlgorithm, String>();
 
         streamMap.forEach((algorithm, stream) -> {
-            results.put(
-                    algorithm, Bytes.wrap(stream.getMessageDigest().digest()).encodeHex());
+            results.put(algorithm, algorithm.encode(stream.getMessageDigest().digest()));
         });
 
         return results;

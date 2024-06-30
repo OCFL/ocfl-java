@@ -28,6 +28,7 @@ import at.favre.lib.bytes.Bytes;
 import io.ocfl.api.OcflObjectUpdater;
 import io.ocfl.api.OcflOption;
 import io.ocfl.api.exception.FixityCheckException;
+import io.ocfl.api.exception.OcflIOException;
 import io.ocfl.api.exception.OcflInputException;
 import io.ocfl.api.io.FixityCheckInputStream;
 import io.ocfl.api.model.DigestAlgorithm;
@@ -39,6 +40,8 @@ import io.ocfl.core.model.Inventory;
 import io.ocfl.core.util.DigestUtil;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.core.util.UncheckedFiles;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -294,7 +297,15 @@ public class DefaultOcflObjectUpdater implements OcflObjectUpdater {
                 }
 
                 LOG.debug("Computing {} hash of {}", algorithm.getJavaStandardName(), file);
-                digest = DigestUtil.computeDigestHex(algorithm, file);
+                if ("size".equals(algorithm.getOcflName())) {
+                    try {
+                        digest = String.valueOf(Files.size(file));
+                    } catch (IOException e) {
+                        throw OcflIOException.from(e);
+                    }
+                } else {
+                    digest = DigestUtil.computeDigestHex(algorithm, file);
+                }
             }
 
             if (!value.equalsIgnoreCase(digest)) {

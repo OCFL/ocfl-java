@@ -27,8 +27,8 @@ package io.ocfl.core.extension.storage.layout;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.exception.OcflExtensionException;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,7 +79,7 @@ public class HashedNTupleLayoutExtensionTest {
 
     @Test
     public void shouldMapIdWithDifferentAlgorithm() {
-        ext.init(new HashedNTupleLayoutConfig().setDigestAlgorithm(DigestAlgorithm.md5));
+        ext.init(new HashedNTupleLayoutConfig().setDigestAlgorithm(DigestAlgorithmRegistry.md5));
         assertMapping("609/ea7/968/609ea7968f37d4d61aa0e0df7458f6b1");
     }
 

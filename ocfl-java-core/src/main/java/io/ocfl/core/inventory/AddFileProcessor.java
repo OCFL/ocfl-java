@@ -24,7 +24,6 @@
 
 package io.ocfl.core.inventory;
 
-import at.favre.lib.bytes.Bytes;
 import io.ocfl.api.OcflOption;
 import io.ocfl.api.exception.OcflIOException;
 import io.ocfl.api.model.DigestAlgorithm;
@@ -136,7 +135,7 @@ public class AddFileProcessor {
                 locks.add(fileLocker.lock(logicalPath));
 
                 if (isMove) {
-                    var digest = DigestUtil.computeDigestHex(messageDigest, file);
+                    var digest = DigestUtil.computeDigestHex(messageDigest, digestAlgorithm, file);
                     var result = inventoryUpdater.addFile(digest, logicalPath, options);
 
                     if (result.isNew()) {
@@ -167,7 +166,8 @@ public class AddFileProcessor {
                         LOG.debug("Copying file <{}> to <{}>", file, stagingFullPath);
                         Files.copy(file, stream);
 
-                        digest = Bytes.wrap(stream.getMessageDigest().digest()).encodeHex();
+                        digest =
+                                digestAlgorithm.encode(stream.getMessageDigest().digest());
                         result = inventoryUpdater.addFile(digest, logicalPath, options);
                     } catch (IOException e) {
                         throw new OcflIOException(e);

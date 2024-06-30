@@ -2,10 +2,10 @@ package io.ocfl.core.validation;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflConfig;
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.exception.InvalidInventoryException;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.VersionNum;
 import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.InventoryBuilder;
@@ -271,7 +271,7 @@ public class InventoryValidatorTest {
                 .build();
 
         var previousInventory = defaultBuilder()
-                .digestAlgorithm(DigestAlgorithm.sha256)
+                .digestAlgorithm(DigestAlgorithmRegistry.sha256)
                 .addHeadVersion(Version.builder()
                         .created(OffsetDateTime.now())
                         .addFile("abc123", "file1")

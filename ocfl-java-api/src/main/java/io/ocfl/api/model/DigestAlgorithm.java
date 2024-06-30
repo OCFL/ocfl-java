@@ -27,48 +27,34 @@ package io.ocfl.api.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import io.ocfl.api.DigestAlgorithmRegistry;
-import io.ocfl.api.exception.OcflInputException;
-import io.ocfl.api.exception.OcflJavaException;
 import io.ocfl.api.util.Enforce;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * Maps OCFL defined digest algorithms to their Java names. Java does not include built-in implementations for all of the
  * algorithms, using a 3rd party provider, such as BouncyCastle, is necessary for some, such as blake2b. New algorithms
  * should be registered in the {@link DigestAlgorithmRegistry}.
  */
-public class DigestAlgorithm {
-
-    /*
-     * From spec
-     */
-    public static final DigestAlgorithm md5 = new DigestAlgorithm("md5", "md5");
-    public static final DigestAlgorithm sha1 = new DigestAlgorithm("sha1", "sha-1");
-    public static final DigestAlgorithm sha256 = new DigestAlgorithm("sha256", "sha-256");
-    public static final DigestAlgorithm sha512 = new DigestAlgorithm("sha512", "sha-512");
-    public static final DigestAlgorithm blake2b512 = new DigestAlgorithm("blake2b-512", "blake2b-512");
-
-    /*
-     * From extensions: https://ocfl.github.io/extensions/0009-digest-algorithms
-     */
-    public static final DigestAlgorithm blake2b160 = new DigestAlgorithm("blake2b-160", "blake2b-160");
-    public static final DigestAlgorithm blake2b256 = new DigestAlgorithm("blake2b-256", "blake2b-256");
-    public static final DigestAlgorithm blake2b384 = new DigestAlgorithm("blake2b-384", "blake2b-384");
-    public static final DigestAlgorithm sha512_256 = new DigestAlgorithm("sha512/256", "sha-512/256");
-    public static final DigestAlgorithm size = new DigestAlgorithm("size", new Supplier<SizeMessageDigest>() {
-        @Override
-        public SizeMessageDigest get() {
-            return new SizeMessageDigest();
-        }
-    });
+public abstract class DigestAlgorithm {
 
     private final String ocflName;
     private final String javaStandardName;
 
-    private final Supplier<? extends MessageDigest> messageDigestSupplier;
+    /**
+     * Creates a new {@link MessageDigest} that implements the digest algorithm
+     *
+     * @return new {@link MessageDigest}
+     */
+    public abstract MessageDigest getMessageDigest();
+
+    /**
+     * Encodes a binary digest value into a string representation.
+     *
+     * @param value digest value
+     * @return the digest value as a string
+     */
+    public abstract String encode(byte[] value);
 
     /**
      * Creates a DigestAlgorithm for the given OCFL name. If the name is not mapped in the {@link DigestAlgorithmRegistry}
@@ -82,13 +68,7 @@ public class DigestAlgorithm {
     public static DigestAlgorithm fromOcflName(String ocflName) {
         var algorithm = DigestAlgorithmRegistry.getAlgorithm(ocflName);
         if (algorithm == null) {
-            //return a supplier that throws an OcflInputException
-            algorithm = new DigestAlgorithm(ocflName, new Supplier<MessageDigest>() {
-                @Override
-                public MessageDigest get() {
-                   throw new OcflInputException("specified digest algorithm is not supported");
-                }
-            });
+            algorithm = new StandardDigestAlgorithm(ocflName, null);
         }
         return algorithm;
     }
@@ -104,24 +84,7 @@ public class DigestAlgorithm {
     public static DigestAlgorithm fromOcflName(String ocflName, String javaStandardName) {
         var algorithm = DigestAlgorithmRegistry.getAlgorithm(ocflName);
         if (algorithm == null) {
-            algorithm = new DigestAlgorithm(ocflName, javaStandardName);
-        }
-        return algorithm;
-    }
-
-    /**
-     * Creates a DigestAlgorithm for the given OCFL name. If the name is not mapped in the {@link DigestAlgorithmRegistry}
-     * then a new object is created, but not automatically added to the registry.
-     *
-     * @param ocflName ocfl name of algorithm
-     * @param messageDigestSupplier a supplier that provides a new MessageDigest instance
-     * @return digest algorithm
-     */
-    public static DigestAlgorithm fromOcflName(String ocflName,
-        Supplier<? extends MessageDigest> messageDigestSupplier) {
-        var algorithm = DigestAlgorithmRegistry.getAlgorithm(ocflName);
-        if (algorithm == null) {
-            algorithm = new DigestAlgorithm(ocflName, messageDigestSupplier);
+            algorithm = new StandardDigestAlgorithm(ocflName, javaStandardName);
         }
         return algorithm;
     }
@@ -129,22 +92,6 @@ public class DigestAlgorithm {
     protected DigestAlgorithm(String ocflName, String javaStandardName) {
         this.ocflName = Enforce.notBlank(ocflName, "ocflName cannot be blank").toLowerCase();
         this.javaStandardName = javaStandardName;
-        this.messageDigestSupplier = new Supplier<MessageDigest>() {
-            @Override
-            public MessageDigest get() {
-                try {
-                    return MessageDigest.getInstance(javaStandardName);
-                } catch (NoSuchAlgorithmException e) {
-                    throw new OcflJavaException("Failed to create message digest for: " + this, e);
-                }
-            }
-        };
-    }
-
-    protected DigestAlgorithm(String ocflName, Supplier<? extends MessageDigest> messageDigestSupplier) {
-        this.ocflName = Enforce.notBlank(ocflName, "ocflName cannot be blank").toLowerCase();
-        this.javaStandardName = "";
-        this.messageDigestSupplier = messageDigestSupplier;
     }
 
     /**
@@ -175,20 +122,9 @@ public class DigestAlgorithm {
         return javaStandardName != null;
     }
 
-    /**
-     * Returns a new MessageDigest
-     *
-     * @return MessageDigest
-     */
-    public MessageDigest getMessageDigest() {
-        return messageDigestSupplier.get();
-    }
-
     @Override
     public String toString() {
-        return "DigestAlgorithm{" + "ocflName='"
-            + ocflName + '\'' + ", javaStandardName='"
-            + getJavaStandardName() + '\'' + '}';
+        return "DigestAlgorithm{ocflName='" + ocflName + "', javaStandardName='" + getJavaStandardName() + "'}";
     }
 
     @Override

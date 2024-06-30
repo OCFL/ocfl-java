@@ -5,10 +5,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.exception.NotFoundException;
 import io.ocfl.api.exception.OcflStateException;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.VersionNum;
 import io.ocfl.core.extension.ExtensionSupportEvaluator;
 import io.ocfl.core.extension.OcflExtensionConfig;
@@ -112,7 +112,7 @@ public class FileSystemOcflStorageTest {
         Assertions.assertEquals(
                 "c15f51c96fafe599dd056c1782fce5e8d6a0461017260ec5bc751d12821e2a7c2344048fc32312d57fdbdd67"
                         + "ec32e238a5f68e5127a762dd866e77fcddbaa3ce",
-                DigestUtil.computeDigestHex(DigestAlgorithm.sha512, bytes));
+                DigestUtil.computeDigestHex(DigestAlgorithmRegistry.sha512, bytes));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class FileSystemOcflStorageTest {
         return Inventory.builder()
                 .id("o1")
                 .type(OcflConstants.DEFAULT_OCFL_VERSION.getInventoryType())
-                .digestAlgorithm(DigestAlgorithm.sha512)
+                .digestAlgorithm(DigestAlgorithmRegistry.sha512)
                 .objectRootPath(FileUtil.pathToStringStandardSeparator(repoDir.resolve("o1")));
     }
 
