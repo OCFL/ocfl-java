@@ -2,6 +2,15 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Support of file size based fixity entries: https://github.com/OCFL/ocfl-java/issues/116
+
+### Changed
+
+- **Breaking:** Builtin digest algorithms must now be specified like `DigestAlgorithRegistry.sha256` instead of
+  `DigestAlgorithm.sha256`.
+
 ## [2.1.0] - 2024-04-11
 
 ### Fixed

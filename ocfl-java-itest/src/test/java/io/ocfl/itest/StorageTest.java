@@ -7,9 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.exception.OcflFileAlreadyExistsException;
 import io.ocfl.api.exception.OcflNoSuchFileException;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.core.storage.common.Listing;
 import io.ocfl.core.storage.common.Storage;
 import io.ocfl.core.util.FileUtil;
@@ -175,7 +175,7 @@ public abstract class StorageTest {
         var content = "something3";
         file("f1.txt", content);
 
-        var retriever = storage.readLazy("f1.txt", DigestAlgorithm.md5, "f57c22367d47ee55c920465e8f17dc70");
+        var retriever = storage.readLazy("f1.txt", DigestAlgorithmRegistry.md5, "f57c22367d47ee55c920465e8f17dc70");
 
         try (var stream = retriever.retrieveFile()) {
             assertEquals(content, toString(stream));
@@ -186,7 +186,7 @@ public abstract class StorageTest {
     public void doNotFailReadFileLazyContentWhenNotExists() {
         var content = "something3";
         file("f1.txt", content);
-        storage.readLazy("f2.txt", DigestAlgorithm.md5, "f57c22367d47ee55c920465e8f17dc70");
+        storage.readLazy("f2.txt", DigestAlgorithmRegistry.md5, "f57c22367d47ee55c920465e8f17dc70");
     }
 
     @Test

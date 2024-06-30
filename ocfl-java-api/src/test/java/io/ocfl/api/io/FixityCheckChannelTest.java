@@ -2,7 +2,7 @@ package io.ocfl.api.io;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import at.favre.lib.bytes.Bytes;
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.exception.OcflIOException;
 import io.ocfl.api.model.DigestAlgorithm;
 import java.io.IOException;
@@ -23,17 +23,17 @@ public class FixityCheckChannelTest {
     @Test
     public void shouldCopyFileAndComputeDigestWhenEnabled() throws IOException {
         var path = writeFile("test.txt", "This is a test file");
-        var expectedDigest = computeDigest(DigestAlgorithm.md5, path);
+        var expectedDigest = computeDigest(DigestAlgorithmRegistry.md5, path);
 
         var outPath = tempDir.resolve("test-copy.txt");
 
         var fileChannel = FileChannel.open(path, StandardOpenOption.READ);
-        try (var fixityChannel = new FixityCheckChannel(fileChannel, DigestAlgorithm.md5, expectedDigest)) {
+        try (var fixityChannel = new FixityCheckChannel(fileChannel, DigestAlgorithmRegistry.md5, expectedDigest)) {
             transfer(fixityChannel, outPath);
             fixityChannel.checkFixity();
         }
 
-        assertEquals(expectedDigest, computeDigest(DigestAlgorithm.md5, outPath));
+        assertEquals(expectedDigest, computeDigest(DigestAlgorithmRegistry.md5, outPath));
     }
 
     private void transfer(ReadableByteChannel srcChannel, Path dstPath) throws IOException {
@@ -57,7 +57,7 @@ public class FixityCheckChannelTest {
                 buffer.clear();
             }
 
-            return Bytes.wrap(digest.digest()).encodeHex();
+            return algorithm.encode(digest.digest());
         } catch (IOException e) {
             throw new OcflIOException(e);
         }

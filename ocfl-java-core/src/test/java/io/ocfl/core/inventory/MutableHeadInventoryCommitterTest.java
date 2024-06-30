@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflConfig;
 import io.ocfl.api.OcflConstants;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.OcflVersion;
 import io.ocfl.api.model.VersionInfo;
 import io.ocfl.api.model.VersionNum;
@@ -36,8 +36,8 @@ public class MutableHeadInventoryCommitterTest {
                 .addFileToManifest("f3", "v2/content/file3")
                 .addFileToManifest("f4", mutableContentPath("r1/file4"))
                 .addFileToManifest("f5", mutableContentPath("r3/file5"))
-                .addFixityForFile("v1/content/file1", DigestAlgorithm.md5, "md5_1")
-                .addFixityForFile(mutableContentPath("r1/file4"), DigestAlgorithm.md5, "md5_4")
+                .addFixityForFile("v1/content/file1", DigestAlgorithmRegistry.md5, "md5_1")
+                .addFixityForFile(mutableContentPath("r1/file4"), DigestAlgorithmRegistry.md5, "md5_4")
                 .addHeadVersion(Version.builder()
                         .addFile("f1", "file1")
                         .addFile("f2", "file2")
@@ -77,7 +77,7 @@ public class MutableHeadInventoryCommitterTest {
         var fixity = newInventory.getFixityForContentPath("v3/content/r1/file4");
 
         assertEquals(1, fixity.size());
-        assertEquals("md5_4", fixity.get(DigestAlgorithm.md5));
+        assertEquals("md5_4", fixity.get(DigestAlgorithmRegistry.md5));
 
         var version = newInventory.getHeadVersion();
         assertSame(now, version.getCreated());

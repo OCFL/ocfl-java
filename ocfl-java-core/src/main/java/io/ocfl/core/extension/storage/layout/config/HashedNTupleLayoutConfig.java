@@ -25,6 +25,7 @@
 package io.ocfl.core.extension.storage.layout.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.exception.OcflExtensionException;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
@@ -38,7 +39,7 @@ import java.util.Objects;
  */
 public class HashedNTupleLayoutConfig implements OcflExtensionConfig {
 
-    private static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha256;
+    private static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithmRegistry.sha256;
     private static final int DEFAULT_TUPLE_SIZE = 3;
     private static final int DEFAULT_NUM_TUPLES = 3;
     private static final boolean DEFAULT_SHORT_OBJ_ROOT = false;

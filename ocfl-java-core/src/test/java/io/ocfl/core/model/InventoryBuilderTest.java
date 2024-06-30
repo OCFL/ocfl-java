@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.exception.OcflInputException;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.InventoryType;
@@ -31,7 +32,7 @@ public class InventoryBuilderTest {
         this.builder = Inventory.builder()
                 .id("id")
                 .type(InventoryType.OCFL_1_0)
-                .digestAlgorithm(DigestAlgorithm.sha512)
+                .digestAlgorithm(DigestAlgorithmRegistry.sha512)
                 .head(VersionNum.fromString("v1"))
                 .objectRootPath("root");
 
@@ -101,8 +102,8 @@ public class InventoryBuilderTest {
     public void shouldAddFixityForFileInManifest() {
         builder.addFileToManifest("abc", "path");
 
-        builder.addFixityForFile("path", DigestAlgorithm.md5, "md5_123");
-        builder.addFixityForFile("path", DigestAlgorithm.sha1, "sha1_123");
+        builder.addFixityForFile("path", DigestAlgorithmRegistry.md5, "md5_123");
+        builder.addFixityForFile("path", DigestAlgorithmRegistry.sha1, "sha1_123");
 
         var inventory = builder.build();
 
@@ -110,15 +111,15 @@ public class InventoryBuilderTest {
                 inventory,
                 "path",
                 Map.of(
-                        DigestAlgorithm.md5, "md5_123",
-                        DigestAlgorithm.sha1, "sha1_123"));
+                        DigestAlgorithmRegistry.md5, "md5_123",
+                        DigestAlgorithmRegistry.sha1, "sha1_123"));
     }
 
     @Test
     public void shouldNotAddFixityWhenFileNotInManifest() {
         assertThat(
                 assertThrows(OcflInputException.class, () -> {
-                            builder.addFixityForFile("path", DigestAlgorithm.md5, "md5_123");
+                            builder.addFixityForFile("path", DigestAlgorithmRegistry.md5, "md5_123");
                         })
                         .getMessage(),
                 Matchers.containsString("Cannot add fixity information for"));
@@ -128,8 +129,8 @@ public class InventoryBuilderTest {
     public void shouldRemoveFixityWhenFileRemovedFromManifest() {
         builder.addFileToManifest("abc", "path");
 
-        builder.addFixityForFile("path", DigestAlgorithm.md5, "md5_123");
-        builder.addFixityForFile("path", DigestAlgorithm.sha1, "sha1_123");
+        builder.addFixityForFile("path", DigestAlgorithmRegistry.md5, "md5_123");
+        builder.addFixityForFile("path", DigestAlgorithmRegistry.sha1, "sha1_123");
 
         builder.removeFileId("abc");
 
@@ -191,16 +192,16 @@ public class InventoryBuilderTest {
     public void shouldClearFixity() {
         builder.addFileToManifest("1", "path")
                 .addFileToManifest("2", "path2")
-                .addFixityForFile("path", DigestAlgorithm.md5, "md5_1")
-                .addFixityForFile("path2", DigestAlgorithm.md5, "md5_2");
+                .addFixityForFile("path", DigestAlgorithmRegistry.md5, "md5_1")
+                .addFixityForFile("path2", DigestAlgorithmRegistry.md5, "md5_2");
 
-        assertEquals("md5_1", builder.getFileFixity("1", DigestAlgorithm.md5));
-        assertEquals("md5_2", builder.getFileFixity("2", DigestAlgorithm.md5));
+        assertEquals("md5_1", builder.getFileFixity("1", DigestAlgorithmRegistry.md5));
+        assertEquals("md5_2", builder.getFileFixity("2", DigestAlgorithmRegistry.md5));
 
         builder.clearFixity();
 
-        assertNull(builder.getFileFixity("1", DigestAlgorithm.md5));
-        assertNull(builder.getFileFixity("2", DigestAlgorithm.md5));
+        assertNull(builder.getFileFixity("1", DigestAlgorithmRegistry.md5));
+        assertNull(builder.getFileFixity("2", DigestAlgorithmRegistry.md5));
     }
 
     private void assertFixity(Inventory inventory, String contentPath, Map<DigestAlgorithm, String> expected) {

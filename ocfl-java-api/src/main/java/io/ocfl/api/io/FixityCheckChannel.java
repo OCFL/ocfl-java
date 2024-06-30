@@ -24,16 +24,13 @@
 
 package io.ocfl.api.io;
 
-import at.favre.lib.bytes.Bytes;
 import io.ocfl.api.exception.FixityCheckException;
-import io.ocfl.api.exception.OcflJavaException;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * A byte channel wrapper that preforms a fixity check on the bytes that pass through an underlying byte channel.
@@ -44,6 +41,7 @@ public class FixityCheckChannel implements ByteChannel {
     private boolean enabled = true;
 
     private final ByteChannel delegate;
+    private final DigestAlgorithm digestAlgorithm;
     private final MessageDigest digest;
     private final String expectedDigestValue;
 
@@ -56,21 +54,8 @@ public class FixityCheckChannel implements ByteChannel {
      */
     public FixityCheckChannel(ByteChannel delegate, DigestAlgorithm digestAlgorithm, String expectedDigestValue) {
         this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
-        this.digest = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null")
-                .getMessageDigest();
-        this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
-    }
-
-    /**
-     * Constructs a new FixityCheckChannel
-     *
-     * @param delegate the channel to wrap
-     * @param digestAlgorithm the digest algorithm to use
-     * @param expectedDigestValue the expected digest value
-     */
-    public FixityCheckChannel(ByteChannel delegate, String digestAlgorithm, String expectedDigestValue) {
-        this.delegate = Enforce.notNull(delegate, "delegate cannot be null");
-        this.digest = messageDigest(Enforce.notBlank(digestAlgorithm, "digestAlgorithm cannot be blank"));
+        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
+        this.digest = digestAlgorithm.getMessageDigest();
         this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
     }
 
@@ -84,7 +69,7 @@ public class FixityCheckChannel implements ByteChannel {
      */
     public void checkFixity() {
         if (enabled) {
-            var actualDigest = Bytes.wrap(digest.digest()).encodeHex();
+            var actualDigest = digestAlgorithm.encode(digest.digest());
             if (!expectedDigestValue.equalsIgnoreCase(actualDigest)) {
                 throw new FixityCheckException(String.format(
                         "Expected %s digest: %s; Actual: %s",
@@ -138,13 +123,5 @@ public class FixityCheckChannel implements ByteChannel {
     @Override
     public void close() throws IOException {
         delegate.close();
-    }
-
-    private static MessageDigest messageDigest(String digestAlgorithm) {
-        try {
-            return MessageDigest.getInstance(digestAlgorithm);
-        } catch (NoSuchAlgorithmException e) {
-            throw new OcflJavaException(e);
-        }
     }
 }

@@ -7,13 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflConfig;
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.OcflOption;
 import io.ocfl.api.exception.OcflInputException;
 import io.ocfl.api.exception.OverwriteException;
 import io.ocfl.api.exception.PathConstraintException;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.VersionNum;
 import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.Version;
@@ -270,46 +270,46 @@ public class InventoryUpdaterTest {
     public void shouldAddFixityWhenFileInVersionAndNotDefaultAlgorithm() {
         var updater = builder.buildCopyState(inventory);
 
-        updater.addFixity("file1p", DigestAlgorithm.md5, "md5_1");
+        updater.addFixity("file1p", DigestAlgorithmRegistry.md5, "md5_1");
 
-        assertEquals("md5_1", updater.getFixityDigest("file1p", DigestAlgorithm.md5));
+        assertEquals("md5_1", updater.getFixityDigest("file1p", DigestAlgorithmRegistry.md5));
     }
 
     @Test
     public void shouldReturnNothingWhenWrongAlgorithm() {
         var updater = builder.buildCopyState(inventory);
 
-        updater.addFixity("file1p", DigestAlgorithm.md5, "md5_1");
+        updater.addFixity("file1p", DigestAlgorithmRegistry.md5, "md5_1");
 
-        assertNull(updater.getFixityDigest("file1p", DigestAlgorithm.sha1));
+        assertNull(updater.getFixityDigest("file1p", DigestAlgorithmRegistry.sha1));
     }
 
     @Test
     public void shouldNotAddFixityWhenDefaultAlgorithm() {
         var updater = builder.buildCopyState(inventory);
 
-        updater.addFixity("file1p", DigestAlgorithm.sha512, "sha512_1");
+        updater.addFixity("file1p", DigestAlgorithmRegistry.sha512, "sha512_1");
 
-        assertEquals("file1", updater.getFixityDigest("file1p", DigestAlgorithm.sha512));
+        assertEquals("file1", updater.getFixityDigest("file1p", DigestAlgorithmRegistry.sha512));
     }
 
     @Test
     public void shouldNotAddFixityWhenFileNotInState() {
         var updater = builder.buildCopyState(inventory);
 
-        updater.addFixity("file2p", DigestAlgorithm.md5, "md5_1");
+        updater.addFixity("file2p", DigestAlgorithmRegistry.md5, "md5_1");
 
-        assertNull(updater.getFixityDigest("file2p", DigestAlgorithm.md5));
+        assertNull(updater.getFixityDigest("file2p", DigestAlgorithmRegistry.md5));
     }
 
     @Test
     public void shouldClearFixity() {
         var updater = builder.buildCopyState(inventory);
 
-        updater.addFixity("file1p", DigestAlgorithm.md5, "md5_1");
+        updater.addFixity("file1p", DigestAlgorithmRegistry.md5, "md5_1");
         updater.clearFixity();
 
-        assertNull(updater.getFixityDigest("file1p", DigestAlgorithm.md5));
+        assertNull(updater.getFixityDigest("file1p", DigestAlgorithmRegistry.md5));
     }
 
     @Test

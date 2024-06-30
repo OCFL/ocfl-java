@@ -93,7 +93,7 @@ public class HashedNTupleLayoutExtension implements OcflStorageLayoutExtension {
             throw new OcflExtensionException("This extension must be initialized before it can be used.");
         }
 
-        var digest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), objectId, false);
+        var digest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), objectId);
 
         if (config.getTupleSize() == 0) {
             return digest;
