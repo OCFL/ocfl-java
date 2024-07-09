@@ -7,8 +7,8 @@ import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflRepository;
-import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.core.DefaultOcflRepository;
 import io.ocfl.core.inventory.InventoryMapper;
 import io.ocfl.core.util.DigestUtil;
@@ -89,7 +89,7 @@ public final class ITestHelper {
     }
 
     public static String computeDigest(Path path) {
-        return DigestUtil.computeDigestHex(DigestAlgorithm.md5, path);
+        return DigestUtil.computeDigestHex(DigestAlgorithmRegistry.md5, path);
     }
 
     public static String comparingMessage(Object o1, Object o2) {

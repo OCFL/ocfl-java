@@ -108,7 +108,7 @@ public class HashedNTupleIdEncapsulationLayoutExtension implements OcflStorageLa
             throw new OcflExtensionException("This extension must be initialized before it can be used.");
         }
 
-        var digest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), objectId, false);
+        var digest = DigestUtil.computeDigestHex(config.getDigestAlgorithm(), objectId);
 
         var pathBuilder = new StringBuilder();
 

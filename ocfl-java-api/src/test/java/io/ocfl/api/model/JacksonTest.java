@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.ocfl.api.DigestAlgorithmRegistry;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
@@ -24,7 +25,7 @@ public class JacksonTest {
     public void roundTripObjectDetails() throws JsonProcessingException {
         var original = new ObjectDetails()
                 .setId("id")
-                .setDigestAlgorithm(DigestAlgorithm.sha512)
+                .setDigestAlgorithm(DigestAlgorithmRegistry.sha512)
                 .setHeadVersionNum(VersionNum.V1)
                 .setVersions(Map.of(
                         VersionNum.V1,
@@ -40,7 +41,7 @@ public class JacksonTest {
                                         new FileDetails()
                                                 .setPath("file.txt")
                                                 .setStorageRelativePath("object/file.txt")
-                                                .setFixity(Map.of(DigestAlgorithm.sha512, "abc123"))))));
+                                                .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "abc123"))))));
 
         var json = objectMapper.writeValueAsString(original);
 

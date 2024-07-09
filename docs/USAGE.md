@@ -320,7 +320,7 @@ inventory bloat:
   as much space to store. If you are concerned about space, you can
   change the algorithm by setting
   `OcflRepositoryBuilder.ocflConfig(config ->
-  config.setDefaultDigestAlgorithm(DigestAlgorithm.sha256))`. Note, this
+  config.setDefaultDigestAlgorithm(DigestAlgorithmRegistry.sha256))`. Note, this
   only changes the digest algorithm used for *new* OCFL objects. It is
   not possible to modify existing objects.
 

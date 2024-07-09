@@ -41,19 +41,11 @@ public final class DigestUtil {
     private DigestUtil() {}
 
     public static String computeDigestHex(DigestAlgorithm algorithm, Path path) {
-        return computeDigestHex(algorithm.getMessageDigest(), path);
+        return computeDigestHex(algorithm.getMessageDigest(), algorithm, path);
     }
 
-    public static String computeDigestHex(MessageDigest digest, Path path) {
-        return computeDigestHex(digest, path, false);
-    }
-
-    public static String computeDigestHex(DigestAlgorithm algorithm, Path path, boolean upperCase) {
-        return computeDigestHex(algorithm.getMessageDigest(), path, upperCase);
-    }
-
-    public static String computeDigestHex(MessageDigest digest, Path path, boolean upperCase) {
-        return Bytes.wrap(computeDigest(digest, path)).encodeHex(upperCase);
+    public static String computeDigestHex(MessageDigest digest, DigestAlgorithm algorithm, Path path) {
+        return algorithm.encode(computeDigest(digest, path));
     }
 
     public static byte[] computeDigest(DigestAlgorithm algorithm, Path path) {

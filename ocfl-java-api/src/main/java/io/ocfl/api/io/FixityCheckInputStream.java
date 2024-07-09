@@ -24,15 +24,11 @@
 
 package io.ocfl.api.io;
 
-import at.favre.lib.bytes.Bytes;
 import io.ocfl.api.exception.FixityCheckException;
-import io.ocfl.api.exception.OcflJavaException;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import java.io.InputStream;
 import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 /**
@@ -42,6 +38,7 @@ import java.util.Optional;
 public class FixityCheckInputStream extends DigestInputStream {
 
     private boolean enabled = true;
+    private final DigestAlgorithm digestAlgorithm;
     private final String expectedDigestValue;
     private String actualDigestValue;
 
@@ -53,16 +50,7 @@ public class FixityCheckInputStream extends DigestInputStream {
     public FixityCheckInputStream(
             InputStream inputStream, DigestAlgorithm digestAlgorithm, String expectedDigestValue) {
         super(inputStream, digestAlgorithm.getMessageDigest());
-        this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
-    }
-
-    /**
-     * @param inputStream the underlying stream
-     * @param digestAlgorithm the algorithm to use to calculate the digest (eg. sha512)
-     * @param expectedDigestValue the expected digest value
-     */
-    public FixityCheckInputStream(InputStream inputStream, String digestAlgorithm, String expectedDigestValue) {
-        super(inputStream, messageDigest(digestAlgorithm));
+        this.digestAlgorithm = Enforce.notNull(digestAlgorithm, "digestAlgorithm cannot be null");
         this.expectedDigestValue = Enforce.notBlank(expectedDigestValue, "expectedDigestValue cannot be blank");
     }
 
@@ -101,7 +89,7 @@ public class FixityCheckInputStream extends DigestInputStream {
      */
     public Optional<String> getActualDigestValue() {
         if (enabled && actualDigestValue == null) {
-            actualDigestValue = Bytes.wrap(digest.digest()).encodeHex();
+            actualDigestValue = digestAlgorithm.encode(digest.digest());
         }
         return Optional.of(actualDigestValue);
     }
@@ -126,13 +114,5 @@ public class FixityCheckInputStream extends DigestInputStream {
     @Override
     public String toString() {
         return "[Fixity Check Input Stream] expected: " + expectedDigestValue + "; actual: " + digest.toString();
-    }
-
-    private static MessageDigest messageDigest(String digestAlgorithm) {
-        try {
-            return MessageDigest.getInstance(digestAlgorithm);
-        } catch (NoSuchAlgorithmException e) {
-            throw new OcflJavaException(e);
-        }
     }
 }

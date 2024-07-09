@@ -25,6 +25,8 @@
 package io.ocfl.api;
 
 import io.ocfl.api.model.DigestAlgorithm;
+import io.ocfl.api.model.SizeDigestAlgorithm;
+import io.ocfl.api.model.StandardDigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,17 +37,35 @@ import java.util.Map;
  */
 public final class DigestAlgorithmRegistry {
 
+    /*
+     * From spec
+     */
+    public static final DigestAlgorithm md5 = new StandardDigestAlgorithm("md5", "md5");
+    public static final DigestAlgorithm sha1 = new StandardDigestAlgorithm("sha1", "sha-1");
+    public static final DigestAlgorithm sha256 = new StandardDigestAlgorithm("sha256", "sha-256");
+    public static final DigestAlgorithm sha512 = new StandardDigestAlgorithm("sha512", "sha-512");
+    public static final DigestAlgorithm blake2b512 = new StandardDigestAlgorithm("blake2b-512", "blake2b-512");
+
+    /*
+     * From extensions: https://ocfl.github.io/extensions/0009-digest-algorithms
+     */
+    public static final DigestAlgorithm blake2b160 = new StandardDigestAlgorithm("blake2b-160", "blake2b-160");
+    public static final DigestAlgorithm blake2b256 = new StandardDigestAlgorithm("blake2b-256", "blake2b-256");
+    public static final DigestAlgorithm blake2b384 = new StandardDigestAlgorithm("blake2b-384", "blake2b-384");
+    public static final DigestAlgorithm sha512_256 = new StandardDigestAlgorithm("sha512/256", "sha-512/256");
+    public static final DigestAlgorithm size = new SizeDigestAlgorithm();
+
     private static final Map<String, DigestAlgorithm> REGISTRY = new HashMap<>(Map.of(
-            DigestAlgorithm.md5.getOcflName(), DigestAlgorithm.md5,
-            DigestAlgorithm.sha1.getOcflName(), DigestAlgorithm.sha1,
-            DigestAlgorithm.sha256.getOcflName(), DigestAlgorithm.sha256,
-            DigestAlgorithm.sha512.getOcflName(), DigestAlgorithm.sha512,
-            DigestAlgorithm.blake2b512.getOcflName(), DigestAlgorithm.blake2b512,
-            DigestAlgorithm.blake2b160.getOcflName(), DigestAlgorithm.blake2b160,
-            DigestAlgorithm.blake2b256.getOcflName(), DigestAlgorithm.blake2b256,
-            DigestAlgorithm.blake2b384.getOcflName(), DigestAlgorithm.blake2b384,
-            DigestAlgorithm.sha512_256.getOcflName(), DigestAlgorithm.sha512_256,
-            DigestAlgorithm.size.getOcflName(), DigestAlgorithm.size));
+            md5.getOcflName(), md5,
+            sha1.getOcflName(), sha1,
+            sha256.getOcflName(), sha256,
+            sha512.getOcflName(), sha512,
+            blake2b512.getOcflName(), blake2b512,
+            blake2b160.getOcflName(), blake2b160,
+            blake2b256.getOcflName(), blake2b256,
+            blake2b384.getOcflName(), blake2b384,
+            sha512_256.getOcflName(), sha512_256,
+            size.getOcflName(), size));
 
     private DigestAlgorithmRegistry() {}
 

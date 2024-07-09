@@ -47,9 +47,9 @@ public final class OcflConstants {
     public static final String DEFAULT_CONTENT_DIRECTORY = "content";
     public static final int DEFAULT_ZERO_PADDING_WIDTH = 0;
 
-    public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithm.sha512;
+    public static final DigestAlgorithm DEFAULT_DIGEST_ALGORITHM = DigestAlgorithmRegistry.sha512;
     public static final Set<DigestAlgorithm> ALLOWED_DIGEST_ALGORITHMS =
-            Set.of(DigestAlgorithm.sha512, DigestAlgorithm.sha256);
+            Set.of(DigestAlgorithmRegistry.sha512, DigestAlgorithmRegistry.sha256);
 
     public static final String MUTABLE_HEAD_EXT_NAME = "0005-mutable-head";
     public static final String MUTABLE_HEAD_EXT_PATH = EXTENSIONS_DIR + "/" + MUTABLE_HEAD_EXT_NAME;
@@ -59,5 +59,5 @@ public final class OcflConstants {
     public static final String DIGEST_ALGORITHMS_EXT_NAME = "0001-digest-algorithms";
 
     public static final DigestAlgorithm[] VALID_INVENTORY_ALGORITHMS =
-            new DigestAlgorithm[] {DigestAlgorithm.sha256, DigestAlgorithm.sha512};
+            new DigestAlgorithm[] {DigestAlgorithmRegistry.sha256, DigestAlgorithmRegistry.sha512};
 }

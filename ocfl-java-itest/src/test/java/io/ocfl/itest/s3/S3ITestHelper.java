@@ -4,7 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static software.amazon.awssdk.http.SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES;
 
-import io.ocfl.api.model.DigestAlgorithm;
+import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.core.util.DigestUtil;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.itest.ITestHelper;
@@ -136,7 +136,7 @@ public class S3ITestHelper {
     }
 
     private String computeS3Digest(String bucket, String prefix, String key) {
-        return DigestUtil.computeDigestHex(DigestAlgorithm.md5, getObjectContent(bucket, prefix, key));
+        return DigestUtil.computeDigestHex(DigestAlgorithmRegistry.md5, getObjectContent(bucket, prefix, key));
     }
 
     public List<String> listAllObjects(String bucket, String prefix) {

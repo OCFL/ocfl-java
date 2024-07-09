@@ -24,7 +24,6 @@
 
 package io.ocfl.core.inventory;
 
-import at.favre.lib.bytes.Bytes;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.ocfl.api.exception.CorruptObjectException;
@@ -196,7 +195,7 @@ public class InventoryMapper {
             if (digestAlgorithm != null) {
                 var wrapped = new DigestInputStream(bufferedStream, digestAlgorithm.getMessageDigest());
                 bytes = wrapped.readAllBytes();
-                digest = Bytes.wrap(wrapped.getMessageDigest().digest()).encodeHex();
+                digest = digestAlgorithm.encode(wrapped.getMessageDigest().digest());
             } else {
                 bytes = bufferedStream.readAllBytes();
             }
