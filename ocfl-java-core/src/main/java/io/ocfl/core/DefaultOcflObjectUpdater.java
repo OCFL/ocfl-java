@@ -40,7 +40,6 @@ import io.ocfl.core.model.Inventory;
 import io.ocfl.core.util.DigestUtil;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.core.util.UncheckedFiles;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
