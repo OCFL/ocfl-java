@@ -31,12 +31,12 @@
     <parent>
         <groupId>io.ocfl</groupId>
         <artifactId>ocfl-java-parent</artifactId>
-        <version>2.1.1-SNAPSHOT</version>
+        <version>2.2.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>ocfl-java-aws</artifactId>
-    <version>2.1.1-SNAPSHOT</version>
+    <version>2.2.0</version>
 
     <name>OCFL Java AWS</name>
     <description>Java OCFL implementation that writes to S3.</description>
@@ -58,7 +58,7 @@
         <dependency>
             <groupId>io.ocfl</groupId>
             <artifactId>ocfl-java-core</artifactId>
-            <version>2.1.1-SNAPSHOT</version>
+            <version>2.2.0</version>
         </dependency>
 
         <!-- AWS -->
