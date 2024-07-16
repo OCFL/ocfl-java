@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [2.2.0] - 2024-07-15
+
 ### Added
 
 - Support of file size based fixity entries: https://github.com/OCFL/ocfl-java/issues/116
@@ -272,7 +274,8 @@ DROP TABLE ocfl_object_lock;
 
 This is a preliminary release of ocfl-java. All major functionality is in place. However, there will be a few breaking configuration changes prior to the v1.0.0 release, specifically in regards to configuring storage layouts.
 
-[Unreleased]: https://github.com/ocfl/ocfl-java/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/ocfl/ocfl-java/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/ocfl/ocfl-java/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/ocfl/ocfl-java/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/ocfl/ocfl-java/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/ocfl/ocfl-java/compare/v1.5.0...v2.0.0
