@@ -79,7 +79,7 @@ public class CloudOcflFileRetriever implements OcflFileRetriever {
     /**
      * Returns an input stream of the file's content between the specified byte range. startPosition and endPosition
      * may be null. When they are null, they are translated into an empty string. startPosition and endPosition are
-     * used to construct byte range as specified in <a link="https://www.rfc-editor.org/rfc/rfc9110.html#name-byte-ranges">RFC 9110</a>.
+     * used to construct byte range as specified in <a href="https://www.rfc-editor.org/rfc/rfc9110.html#name-byte-ranges">RFC 9110</a>.
      *
      * <p>The caller is responsible for closing the stream. The input stream is buffered.
      *
