@@ -29,6 +29,7 @@ import io.ocfl.api.io.FixityCheckInputStream;
 import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import java.io.BufferedInputStream;
+import java.io.InputStream;
 
 /**
  * OcflFileRetriever implementation for lazy-loading files from cloud storage.
@@ -71,8 +72,26 @@ public class CloudOcflFileRetriever implements OcflFileRetriever {
      */
     @Override
     public FixityCheckInputStream retrieveFile() {
-        // TODO caching?
         return new FixityCheckInputStream(
                 new BufferedInputStream(cloudClient.downloadStream(key)), digestAlgorithm, digestValue);
+    }
+
+    /**
+     * Returns an input stream of the file's content between the specified byte range. startPosition and endPosition
+     * may be null. When they are null, they are translated into an empty string. startPosition and endPosition are
+     * used to construct byte range as specified in <a link="https://www.rfc-editor.org/rfc/rfc9110.html#name-byte-ranges">RFC 9110</a>.
+     *
+     * <p>The caller is responsible for closing the stream. The input stream is buffered.
+     *
+     * @param startPosition the byte offset in the file to start reading, inclusive
+     * @param endPosition the byte offset in the file to stop reading, inclusive
+     * @return a buffered input stream containing the specified file data
+     */
+    @Override
+    public InputStream retrieveRange(Long startPosition, Long endPosition) {
+        var start = startPosition == null ? "" : startPosition;
+        var end = endPosition == null ? "" : endPosition;
+        var range = "bytes=" + start + "-" + end;
+        return new BufferedInputStream(cloudClient.downloadStreamRange(key, range));
     }
 }

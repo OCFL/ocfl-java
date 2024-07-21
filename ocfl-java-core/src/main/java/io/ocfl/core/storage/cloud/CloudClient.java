@@ -131,6 +131,16 @@ public interface CloudClient {
     InputStream downloadStream(String srcPath);
 
     /**
+     * Downloads the specified range of an object. The range string is as defined in <a link="https://www.rfc-editor.org/rfc/rfc9110.html#name-byte-ranges">RFC 9110</a>.
+     *
+     * @param srcPath object key
+     * @param range the range to download
+     * @return stream of object content
+     * @throws KeyNotFoundException when srcPath not found
+     */
+    InputStream downloadStreamRange(String srcPath, String range);
+
+    /**
      * Downloads an object to a string. This assumes that the object is UTF-8 encoded.
      *
      * @param srcPath object key

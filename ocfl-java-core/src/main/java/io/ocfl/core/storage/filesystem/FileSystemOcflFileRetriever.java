@@ -31,6 +31,8 @@ import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.util.Enforce;
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -57,6 +59,46 @@ public class FileSystemOcflFileRetriever implements OcflFileRetriever {
         try {
             return new FixityCheckInputStream(
                     new BufferedInputStream(Files.newInputStream(filePath)), digestAlgorithm, digestValue);
+        } catch (IOException e) {
+            throw OcflIOException.from(e);
+        }
+    }
+
+    /**
+     * Returns an input stream of the file's content between the specified byte range. startPosition and endPosition
+     * may not be null.
+     *
+     * <p>The caller is responsible for closing the stream. The input stream is buffered.
+     *
+     * @param startPosition the byte offset in the file to start reading, inclusive
+     * @param endPosition the byte offset in the file to stop reading, inclusive
+     * @return a buffered input stream containing the specified file data
+     */
+    @Override
+    public InputStream retrieveRange(Long startPosition, Long endPosition) {
+        try {
+            var length = endPosition - startPosition;
+            var file = new RandomAccessFile(filePath.toFile(), "r");
+            if (startPosition > 0) {
+                file.seek(startPosition);
+            }
+            return new InputStream() {
+                long bytesRead = 0;
+
+                @Override
+                public int read() throws IOException {
+                    if (bytesRead > length) {
+                        return -1;
+                    }
+                    bytesRead++;
+                    return file.read();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    file.close();
+                }
+            };
         } catch (IOException e) {
             throw OcflIOException.from(e);
         }

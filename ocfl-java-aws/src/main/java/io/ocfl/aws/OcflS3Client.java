@@ -327,6 +327,32 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
+    public InputStream downloadStreamRange(String srcPath, String range) {
+        var srcKey = keyBuilder.buildFromPath(srcPath);
+        LOG.debug("Streaming from bucket {} key {} range {}", bucket, srcKey, range);
+
+        try {
+            return s3Client.getObject(
+                            GetObjectRequest.builder()
+                                    .bucket(bucket)
+                                    .key(srcKey.getKey())
+                                    .range(range)
+                                    .build(),
+                            AsyncResponseTransformer.toBlockingInputStream())
+                    .join();
+        } catch (RuntimeException e) {
+            var cause = OcflS3Util.unwrapCompletionEx(e);
+            if (wasNotFound(cause)) {
+                throw new KeyNotFoundException("Key " + srcKey + " not found in bucket " + bucket, cause);
+            }
+            throw new OcflS3Exception("Failed to download " + srcKey, cause);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String downloadString(String srcPath) {
         try (var stream = downloadStream(srcPath)) {
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);

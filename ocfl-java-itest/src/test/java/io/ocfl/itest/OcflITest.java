@@ -2832,6 +2832,30 @@ public abstract class OcflITest {
                 });
     }
 
+    @Test
+    public void fileRangeRequests() throws IOException {
+        var repoName = "range";
+        var repo = defaultRepo(repoName);
+
+        var objectId = "obj1";
+
+        repo.updateObject(ObjectVersionId.head(objectId), null, updater -> {
+            updater.writeFile(ITestHelper.streamString("asdf".repeat(99_999)), "file1");
+        });
+
+        var file1 = repo.getObject(ObjectVersionId.head(objectId)).getFile("file1");
+
+        try (var is = file1.getRange(0L, 3L)) {
+            var value = IOUtils.toString(is, StandardCharsets.UTF_8);
+            assertEquals("asdf", value);
+        }
+
+        try (var is = file1.getRange(10_002L, 18_004L)) {
+            var value = IOUtils.toString(is, StandardCharsets.UTF_8);
+            assertEquals("df" + "asdf".repeat(2_000) + "a", value);
+        }
+    }
+
     private Path writeFile(String content) {
         try {
             return Files.writeString(
