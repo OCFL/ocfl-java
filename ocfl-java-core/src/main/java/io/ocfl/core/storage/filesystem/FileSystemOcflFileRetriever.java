@@ -77,7 +77,7 @@ public class FileSystemOcflFileRetriever implements OcflFileRetriever {
     @Override
     public InputStream retrieveRange(Long startPosition, Long endPosition) {
         try {
-            var length = endPosition - startPosition;
+            var length = endPosition - startPosition + 1;
             var file = new RandomAccessFile(filePath.toFile(), "r");
             if (startPosition > 0) {
                 file.seek(startPosition);
@@ -87,11 +87,22 @@ public class FileSystemOcflFileRetriever implements OcflFileRetriever {
 
                 @Override
                 public int read() throws IOException {
-                    if (bytesRead > length) {
+                    if (bytesRead >= length) {
                         return -1;
                     }
                     bytesRead++;
                     return file.read();
+                }
+
+                @Override
+                public int read(byte[] b, int off, int len) throws IOException {
+                    if (bytesRead >= length) {
+                        return -1;
+                    }
+                    var maxLen = length - bytesRead;
+                    var modifiedLen = Math.min(len, maxLen);
+                    bytesRead += modifiedLen;
+                    return file.read(b, off, (int) modifiedLen);
                 }
 
                 @Override
