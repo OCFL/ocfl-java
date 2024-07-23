@@ -6,6 +6,10 @@
 
 - It is now possible to retrieve part of a file using `OcflObjectVersionFile.getRange()`. https://github.com/OCFL/ocfl-java/issues/118
 
+### Changed
+
+- Updated dependencies
+
 ## [2.2.0] - 2024-07-15
 
 ### Added
