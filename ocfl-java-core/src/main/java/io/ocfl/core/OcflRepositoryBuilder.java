@@ -69,21 +69,21 @@ import java.util.function.Consumer;
  */
 public class OcflRepositoryBuilder {
 
-    private OcflStorage storage;
-    private OcflConfig config;
-    private OcflExtensionConfig defaultLayoutConfig;
-    private Path workDir;
-    private boolean verifyStaging;
-    private Duration fileLockTimeoutDuration;
+    protected OcflStorage storage;
+    protected OcflConfig config;
+    protected OcflExtensionConfig defaultLayoutConfig;
+    protected Path workDir;
+    protected boolean verifyStaging;
+    protected Duration fileLockTimeoutDuration;
 
-    private ObjectLock objectLock;
-    private Cache<String, Inventory> inventoryCache;
-    private InventoryMapper inventoryMapper;
-    private LogicalPathMapper logicalPathMapper;
-    private ContentPathConstraintProcessor contentPathConstraintProcessor;
-    private ObjectDetailsDatabase objectDetailsDb;
-    private UnsupportedExtensionBehavior unsupportedBehavior;
-    private Set<String> ignoreUnsupportedExtensions;
+    protected ObjectLock objectLock;
+    protected Cache<String, Inventory> inventoryCache;
+    protected InventoryMapper inventoryMapper;
+    protected LogicalPathMapper logicalPathMapper;
+    protected ContentPathConstraintProcessor contentPathConstraintProcessor;
+    protected ObjectDetailsDatabase objectDetailsDb;
+    protected UnsupportedExtensionBehavior unsupportedBehavior;
+    protected Set<String> ignoreUnsupportedExtensions;
 
     /**
      * Constructs a local file system based OCFL repository sensible defaults that can be overridden prior to calling
@@ -411,7 +411,7 @@ public class OcflRepositoryBuilder {
         return buildInternal(DefaultMutableOcflRepository.class);
     }
 
-    private <T extends OcflRepository> T buildInternal(Class<T> clazz) {
+    protected <T extends OcflRepository> T buildInternal(Class<T> clazz) {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 
@@ -454,14 +454,14 @@ public class OcflRepositoryBuilder {
                 fileLockTimeoutDuration));
     }
 
-    private OcflStorage cache(OcflStorage storage) {
+    protected OcflStorage cache(OcflStorage storage) {
         if (inventoryCache != null) {
             return new CachingOcflStorage(inventoryCache, storage);
         }
         return storage;
     }
 
-    private OcflStorage db(OcflStorage storage) {
+    protected OcflStorage db(OcflStorage storage) {
         if (objectDetailsDb != null) {
             return new ObjectDetailsDbOcflStorage(objectDetailsDb, storage);
         }
