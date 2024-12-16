@@ -411,7 +411,7 @@ public class OcflRepositoryBuilder {
         return buildInternal(DefaultMutableOcflRepository.class);
     }
 
-    protected <T extends OcflRepository> T buildInternal(Class<T> clazz) {
+    private <T extends OcflRepository> T buildInternal(Class<T> clazz) {
         Enforce.notNull(storage, "storage cannot be null");
         Enforce.notNull(workDir, "workDir cannot be null");
 
