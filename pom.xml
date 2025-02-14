@@ -71,8 +71,8 @@
 
         <java.version>11</java.version>
 
-        <jackson.version>2.17.2</jackson.version>
-        <slf4j.version>2.0.13</slf4j.version>
+        <jackson.version>2.18.2</jackson.version>
+        <slf4j.version>2.0.16</slf4j.version>
     </properties>
 
     <profiles>
@@ -177,13 +177,13 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>2.43.0</version>
+                <version>2.44.2</version>
                 <configuration>
                     <java>
                         <importOrder />
                         <removeUnusedImports />
                         <palantirJavaFormat>
-                            <version>2.40.0</version>
+                            <version>2.51.0</version>
                         </palantirJavaFormat>
                     </java>
                 </configuration>
@@ -302,14 +302,14 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.5.6</version>
+                <version>1.5.16</version>
             </dependency>
 
             <!-- Caching -->
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
-                <version>3.1.8</version>
+                <version>3.2.0</version>
             </dependency>
 
             <!-- Byte manipulation -->
@@ -323,7 +323,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.2.1-jre</version>
+                <version>33.4.0-jre</version>
             </dependency>
             <dependency>
                 <groupId>dev.failsafe</groupId>
@@ -333,21 +333,22 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>1.78.1</version>
+                <version>1.80</version>
             </dependency>
 
             <!-- AWS -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.26.21</version>
+                <!-- moving to 2.30 seems to break the range requests for reasons that aren't clear to me -->
+                <version>2.29.52</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk.crt</groupId>
                 <artifactId>aws-crt</artifactId>
-                <version>0.30.0</version>
+                <version>0.34.0</version>
             </dependency>
 
             <!-- Test -->
@@ -359,32 +360,32 @@
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
-                <version>3.26.3</version>
+                <version>3.27.3</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
-                <version>5.10.3</version>
+                <version>5.11.4</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>5.12.0</version>
+                <version>5.15.2</version>
             </dependency>
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>42.7.3</version>
+                <version>42.7.5</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>2.3.230</version>
+                <version>2.3.232</version>
             </dependency>
             <dependency>
                 <groupId>org.mariadb.jdbc</groupId>
                 <artifactId>mariadb-java-client</artifactId>
-                <version>3.4.1</version>
+                <version>3.5.2</version>
             </dependency>
             <dependency>
                 <groupId>com.mchange</groupId>
