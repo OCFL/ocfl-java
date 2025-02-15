@@ -2,6 +2,13 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [2.2.2] - 2025-02-15
+
+### Changed
+
+- Updated dependencies
+- Make `OcflRepositoryBuilder` extensible
+
 ## [2.2.1] - 2024-07-22
 
 ### Added
@@ -284,7 +291,8 @@ DROP TABLE ocfl_object_lock;
 
 This is a preliminary release of ocfl-java. All major functionality is in place. However, there will be a few breaking configuration changes prior to the v1.0.0 release, specifically in regards to configuring storage layouts.
 
-[Unreleased]: https://github.com/ocfl/ocfl-java/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/ocfl/ocfl-java/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/ocfl/ocfl-java/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/ocfl/ocfl-java/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/ocfl/ocfl-java/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/ocfl/ocfl-java/compare/v2.0.1...v2.1.0
