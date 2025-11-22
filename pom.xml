@@ -342,7 +342,6 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <!-- moving to 2.30 seems to break the range requests for reasons that aren't clear to me -->
                 <version>2.39.1</version>
                 <type>pom</type>
                 <scope>import</scope>
