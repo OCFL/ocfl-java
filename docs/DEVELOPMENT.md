@@ -86,6 +86,6 @@ git pull
 git tag "v$RELEASE_VERSION" REF
 git push upstream "v$RELEASE_VERSION"
 git checkout "v$RELEASE_VERSION"
-mvn clean deploy -P ossrh,release
+mvn clean deploy -P release
 # Log into Sonatype and release
 ```
