@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Fix exception when creating a validation error for version directories that are actually files. https://github.com/OCFL/ocfl-java/issues/135
+
 ## [2.2.3] - 2025-11-22
 
 ### Changed
