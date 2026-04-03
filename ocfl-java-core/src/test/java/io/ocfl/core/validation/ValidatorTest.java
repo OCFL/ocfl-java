@@ -98,6 +98,22 @@ public class ValidatorTest {
     }
 
     @Test
+    public void errorOnVersionDirectoryIsFile() {
+        var name = "E001_v2_file_in_root";
+        var validator = createValidator(OFFICIAL_BAD_FIXTURES);
+
+        var results = validator.validateObject(name, true);
+
+        assertErrorCount(results, 1);
+        assertHasError(
+                results,
+                ValidationCode.E001,
+                "Object root E001_v2_file_in_root contains version v2 but it is a file and must be a directory");
+        assertWarningsCount(results, 0);
+        assertInfoCount(results, 0);
+    }
+
+    @Test
     public void errorOnContentNotInContentDir() {
         var name = "E015_content_not_in_content_dir";
         var validator = createValidator(OFFICIAL_BAD_FIXTURES);
