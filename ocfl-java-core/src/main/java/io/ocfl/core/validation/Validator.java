@@ -829,7 +829,8 @@ public class Validator {
                     results.addIssue(
                             ValidationCode.E001,
                             "Object root %s contains version %s but it is a file and must be a directory",
-                            objectRootPath);
+                            objectRootPath,
+                            fileName);
                 } else if (inventory.getVersions() != null && versionNum != null) {
                     if (!inventory.getVersions().containsKey(fileName)) {
                         results.addIssue(
