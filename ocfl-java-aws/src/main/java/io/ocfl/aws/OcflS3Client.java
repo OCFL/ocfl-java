@@ -24,15 +24,6 @@
 
 package io.ocfl.aws;
 
-import io.ocfl.api.OcflRepository;
-import io.ocfl.api.exception.OcflIOException;
-import io.ocfl.api.util.Enforce;
-import io.ocfl.core.storage.cloud.CloudClient;
-import io.ocfl.core.storage.cloud.CloudObjectKey;
-import io.ocfl.core.storage.cloud.HeadResult;
-import io.ocfl.core.storage.cloud.KeyNotFoundException;
-import io.ocfl.core.storage.cloud.ListResult;
-import io.ocfl.core.util.UncheckedFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -42,13 +33,28 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.zip.CRC32;
+import java.util.zip.Checksum;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.ocfl.api.OcflRepository;
+import io.ocfl.api.exception.OcflIOException;
+import io.ocfl.api.util.Enforce;
+import io.ocfl.core.storage.cloud.CloudClient;
+import io.ocfl.core.storage.cloud.CloudObjectKey;
+import io.ocfl.core.storage.cloud.HeadResult;
+import io.ocfl.core.storage.cloud.KeyNotFoundException;
+import io.ocfl.core.storage.cloud.ListResult;
+import io.ocfl.core.util.UncheckedFiles;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -74,13 +80,32 @@ public class OcflS3Client implements CloudClient {
 
     private static final long EIGHT_MB = 8 * 1024 * 1024;
 
+    /**
+     * default function to retrieve bucket.
+     * Always returns the first bucket of list used in implementations that handle only one bucket 
+     */
+    private static final BiFunction<CloudObjectKey, List<String>, String> SELECT_FIRST_BUCKET =
+        (key, buckets) -> buckets.get(0);
+
+    public static final BiFunction<CloudObjectKey, List<String>, String> SELECT_BUCKET_BY_CRC32_AND_MOD =
+        (key, buckets) -> {
+            if (buckets.size() == 1) {
+                return buckets.get(0);
+            }
+            byte[] bytes = key.getKey().getBytes(StandardCharsets.UTF_8);
+            Checksum crc32 = new CRC32();
+            crc32.update(bytes, 0, bytes.length);
+            return buckets.get((int) (crc32.getValue() % buckets.size()));
+        };
+
     private final S3AsyncClient s3Client;
     private final S3TransferManager transferManager;
-    private final String bucket;
+    private final List<String> buckets;
     private final String repoPrefix;
     private final CloudObjectKey.Builder keyBuilder;
 
     private final BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
+    private final BiFunction<CloudObjectKey, List<String>, String> selectBucket;
 
     /**
      * Used to create a new OcflS3Client instance.
@@ -98,9 +123,19 @@ public class OcflS3Client implements CloudClient {
      * @param bucket s3 bucket
      */
     public OcflS3Client(S3AsyncClient s3Client, String bucket) {
-        this(s3Client, bucket, null, null, null);
+        this(s3Client, List.of(bucket), null, null, null, SELECT_FIRST_BUCKET);
     }
 
+    /**
+     * @see OcflS3Client#builder()
+     *
+     * @param s3Client aws sdk s3 client
+     * @param buckets list of s3 bucket names
+     */
+    public OcflS3Client(S3AsyncClient s3Client, List<String> buckets) {
+        this(s3Client, buckets, null, null, null, null);
+    }
+    
     /**
      * @see OcflS3Client#builder()
      *
@@ -116,12 +151,37 @@ public class OcflS3Client implements CloudClient {
             String prefix,
             S3TransferManager transferManager,
             BiConsumer<String, PutObjectRequest.Builder> putObjectModifier) {
+        this(s3Client, List.of(bucket), prefix, transferManager, putObjectModifier, null);
+    }
+
+    /**
+     * @see OcflS3Client#builder()
+     *
+     * @param s3Client aws sdk s3 client, not null
+     * @param buckets list of s3 bucket names, not null
+     * @param prefix key prefix, may be null
+     * @param transferManager aws sdk s3 transfer manager, not null
+     * @param putObjectModifier hook for modifying putObject requests, may be null
+     */
+    public OcflS3Client(
+            S3AsyncClient s3Client,
+            List<String> buckets,
+            String prefix,
+            S3TransferManager transferManager,
+            BiConsumer<String, PutObjectRequest.Builder> putObjectModifier,
+            BiFunction<CloudObjectKey, List<String>, String> selectBucket) {
         this.s3Client = Enforce.notNull(s3Client, "s3Client cannot be null");
-        this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
+        this.buckets = Enforce.notNull(buckets, "bucket cannot be null");
+        for (String bucket : buckets) {
+            Enforce.notBlank(bucket, "bucket " + bucket + "cannot be empty");
+        }
         this.repoPrefix = sanitizeRepoPrefix(prefix == null ? "" : prefix);
         this.transferManager = Enforce.notNull(transferManager, "transferManager cannot be null");
         this.keyBuilder = CloudObjectKey.builder().prefix(repoPrefix);
         this.putObjectModifier = putObjectModifier != null ? putObjectModifier : (k, b) -> {};
+        this.selectBucket = selectBucket != null 
+            ? selectBucket 
+                : (buckets.size() == 1 ? SELECT_FIRST_BUCKET : SELECT_BUCKET_BY_CRC32_AND_MOD);
     }
 
     private static String sanitizeRepoPrefix(String repoPrefix) {
@@ -149,8 +209,8 @@ public class OcflS3Client implements CloudClient {
      * {@inheritDoc}
      */
     @Override
-    public String bucket() {
-        return bucket;
+    public List<String> buckets() {
+        return buckets;
     }
 
     /**
@@ -176,7 +236,7 @@ public class OcflS3Client implements CloudClient {
     public Future<CloudObjectKey> uploadFileAsync(Path srcPath, String dstPath, String contentType) {
         var fileSize = UncheckedFiles.size(srcPath);
         var dstKey = keyBuilder.buildFromPath(dstPath);
-
+        String bucket = selectBucket.apply(dstKey, buckets);
         LOG.debug("Uploading {} to bucket {} key {} size {}", srcPath, bucket, dstKey, fileSize);
 
         var builder = PutObjectRequest.builder().contentType(contentType);
@@ -226,6 +286,7 @@ public class OcflS3Client implements CloudClient {
     @Override
     public CloudObjectKey uploadBytes(String dstPath, byte[] bytes, String contentType) {
         var dstKey = keyBuilder.buildFromPath(dstPath);
+        String bucket = selectBucket.apply(dstKey, buckets);
         LOG.debug("Writing bytes to bucket {} key {}", bucket, dstKey);
 
         var builder = PutObjectRequest.builder().contentType(contentType);
@@ -249,6 +310,7 @@ public class OcflS3Client implements CloudClient {
     public CloudObjectKey copyObject(String srcPath, String dstPath) {
         var srcKey = keyBuilder.buildFromPath(srcPath);
         var dstKey = keyBuilder.buildFromPath(dstPath);
+        String bucket = selectBucket.apply(dstKey, buckets);
 
         LOG.debug("Copying {} to {} in bucket {}", srcKey, dstKey, bucket);
 
@@ -277,14 +339,14 @@ public class OcflS3Client implements CloudClient {
     @Override
     public Path downloadFile(String srcPath, Path dstPath) {
         var srcKey = keyBuilder.buildFromPath(srcPath);
+        String bucket = selectBucket.apply(srcKey, buckets);
         LOG.debug("Downloading from bucket {} key {} to {}", bucket, srcKey, dstPath);
 
         try {
             transferManager
-                    .downloadFile(req -> req.getObjectRequest(getReq ->
-                                    getReq.bucket(bucket).key(srcKey.getKey()).build())
-                            .destination(dstPath)
-                            .build())
+                   .downloadFile(req -> req.getObjectRequest(getReq -> getReq.bucket(bucket).key(srcKey.getKey()).build())
+                        .destination(dstPath)
+                        .build())
                     .completionFuture()
                     .join();
         } catch (RuntimeException e) {
@@ -304,6 +366,7 @@ public class OcflS3Client implements CloudClient {
     @Override
     public InputStream downloadStream(String srcPath) {
         var srcKey = keyBuilder.buildFromPath(srcPath);
+        String bucket = selectBucket.apply(srcKey, buckets);
         LOG.debug("Streaming from bucket {} key {}", bucket, srcKey);
 
         try {
@@ -329,6 +392,7 @@ public class OcflS3Client implements CloudClient {
     @Override
     public InputStream downloadStreamRange(String srcPath, String range) {
         var srcKey = keyBuilder.buildFromPath(srcPath);
+        String bucket = selectBucket.apply(srcKey, buckets);
         LOG.debug("Streaming from bucket {} key {} range {}", bucket, srcKey, range);
 
         try {
@@ -367,6 +431,7 @@ public class OcflS3Client implements CloudClient {
     @Override
     public HeadResult head(String path) {
         var key = keyBuilder.buildFromPath(path);
+        String bucket = selectBucket.apply(key, buckets());
 
         try {
             var s3Result = s3Client.headObject(HeadObjectRequest.builder()
@@ -395,7 +460,14 @@ public class OcflS3Client implements CloudClient {
     @Override
     public ListResult list(String prefix) {
         var prefixedPrefix = keyBuilder.buildFromPath(prefix);
-        return toListResult(ListObjectsV2Request.builder().bucket(bucket).prefix(prefixedPrefix.getKey()));
+        ListResult lrReturn = new ListResult();
+        for (String bucket : buckets) {
+            ListResult lrBucket =
+                toListResult(ListObjectsV2Request.builder().bucket(bucket).prefix(prefixedPrefix.getKey()));
+            lrReturn.getDirectories().addAll(lrBucket.getDirectories());
+            lrReturn.getObjects().addAll(lrBucket.getObjects());
+        }
+        return lrReturn;
     }
 
     /**
@@ -409,10 +481,16 @@ public class OcflS3Client implements CloudClient {
             prefix = prefix + "/";
         }
 
-        LOG.debug("Listing directory {} in bucket {}", prefix, bucket);
-
-        return toListResult(
+        ListResult lrReturn = new ListResult();
+        for (String bucket : buckets) {
+            LOG.debug("Listing directory {} in bucket {}", prefix, bucket);
+            ListResult lrb = toListResult(
                 ListObjectsV2Request.builder().bucket(bucket).delimiter("/").prefix(prefix));
+            lrReturn.getDirectories().addAll(lrb.getDirectories());
+            lrReturn.getObjects().addAll(lrb.getObjects());
+
+        }
+        return lrReturn;
     }
 
     /**
@@ -426,22 +504,25 @@ public class OcflS3Client implements CloudClient {
             prefix = prefix + "/";
         }
 
-        LOG.debug("Checking existence of {} in bucket {}", prefix, bucket);
-
         try {
-            var response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
-                            .bucket(bucket)
-                            .delimiter("/")
-                            .prefix(prefix)
-                            .maxKeys(1)
-                            .build())
+            for (String bucket : buckets) {
+                var response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                    .bucket(bucket)
+                    .delimiter("/")
+                    .prefix(prefix)
+                    .maxKeys(1)
+                    .build())
                     .join();
 
-            return response.contents().stream().findAny().isPresent()
-                    || response.commonPrefixes().stream().findAny().isPresent();
+                if (response.contents().stream().findAny().isPresent()
+                    || response.commonPrefixes().stream().findAny().isPresent()) {
+                    return true;
+                }
+            }
         } catch (RuntimeException e) {
             throw new OcflS3Exception("Failed to list objects under " + prefix, OcflS3Util.unwrapCompletionEx(e));
         }
+        return false;
     }
 
     /**
@@ -449,13 +530,14 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public void deletePath(String path) {
-        LOG.debug("Deleting path {} in bucket {}", path, bucket);
-
-        var keys = list(path).getObjects().stream()
+        for (String bucket : buckets) {
+            LOG.debug("Deleting path {} in bucket {}", path, bucket);
+            var keys = list(path).getObjects().stream()
                 .map(ListResult.ObjectListing::getKey)
                 .collect(Collectors.toList());
 
-        deleteObjectsInternal(keys);
+            deleteObjectsInternal(keys);
+        }
     }
 
     /**
@@ -474,29 +556,32 @@ public class OcflS3Client implements CloudClient {
     }
 
     private void deleteObjectsInternal(Collection<CloudObjectKey> objectKeys) {
-        LOG.debug("Deleting objects in bucket {}: {}", bucket, objectKeys);
+        for (String bucket : buckets) {
+            LOG.debug("Deleting objects in bucket {}: {}", bucket, objectKeys);
 
-        if (!objectKeys.isEmpty()) {
-            var objectIds = objectKeys.stream()
+            if (!objectKeys.isEmpty()) {
+                var objectIds = objectKeys.stream()
                     .map(key -> ObjectIdentifier.builder().key(key.getKey()).build())
                     .collect(Collectors.toList());
 
-            try {
-                var futures = new ArrayList<CompletableFuture<?>>();
+                try {
+                    var futures = new ArrayList<CompletableFuture<?>>();
 
-                // Can only delete at most 1,000 objects per request
-                for (int i = 0; i < objectIds.size(); i += 999) {
-                    var toDelete = objectIds.subList(i, Math.min(objectIds.size(), i + 999));
-                    futures.add(s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                    // Can only delete at most 1,000 objects per request
+                    for (int i = 0; i < objectIds.size(); i += 999) {
+                        var toDelete = objectIds.subList(i, Math.min(objectIds.size(), i + 999));
+                        futures.add(s3Client.deleteObjects(DeleteObjectsRequest.builder()
                             .bucket(bucket)
                             .delete(builder -> builder.objects(toDelete))
                             .build()));
-                }
+                    }
 
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[] {}))
+                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[] {}))
                         .join();
-            } catch (RuntimeException e) {
-                throw new OcflS3Exception("Failed to delete objects " + objectIds, OcflS3Util.unwrapCompletionEx(e));
+                } catch (RuntimeException e) {
+                    throw new OcflS3Exception("Failed to delete objects " + objectIds,
+                        OcflS3Util.unwrapCompletionEx(e));
+                }
             }
         }
     }
@@ -517,7 +602,7 @@ public class OcflS3Client implements CloudClient {
         try {
             deleteObjects(objectPaths);
         } catch (RuntimeException e) {
-            LOG.error("Failed to cleanup objects in bucket {}: {}", bucket, objectPaths, e);
+            LOG.error("Failed to cleanup objects: {}", objectPaths, e);
         }
     }
 
@@ -526,17 +611,19 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public boolean bucketExists() {
-        try {
-            s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
+        for (String bucket : buckets) {
+            try {
+                s3Client.headBucket(HeadBucketRequest.builder().bucket(bucket).build())
                     .join();
-            return true;
-        } catch (RuntimeException e) {
-            var cause = OcflS3Util.unwrapCompletionEx(e);
-            if (wasNotFound(cause)) {
-                return false;
+            } catch (RuntimeException e) {
+                var cause = OcflS3Util.unwrapCompletionEx(e);
+                if (wasNotFound(cause)) {
+                    return false;
+                }
+                throw new OcflS3Exception("Failed ot HEAD bucket " + bucket, cause);
             }
-            throw new OcflS3Exception("Failed ot HEAD bucket " + bucket, cause);
         }
+        return true;
     }
 
     private ListResult toListResult(ListObjectsV2Request.Builder requestBuilder) {
@@ -617,10 +704,11 @@ public class OcflS3Client implements CloudClient {
     public static class Builder {
         private S3AsyncClient s3Client;
         private S3TransferManager transferManager;
-        private String bucket;
+        private List<String> buckets = new Vector<String>();
         private String repoPrefix;
 
         private BiConsumer<String, PutObjectRequest.Builder> putObjectModifier;
+        private BiFunction<CloudObjectKey, List<String>, String> selectBucket;
 
         /**
          * The AWS SDK S3 client. Required.
@@ -667,7 +755,14 @@ public class OcflS3Client implements CloudClient {
          * @return builder
          */
         public Builder bucket(String bucket) {
-            this.bucket = Enforce.notBlank(bucket, "bucket cannot be blank");
+            this.buckets.add(Enforce.notBlank(bucket, "bucket cannot be blank"));
+            return this;
+        }
+
+        public Builder buckets(List<String> buckets) {
+            for (String bucket : buckets) {
+                this.buckets.add(Enforce.notBlank(bucket, "bucket cannot be blank"));
+            }
             return this;
         }
 
@@ -698,6 +793,17 @@ public class OcflS3Client implements CloudClient {
         }
 
         /**
+         * Provides a hook to calculate the name of the S3 bucket from a list of buckets
+         *
+         * @param selectBucket hook for modifying putObject requests
+         * @return builder
+         */
+        public Builder selectBucket(BiFunction<CloudObjectKey, List<String>, String> selectBucket) {
+            this.selectBucket = selectBucket;
+            return this;
+        }
+
+        /**
          * Constructs a new {@link OcflS3Client}. {@link #s3Client(S3AsyncClient)} and {@link #bucket(String)} must be set.
          * <p>
          * Remember to call {@link OcflRepository#close()} when you are done with the repository so that the default
@@ -706,7 +812,7 @@ public class OcflS3Client implements CloudClient {
          * @return OcflS3Client
          */
         public OcflS3Client build() {
-            return new OcflS3Client(s3Client, bucket, repoPrefix, transferManager, putObjectModifier);
+            return new OcflS3Client(s3Client, buckets, repoPrefix, transferManager, putObjectModifier, selectBucket);
         }
     }
 }
