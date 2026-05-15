@@ -25,8 +25,8 @@
 package io.ocfl.core.storage.cloud;
 
 import io.ocfl.api.util.Enforce;
-import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 /**
  * Encapsulates the results of a list operation
@@ -37,8 +37,8 @@ public class ListResult {
     private List<DirectoryListing> directories;
 
     public ListResult() {
-        this.objects = Collections.emptyList();
-        this.directories = Collections.emptyList();
+        this.objects = new Vector<>();
+        this.directories = new Vector<>();
     }
 
     /**

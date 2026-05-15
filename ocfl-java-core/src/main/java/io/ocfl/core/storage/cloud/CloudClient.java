@@ -27,6 +27,7 @@ package io.ocfl.core.storage.cloud;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.Future;
 
 /**
@@ -44,7 +45,7 @@ public interface CloudClient {
      *
      * @return bucket name
      */
-    String bucket();
+    List<String> buckets();
 
     /**
      * The key prefix of all objects within the OCFL repository. This may be empty. Multiple different OCFL repositories
