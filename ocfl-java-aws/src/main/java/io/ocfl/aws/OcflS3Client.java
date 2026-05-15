@@ -530,14 +530,13 @@ public class OcflS3Client implements CloudClient {
      */
     @Override
     public void deletePath(String path) {
-        for (String bucket : buckets) {
-            LOG.debug("Deleting path {} in bucket {}", path, bucket);
-            var keys = list(path).getObjects().stream()
+        LOG.debug("Deleting path {}", path);
+
+        var keys = list(path).getObjects().stream()
                 .map(ListResult.ObjectListing::getKey)
                 .collect(Collectors.toList());
 
-            deleteObjectsInternal(keys);
-        }
+        deleteObjectsInternal(keys);
     }
 
     /**
