@@ -169,6 +169,34 @@ on large files or objects with lots of files. Additionally, it does
 not cache any object files locally, requiring them to be retrieved
 from S3 on every access.
 
+### Credentials
+
+`ocfl-java-aws` uses the [AWS SDK v2 default credential provider
+chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html)
+to authenticate with S3. In most cases no additional configuration is required.
+
+However, if you are deploying in a Kubernetes environment on Amazon EKS and
+using **IAM Roles for Service Accounts (IRSA)**, the SDK's web identity token
+provider requires the `software.amazon.awssdk:sts` module to be on the
+classpath. `ocfl-java-aws` does not include this as a dependency, so you will
+need to add it yourself:
+
+```xml
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>sts</artifactId>
+</dependency>
+```
+
+Without this, the SDK will emit a warning and credential resolution will fail:
+
+```text
+WARN  To use web identity tokens, the 'sts' service module must be on the class path.
+```
+
+See [OCFL/ocfl-java#140](https://github.com/OCFL/ocfl-java/issues/140) for more
+details.
+
 ### S3 Transfer Manager
 
 `ocfl-java` uses the new [S3 Transfer
