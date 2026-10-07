@@ -37,6 +37,26 @@ public class VersionStateMapTest {
     }
 
     @Test
+    public void shouldMapEachPathOnceWhenIteratedRepeatedly() {
+        var mapped = new ArrayList<String>();
+        var map = new VersionStateMap<>(version, (path, fileId) -> {
+            mapped.add(path);
+            return new StringBuilder(path);
+        });
+
+        var first = List.copyOf(map.values());
+        var second = List.copyOf(map.values());
+
+        assertThat(mapped).containsExactlyInAnyOrder("f1", "dir/f2", "dir/f2-copy");
+        for (int i = 0; i < first.size(); i++) {
+            assertThat(second.get(i)).isSameAs(first.get(i));
+        }
+        assertThat(map.get("f1")).isSameAs(map.get("f1"));
+        assertThat(map.entrySet()).hasSize(3);
+        assertThat(mapped).hasSize(3);
+    }
+
+    @Test
     public void shouldReturnNullWhenPathNotInVersion() {
         var map = new VersionStateMap<>(version, (path, fileId) -> path);
 

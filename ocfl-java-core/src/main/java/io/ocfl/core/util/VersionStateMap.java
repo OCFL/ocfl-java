@@ -28,15 +28,19 @@ import io.ocfl.api.util.Enforce;
 import io.ocfl.core.model.Version;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
  * Read-only map of logical paths to values derived from the state of a single version. Values are created on demand,
  * so looking up a single path does not require mapping every file in the version, which matters for objects that
- * contain a large number of files. Iterating over the entries or values creates a value for every file each time;
- * iterating over the keys does not create any values.
+ * contain a large number of files. Iterating over the keys does not create any values. The first time the entries or
+ * values are iterated, every value is created and retained, and later operations use those values.
  *
  * @param <V> the type of value the paths are mapped to
  */
@@ -44,6 +48,7 @@ public class VersionStateMap<V> extends AbstractMap<String, V> {
 
     private final Version version;
     private final BiFunction<String, String, V> valueMapper;
+    private volatile Map<String, V> materialized;
 
     /**
      * @param version the version whose state is mapped
@@ -56,6 +61,10 @@ public class VersionStateMap<V> extends AbstractMap<String, V> {
 
     @Override
     public V get(Object key) {
+        var map = materialized;
+        if (map != null) {
+            return map.get(key);
+        }
         if (!(key instanceof String)) {
             return null;
         }
@@ -71,6 +80,10 @@ public class VersionStateMap<V> extends AbstractMap<String, V> {
 
     @Override
     public int size() {
+        var map = materialized;
+        if (map != null) {
+            return map.size();
+        }
         return version.getState().values().stream().mapToInt(Set::size).sum();
     }
 
@@ -81,6 +94,10 @@ public class VersionStateMap<V> extends AbstractMap<String, V> {
      */
     @Override
     public Set<String> keySet() {
+        var map = materialized;
+        if (map != null) {
+            return map.keySet();
+        }
         return new AbstractSet<>() {
             @Override
             public Iterator<String> iterator() {
@@ -100,20 +117,32 @@ public class VersionStateMap<V> extends AbstractMap<String, V> {
     }
 
     @Override
-    public Set<Entry<String, V>> entrySet() {
-        return new AbstractSet<>() {
-            @Override
-            public Iterator<Entry<String, V>> iterator() {
-                return version.getState().entrySet().stream()
-                        .flatMap(entry -> entry.getValue().stream().map(path -> (Entry<String, V>)
-                                new SimpleImmutableEntry<>(path, valueMapper.apply(path, entry.getKey()))))
-                        .iterator();
-            }
+    public Collection<V> values() {
+        return materialize().values();
+    }
 
-            @Override
-            public int size() {
-                return VersionStateMap.this.size();
-            }
-        };
+    @Override
+    public Set<Entry<String, V>> entrySet() {
+        return materialize().entrySet();
+    }
+
+    /**
+     * Creates every value and retains them. If multiple threads materialize the map concurrently, each may create the
+     * values, and one of the resulting maps is retained.
+     */
+    private Map<String, V> materialize() {
+        var map = materialized;
+        if (map == null) {
+            var state = version.getState();
+            var values = new HashMap<String, V>();
+            state.forEach((fileId, paths) -> {
+                for (var path : paths) {
+                    values.put(path, valueMapper.apply(path, fileId));
+                }
+            });
+            map = Collections.unmodifiableMap(values);
+            materialized = map;
+        }
+        return map;
     }
 }
