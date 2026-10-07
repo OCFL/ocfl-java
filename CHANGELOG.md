@@ -2,6 +2,13 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- `describeVersion()`, `describeObject()`, and `getObject()` no longer build the details and streams of every file in a
+  version up front; they are created when a file is looked up. Reading individual files from objects that contain many
+  files no longer scales with the number of files in the object. The file maps returned by `VersionDetails` and
+  `OcflObjectVersion` are now read-only.
+
 ### Fixed
 
 - Fix exception when creating a validation error for version directories that are actually files. https://github.com/OCFL/ocfl-java/issues/135

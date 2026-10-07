@@ -7,8 +7,10 @@ import io.ocfl.api.OcflConfig;
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.model.FileChange;
 import io.ocfl.api.model.FileChangeType;
+import io.ocfl.api.model.FileDetails;
 import io.ocfl.api.model.ObjectVersionId;
 import io.ocfl.api.model.VersionInfo;
+import io.ocfl.api.model.VersionNum;
 import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.Version;
 import java.time.OffsetDateTime;
@@ -164,6 +166,49 @@ public class ResponseMapperTest {
                         .setStorageRelativePath("o1/v3/content/f1")
                         .setVersionInfo(new VersionInfo())
                         .setFixity(Map.of(DigestAlgorithmRegistry.sha512, "i3")));
+    }
+
+    @Test
+    public void shouldMapFileDetailsForEveryPathInVersion() {
+        var inventory = Inventory.stubInventory(
+                        "o1", new OcflConfig().setOcflVersion(OcflConstants.DEFAULT_OCFL_VERSION), "o1")
+                .buildFrom()
+                .addFileToManifest("i1", "v1/content/f1")
+                .addFileToManifest("i2", "v1/content/f2")
+                .addFixityForFile("v1/content/f1", DigestAlgorithmRegistry.md5, "md5-1")
+                .addHeadVersion(Version.builder()
+                        .created(OffsetDateTime.now())
+                        .addFile("i1", "f1")
+                        .addFile("i2", "f2")
+                        .addFile("i2", "dir/f2-copy")
+                        .build())
+                .build();
+        var versionNum = VersionNum.fromString("v1");
+
+        var details = responseMapper.mapVersion(inventory, versionNum, inventory.getVersion(versionNum));
+
+        assertThat(details.getVersionNum()).isEqualTo(versionNum);
+        assertThat(details.containsFile("dir/f2-copy")).isTrue();
+        assertThat(details.containsFile("f3")).isFalse();
+        assertThat(details.getFile("f3")).isNull();
+        assertThat(details.getFileMap())
+                .isEqualTo(Map.of(
+                        "f1",
+                        new FileDetails()
+                                .setPath("f1")
+                                .setStorageRelativePath("o1/v1/content/f1")
+                                .addDigest(DigestAlgorithmRegistry.sha512, "i1")
+                                .addDigest(DigestAlgorithmRegistry.md5, "md5-1"),
+                        "f2",
+                        new FileDetails()
+                                .setPath("f2")
+                                .setStorageRelativePath("o1/v1/content/f2")
+                                .addDigest(DigestAlgorithmRegistry.sha512, "i2"),
+                        "dir/f2-copy",
+                        new FileDetails()
+                                .setPath("dir/f2-copy")
+                                .setStorageRelativePath("o1/v1/content/f2")
+                                .addDigest(DigestAlgorithmRegistry.sha512, "i2")));
     }
 
     private void assertFileChanges(List<FileChange> actual, FileChange... expected) {
