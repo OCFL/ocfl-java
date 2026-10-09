@@ -5,9 +5,12 @@
 ### Changed
 
 - `describeVersion()`, `describeObject()`, and `getObject()` no longer build the details and streams of every file in a
-  version up front; they are created when a file is looked up. Reading individual files from objects that contain many
-  files no longer scales with the number of files in the object. The file maps returned by `VersionDetails` and
-  `OcflObjectVersion` are now read-only.
+  version up front; they are created when a file is looked up. Looking up or reading individual files from objects that
+  contain many files no longer scales with the number of files in the object, and `describeObject()` no longer scales
+  with the number of files in every version. The first iteration over a version's files creates all of them, and later
+  iterations and lookups reuse them.
+- The file maps and collections returned by `VersionDetails`, `OcflObjectVersion`, and `OcflStorage.getObjectStreams()`
+  are now read-only. Copy them, e.g. `new HashMap<>(versionDetails.getFileMap())`, to modify them.
 
 ### Fixed
 
