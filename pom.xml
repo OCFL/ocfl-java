@@ -73,8 +73,8 @@
 
         <!-- Cannot be upgraded past 2.18 due to incompatibilities with s3mock 2.17.0.
          s3mock cannot be upgraded because later versions require Java 17 or later.-->
-        <jackson.version>2.18.11</jackson.version>
-        <slf4j.version>2.0.17</slf4j.version>
+        <jackson.version>2.23</jackson.version>
+        <slf4j.version>2.0.20</slf4j.version>
     </properties>
 
     <profiles>
@@ -302,14 +302,14 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.5.21</version>
+                <version>1.5.38</version>
             </dependency>
 
             <!-- Caching -->
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
-                <version>3.2.3</version>
+                <version>3.2.4</version>
             </dependency>
 
             <!-- Byte manipulation -->
@@ -323,7 +323,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.7.1-jre</version>
+                <version>33.7.2-jre</version>
             </dependency>
             <dependency>
                 <groupId>dev.failsafe</groupId>
@@ -333,21 +333,21 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>1.85</version>
+                <version>1.85.2</version>
             </dependency>
 
             <!-- AWS -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.39.1</version>
+                <version>2.39.6</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk.crt</groupId>
                 <artifactId>aws-crt</artifactId>
-                <version>0.40.0</version>
+                <version>0.40.3</version>
             </dependency>
 
             <!-- Test -->
@@ -364,7 +364,7 @@
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
-                <version>5.14.1</version>
+                <version>5.14.4</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -374,7 +374,7 @@
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>42.7.12</version>
+                <version>42.7.14</version>
             </dependency>
             <dependency>
                 <groupId>com.h2database</groupId>
@@ -389,7 +389,7 @@
             <dependency>
                 <groupId>com.mchange</groupId>
                 <artifactId>c3p0</artifactId>
-                <version>0.14.0</version>
+                <version>0.14.2</version>
             </dependency>
             <dependency>
                 <groupId>com.adobe.testing</groupId>
