@@ -4,11 +4,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.endsWith;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import io.ocfl.api.DigestAlgorithmRegistry;
 import io.ocfl.api.OcflConstants;
 import io.ocfl.api.exception.NotFoundException;
 import io.ocfl.api.exception.OcflStateException;
+import io.ocfl.api.model.DigestAlgorithm;
 import io.ocfl.api.model.VersionNum;
 import io.ocfl.core.extension.ExtensionSupportEvaluator;
 import io.ocfl.core.extension.OcflExtensionConfig;
@@ -23,6 +31,7 @@ import io.ocfl.core.test.ITestHelper;
 import io.ocfl.core.util.DigestUtil;
 import io.ocfl.core.util.FileUtil;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -123,6 +132,26 @@ public class FileSystemOcflStorageTest {
         assertThrows(NotFoundException.class, () -> storage.getInventoryBytes("o2", VersionNum.fromInt(4)));
     }
 
+    @Test
+    public void shouldOnlyCreateRetrieverForRequestedFile() throws IOException {
+        copyExistingRepo("repo-multiple-objects");
+        var fileSystemStorage = spy(new FileSystemStorage(repoDir));
+        var storage = newStorage(fileSystemStorage);
+        var inventory = storage.loadInventory("o2");
+
+        var streams = storage.getObjectStreams(inventory, VersionNum.fromInt(2));
+
+        assertThat(streams.keySet(), containsInAnyOrder("dir1/dir2/file2", "dir1/file3", "dir3/file1"));
+        verify(fileSystemStorage, times(0)).readLazy(anyString(), any(DigestAlgorithm.class), anyString());
+
+        try (var stream = streams.get("dir1/file3").retrieveFile()) {
+            Assertions.assertEquals("file 3", new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+        }
+        verify(fileSystemStorage, times(1)).readLazy(anyString(), any(DigestAlgorithm.class), anyString());
+        verify(fileSystemStorage)
+                .readLazy(endsWith("v2/content/dir1/file3"), eq(DigestAlgorithmRegistry.sha512), anyString());
+    }
+
     private InventoryBuilder inventoryBuilder() {
         return Inventory.builder()
                 .id("o1")
@@ -136,7 +165,11 @@ public class FileSystemOcflStorageTest {
     }
 
     private OcflStorage newStorage() {
-        var storage = OcflStorageBuilder.builder().fileSystem(repoDir).build();
+        return newStorage(new FileSystemStorage(repoDir));
+    }
+
+    private OcflStorage newStorage(FileSystemStorage fileSystemStorage) {
+        var storage = OcflStorageBuilder.builder().storage(fileSystemStorage).build();
         storage.initializeStorage(
                 OcflConstants.DEFAULT_OCFL_VERSION,
                 layoutConfig,

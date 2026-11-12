@@ -59,6 +59,7 @@ import io.ocfl.core.storage.common.Storage;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.core.util.NamasteTypeFile;
 import io.ocfl.core.util.UncheckedFiles;
+import io.ocfl.core.util.VersionStateMap;
 import io.ocfl.core.validation.Validator;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -70,7 +71,6 @@ import java.nio.file.Paths;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -269,16 +269,8 @@ public class DefaultOcflStorage extends AbstractOcflStorage {
         var version = inventory.ensureVersion(versionNum);
         var algorithm = inventory.getDigestAlgorithm();
 
-        var map = new HashMap<String, OcflFileRetriever>(version.getState().size());
-
-        version.getState().forEach((digest, paths) -> {
-            var srcPath = inventory.storagePath(digest);
-            paths.forEach(path -> {
-                map.put(path, storage.readLazy(srcPath, algorithm, digest));
-            });
-        });
-
-        return map;
+        return new VersionStateMap<>(
+                version, (path, digest) -> storage.readLazy(inventory.storagePath(digest), algorithm, digest));
     }
 
     /**
