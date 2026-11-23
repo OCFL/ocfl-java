@@ -1,0 +1,49 @@
+version: 2
+updates:
+  # Maven: the root pom aggregates every module
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "00:00"
+      timezone: "Etc/UTC"
+    cooldown:
+      default-days: 1
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
+    assignees:
+      - "Surfrdan"
+      - "rsteph-de"
+    labels:
+      - "dependencies"
+    ignore:
+      # Jackson is held at 2.18 for compatibility with s3mock 2.17 (see pom.xml)
+      - dependency-name: "com.fasterxml.jackson*"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      # s3mock 3.x and later require Java 17; the build targets Java 11
+      - dependency-name: "com.adobe.testing:s3mock*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Batch routine minor/patch bumps into one PR
+      maven-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions used in .github/workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 1
+    rebase-strategy: "auto"
+    assignees:
+      - "Surfrdan"
+      - "rsteph-de"
+    labels:
+      - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
