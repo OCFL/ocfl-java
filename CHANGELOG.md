@@ -2,6 +2,12 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [2.2.4] - 2026-11-25
+
+### Changed
+
+- Updated dependencies
+
 ### Fixed
 
 - Fix exception when creating a validation error for version directories that are actually files. https://github.com/OCFL/ocfl-java/issues/135
