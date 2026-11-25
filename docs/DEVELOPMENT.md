@@ -66,6 +66,19 @@ fixtures, as part of the unit tests in the `ocfl-java-core` module.
 
 # Release
 
+`scripts/release.sh` runs the steps below with checks, pauses for the manual
+steps, and a confirmation before each push and the deploy. Run it from a
+terminal on an up-to-date `main`. It pushes to `origin`; set
+`RELEASE_REMOTE=upstream` if `origin` is your fork. Merge the release PR
+with a merge commit, not a squash, so the release commit can be tagged.
+
+``` shell
+scripts/release.sh                       # e.g. 2.2.4-SNAPSHOT -> 2.2.4, then 2.2.5-SNAPSHOT
+scripts/release.sh 2.3.0 2.3.1-SNAPSHOT  # explicit versions
+```
+
+Manual steps:
+
 ``` shell
 RELEASE_VERSION=2.0.0
 SNAP_VERSION=2.0.1-SNAPSHOT
