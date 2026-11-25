@@ -37,7 +37,6 @@ import io.ocfl.core.model.Inventory;
 import io.ocfl.core.model.Version;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -114,25 +113,19 @@ public class ResponseMapper {
     }
 
     private Map<String, FileDetails> mapFileDetails(Inventory inventory, Version version) {
-        var fileDetailsMap = new HashMap<String, FileDetails>();
-
         var digestAlgorithm = inventory.getDigestAlgorithm();
 
-        version.getState().forEach((digest, paths) -> {
-            paths.forEach(path -> {
-                var contentPath = inventory.getContentPath(digest);
-                var details = new FileDetails()
-                        .setPath(path)
-                        .setStorageRelativePath(inventory.storagePath(digest))
-                        .addDigest(digestAlgorithm, digest);
+        return new VersionStateMap<>(version, (path, digest) -> {
+            var contentPath = inventory.getContentPath(digest);
+            var details = new FileDetails()
+                    .setPath(path)
+                    .setStorageRelativePath(inventory.storagePath(digest))
+                    .addDigest(digestAlgorithm, digest);
 
-                var digests = inventory.getFixityForContentPath(contentPath);
-                digests.forEach(details::addDigest);
-                fileDetailsMap.put(path, details);
-            });
+            var digests = inventory.getFixityForContentPath(contentPath);
+            digests.forEach(details::addDigest);
+            return details;
         });
-
-        return fileDetailsMap;
     }
 
     private VersionInfo versionInfo(Version version) {

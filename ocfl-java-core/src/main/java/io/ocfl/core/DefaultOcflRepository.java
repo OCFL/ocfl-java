@@ -61,6 +61,7 @@ import io.ocfl.core.util.DigestUtil;
 import io.ocfl.core.util.FileUtil;
 import io.ocfl.core.util.ResponseMapper;
 import io.ocfl.core.util.UncheckedFiles;
+import io.ocfl.core.util.VersionStateMap;
 import io.ocfl.core.validation.InventoryValidator;
 import io.ocfl.core.validation.Validator;
 import java.io.BufferedOutputStream;
@@ -262,13 +263,12 @@ public class DefaultOcflRepository implements OcflRepository {
         var versionNum = requireVersion(objectVersionId, inventory);
 
         var versionDetails = createVersionDetails(inventory, versionNum);
+        var fileDetails = versionDetails.getFileMap();
         var objectStreams = storage.getObjectStreams(inventory, versionNum);
 
-        var files = versionDetails.getFiles().stream()
-                .map(file -> {
-                    return new OcflObjectVersionFile(file, objectStreams.get(file.getPath()));
-                })
-                .collect(Collectors.toMap(OcflObjectVersionFile::getPath, v -> v));
+        var files = new VersionStateMap<>(
+                inventory.getVersion(versionNum),
+                (path, digest) -> new OcflObjectVersionFile(fileDetails.get(path), objectStreams.get(path)));
 
         versionDetails.setFileMap(null);
 
